@@ -18,7 +18,7 @@ BASED_API_URL = "https://api.github.com/repos/" + "/".join([BASED_REPO_USER, BAS
 class UpdatesCheckFailed(Exception):
     """Exception to indicate that checking for updates failed. This could be for several reasons,
     e.g if the GitHub API is down.
-    
+
     The reason for the failure should be given in the constructor.
 
     :param str reason: The reason that the updates check failed
@@ -70,7 +70,7 @@ async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> s
     :param aiohttp.ClientSession httpClient: The ClientSession to request git info with
     :param str url: URL to the git remote to check
     :return: String name of the the latest tag on the remote at URL, if the remote at URL has any tags. Empty string otherwise
-    :rtype: str 
+    :rtype: str
     """
     async with httpClient.get(url) as resp:
         try:

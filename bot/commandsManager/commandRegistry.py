@@ -66,6 +66,6 @@ class CommandRegistry:
         :raise IncorrectCommandCallContext: When attempting to call a non-DMable command from DMs
         """
         if isDM and not self.allowDM:
-            raise IncorrectCommandCallContext("Attempted to call command '" + self.ident +
-                                              "' from DMs, but command is not allowed in DMs.")
+            raise IncorrectCommandCallContext("Attempted to call command '" + self.ident \
+                                              + "' from DMs, but command is not allowed in DMs.")
         await self.func(message, args if self.forceKeepArgsCasing else args.lower(), isDM)

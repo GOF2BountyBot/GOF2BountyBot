@@ -1,110 +1,71 @@
+This repository is a work-in-progress port of [BountyBot](https://github.com/Trimatix/GOF2BountyBot) onto the [BASED](https://github.com/Trimatix/BASED) platform. The game's code has only partially been copied over, but is in a state of basic functionality.
+
+---
+
 <p align="center">
   <img
-    src="https://i.imgur.com/7SMgF0t.png"
-    alt="BASED Logo"
+    width="256"
+    src="https://i.imgur.com/mt0eL8l.png"
+    alt="BountyBot Logo"
   />
 </p>
-<h1 align="center">Bot Advanced Schematic - Easy Discord! (BASED)</h1>
+<h1 align="center">BountyBot - A GOF2 Fan Project</h1>
 <p align="center">
-  <a href="https://github.com/Trimatix/BASED/actions"
+  <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/actions"
     ><img
-      src="https://img.shields.io/github/workflow/status/Trimatix/BASED/BASED"
+      src="https://img.shields.io/github/workflow/status/GOF2BountyBot/GOF2BountyBot/BASED"
       alt="GitHub Actions workflow status"
   /></a>
-  <a href="https://github.com/Trimatix/BASED/labels/bug"
+  <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3Abug"
     ><img
-      src="https://img.shields.io/github/issues-search?color=eb4034&label=bugs&query=repo%3ATrimatix%2FBASED%20is%3Aopen%20label%3Abug"
+      src="https://img.shields.io/github/issues-search?color=eb4034&label=bugs&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3Abug"
       alt="GitHub open bug reports"
+  /></a>
+  <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3Agame%20balance"
+    ><img
+      src='https://img.shields.io/github/issues-search?color=46d2e8&label=balance%20issues&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3A"game+balance"'
+      alt="GitHub open game balance issues"
+  /></a>
+  <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3Aenhancement"
+    ><img
+      src="https://img.shields.io/github/issues-search?color=edd626&label=upcoming%20features&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3Aenhancement"
+      alt="GitHub open enhancement issues"
   /></a>
 </p>
 <p align="center">
-  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+  <a href="https://sonarcloud.io/dashboard?id=GOF2BountyBot_GOF2BountyBot"
     ><img
-      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=bugs"
+      src="https://sonarcloud.io/api/project_badges/measure?project=GOF2BountyBot_GOF2BountyBot&metric=bugs"
       alt="SonarCloud bugs analysis"
   /></a>
-  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+  <a href="https://sonarcloud.io/dashboard?id=GOF2BountyBot_GOF2BountyBot"
     ><img
-      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=code_smells"
+      src="https://sonarcloud.io/api/project_badges/measure?project=GOF2BountyBot_GOF2BountyBot&metric=code_smells"
       alt="SonarCloud code smells analysis"
   /></a>
-  <a href="https://sonarcloud.io/dashboard?id=Trimatix_BASED"
+  <a href="https://sonarcloud.io/dashboard?id=GOF2BountyBot_GOF2BountyBot"
     ><img
-      src="https://sonarcloud.io/api/project_badges/measure?project=Trimatix_BASED&metric=alert_status"
+      src="https://sonarcloud.io/api/project_badges/measure?project=GOF2BountyBot_GOF2BountyBot&metric=alert_status"
       alt="SonarCloud quality gate status"
   /></a>
 </p>
 
-BASED is a template project for creating advanced discord bots using python.
+# GOF2BountyBot
+An ambitious discord bot written in python, recreating some of the features of Galaxy on Fire 2. Currently, the standout features are the bounty hunting system, and the items/loadout/trading/dueling system.
 
-<hr>
+# Architecture
+The 'main' file is `bot.bot`, which defines regular behaviour with `discord.Client.event`s.
+Command definitions are located in the various modules of the `commands` package.
 
-### Standout Features
+## cfg
+This package configures the game's behaviour with BASED's automatic TOML config file generation, and a custom gameConfigurator script that parses a set of JSON game object descriptions.
 
-- Task scheduler with auto-rescheduling
-- Object and database saving with JSON
-- Per-guild command prefixing
-- Custom access level-based commands handler
-  - Help command auto-generation with paged reaction menus
-- Highly versatile reaction menu implementation in two calling styles:
-  - 'Inline' - yields the calling thread until the results of the menu are available
-  - 'Passive' - schedules the menu behaviour while allowing execution to continue immediately
+## gameObjects
+Contains definitions for all *game objects* - representing items useable by the players (items, inventories) and playing functionality of the game itself (shops, bounties, duels).
 
-# How to Make a BASED App
+## shipRenderer
+At its base, `_render.py `implements calls to [blender](https://www.blender.org/) to render a named model with a named texture file. `shipRenderer.py` makes use of this, passing renderer arguments to blender through the `render_args` plaintext file. `shipRenderer` is capable of compositing multiple textures according to image masks,using the `Pillow` library. All of this behaviour can be called asynchronously to render a given `Ship` with a series of texture files according to the ship's textureRegion masks, by using the `shipRenderer.renderShip` coroutine.
 
-1. Fork this repository.
-2. Install the project requirements with `pip install -r requirements.txt`.
-3. Provide your bot token (see the [Configuring Your Bot](https://github.com/Trimatix/BASED#configuring-your-bot) section below).
-4. Build your bot directly over BASED.
+## userAlerts
+Defines the versitile `UABase` class, which can be used to assign boolean alert subscriptions to alert behaviour, to be called upon certain events. For example, a guild may define a `UA_Shop_Refresh` alert, corresponding to a role within the guild. Users may then subscribe to this alert, granting them the role. The shop refreshing `TimedTask` expiry function is directed to check for the existence of such an alert in guilds, and ping the alerting role.
 
-The project is already working as is, with a connected client instance, dynamic commands importing and calling, scheduler and database initialization, and reactionMenu interaction using client events.<br>
-To test the base project, try running the bot, and calling the `.help` command.
-
-See the `commands` module for examples of adding new commands.<br>
-If you add a new commands module, enable it by adding the module name to the `enabledCommandsModules` config variable.
-
-BASED is *not* a library, it is a *template* to be used as a starting point for your project.
-
-# Configuring Your Bot
-
-BASED v0.3 adds the ability to configure all of the bot's cfg attributes externally with toml.<br>
-If a bot token is provided by the default config values (found in `cfg/cfg.py`), use of a config file is entirely optional.
-
-- All config variables are optional.
-- Generate a default config file with all variables and their defaults, by running `makeDefaultConfig.py`.
-  - You can optionally specify the file name (or path to the file name) to generate into, e.g `python makeDefaultConfig.py configs/myBotConfig.py`.
-- Any emoji can be either unicode or custom.
-  - Give custom emojis as the integer emoji ID.
-  - Give unicode emojis as a string containing a single unicode emoji character.
-
-### Providing your bot token
-
-The bot token can now be given in a config variable, or in an environment variable whose name is specified in config:
-- Specify your token directly, in the `botToken` config var, or
-- Give the name of the environment variable containing your token, in `botToken_envVarName`
-
-You must give exactly one of these variables, either in the default config values (`cfg/cfg.py`), or in a toml config file.
-
-# Running Your Bot
-
-To run your bot, simply run `main.py`.<br>
-To load a config.toml, provide a path to your config in command line args, e.g `python main.py myConfig.toml`.
-> This path can be either absolute, or relative to the project root directory
-
-
-# How to Update Your BASED Fork
-
-When new versions of BASED are released, assuming you have update checking enabled in `cfg.BASED_checkForUpdates`, you will be notified via console.<br>
-To update your BASED fork, create a pull request from Trimatix/BASED/master into your fork.<br>
-Beware: conflicts are likely in this merge, especially if you have renamed BASED files, classes, functions or variables.
-
-<p align="center">
-  *Update: GitHub now provides an easy shortcut for this:
-</p>
-<p align="center">
-  <img
-    src="https://i.imgur.com/Tt5JFsT.jpg"
-    alt="Simply click the 'Fetch Upstream' button on your repo."
-    width=800
-  />
-</p>

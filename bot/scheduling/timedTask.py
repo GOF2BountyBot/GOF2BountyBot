@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import inspect
 from types import FunctionType
+from typing import Any
 
 
 class TimedTask:
@@ -36,8 +37,8 @@ class TimedTask:
     :vartype asyncExpiryFunction: bool
     """
 
-    def __init__(self, issueTime: datetime = None, expiryTime: datetime = None, expiryDelta: timedelta = None,
-                 expiryFunction: FunctionType = None, expiryFunctionArgs = None, autoReschedule: bool = False):
+    def __init__(self, issueTime : datetime = None, expiryTime : datetime = None, expiryDelta : timedelta = None,
+                 expiryFunction : FunctionType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
@@ -79,7 +80,7 @@ class TimedTask:
         The other object must be a TimedTask. Compares only the expiryTimes of the two tasks.
 
         :param TimedTask other: other TimedTask to compare against.
-        :return: True if this TimedTask's expiryTime is < other's expiryTime, False otherwise. 
+        :return: True if this TimedTask's expiryTime is < other's expiryTime, False otherwise.
         :rtype: bool
         """
         if not isinstance(other, TimedTask):
@@ -92,7 +93,7 @@ class TimedTask:
         The other object must be a TimedTask. Compares only the expiryTimes of the two tasks.
 
         :param TimedTask other: other TimedTask to compare against.
-        :return: True if this TimedTask's expiryTime is > other's expiryTime, False otherwise. 
+        :return: True if this TimedTask's expiryTime is > other's expiryTime, False otherwise.
         :rtype: bool
         """
         if not isinstance(other, TimedTask):
@@ -105,7 +106,7 @@ class TimedTask:
         The other object must be a TimedTask. Compares only the expiryTimes of the two tasks.
 
         :param TimedTask other: other TimedTask to compare against.
-        :return: True if this TimedTask's expiryTime is <= other's expiryTime, False otherwise. 
+        :return: True if this TimedTask's expiryTime is <= other's expiryTime, False otherwise.
         :rtype: bool
         """
         if not isinstance(other, TimedTask):
@@ -118,7 +119,7 @@ class TimedTask:
         The other object must be a TimedTask. Compares only the expiryTimes of the two tasks.
 
         :param TimedTask other: other TimedTask to compare against.
-        :return: True if this TimedTask's expiryTime is >= other's expiryTime, False otherwise. 
+        :return: True if this TimedTask's expiryTime is >= other's expiryTime, False otherwise.
         :rtype: bool
         """
         if not isinstance(other, TimedTask):
@@ -177,7 +178,7 @@ class TimedTask:
         """Reschedule this task, with the timedelta given/calculated on the task's creation,
         or to a given expiryTime/Delta. Rescheduling will update the task's issueTime to now.
         TODO: A firstIssueTime may be useful in the future to represent creation time.
-        
+
         Giving an expiryTime or expiryDelta will not update the task's stored expiryDelta.
         I.e, if the task is rescheduled again without giving an expiryDelta,
         The expiryDelta given/calculated on the task's creation will be used.
@@ -243,9 +244,9 @@ class DynamicRescheduleTask(TimedTask):
                                 You probably want this to be True, otherwise you may as well use a TimedTask. Default: False
     """
 
-    def __init__(self, delayTimeGenerator, delayTimeGeneratorArgs = None, issueTime : datetime = None,
+    def __init__(self, delayTimeGenerator : FunctionType, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
                         expiryTime : datetime = None, expiryFunction : FunctionType = None,
-                        expiryFunctionArgs = None, autoReschedule : bool = False):
+                        expiryFunctionArgs : Any = None, autoReschedule : bool = False):
         # Initialise TimedTask-inherited attributes
         super(DynamicRescheduleTask, self).__init__(expiryDelta=delayTimeGenerator(delayTimeGeneratorArgs),
                                                     issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,

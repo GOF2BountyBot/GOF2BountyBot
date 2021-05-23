@@ -14,7 +14,9 @@ def loadCommands():
             importlib.import_module(("" if modName.startswith(".") else ".") + modName, "bot.commands")
         except ImportError as e:
             if e == modName:
-                raise ImportError("Unrecognised commands module in cfg.includedCommandModules. Please ensure the file exists, and spelling/capitalization are correct: '" + modName + "'")
+                raise ImportError("Unrecognised commands module in cfg.includedCommandModules. " \
+                                    + "Please ensure the file exists, and spelling/capitalization are correct: '" \
+                                    + modName + "'")
             else:
                 raise e
 

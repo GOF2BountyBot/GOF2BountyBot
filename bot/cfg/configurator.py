@@ -1,8 +1,9 @@
 from . import cfg
 import toml
 import os
-from ..lib.emojis import UninitializedBasedEmoji
 from typing import Dict, Any
+
+from ..lib.emojis import UninitializedBasedEmoji
 
 # List of cfg attribute names that are not config variables
 ignoredVarNames = ("__name__", "__doc__", "__package__", "__loader__", "__spec__",
@@ -34,13 +35,13 @@ for varname, varvalue in cfg.defaultEmojis.items():
             continue
 
     # Ensure emoji variables only contain emojis
-    raise ValueError("Invalid config variable in cfg.defaultEmojis: " +
-                        "Emoji config variables must be either UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
+    raise ValueError("Invalid config variable in cfg.defaultEmojis: Emoji config variables must be either " \
+                        + "UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
 
 
 class ConfigProxy:
     """Similar to a dictionary, except attributes are dot-accessed.
-    
+
     :var attrnames: A list of all attribute names in the config
     :vartype attrnames: List[str]
     """
@@ -61,6 +62,8 @@ def init():
 
     Normalizes path config variables, creates any referenced directories that do not exist,
     and loads cfg.paths, cfg.defaultEmojis and cfg.timeouts into ConfigProxys.
+
+    This function will also load in all game object metadata and instances with gameConfigurator
     """
     # Normalize all paths and create missing directories
     for varname in cfg.paths:
@@ -72,7 +75,7 @@ def init():
         # Create missing directories
         if pathDir and not os.path.isdir(pathDir):
             os.makedirs(pathDir)
-    
+
     # Load ConfigProxys
     cfg.defaultEmojis = ConfigProxy(cfg.defaultEmojis)
     cfg.timeouts = ConfigProxy(cfg.timeouts)
@@ -105,7 +108,7 @@ def makeDefaultCfg(fileName: str = "defaultCfg" + CFG_FILE_EXT):
     # If fileName already exists, make a new one by adding a number onto fileName.
     fileName = fileName.split(CFG_FILE_EXT)[0]
     cfgPath = fileName
-    
+
     currentExt = 0
     while os.path.exists(cfgPath + CFG_FILE_EXT):
         currentExt += 1
@@ -144,7 +147,7 @@ def loadCfg(cfgFile: str):
     # Ensure the given config is toml
     if not cfgFile.endswith(CFG_FILE_EXT):
         raise ValueError("config files must be TOML")
-    
+
     # Load from toml to dictionary
     with open(cfgFile, "r", encoding="utf-8") as f:
         config = toml.loads(f.read())
@@ -194,12 +197,12 @@ def loadCfg(cfgFile: str):
                 try:
                     # Attempt casts for incorrect types - useful for things like ints instead of floats.
                     config[varname] = type(default)(config[varname])
-                    print("[WARNING] Casting config variable " + varname + " from " + type(config[varname]).__name__ +
-                                                                            " to " + type(default).__name__)
+                    print("[WARNING] Casting config variable " + varname + " from " + type(config[varname]).__name__ \
+                            + " to " + type(default).__name__)
                 except Exception:
                     # Where a variable is of the wrong type and cannot be casted, raise an exception.
-                    raise TypeError("Unexpected type for config variable " + varname + ": Expected " +
-                                    type(default).__name__ + ", received " + type(config[varname]).__name__)
+                    raise TypeError("Unexpected type for config variable " + varname + ": Expected " \
+                                    + type(default).__name__ + ", received " + type(config[varname]).__name__)
 
             # Not an emoji and correct type, so set variable.
             else:

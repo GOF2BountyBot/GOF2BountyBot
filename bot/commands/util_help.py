@@ -27,21 +27,22 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
 
     if lib.stringTyping.isInt(args):
         if int(args) < 1 or int(args) > len(botCommands.helpSectionEmbeds[userAccessLevel]):
-            await message.channel.send(":x: Section number must be between 1 and " +
-                                        str(len(botCommands.helpSectionEmbeds[userAccessLevel])) + "!")
+            await message.channel.send(":x: Section number must be between 1 and " \
+                                        + str(len(botCommands.helpSectionEmbeds[userAccessLevel])) + "!")
             return
         args = list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[int(args) - 1]
     elif args == "misc":
         args = "miscellaneous"
 
+    helpMenuTimeoutStr = lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu))
+
     try:
         if args == "":
             owningUser = botState.usersDB.getOrAddID(message.author.id)
             if owningUser.helpMenuOwned:
-                await message.channel.send(":x: Please close your existing help menu before making a new one!\n" +
-                                            "In case you can't find it, help menus auto exire after **" +
-                                            lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(cfg.timeouts.helpMenu))
-                                            + "**.")
+                await message.channel.send(":x: Please close your existing help menu before making a new one!\n" \
+                                            + "In case you can't find it, help menus auto exire after **" \
+                                            + helpMenuTimeoutStr + "**.")
                 return
             owningUser.helpMenuOwned = True
             menuMsg = await sendChannel.send("‎")
@@ -51,13 +52,12 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             indexEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
                                                     desc="Select " + cfg.defaultEmojis.next.sendable + " to go to page one.",
                                                     thumb=botState.client.user.avatar_url_as(size=64),
-                                                    footerTxt="This menu will expire in " +
-                                                                lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+                                                    footerTxt="This menu will expire in " + helpMenuTimeoutStr + ".")
             sectionsStr = ""
             pages = {indexEmbed: {}}
             for sectionNum in range(len(botCommands.helpSectionEmbeds[userAccessLevel])):
-                sectionsStr += "\n" + str(sectionNum + 1) + ") " + \
-                    list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
+                sectionsStr += "\n" + str(sectionNum + 1) + ") " \
+                                + list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
                 # sectionsStr += "\n" + cfg.defaultEmojis.menuOptions[sectionNum + 1].sendable + " : " +
                 #                 list(botCommands.helpSectionEmbeds[userAccessLevel].keys())[sectionNum].title()
                 # pages[indexEmbed][cfg.defaultEmojis.menuOptions[sectionNum + 1]] =
@@ -71,9 +71,8 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 for helpEmbed in helpSectionEmbedList:
                     pageNum += 1
                     newEmbed = helpEmbed.copy()
-                    newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(
-                        botCommands.totalEmbeds[userAccessLevel]) + " | This menu will expire in " +
-                        lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+                    newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(botCommands.totalEmbeds[userAccessLevel]) \
+                                            + " | This menu will expire in " + helpMenuTimeoutStr + ".")
                     pages[newEmbed] = {}
             helpMenu = pagedReactionMenu.PagedReactionMenu(
                 menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
@@ -86,10 +85,9 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             else:
                 owningUser = botState.usersDB.getOrAddID(message.author.id)
                 if owningUser.helpMenuOwned:
-                    await message.channel.send(":x: Please close your existing help menu before making a new one!\n" +
-                                                "In case you can't find it, help menus auto exire after **" +
-                                                lib.timeUtil.td_format_noYM(lib.timeUtil.timeDeltaFromDict(
-                                                    cfg.timeouts.helpMenu)) + "**.")
+                    await message.channel.send(":x: Please close your existing help menu before making a new one!\n" \
+                                                + "In case you can't find it, help menus auto exire after **" \
+                                                + helpMenuTimeoutStr + "**.")
                     return
                 owningUser.helpMenuOwned = True
                 menuMsg = await sendChannel.send("‎")
@@ -99,8 +97,8 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                 pages = {}
                 for helpEmbed in botCommands.helpSectionEmbeds[userAccessLevel][args]:
                     newEmbed = helpEmbed.copy()
-                    newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " +
-                                        lib.timeUtil.td_format_noYM(helpTT.expiryDelta) + ".")
+                    newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " \
+                                        + helpMenuTimeoutStr + ".")
                     pages[newEmbed] = {}
                 helpMenu = pagedReactionMenu.PagedReactionMenu(
                     menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
@@ -109,9 +107,9 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
 
         elif args in botCommands.commands[userAccessLevel] and botCommands.commands[userAccessLevel][args].allowHelp:
             helpEmbed = lib.discordUtil.makeEmbed(titleTxt=cfg.userAccessLevels[userAccessLevel] + " Commands",
-                                                    desc=cfg.helpIntro +
-                                                    "\n__" + botCommands.commands[userAccessLevel][args].helpSection.title() +
-                                                    "__", col=discord.Colour.blue(),
+                                                    desc=cfg.helpIntro + "\n__" \
+                                                        + botCommands.commands[userAccessLevel][args].helpSection.title() \
+                                                        + "__", col=discord.Colour.blue(),
                                                     thumb=botState.client.user.avatar_url_as(size=64))
             helpEmbed.add_field(name=botCommands.commands[userAccessLevel][args].signatureStr,
                                 value=botCommands.commands[userAccessLevel][args].longHelp, inline=False)
@@ -128,8 +126,8 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
             await message.channel.send(":x: Unknown command/section! See `help help` for a list of help sections.")
 
     except discord.Forbidden:
-        await message.channel.send(":x: I can't DM you, " + message.author.display_name +
-                                    "! Please enable DMs from users who are not friends.")
+        await message.channel.send(":x: I can't DM you, " + message.author.display_name \
+                                    + "! Please enable DMs from users who are not friends.")
         return
     else:
         if sendDM:

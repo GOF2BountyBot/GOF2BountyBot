@@ -71,7 +71,7 @@ class PagedReactionMenu(reactionMenu.ReactionMenu):
         This will usually contain a short description of the menu, its options, and its expiry time.
 
         :return: A discord.Embed representing the menu and its options
-        :rtype: discord.Embed 
+        :rtype: discord.Embed
         """
         return self.currentPage
 

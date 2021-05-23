@@ -89,7 +89,7 @@ class UserDB(serializable.Serializable):
         if self.idExists(userID):
             raise KeyError("Attempted to add a user that is already in this UserDB")
         # Create and return a new user
-        newUser = BasedUser(userID)
+        newUser = BasedUser.fromDict(BasedUser.defaultUserDict, id=id)
         self.users[userID] = newUser
         return newUser
 
@@ -174,8 +174,8 @@ class UserDB(serializable.Serializable):
             try:
                 data[str(userID)] = self.users[userID].toDict(**kwargs)
             except Exception as e:
-                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " +
-                                    e.__class__.__name__, trace=traceback.format_exc(), eventType="USERERR")
+                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " + type(e).__name__,
+                                    trace=traceback.format_exc(), eventType="USERERR")
         return data
 
 

@@ -11,8 +11,19 @@ usersDB = None
 guildsDB = None
 reactionMenusDB = None
 
-dbSaveTT = None
-updatesCheckTT = None
+newBountiesTTDB = None
+duelRequestTTDB = None
+shopRefreshTT = None
 
 taskScheduler = None
 logger = None
+
+dbSaveTT = None
+updatesCheckTT = None
+
+# Scheduling overrides
+newBountyFixedDeltaChanged = False
+
+
+# Names of ships currently being rendered
+currentRenders = []

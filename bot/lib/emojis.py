@@ -1,16 +1,17 @@
 from __future__ import annotations
-import emoji
-from .. import botState
-from . import stringTyping, exceptions
-import traceback
-from ..baseClasses import serializable
 
+import emoji
+import traceback
 from typing import Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from discord import PartialEmoji, Emoji
 
+from .. import botState
+from . import stringTyping, exceptions
+from ..baseClasses import serializable
+from ..cfg import cfg
 
-err_UnknownEmoji = "❓"
+
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji
 raiseUnkownEmojis = False
 logUnknownEmojis = True
@@ -59,7 +60,7 @@ class BasedEmoji(serializable.Serializable):
     :var id: The ID of the Emoji that this object represents, if isID
     :vartype id: int
     :var unicode: The string unicode emoji that this object represents, if isUnicode
-    :vartype unicode: 
+    :vartype unicode:
     :var isID: True if this object represents a custom emoji, False if it represents a unicode emoji.
     :vartype isID: bool
     :var isUnicode: False if this object represents a custom emoji, True if it represents a unicode emoji.
@@ -78,7 +79,7 @@ class BasedEmoji(serializable.Serializable):
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.                                   
+                                                    is given that does not exist or the client cannot access.
         """
 
         if id == -1 and unicode == "":
@@ -97,12 +98,13 @@ class BasedEmoji(serializable.Serializable):
         self.sendable = self.unicode if self.isUnicode else str(botState.client.get_emoji(self.id))
         if self.sendable == "None":
             if logUnknownEmojis:
-                botState.logger.log("BasedEmoji", "init", "Unrecognised custom emoji ID in BasedEmoji constructor: " +
-                                    str(self.id), trace=traceback.format_exc())
+                botState.logger.log("BasedEmoji", "init",
+                                    "Unrecognised custom emoji ID in BasedEmoji constructor: " + str(self.id),
+                                    trace=traceback.format_exc())
             if raiseUnkownEmojis or rejectInvalid:
                 raise exceptions.UnrecognisedCustomEmoji(
                     "Unrecognised custom emoji ID in BasedEmoji constructor: " + str(self.id), self.id)
-            self.sendable = err_UnknownEmoji
+            self.sendable = cfg.defaultEmojis.unrecognisedEmoji.sendable
 
 
     def toDict(self, **kwargs) -> dict:
@@ -167,7 +169,7 @@ class BasedEmoji(serializable.Serializable):
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.                                   
+                                                    is given that does not exist or the client cannot access.
         :return: A new BasedEmoji object as described in emojiDict
         :rtype: BasedEmoji
         """
@@ -188,7 +190,7 @@ class BasedEmoji(serializable.Serializable):
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.                                   
+                                                    is given that does not exist or the client cannot access.
         :return: A BasedEmoji representing e
         :rtype: BasedEmoji
         """
@@ -209,7 +211,7 @@ class BasedEmoji(serializable.Serializable):
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.                                   
+                                                    is given that does not exist or the client cannot access.
         :return: A BasedEmoji representing e
         :rtype: BasedEmoji
         """
@@ -231,18 +233,18 @@ class BasedEmoji(serializable.Serializable):
     @classmethod
     def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
         """Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
-        
+
         s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.fromDict(s)), or
         only an ID of a discord custom emoji (may be either str or int)
 
-        If 
+        If
 
         :param str s: A string containing only one of: A unicode emoji, a discord custom emoji, or
                         the ID of a discord custom emoji.
         :param bool rejectInvalid: When true, an exception is guaranteed to raise if an invalid emoji is requested,
                                     regardless of raiseUnknownEmojis (Default False)
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.                                   
+                                                    is given that does not exist or the client cannot access.
         :return: A BasedEmoji representing the given string emoji
         :rtype: BasedEmoji
         """
@@ -266,7 +268,7 @@ class BasedEmoji(serializable.Serializable):
 
         :param UninitializedBasedEmoji e: The emoji to initialize
         :raise exceptions.UnrecognisedCustomEmoji: When rejectInvalid=True is present in kwargs, and a custom emoji
-                                                    is given that does not exist or the client cannot access.       
+                                                    is given that does not exist or the client cannot access.
         :return: A BasedEmoji representing the given emoji
         :rtype: BasedEmoji
         """
@@ -279,8 +281,8 @@ class BasedEmoji(serializable.Serializable):
             return BasedEmoji.fromDict(e.value, rejectInvalid=rejectInvalid)
         # Unrecognised uninitialized value
         else:
-            raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" +
-                                type(e.value).__name__ + "'")
+            raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" \
+                                + type(e.value).__name__ + "'")
 
 
 # 'static' object representing an empty/lack of emoji

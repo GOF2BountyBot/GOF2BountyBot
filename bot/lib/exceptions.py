@@ -26,3 +26,12 @@ class NoneDCGuildObj(Exception):
     """Raised when constructing a guild object, but the corresponding dcGuild was either not given or invalid.
     """
     pass
+
+
+class InvalidGameObjectFolder(Exception):
+    """Raised when attempting to load in a game object configuration folder with
+    """
+    def __init__(self, filePath, reason):
+        super().__init__("Invalid game object configuration folder (" + reason + "): " + filePath)
+        self.filePath = filePath
+        self.reason = reason

@@ -240,7 +240,7 @@ class ReactionMenu(serializable.Serializable):
     a dictionary of emojis to roles into an options dictionary, where each option's addFunc is bound to a role granting
     function, and its removeFunc is bound to a role removing function. The only extra behaviour ReactionRolePickerOption
     implements over ReactionMenuOption is the addition of its associated role ID being saved during toDict.
-    
+
     The options in your options dictionary do not have to be of the same type - each option could have completely
     different behaviour. The only consideration you may need to make when creating such an object is whether or
     not you wish for it to be saveable - in which case, you should extend ReactionMenu into a new module,
@@ -387,7 +387,7 @@ class ReactionMenu(serializable.Serializable):
         This will usually contain a short description of the menu, its options, and its expiry time.
 
         :return: A discord.Embed representing the menu and its options
-        :rtype: discord.Embed 
+        :rtype: discord.Embed
         """
         menuEmbed = Embed(title=self.titleTxt, description=self.desc, colour=self.col)
         if self.footerTxt != "":
@@ -429,7 +429,7 @@ class ReactionMenu(serializable.Serializable):
     async def delete(self):
         """⚠ WARNING: DO NOT SET THIS AS YOUR MENU'S TIMEDTASK EXPIRY FUNCTION. This method calls the menu's
         TimedTask expiry function.
-        
+
         Forcibly delete the menu.
         If a timeout TimedTask was defined in this menu's constructor, this will be forcibly expired.
         If no TimedTask was given, the menu will default to calling deleteReactionMenu.
@@ -454,7 +454,7 @@ class ReactionMenu(serializable.Serializable):
             optionsDict[reaction.sendable] = self.options[reaction].toDict(**kwargs)
 
         data = {"channel": self.msg.channel.id, "msg": self.msg.id, "options": optionsDict,
-                "type": self.__class__.__name__, "guild": self.msg.channel.guild.id}
+                "type": type(self).__name__, "guild": self.msg.channel.guild.id}
 
         if self.titleTxt != "":
             data["titleTxt"] = self.titleTxt
@@ -480,7 +480,7 @@ class ReactionMenu(serializable.Serializable):
         if self.authorName != "":
             data["authorName"] = self.authorName
 
-        if self.timeout != None:
+        if self.timeout is not None:
             data["timeout"] = self.timeout.expiryTime.timestamp()
 
         if self.targetMember is not None:
@@ -500,7 +500,7 @@ class ReactionMenu(serializable.Serializable):
 class CancellableReactionMenu(ReactionMenu):
     """A simple ReactionMenu extension that adds an extra 'cancel' option to your given options dictionary.
     The 'cancel' option will call the menu's delete method. No extra restrictions beyond targetMember/targetRole are placed
-    on members who may cancel the menu. 
+    on members who may cancel the menu.
 
     If CancellableReactionMenu is extended into a saveable menu class, the cancel option will not be included in the menu's
     dictionary-serialized representation. This is fine, since the constructor in your saveable subclass
@@ -567,11 +567,11 @@ class CancellableReactionMenu(ReactionMenu):
 
 class SingleUserReactionMenu(ReactionMenu):
     """An in-place menu solution.
-    
+
     InlineReactionMenus do not need to be recorded in the reactionMenusDB, but instead have a
     doMenu coroutine which should be awaited. Once execution returns, doMenu will return a list containing all of the
     currently selected options.
-    
+
     This menu style is only available for use by single users - hence the requirement for targetMember.
     returnTriggers is given as a kwarg, but if no returnTriggers are given, then the menu will only expire due ot timeout.
 
@@ -635,9 +635,9 @@ class SingleUserReactionMenu(ReactionMenu):
             return []
         else:
             updatedMsg = await self.msg.channel.fetch_message(self.msg.id)
-            return [lib.emojis.BasedEmojiFromReaction(react.emoji) for react in updatedMsg.reactions \
+            return [lib.emojis.BasedEmoji.fromReaction(react.emoji) for react in updatedMsg.reactions \
                     if self.targetMember in await react.users().flatten() and \
-                    lib.emojis.BasedEmojiFromReaction(react.emoji) in self.options]
+                    lib.emojis.BasedEmoji.fromReaction(react.emoji) in self.options]
 
 
 saveableMenuTypeNames: Dict[type, str] = {}

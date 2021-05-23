@@ -2,6 +2,7 @@ from . import timedTask
 from heapq import heappop, heappush
 import inspect
 from types import FunctionType
+from typing import Any
 import asyncio
 from datetime import datetime
 
@@ -24,7 +25,7 @@ class TimedTaskHeap:
     :vartype asyncExpiryFunction: bool
     """
 
-    def __init__(self, expiryFunction: FunctionType = None, expiryFunctionArgs = None):
+    def __init__(self, expiryFunction : FunctionType = None, expiryFunctionArgs : Any = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)

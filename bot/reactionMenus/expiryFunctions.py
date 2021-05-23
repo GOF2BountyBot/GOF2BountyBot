@@ -34,7 +34,7 @@ async def removeEmbedAndOptions(menuID: int):
 
 
 async def markExpiredMenu(menuID: int):
-    """Replace the message content of the given menu with cfg.expiredMenuMsg, and remove 
+    """Replace the message content of the given menu with cfg.expiredMenuMsg, and remove
     the menu from the active reaction menus DB.
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message

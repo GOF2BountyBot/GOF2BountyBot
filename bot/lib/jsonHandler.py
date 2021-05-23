@@ -1,5 +1,4 @@
 import json
-import os
 
 
 def readJSON(dbFile: str) -> dict:
@@ -7,7 +6,7 @@ def readJSON(dbFile: str) -> dict:
 
     :param str dbFile: Path to the file to read
     :return: The contents of the requested json file, parsed into a python dictionary
-    :rtype: dict 
+    :rtype: dict
     """
     f = open(dbFile, "r")
     txt = f.read()

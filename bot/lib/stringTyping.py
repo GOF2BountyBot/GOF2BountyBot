@@ -1,4 +1,6 @@
 # TODO: Remake most of these with regex
+from typing import Union
+
 
 def isInt(x) -> bool:
     """Decide whether or not something is either an integer, or is castable to integer.
@@ -65,3 +67,35 @@ def getNumExtension(num: int) -> str:
     :rtype: str
     """
     return numExtensions[int(str(num)[-1])] if not (num > 10 and num < 20) else "th"
+
+
+def shipSkinNameToToolName(skinName : str) -> str:
+    """Construct a name of a shipSkinTool from the name of the skin of the skin.
+
+    :param str skinName: The name of the skin this tool name should reference
+    :return: The name that should be given to a shipSkinTool that applies the named shipSkin
+    """
+    return "Ship Skin: " + skinName
+
+
+def formatAdditive(stat : Union[float, int]) -> str:
+    """Format a module effect attribute into a string, including a sign symbol.
+
+    :param stat: The statistic to format into a string
+    :type stat: Union[float, int]
+    :return: A sign symbol, followed by stat
+    """
+    return ("+" if stat > 0 else "-") + str(stat)
+
+
+def formatMultiplier(stat : float) -> str:
+    """Format a module effect attribute into a string, including a sign symbol and percentage symbol.
+
+    :param stat: The statistic to format into a string
+    :type stat: float
+    :return: A sign symbol, followed by stat, followed by a percentage sign.
+    """
+    sign = "+" if stat >= 1 else "-"
+    if stat > 1:
+        return sign + str(round((stat - 1) * 100)) + "%"
+    return sign + str(round(stat * 100)) + "%"

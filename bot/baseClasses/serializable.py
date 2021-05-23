@@ -16,7 +16,7 @@ class Serializable(ABC):
 
     @abstractclassmethod
     def fromDict(cls, data: dict, **kwargs) -> Serializable:
-        """Recreate a dictionary-serialized Serializable object 
+        """Recreate a dictionary-serialized Serializable object
 
         :param dict data: A dictionary containing all information needed to recreate the serialized object
         :return: A new object as specified by the attributes in data
