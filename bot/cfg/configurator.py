@@ -1,14 +1,14 @@
 from . import cfg
 import toml
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Generic, List, TypeVar, Union, cast
 
 from ..lib.emojis import UninitializedBasedEmoji
 
 # List of cfg attribute names that are not config variables
 ignoredVarNames = ("__name__", "__doc__", "__package__", "__loader__", "__spec__",
                    "__file__", "__cached__", "__builtins__", "UninitializedBasedEmoji",
-                   "Dict", "List", "Union", "Cast", "BasedEmoji")
+                   "Dict", "List", "Union", "Cast", "BasedEmoji", "configurator")
 
 # List of cfg.defaultEmojis keys that are UninitializedBasedEmoji
 emojiVars = []
@@ -18,7 +18,7 @@ emojiListVars = []
 CFG_FILE_EXT = ".toml"
 
 # Populate and validate emojiVars and emojiListVars
-for varname, varvalue in cfg.defaultEmojis.items():
+for varname, varvalue in cast(Dict[str, Union[UninitializedBasedEmoji, List[UninitializedBasedEmoji]]], cfg.defaultEmojis).items():
     # Populate emojiVars
     if type(varvalue) == UninitializedBasedEmoji:
         emojiVars.append(varname)
@@ -40,7 +40,10 @@ for varname, varvalue in cfg.defaultEmojis.items():
                         + "UninitializedBasedEmoji or List[UninitializedBasedEmoji]")
 
 
-class ConfigProxy:
+T = TypeVar('T')
+
+
+class ConfigProxy(Generic[T]):
     """Similar to a dictionary, except attributes are dot-accessed.
 
     :var attrnames: A list of all attribute names in the config
@@ -55,6 +58,10 @@ class ConfigProxy:
         self.attrNames = attrs.keys()
         for varname, varvalue in attrs.items():
             setattr(self, varname, varvalue)
+
+    
+    def __getattribute__(self, name: str) -> T:
+        return super().__getattribute__(name)
 
 
 def init():
@@ -121,7 +128,7 @@ def makeDefaultCfg(fileName: str = "defaultCfg" + CFG_FILE_EXT):
     defaults = {varname: varvalue for varname, varvalue in vars(cfg).items() if varname not in ignoredVarNames}
     # Read default emoji values
     for varname in emojiVars:
-        defaults["defaultEmojis"][varname] = cfg.defaultEmojis[varname].value
+        defaults["defaultEmojis"][varname] = cast(Dict[str, UninitializedBasedEmoji], cfg.defaultEmojis)[varname].value
     # Read default emoji list values
     for varname in emojiListVars:
         working = []
@@ -164,10 +171,10 @@ def loadCfg(cfgFile: str):
             for emojiName in config[varname]:
                 # Load emojis
                 if emojiName in emojiVars:
-                    cfg.defaultEmojis[emojiName] = UninitializedBasedEmoji(config["defaultEmojis"][emojiName])
+                    cast(Dict[str, Union[UninitializedBasedEmoji, List[UninitializedBasedEmoji]]], cfg.defaultEmojis)[emojiName] = UninitializedBasedEmoji(config["defaultEmojis"][emojiName])
                 # Load lists of emojis
                 elif varname in emojiListVars:
-                    cfg.defaultEmojis[emojiName] = [UninitializedBasedEmoji(item)
+                    cast(Dict[str, Union[UninitializedBasedEmoji, List[UninitializedBasedEmoji]]], cfg.defaultEmojis)[emojiName] = [UninitializedBasedEmoji(item)
                                                     for item in config["defaultEmojis"][emojiName]]
         # timeouts must be special-cased to avoid losing variables if not all are specified
         elif varname == "timeouts":

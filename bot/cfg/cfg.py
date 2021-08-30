@@ -1,8 +1,9 @@
 from typing import Dict, List, Union, cast
 from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
+from . import configurator
 
 # All emojis used by the bot
-defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
+defaultEmojis = cast("configurator.ConfigProxy[BasedEmoji]", {
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
     "unrecognisedEmoji": UninitializedBasedEmoji(779632588243075072),
     # When a message prompts a process that will take a long time (e.g rendering), this will be added to the message reactions
