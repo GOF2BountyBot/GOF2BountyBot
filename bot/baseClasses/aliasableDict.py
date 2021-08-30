@@ -97,4 +97,4 @@ class AliasableDict(dict):
 
         :param Aliasable k: The key to register, or change the value of
         """
-        self[k.name] = k
+        self[k] = k
