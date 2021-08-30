@@ -194,3 +194,20 @@ class CrateTool(toolItem.ToolItem):
         return CrateTool(**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
                                             emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
+
+
+class InvalidCrateTool(CrateTool):
+    def __init__(self, suppress=False):
+        if not suppress:
+            raise ValueError("Cannot instanciate class InvalidCrateTool")
+    async def use(self, *args, **kwargs):
+        raise ValueError("Attempted to invoke method on InvalidCrateTool")
+    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+        raise ValueError("Attempted to invoke method on InvalidCrateTool")
+    def statsStringShort(self) -> str:
+        raise ValueError("Attempted to invoke method on InvalidCrateTool")
+    def toDict(self, **kwargs) -> dict:
+        raise ValueError("Attempted to invoke method on InvalidCrateTool")
+    @classmethod
+    def fromDict(cls, crateDict: dict, **kwargs) -> CrateTool:
+        raise ValueError("Attempted to invoke method on InvalidCrateTool")
