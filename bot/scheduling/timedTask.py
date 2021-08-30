@@ -312,18 +312,20 @@ class DynamicRescheduleTask(TimedTask):
     :varType autoReschedule: True
     """
 
-    def __init__(self, delayTimeGenerator : DelayGeneratorType, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
-                        expiryTime : datetime = None, expiryFunction : TTCallbackType = None,
-                        expiryFunctionArgs : Any = None, autoReschedule : bool = False,
+    def __init__(self, delayTimeGenerator : DelayGeneratorType, initialDelta: datetime = None,
+                        delayTimeGeneratorArgs : Any = None, issueTime : datetime = None, expiryTime : datetime = None,
+                        expiryFunction : TTCallbackType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                         rescheduleOnExpiryFuncFailure : bool = False):
         """
-        :param function delayTimeGenerator: Reference (not call!) to the function which generates the expiryDelta.
+        :param DelayGeneratorType delayTimeGenerator: Reference (not call!) to the function which generates the expiryDelta.
                                             Must return a timedelta.
+        :param timedelta initialDelta: expiryDelta to use for the initial task scheduling. If delayTimeDenerator
+                                        is a coroutine, this is a required argument. 
         :param delayTimeGeneratorArgs: The data to pass to the delayTimeGenerator. There is no type requirement, but a
                                         dictionary is recommended as a close representation of KWArgs. (Default {})
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
-        :param function expiryFunction: The function to call once expiryTime has been reached/surpassed. (Default None)
+        :param DelayGeneratorType expiryFunction: The function to call once expiryTime has been reached/surpassed. (Default None)
         :param expiryFunctionArgs: The data to pass to the expiryFunction. There is no type requirement, but a dictionary
                                     is recommended as a close representation of KWArgs. (Default {})
         :param bool autoReschedule: Whether or not this task should automatically reschedule itself. You probably want this
@@ -332,15 +334,18 @@ class DynamicRescheduleTask(TimedTask):
                                                     reschedule. Useful for delaying a task to retry later once a problem will
                                                     be fixed (Default False)
         """
+        self.asyncDelayTimeGenerator = inspect.iscoroutinefunction(delayTimeGenerator)
+        if self.asyncDelayTimeGenerator and initialDelta is None:
+            raise ValueError("delayTimeGenerator, and so initialDelta is a required argument. Received None.")
 
         # Initialise TimedTask-inherited attributes
-        super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,
+        super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=initialDelta, expiryFunction=expiryFunction,
                                                     expiryFunctionArgs=expiryFunctionArgs, autoReschedule=autoReschedule,
                                                     rescheduleOnExpiryFuncFailure=rescheduleOnExpiryFuncFailure)
         self.delayTimeGenerator = delayTimeGenerator
         self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None
         self.delayTimeGeneratorArgs = delayTimeGeneratorArgs if self.hasDelayTimeGeneratorArgs else {}
-        self.asyncDelayTimeGenerator = inspect.iscoroutinefunction(delayTimeGenerator)
+        
 
     async def callDelayTimeGenerator(self) -> timedelta:
         """Generate the next expiryTime using the delayTimeGenerator.

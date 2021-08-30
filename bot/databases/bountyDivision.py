@@ -18,6 +18,7 @@ from datetime import timedelta
 import random
 from typing import List, Any, Union
 from discord import TextChannel, Client
+from inspect import iscoroutine
 
 
 class BountyDivision(Serializable):
@@ -97,7 +98,7 @@ class BountyDivision(Serializable):
             self.tryStartBountySpawner()
 
 
-    def tryStartBountySpawner(self):
+    async def tryStartBountySpawner(self):
         """Create a new self.newBountyTT and schedule it onto the botState.taskScheduler, if the division is not already full.
         If the division is full, do nothing.
         Also does nothing in the case that a newBountyTT is already running, to work around race conditions.
@@ -124,8 +125,13 @@ class BountyDivision(Serializable):
                                             expiryFunction=self.spawnNewBounty, autoReschedule=True,
                                             rescheduleOnExpiryFuncFailure=True)
             else:
-                self.newBountyTT = DynamicRescheduleTask(bountyDelayGenerators[cfg.newBountyDelayType], autoReschedule=True,
-                                                        delayTimeGeneratorArgs=bountyDelayGeneratorArgs[cfg.newBountyDelayType],
+                delayGen = bountyDelayGenerators[cfg.newBountyDelayType]
+                delayGenArgs = bountyDelayGeneratorArgs[cfg.newBountyDelayType]
+                initialDelay = await delayGen(delayGenArgs) \
+                                if iscoroutine(delayGen) else \
+                                    delayGen(delayGenArgs)
+                self.newBountyTT = DynamicRescheduleTask(delayGen, initialDelay=initialDelay, autoReschedule=True,
+                                                        delayTimeGeneratorArgs=delayGenArgs,
                                                         rescheduleOnExpiryFuncFailure=True, expiryFunction=self.spawnNewBounty)
 
             botState.taskScheduler.scheduleTask(self.newBountyTT)
