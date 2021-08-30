@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from typing import Any, Awaitable, Callable, Protocol, Union, cast
+from typing import Any, Awaitable, Protocol, Union, cast
 
 
 class _TTOptionCallbackType(Protocol):
