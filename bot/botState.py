@@ -1,10 +1,10 @@
-from typing import Union, TYPE_CHECKING, cast
-from .logging import Logger
-from aiohttp import ClientSession
-from datetime import timedelta
+from typing import List, TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from .databases import userDB, guildDB, reactionMenuDB
     from .scheduling import timedTask, timedTaskHeap
+    from . import logging
+    from aiohttp import ClientSession
+    from datetime import timedelta
 
 class ShutDownState:
     restart = 0
@@ -22,19 +22,19 @@ reactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
 shopRefreshTT = cast("timedTask.TimedTask", None)
 
 taskScheduler = cast("timedTaskHeap.TimedTaskHeap", None)
-logger: Logger = None
+logger = cast("logging.Logger", None)
 
-dbSaveTT = None
-updatesCheckTT = None
+dbSaveTT = cast("timedTask.TimedTask", None)
+updatesCheckTT = cast("timedTask.TimedTask", None)
 
-temperatureDecayTT = None
+temperatureDecayTT = cast("timedTask.TimedTask", None)
 
 # Scheduling overrides
 newBountyFixedDeltaChanged = False
 
 
 # Names of ships currently being rendered
-currentRenders = []
+currentRenders: List[str] = []
 
 # timedelta representing the system's offset from UTC time
-utcOffset: timedelta = None
+utcOffset = cast("timedelta", None)
