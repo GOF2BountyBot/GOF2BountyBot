@@ -1,7 +1,6 @@
 from discord import Colour # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
-    from typing import Dict, List
     from ..gameObjects.shipSkin import ShipSkin
     from ..gameObjects.items.tools.shipSkinTool import ShipSkinTool
     from ..gameObjects.items.tools.toolItem import ToolItem
@@ -96,21 +95,21 @@ medalsData: Dict[str, dict] = {}
 
 # To be populated during bot.on_ready
 # These dicts contain item name: item object for the object described in the variable name.
-builtInShipSkins: Dict[str, ShipSkin] = {}
-builtInToolObjs: Dict[str, ToolItem] = {}
-builtInSystemObjs: Dict[str, SolarSystem] = {}
-builtInCriminalObjs: Dict[str, Criminal] = {}
-builtInModuleObjs: Dict[str, ModuleItem] = {}
-builtInWeaponObjs: Dict[str, PrimaryWeapon] = {}
-builtInUpgradeObjs: Dict[str, ShipUpgrade] = {}
-builtInTurretObjs: Dict[str, TurretWeapon] = {}
-medalObjs: Dict[str, Medal] = {}
+builtInShipSkins: Dict[str, "ShipSkin"] = {}
+builtInToolObjs: Dict[str, "ToolItem"] = {}
+builtInSystemObjs: Dict[str, "SolarSystem"] = {}
+builtInCriminalObjs: Dict[str, "Criminal"] = {}
+builtInModuleObjs: Dict[str, "ModuleItem"] = {}
+builtInWeaponObjs: Dict[str, "PrimaryWeapon"] = {}
+builtInUpgradeObjs: Dict[str, "ShipUpgrade"] = {}
+builtInTurretObjs: Dict[str, "TurretWeapon"] = {}
+medalObjs: Dict[str, "Medal"] = {}
 
 # References to the above item objects, sorted by techLevel.
 shipKeysByTL: List[List[str]] = []
-moduleObjsByTL: List[List[ModuleItem]] = []
-weaponObjsByTL: List[List[PrimaryWeapon]] = []
-turretObjsByTL: List[List[TurretWeapon]] = []
+moduleObjsByTL: List[List["ModuleItem"]] = []
+weaponObjsByTL: List[List["PrimaryWeapon"]] = []
+turretObjsByTL: List[List["TurretWeapon"]] = []
 
 
 # names of criminals in builtIn bounties
@@ -118,11 +117,11 @@ bountyNames: Dict[str, str] = {}
 # the length of the longest criminal name, to be used in padding during cmd_bounties
 longestBountyNameLength = 0
 
-shipSkinToolsBySkin: Dict[ShipSkin, ShipSkinTool] = {}
+shipSkinToolsBySkin: Dict["ShipSkin", "ShipSkinTool"] = {}
 # Dict of crate type (str) : list of crates
-builtInCrateObjs: Dict[str, List[CrateTool]] = {}
+builtInCrateObjs: Dict[str, List["CrateTool"]] = {}
 
 
 # Profile Customisation items
 # XP bar fills
-builtInXPBars: Dict[str, XPBarFill] = {}
+builtInXPBars: Dict[str, "XPBarFill"] = {}
