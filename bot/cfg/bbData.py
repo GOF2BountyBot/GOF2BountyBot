@@ -1,5 +1,19 @@
-from discord import Colour
-from ..lib.emojis import UninitializedBasedEmoji
+from discord import Colour # type: ignore
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Dict, List
+    from ..gameObjects.shipSkin import ShipSkin
+    from ..gameObjects.items.tools.shipSkinTool import ShipSkinTool
+    from ..gameObjects.items.tools.toolItem import ToolItem
+    from ..gameObjects.items.tools.crateTool import CrateTool
+    from ..gameObjects.bounties.solarSystem import SolarSystem
+    from ..gameObjects.bounties.criminal import Criminal
+    from ..gameObjects.items.modules.moduleItem import ModuleItem
+    from ..gameObjects.shipUpgrade import ShipUpgrade
+    from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+    from ..gameObjects.items.weapons.turretWeapon import TurretWeapon
+    from ..gameObjects.userProfile.medal import Medal
+    from ..gameObjects.userProfile.xpBar import XPBarFill
 
 # all factions recognised by BB
 factions = ["terran", "vossk", "midorian", "nivelian", "neutral"]
@@ -40,75 +54,75 @@ factionColours = {  "terran": Colour.gold(),
 # which are stored in builtInShipObjs in a similar dict format.
 # Ships to not have tech levels in GOF2, so tech levels will be automaticaly generated
 # for the sake of the bot during bot.on_ready.
-builtInShipData = {}
+builtInShipData: Dict[str, dict] = {}
 
 # Data representing all module items in the game. These are used to create bbModule objects,
 # which are stored in builtInModuleObjs in a similar dict format.
-builtInModuleData = {}
+builtInModuleData: Dict[str, dict] = {}
 
 # Data representing all primary weapon items in the game. These are used to create bbWeapon objects,
 # which are stored in builtInWeaponObjs in a similar dict format.
-builtInWeaponData = {}
+builtInWeaponData: Dict[str, dict] = {}
 
 # Data representing all ship upgrades in the game. These are used to create bbShipUpgrade objects,
 # which are stored in builtInUpgradeObjs in a similar dict format.
-builtInUpgradeData = {}
+builtInUpgradeData: Dict[str, dict] = {}
 
 # data for builtIn criminals to be used in Criminal.fromDict
 # criminals marked as not builtIn to allow for dictionary init.
 # The criminal object is then marked as builtIn during bot.on_ready
-builtInCriminalData = {}
+builtInCriminalData: Dict[str, dict] = {}
 
 # data for builtIn systems to be used in SolarSystem.fromDict
-builtInSystemData = {}
+builtInSystemData: Dict[str, dict] = {}
 
 # data for builtIn Turrets to be used in bbTurret.fromDict
-builtInTurretData = {}
+builtInTurretData: Dict[str, dict] = {}
 
 # data for builtIn commodities to be used in bbCommodity.fromDict (unimplemented)
-builtInCommodityData = {}
+builtInCommodityData: Dict[str, dict] = {}
 
-builtInToolData = {}
+builtInToolData: Dict[str, dict] = {}
 
 # data for builtIn secondaries to be used in bbSecondary.fromDict (unimplemented)
-builtInSecondariesData = {}
+builtInSecondariesData: Dict[str, dict] = {}
 
 # data for builtIn ShipSkins to be used in ShipSkin.fromDict
-builtInShipSkinsData = {}
+builtInShipSkinsData: Dict[str, dict] = {}
 
 # data for Medals to be used in Medal.fromDict. builtIn is not applicable to Medals, as custom Medals cannot be created
-medalsData = {}
+medalsData: Dict[str, dict] = {}
 
 
 # To be populated during bot.on_ready
 # These dicts contain item name: item object for the object described in the variable name.
-builtInShipSkins = {}
-builtInToolObjs = {}
-builtInSystemObjs = {}
-builtInCriminalObjs = {}
-builtInModuleObjs = {}
-builtInWeaponObjs = {}
-builtInUpgradeObjs = {}
-builtInTurretObjs = {}
-medalObjs = {}
+builtInShipSkins: Dict[str, ShipSkin] = {}
+builtInToolObjs: Dict[str, ToolItem] = {}
+builtInSystemObjs: Dict[str, SolarSystem] = {}
+builtInCriminalObjs: Dict[str, Criminal] = {}
+builtInModuleObjs: Dict[str, ModuleItem] = {}
+builtInWeaponObjs: Dict[str, PrimaryWeapon] = {}
+builtInUpgradeObjs: Dict[str, ShipUpgrade] = {}
+builtInTurretObjs: Dict[str, TurretWeapon] = {}
+medalObjs: Dict[str, Medal] = {}
 
 # References to the above item objects, sorted by techLevel.
-shipKeysByTL = []
-moduleObjsByTL = []
-weaponObjsByTL = []
-turretObjsByTL = []
+shipKeysByTL: List[List[str]] = []
+moduleObjsByTL: List[List[ModuleItem]] = []
+weaponObjsByTL: List[List[PrimaryWeapon]] = []
+turretObjsByTL: List[List[TurretWeapon]] = []
 
 
 # names of criminals in builtIn bounties
-bountyNames = {}
+bountyNames: Dict[str, str] = {}
 # the length of the longest criminal name, to be used in padding during cmd_bounties
 longestBountyNameLength = 0
 
-shipSkinToolsBySkin = {}
+shipSkinToolsBySkin: Dict[ShipSkin, ShipSkinTool] = {}
 # Dict of crate type (str) : list of crates
-builtInCrateObjs = {}
+builtInCrateObjs: Dict[str, List[CrateTool]] = {}
 
 
 # Profile Customisation items
 # XP bar fills
-builtInXPBars = {}
+builtInXPBars: Dict[str, XPBarFill] = {}
