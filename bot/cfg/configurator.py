@@ -7,7 +7,8 @@ from ..lib.emojis import UninitializedBasedEmoji
 
 # List of cfg attribute names that are not config variables
 ignoredVarNames = ("__name__", "__doc__", "__package__", "__loader__", "__spec__",
-                   "__file__", "__cached__", "__builtins__", "UninitializedBasedEmoji")
+                   "__file__", "__cached__", "__builtins__", "UninitializedBasedEmoji",
+                   "Dict", "List", "Union", "Cast", "BasedEmoji")
 
 # List of cfg.defaultEmojis keys that are UninitializedBasedEmoji
 emojiVars = []
