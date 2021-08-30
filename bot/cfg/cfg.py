@@ -269,7 +269,7 @@ duelLogMaxLength = 10
 duelCloakChance = 20
 
 # Background images to display behind duel results. Images are selected at random. Give [] to disable
-duelResultsBackgrounds = []
+duelResultsBackgrounds: List[str] = []
 # Image to display between the background and content. Give "" to disable
 duelResultsUnderlay = ""
 # Image to display on top of all other graphics. Give "" to disable
