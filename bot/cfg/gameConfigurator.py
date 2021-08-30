@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Callable, Dict, Any, List
+from typing import Callable, Dict, List
 
 from . import cfg, bbData
 from ..gameObjects import shipUpgrade, shipSkin
@@ -8,7 +8,9 @@ from ..gameObjects.bounties import criminal, solarSystem
 from ..gameObjects.items import moduleItemFactory
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import shipSkinTool, toolItemFactory, crateTool
+from ..gameObjects.items.tools.toolItem import ToolItem
 from ..gameObjects.userProfile import medal
+from ..gameObjects.items.gameItem import GameItem
 from .. import lib
 from ..lib import gameMaths
 
@@ -126,7 +128,7 @@ def _loadShipSkinsFromDir(shipsDir : str) -> Dict[str, dict]:
     return itemDB
 
 
-def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: Callable):
+def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, GameItem], deserializer: Callable[[dict], GameItem]):
     """Spawn in builtIn instances of all objects described in dataDB, and register into objsDB.
     Objects are created with the given deserializer as a constructor.
     Objects are registered directly into objsDB, and the metadata in dataDB is updated to be builtIn.
@@ -138,7 +140,7 @@ def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserial
         dataDB[objKey]["builtIn"] = True
 
 
-def _loadToolObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: Callable):
+def _loadToolObjects(dataDB : Dict[str, dict], objsDB : Dict[str, ToolItem], deserializer: Callable[[dict], ToolItem]):
     """Spawn in builtIn instances of all ToolItems described in dataDB, and register into objsDB.
     This is the same as _loadGameObjects, with the extra step of checking all spawned tools to see if they are crates,
     and adding crates to bbData.builtInCrateObjs.
@@ -172,11 +174,11 @@ def _sortShipKeys():
             bbData.shipKeysByTL[bbData.builtInShipData[currentShipKey]["techLevel"] - 1].append(currentShipKey)
 
 
-def _sortGameObjects(objsDB : Dict[str, Any]) -> List[List[Any]]:
-    """Create a list, containing lists the objects found in objsDB, sorted by tech level.
+def _sortGameObjects(objsDB : Dict[str, GameItem]) -> List[List[GameItem]]:
+    """Create a list, containing lists of the objects found in objsDB, sorted by tech level.
 
     :return: A list with one sub-list for each techlevel, each containing the items in objsDB of that tech Level.
-    :rtype: List[List[Any]]
+    :rtype: List[List[GameItem]]
     """
     # Sort module objects by tech level
     sortedDB = [[] for _ in range(cfg.maxTechLevel - cfg.minTechLevel + 1)]
@@ -194,7 +196,7 @@ def _makeShipSpawnRates():
         ship["shopSpawnRate"] = gameMaths.truncItemSpawnResolution(normalizedChance * 100)
 
 
-def _makeItemSpawnRates(objsDB : Dict[str, Any]):
+def _makeItemSpawnRates(objsDB : Dict[str, GameItem]):
     """Calculate spawn rates for the game object instances found in objsDB, based on their techLevels.
     Spawn rates are then stored in the items' shopSpawnRate attributes.
     """
