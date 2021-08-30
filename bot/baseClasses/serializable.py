@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractclassmethod
 import inspect
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Union
 from types import FunctionType
 
 def get_default_args(func: FunctionType) -> Dict[str, Any]:
@@ -21,7 +21,7 @@ def get_default_args(func: FunctionType) -> Dict[str, Any]:
 
 
 class Serializable(ABC):
-    _defaults = None
+    _defaults: Union[None, Dict[str, Any]] = None
 
     @abstractmethod
     def toDict(self, **kwargs) -> dict:
