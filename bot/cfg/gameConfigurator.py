@@ -1,7 +1,6 @@
 import os
 import json
-from typing import Dict, Any, List
-from types import FunctionType
+from typing import Callable, Dict, Any, List
 
 from . import cfg, bbData
 from ..gameObjects import shipUpgrade, shipSkin
@@ -127,7 +126,7 @@ def _loadShipSkinsFromDir(shipsDir : str) -> Dict[str, dict]:
     return itemDB
 
 
-def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: FunctionType):
+def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: Callable):
     """Spawn in builtIn instances of all objects described in dataDB, and register into objsDB.
     Objects are created with the given deserializer as a constructor.
     Objects are registered directly into objsDB, and the metadata in dataDB is updated to be builtIn.
@@ -139,7 +138,7 @@ def _loadGameObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserial
         dataDB[objKey]["builtIn"] = True
 
 
-def _loadToolObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: FunctionType):
+def _loadToolObjects(dataDB : Dict[str, dict], objsDB : Dict[str, Any], deserializer: Callable):
     """Spawn in builtIn instances of all ToolItems described in dataDB, and register into objsDB.
     This is the same as _loadGameObjects, with the extra step of checking all spawned tools to see if they are crates,
     and adding crates to bbData.builtInCrateObjs.

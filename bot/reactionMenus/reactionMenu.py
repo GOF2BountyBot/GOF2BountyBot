@@ -7,9 +7,8 @@ from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, U
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Union, Dict, List
+from typing import Callable, Union, Dict, List
 import asyncio
-from types import FunctionType
 from ..baseClasses import serializable
 from . import expiryFunctions
 
@@ -26,9 +25,9 @@ class ReactionMenuOption(serializable.Serializable):
     :var emoji: The emoji that a user must react with to trigger this option
     :vartype emoji: lib.emojis.BasedEmoji
     :var addFunc: The function to call when this option is added by a user
-    :vartype addFunc: FunctionType
+    :vartype addFunc: Callable
     :var removeFunc: The function to call when this option is removed by a user
-    :vartype removeFunc: FunctionType
+    :vartype removeFunc: Callable
     :var addArgs: The arguments to pass to addFunc. No type checking is done on this parameter,
                     but a dict is recommended as a close replacement for keyword args.
     :var removeArgs: The arguments to pass to removeFunc.
@@ -46,8 +45,8 @@ class ReactionMenuOption(serializable.Serializable):
     :vartype removeHasArgs: bool
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: FunctionType = None, addArgs=None,
-                    removeFunc: FunctionType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Callable = None, addArgs=None,
+                    removeFunc: Callable = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -153,8 +152,8 @@ class NonSaveableReactionMenuOption(ReactionMenuOption):
     Instead, inherit directly from ReactionMenuOption or another suitable subclass that is not marked as unsaveable.
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: FunctionType = None, addArgs=None,
-                        removeFunc: FunctionType = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Callable = None, addArgs=None,
+                        removeFunc: Callable = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option

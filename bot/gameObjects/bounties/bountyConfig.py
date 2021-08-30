@@ -1,13 +1,12 @@
 # Typing imports
 from __future__ import annotations, division
-from typing import TYPE_CHECKING, List, Dict, Tuple, Any
+from typing import TYPE_CHECKING, Callable, List, Dict, Tuple, Any
 if TYPE_CHECKING:
     from ..items import shipItem
     from ...databases import bountyDivision
 
 import random
 from datetime import datetime, timedelta
-from types import FunctionType
 
 from ...cfg import bbData, cfg
 from ... import lib, botState
@@ -18,7 +17,7 @@ from ..items.weapons import primaryWeapon, turretWeapon
 from ...databases import bountyDB
 
 
-def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: FunctionType, **kwargs) -> int:
+def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: Callable, **kwargs) -> int:
     """Attempt to find an integer tl where:
         minTL <= tl <= min(maxTL, center + upperBound)
         validator(tl) == True

@@ -1,5 +1,4 @@
-from types import FunctionType
-from typing import List
+from typing import Callable, List
 from discord import Message
 from ..lib.exceptions import IncorrectCommandCallContext
 
@@ -10,7 +9,7 @@ class CommandRegistry:
     :var ident: The string command name by which this command is identified and called
     :vartype ident: str
     :var func: A reference to the function to call upon calling this CommandRegistry
-    :vartype func: FunctionType
+    :vartype func: Callable
     :var forceKeepArgsCasing: Whether to pass arguments to the function with their original casing.
                                 If False, arguments will be transformed to lower case before passing.
     :vartype forceKeepArgsCasing: bool
@@ -26,12 +25,12 @@ class CommandRegistry:
     :vartype longHelp: str
     """
 
-    def __init__(self, ident: str, func: FunctionType, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
+    def __init__(self, ident: str, func: Callable, forceKeepArgsCasing: bool, forceKeepCommandCasing: bool,
                     allowDM: bool, allowHelp: bool, aliases: List[str] = None, signatureStr: str = "", shortHelp: str = "",
                     longHelp: str = "", helpSection: str = "miscellaneous"):
         """
         :param str ident: The string command name by which this command is identified and called
-        :param FunctionType func: A reference to the function to call upon calling this CommandRegistry
+        :param Callable func: A reference to the function to call upon calling this CommandRegistry
         :param bool forceKeepArgsCasing: Whether to pass arguments to the function with their original casing.
                                         If False, arguments will be transformed to lower case before passing.
         :param bool forceKeepCommandCasing: Whether the command must be called with exactly the correct casing

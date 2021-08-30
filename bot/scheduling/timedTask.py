@@ -3,8 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from types import FunctionType
-from typing import Any
+from typing import Any, Callable
 
 
 class TimedTask:
@@ -21,7 +20,7 @@ class TimedTask:
     :var expiryDelta: The timedelta to add to issueTime, to find the expiryTime.
     :vartype expiryDelta: datetime.timedelta
     :var expiryFunction: The function to call once expiryTime has been reached/surpassed.
-    :vartype expiryFunction: FunctionType
+    :vartype expiryFunction: Callable
     :var hasExpiryFunction: Whether or not the task has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: The data to pass to the expiryFunction. There is no type requirement,
@@ -41,7 +40,7 @@ class TimedTask:
     """
 
     def __init__(self, issueTime : datetime = None, expiryTime : datetime = None, expiryDelta : timedelta = None,
-                 expiryFunction : FunctionType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
+                 expiryFunction : Callable = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                  rescheduleOnExpiryFuncFailure : bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
@@ -273,8 +272,8 @@ class DynamicRescheduleTask(TimedTask):
     :varType autoReschedule: True
     """
 
-    def __init__(self, delayTimeGenerator : FunctionType, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
-                        expiryTime : datetime = None, expiryFunction : FunctionType = None,
+    def __init__(self, delayTimeGenerator : Callable, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
+                        expiryTime : datetime = None, expiryFunction : Callable = None,
                         expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                         rescheduleOnExpiryFuncFailure : bool = False):
         """

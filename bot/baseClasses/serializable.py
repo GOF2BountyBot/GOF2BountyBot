@@ -1,14 +1,13 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractclassmethod
 import inspect
-from typing import Dict, Any, Tuple, List, Union, cast
-from types import FunctionType
+from typing import Callable, Dict, Any, Tuple, List, Union, cast
 
-def get_default_args(func: FunctionType) -> Dict[str, Any]:
+def get_default_args(func: Callable) -> Dict[str, Any]:
     """Get a dictionary of the default kwarg values for a given function.
     https://stackoverflow.com/a/12627202
 
-    :param FunctionType func: The function for which to read argument defaults
+    :param Callable func: The function for which to read argument defaults
     :return: A dictionary with all of func's kwarg names as keys, and default values as defaults
     :rtype: Dict[str, Any]
     """
