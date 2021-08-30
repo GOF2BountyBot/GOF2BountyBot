@@ -1,16 +1,40 @@
 # TODO: Write a targettable ReactionMenuOption subclass, that implements targetMember and targetRole on a per-option basis.
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
+from typing_extensions import Protocol
 from ..scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Callable, Union, Dict, List
+from typing import Any, Awaitable, Callable, Union, Dict, List, cast
 import asyncio
 from ..baseClasses import serializable
 from . import expiryFunctions
+
+
+_DCUserUnion = Union[User, Member]
+
+
+class _RMOptionCallbackType(Protocol):
+    def __call__(self, callBackArg: Any, reactingUser: _DCUserUnion = None) -> Any: ...
+
+
+class _RMOptionCallbackTypeNoArgs(Protocol):
+    def __call__(self, reactingUser: _DCUserUnion = None) -> Any: ...
+
+
+class _RMOptionCallbackTypeAsync(Protocol):
+    def __call__(self, callBackArg: Any, reactingUser: _DCUserUnion = None) -> Awaitable[Any]: ...
+
+
+class _RMOptionCallbackTypeAsyncNoArgs(Protocol):
+    def __call__(self, reactingUser: _DCUserUnion = None) -> Awaitable[Any]: ...
+
+
+MenuOptionCallbackType = Union[_RMOptionCallbackType, _RMOptionCallbackTypeAsync,
+                                _RMOptionCallbackTypeNoArgs, _RMOptionCallbackTypeAsyncNoArgs]
 
 
 class ReactionMenuOption(serializable.Serializable):
@@ -45,8 +69,8 @@ class ReactionMenuOption(serializable.Serializable):
     :vartype removeHasArgs: bool
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Callable = None, addArgs=None,
-                    removeFunc: Callable = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
+                    removeFunc: MenuOptionCallbackType = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
@@ -62,17 +86,19 @@ class ReactionMenuOption(serializable.Serializable):
 
         self.addFunc = addFunc
         self.addArgs = addArgs
+
+        addParams = inspect.signature(cast(Callable[..., Any], addFunc)).parameters
+        remParams = inspect.signature(cast(Callable[..., Any], removeFunc)).parameters
+        
         self.addIsCoroutine = addFunc is not None and inspect.iscoroutinefunction(addFunc)
-        self.addIncludeUser = addFunc is not None and 'reactingUser' in inspect.signature(addFunc).parameters
-        self.addHasArgs = addFunc is not None and len(inspect.signature(
-            addFunc).parameters) != (1 if self.addIncludeUser else 0)
+        self.addIncludeUser = addFunc is not None and 'reactingUser' in addParams
+        self.addHasArgs = addFunc is not None and len(addParams) != (1 if self.addIncludeUser else 0)
 
         self.removeFunc = removeFunc
         self.removeArgs = removeArgs
         self.removeIsCoroutine = removeFunc is not None and inspect.iscoroutinefunction(removeFunc)
-        self.removeIncludeUser = removeFunc is not None and 'reactingUser' in inspect.signature(addFunc).parameters
-        self.removeHasArgs = removeFunc is not None and len(inspect.signature(
-            removeFunc).parameters) != (1 if self.removeIncludeUser else 0)
+        self.removeIncludeUser = removeFunc is not None and 'reactingUser' in remParams
+        self.removeHasArgs = removeFunc is not None and len(remParams) != (1 if self.removeIncludeUser else 0)
 
 
     async def add(self, member: Union[Member, User]):
@@ -86,13 +112,19 @@ class ReactionMenuOption(serializable.Serializable):
         if self.addFunc is not None:
             if self.addIncludeUser:
                 if self.addHasArgs:
-                    return await self.addFunc(self.addArgs, reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(self.addArgs, reactingUser=member)
-                return await self.addFunc(reactingUser=member) if self.addIsCoroutine else \
-                                self.addFunc(reactingUser=member)
+                    return await cast(_RMOptionCallbackTypeAsync, self.addFunc)(self.addArgs, reactingUser=member) \
+                        if self.addIsCoroutine else \
+                            cast(_RMOptionCallbackType, self.addFunc)(self.addArgs, reactingUser=member)
+                return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.addFunc)(reactingUser=member) \
+                    if self.addIsCoroutine else \
+                        cast(_RMOptionCallbackTypeNoArgs, self.addFunc)(reactingUser=member)
             if self.addHasArgs:
-                return await self.addFunc(self.addArgs) if self.addIsCoroutine else self.addFunc(self.addArgs)
-            return await self.addFunc() if self.addIsCoroutine else self.addFunc()
+                return await cast(_RMOptionCallbackTypeAsync, self.addFunc)(self.addArgs)\
+                     if self.addIsCoroutine else \
+                         cast(_RMOptionCallbackType, self.addFunc)(self.addArgs)
+            return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.addFunc)() \
+                if self.addIsCoroutine else \
+                    cast(_RMOptionCallbackTypeNoArgs, self.addFunc)()
 
 
     async def remove(self, member: Union[Member, User]):
@@ -106,13 +138,19 @@ class ReactionMenuOption(serializable.Serializable):
         if self.removeFunc is not None:
             if self.removeIncludeUser:
                 if self.removeHasArgs:
-                    return await self.removeFunc(self.removeArgs, reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(self.removeArgs, reactingUser=member)
-                return await self.removeFunc(reactingUser=member) if self.removeIsCoroutine else \
-                                self.removeFunc(reactingUser=member)
+                    return await cast(_RMOptionCallbackTypeAsync, self.removeFunc)(self.removeArgs, reactingUser=member) \
+                        if self.removeIsCoroutine else \
+                            cast(_RMOptionCallbackType, self.removeFunc)(self.removeArgs, reactingUser=member)
+                return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.removeFunc)(reactingUser=member) \
+                    if self.removeIsCoroutine else \
+                        cast(_RMOptionCallbackTypeNoArgs, self.removeFunc)(reactingUser=member)
             if self.removeHasArgs:
-                return await self.removeFunc(self.removeArgs) if self.removeIsCoroutine else self.removeFunc(self.removeArgs)
-            return await self.removeFunc() if self.removeIsCoroutine else self.removeFunc()
+                return await cast(_RMOptionCallbackTypeAsync, self.removeFunc)(self.removeArgs)\
+                     if self.removeIsCoroutine else \
+                         cast(_RMOptionCallbackType, self.removeFunc)(self.removeArgs)
+            return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.removeFunc)() \
+                if self.removeIsCoroutine else \
+                    cast(_RMOptionCallbackTypeNoArgs, self.removeFunc)()
 
 
     @abstractmethod
@@ -152,8 +190,8 @@ class NonSaveableReactionMenuOption(ReactionMenuOption):
     Instead, inherit directly from ReactionMenuOption or another suitable subclass that is not marked as unsaveable.
     """
 
-    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: Callable = None, addArgs=None,
-                        removeFunc: Callable = None, removeArgs=None):
+    def __init__(self, name: str, emoji: lib.emojis.BasedEmoji, addFunc: MenuOptionCallbackType = None, addArgs=None,
+                        removeFunc: MenuOptionCallbackType = None, removeArgs=None):
         """
         :param str name: The name of this option, as displayed in the menu embed.
         :param lib.emojis.BasedEmoji emoji: The emoji that a user must react with to trigger this option
