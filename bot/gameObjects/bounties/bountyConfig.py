@@ -17,7 +17,7 @@ from ..items.weapons import primaryWeapon, turretWeapon
 from ...databases import bountyDB
 
 
-def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: Callable, **kwargs) -> int:
+def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: Callable[..., bool], **kwargs) -> int:
     """Attempt to find an integer tl where:
         minTL <= tl <= min(maxTL, center + upperBound)
         validator(tl) == True
