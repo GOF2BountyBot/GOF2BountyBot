@@ -76,7 +76,7 @@ class AliasableDict(dict):
         :raise KeyError: If no key in the dictionary could be found for at least one search term
         :raise TypeError: If name is not a list of strings
         """
-        return {n: self[k] for n, k in self.getManyKeysNamed().items()}
+        return {n: self[k] for n, k in self.getManyKeysNamed(name).items()}
 
 
     def __setitem__(self, k: Aliasable, v: Any) -> None:
