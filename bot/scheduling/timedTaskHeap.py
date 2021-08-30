@@ -1,7 +1,7 @@
 from . import timedTask
 from heapq import heappop, heappush
 import inspect
-from typing import Any, Callable
+from typing import Any
 import asyncio
 from datetime import datetime
 
@@ -13,7 +13,7 @@ class TimedTaskHeap:
     :var tasksHeap: The heap, stored as an array. tasksHeap[0] is always the TimedTask with the closest expiry time.
     :vartype tasksHeap: list[TimedTask]
     :var expiryFunction: function reference to call upon the expiry of any TimedTask managed by this heap.
-    :vartype expiryFunction: Callable
+    :vartype expiryFunction: timedTask.TTCallbackType
     :var hasExpiryFunction: Whether or not this heap has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
@@ -24,7 +24,7 @@ class TimedTaskHeap:
     :vartype asyncExpiryFunction: bool
     """
 
-    def __init__(self, expiryFunction : Callable = None, expiryFunctionArgs : Any = None):
+    def __init__(self, expiryFunction : timedTask.TTCallbackType = None, expiryFunctionArgs : Any = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)
@@ -134,7 +134,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     :var tasksHeap: The heap, stored as an array. tasksHeap[0] is always the TimedTask with the closest expiry time.
     :vartype tasksHeap: List[TimedTask]
     :var expiryFunction: function reference to call upon the expiry of any TimedTask managed by this heap.
-    :vartype expiryFunction: Callable
+    :vartype expiryFunction: timedTask.TTCallbackType
     :var hasExpiryFunction: Whether or not this heap has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: an object to pass to expiryFunction when calling. There is no type requirement,
@@ -147,7 +147,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     :vartype active: bool
     """
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: Callable = None, expiryFunctionArgs = None):
+    def __init__(self, loop: asyncio.AbstractEventLoop, expiryFunction: timedTask.TTCallbackType = None, expiryFunctionArgs = None):
         """
         :param asyncio.AbstractEventLoop loop: The event loop to schedule the heap into
         :param function expiryFunction: function reference to call upon the expiry of any
