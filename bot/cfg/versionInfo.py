@@ -2,7 +2,7 @@ import os
 from . import cfg
 from .. import lib
 from datetime import datetime, timedelta
-from typing import Dict, Union
+from typing import Dict, Union, cast
 import aiohttp
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
@@ -95,7 +95,7 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdateCheck = datetime.utcfromtimestamp(getBASEDVersion()["next_update_check"])
+    nextUpdateCheck = datetime.utcfromtimestamp(cast(float, getBASEDVersion()["next_update_check"]))
 
     # Is it time to check yet?
     if datetime.utcnow() >= nextUpdateCheck:
