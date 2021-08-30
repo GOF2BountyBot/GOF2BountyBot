@@ -75,7 +75,7 @@ class GameItem(aliasable.Aliasable):
         self.hasEmoji = emoji is not None and emoji != lib.emojis.BasedEmoji.EMPTY
 
         self.value = value
-        self.shopSpawnRate = 0
+        self.shopSpawnRate = 0.
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1

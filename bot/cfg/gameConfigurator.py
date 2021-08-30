@@ -181,7 +181,7 @@ def _sortGameObjects(objsDB : Dict[str, GameItem]) -> List[List[GameItem]]:
     :rtype: List[List[GameItem]]
     """
     # Sort module objects by tech level
-    sortedDB = [[] for _ in range(cfg.maxTechLevel - cfg.minTechLevel + 1)]
+    sortedDB: List[List[GameItem]] = [[] for _ in range(cfg.maxTechLevel - cfg.minTechLevel + 1)]
     for obj in objsDB.values():
         sortedDB[obj.techLevel - 1].append(obj)
     return sortedDB
@@ -203,7 +203,7 @@ def _makeItemSpawnRates(objsDB : Dict[str, GameItem]):
     for item in objsDB.values():
         unnormalizedChance = gameMaths.itemTLSpawnChanceForShopTL[item.techLevel - 1][item.techLevel - 1]
         normalizedChance = unnormalizedChance / len(bbData.shipKeysByTL[item.techLevel - 1])
-        item.shopSpawnRate = gameMaths.truncItemSpawnResolution(normalizedChance * 100)
+        item.shopSpawnRate = gameMaths.truncItemSpawnResolution(normalizedChance * 100.)
 
 
 def _makeLevelUpCrates():
