@@ -3,7 +3,27 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable, Protocol, Union, cast
+
+
+class _TTOptionCallbackType(Protocol):
+    def __call__(self, callBackArg: Any) -> Any: ...
+
+
+class _TTOptionCallbackTypeNoArgs(Protocol):
+    def __call__(self) -> Any: ...
+
+
+class _TTOptionCallbackTypeAsync(Protocol):
+    def __call__(self, callBackArg: Any) -> Awaitable[Any]: ...
+
+
+class _TTOptionCallbackTypeAsyncNoArgs(Protocol):
+    def __call__(self) -> Awaitable[Any]: ...
+
+
+TTCallbackType = Union[_TTOptionCallbackType, _TTOptionCallbackTypeAsync,
+                        _TTOptionCallbackTypeNoArgs, _TTOptionCallbackTypeAsyncNoArgs]
 
 
 class TimedTask:
@@ -20,7 +40,7 @@ class TimedTask:
     :var expiryDelta: The timedelta to add to issueTime, to find the expiryTime.
     :vartype expiryDelta: datetime.timedelta
     :var expiryFunction: The function to call once expiryTime has been reached/surpassed.
-    :vartype expiryFunction: Callable
+    :vartype expiryFunction: TTCallbackType
     :var hasExpiryFunction: Whether or not the task has an expiry function to call
     :vartype hasExpiryFunction: bool
     :var expiryFunctionArgs: The data to pass to the expiryFunction. There is no type requirement,
@@ -40,13 +60,13 @@ class TimedTask:
     """
 
     def __init__(self, issueTime : datetime = None, expiryTime : datetime = None, expiryDelta : timedelta = None,
-                 expiryFunction : Callable = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
+                 expiryFunction : TTCallbackType = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                  rescheduleOnExpiryFuncFailure : bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
         :param datetime.timedelta expiryDelta: The timedelta to add to issueTime, to find the expiryTime. (Default None)
-        :param function expiryFunction: The function to call once expiryTime has been reached/surpassed. (Default None)
+        :param TTCallbackType expiryFunction: The function to call once expiryTime has been reached/surpassed. (Default None)
         :param expiryFunctionArgs: The data to pass to the expiryFunction. There is no type requirement,
                                     but a dictionary is recommended as a close representation of KWArgs. (Default {})
         :param bool autoReschedule: Whether or not this task should automatically reschedule itself by the
@@ -248,6 +268,26 @@ class TimedTask:
             return expiryFuncResults
 
 
+class _DelayGenType(Protocol):
+    def __call__(self, callBackArg: Any) -> timedelta: ...
+
+
+class _DelayGenTypeNoArgs(Protocol):
+    def __call__(self) -> timedelta: ...
+
+
+class _DelayGenTypeAsync(Protocol):
+    def __call__(self, callBackArg: Any) -> Awaitable[timedelta]: ...
+
+
+class _DelayGenTypeAsyncNoArgs(Protocol):
+    def __call__(self) -> Awaitable[timedelta]: ...
+
+
+DelayGeneratorType = Union[_DelayGenType, _DelayGenTypeAsync,
+                        _DelayGenTypeNoArgs, _DelayGenTypeAsyncNoArgs]
+
+
 class DynamicRescheduleTask(TimedTask):
     """A TimedTask which fetches the expiryDELTA (not time!) from a function, rather than actual arguments.
     This allows for dynamically choosing the reschedule time.
@@ -272,8 +312,8 @@ class DynamicRescheduleTask(TimedTask):
     :varType autoReschedule: True
     """
 
-    def __init__(self, delayTimeGenerator : Callable, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
-                        expiryTime : datetime = None, expiryFunction : Callable = None,
+    def __init__(self, delayTimeGenerator : DelayGeneratorType, delayTimeGeneratorArgs : Any = None, issueTime : datetime = None,
+                        expiryTime : datetime = None, expiryFunction : TTCallbackType = None,
                         expiryFunctionArgs : Any = None, autoReschedule : bool = False,
                         rescheduleOnExpiryFuncFailure : bool = False):
         """
@@ -294,8 +334,7 @@ class DynamicRescheduleTask(TimedTask):
         """
 
         # Initialise TimedTask-inherited attributes
-        super(DynamicRescheduleTask, self).__init__(expiryDelta=delayTimeGenerator(delayTimeGeneratorArgs),
-                                                    issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,
+        super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=expiryTime, expiryFunction=expiryFunction,
                                                     expiryFunctionArgs=expiryFunctionArgs, autoReschedule=autoReschedule,
                                                     rescheduleOnExpiryFuncFailure=rescheduleOnExpiryFuncFailure)
         self.delayTimeGenerator = delayTimeGenerator
@@ -313,16 +352,16 @@ class DynamicRescheduleTask(TimedTask):
         if self.asyncDelayTimeGenerator:
             # Pass args to delayTimeGenerator if specified
             if self.hasDelayTimeGeneratorArgs:
-                return await self.delayTimeGenerator(self.delayTimeGeneratorArgs)
+                return await cast(_DelayGenTypeAsync, self.delayTimeGenerator)(self.delayTimeGeneratorArgs)
             else:
-                return await self.delayTimeGenerator()
+                return await cast(_DelayGenTypeAsyncNoArgs, self.delayTimeGenerator)()
         # do not await synchronous delayTimeGenerators
         else:
             # Pass args to delayTimeGenerator if specified
             if self.hasDelayTimeGeneratorArgs:
-                return self.delayTimeGenerator(self.delayTimeGeneratorArgs)
+                return cast(_DelayGenType, self.delayTimeGenerator)(self.delayTimeGeneratorArgs)
             else:
-                return self.delayTimeGenerator()
+                return cast(_DelayGenTypeNoArgs, self.delayTimeGenerator)()
 
 
     async def reschedule(self):
