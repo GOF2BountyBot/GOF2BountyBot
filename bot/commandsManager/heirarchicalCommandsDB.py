@@ -1,5 +1,5 @@
 from discord import Message, Embed, Colour
-from typing import Callable, List
+from typing import Awaitable, Callable, List
 from ..cfg import cfg
 from .commandRegistry import CommandRegistry
 
@@ -34,14 +34,15 @@ class HeirarchicalCommandsDB:
         self.helpSectionEmbeds[0]["miscellaneous"][0].set_footer(text="Page 1 of 1")
         self.totalEmbeds = [1 for _ in range(numAccessLevels)]
 
-    def register(self, command: str, function: Callable, accessLevel: int, aliases: List[str] = [],
-                 forceKeepArgsCasing: bool = False, forceKeepCommandCasing: bool = False, allowDM: bool = True,
-                 noHelp: bool = False, signatureStr: str = "", shortHelp: str = "", longHelp: str = "",
+    def register(self, command: str, function: Callable[[Message, str, bool], Awaitable[None]], accessLevel: int,
+                 aliases: List[str] = [], forceKeepArgsCasing: bool = False, forceKeepCommandCasing: bool = False,
+                 allowDM: bool = True, noHelp: bool = False, signatureStr: str = "", shortHelp: str = "", longHelp: str = "",
                  useDoc: bool = False, helpSection: str = "miscellaneous"):
         """Register a command in the database.
 
         :param str command: the text name users should call the function by. Commands are case sensitive.
-        :param Callable function: reference to the function that should be called
+        :param function: reference to the coroutine that should be called
+        :type function: Callable[[Message, str, bool], Awaitable[None]]
         :param int accessLevel: The level of access required to call this command
         :param List[str] aliases: List of alternative commands which may be used to call this one. The same accessLevel will
                                     be required for all aliases. (Default [])
