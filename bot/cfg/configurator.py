@@ -181,7 +181,7 @@ def loadCfg(cfgFile: str):
             for timeoutName in config[varname]:
                 newValue = config[varname][timeoutName]
                 # Get default value for variable
-                default = cfg.timeouts[timeoutName]
+                default = cast(Dict[str, Dict[str, int]], cfg.timeouts)[timeoutName]
                 # Ensure new value is of the correct type
                 if type(newValue) != type(default):
                     try:
@@ -196,7 +196,7 @@ def loadCfg(cfgFile: str):
 
                 # Not an emoji and correct type, so set variable.
                 else:
-                    cfg.timeouts[timeoutName] = newValue
+                    cast(Dict[str, Dict[str, int]], cfg.timeouts)[timeoutName] = newValue
         else:
             # Get default value for variable
             default = getattr(cfg, varname)

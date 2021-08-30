@@ -44,7 +44,7 @@ defaultEmojis = cast("configurator.ConfigProxy[BasedEmoji]", {
     "newBounty": UninitializedBasedEmoji("🥞")
 })
 
-timeouts = {
+timeouts = cast("configurator.ConfigProxy[Dict[str, int]]", {
     "helpMenu": {"minutes": 3},
     "BASED_updateCheckFrequency": {"days": 1},
     # The time to wait inbetween database autosaves.
@@ -71,9 +71,9 @@ timeouts = {
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
     "newBountyDelayRandomMin": {"minutes": 5},
     "newBountyDelayRandomMax": {"minutes": 7}
-}
+})
 
-paths = {
+paths = cast("configurator.ConfigProxy[str]", {
     # path to JSON files for database saves
     "usersDB": "saveData" + "/" + "users.json",
     "guildsDB": "saveData" + "/" + "guilds.json",
@@ -95,7 +95,7 @@ paths = {
     "bbTurretMETAFolder": "game objects" + "/" + "items" + "/" + "turrets",
     "bbToolMETAFolder": "game objects" + "/" + "items" + "/" + "tools",
     "bbMedalsMETAFolder": "game objects" + "/" + "user profile" + "/" + "medals"
-}
+})
 
 
 
