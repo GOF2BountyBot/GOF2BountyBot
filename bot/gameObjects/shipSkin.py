@@ -2,7 +2,7 @@ from ..cfg import bbData, cfg
 import os
 from ..shipRenderer import shipRenderer
 from .. import lib
-from discord import File
+from discord import File # type: ignore[import]
 from typing import Dict, List
 from ..baseClasses import serializable
 

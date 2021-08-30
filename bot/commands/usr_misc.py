@@ -1,5 +1,5 @@
 from bot.lib import gameMaths
-import discord
+import discord # type: ignore[import]
 from datetime import datetime, timedelta
 from aiohttp import client_exceptions
 import operator

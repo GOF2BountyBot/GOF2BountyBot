@@ -5,7 +5,7 @@ from ....lib import gameMaths
 from ....cfg import cfg, bbData
 from ...shipSkin import ShipSkin
 from ..shipItem import Ship
-from discord import Message
+from discord import Message # type: ignore
 from .... import botState
 from ..gameItem import spawnableItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu

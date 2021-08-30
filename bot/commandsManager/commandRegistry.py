@@ -1,5 +1,5 @@
 from typing import Callable, List, Awaitable
-from discord import Message
+from discord import Message # type: ignore[import]
 from ..lib.exceptions import IncorrectCommandCallContext
 
 

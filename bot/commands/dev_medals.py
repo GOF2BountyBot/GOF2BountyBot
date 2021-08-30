@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore[import]
 import aiohttp
 import os
 import shutil

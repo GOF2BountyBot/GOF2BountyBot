@@ -1,6 +1,6 @@
 from __future__ import annotations
-from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role
-from discord import TextChannel
+from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role # type: ignore[import]
+from discord import TextChannel # type: ignore[import]
 from typing import List, Dict, Union
 import asyncio
 from aiohttp import client_exceptions

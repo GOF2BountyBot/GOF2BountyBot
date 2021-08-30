@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore[import]
 
 from . import commandsDB as bbCommands
 from .. import botState, lib

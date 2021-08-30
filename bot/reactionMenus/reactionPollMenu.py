@@ -2,7 +2,7 @@ from __future__ import annotations
 from . import reactionMenu
 from ..cfg import cfg
 from .. import botState, lib
-from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role
+from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role # type: ignore[import]
 from datetime import datetime
 from ..scheduling import timedTask
 from typing import Union

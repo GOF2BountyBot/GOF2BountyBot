@@ -1,4 +1,4 @@
-import discord
+import discord # type: ignore[import]
 from datetime import datetime, timedelta
 
 from . import commandsDB as botCommands

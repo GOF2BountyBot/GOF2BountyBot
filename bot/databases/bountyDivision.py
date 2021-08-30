@@ -17,7 +17,7 @@ from traceback import format_stack
 from datetime import timedelta
 import random
 from typing import List, Any, Union
-from discord import TextChannel, Client
+from discord import TextChannel, Client # type: ignore[import]
 from inspect import iscoroutine
 
 

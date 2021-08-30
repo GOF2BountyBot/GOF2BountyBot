@@ -4,7 +4,7 @@
 from typing_extensions import Protocol
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent
+from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod

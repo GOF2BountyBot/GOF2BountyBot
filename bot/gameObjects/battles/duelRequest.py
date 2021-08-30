@@ -1,6 +1,6 @@
 from ... import lib, botState
 from ...cfg import cfg
-from discord import Embed, User, Message, DiscordException, HTTPException, NotFound, File
+from discord import Embed, User, Message, DiscordException, HTTPException, NotFound, File # type: ignore[import]
 from ...users import basedUser
 from ...scheduling import timedTask
 from ...users import basedGuild

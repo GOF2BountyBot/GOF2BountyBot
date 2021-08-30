@@ -1,9 +1,9 @@
 from __future__ import annotations
-from discord.member import Member
+from discord.member import Member # type: ignore[import]
 from . import reactionMenu
 from .. import botState, lib
 from ..lib.emojis import BasedEmoji
-from discord import Colour, Guild, Role, Message, User
+from discord import Colour, Guild, Role, Message, User # type: ignore[import]
 from datetime import datetime
 from ..scheduling import timedTask
 from typing import List, Union, Dict

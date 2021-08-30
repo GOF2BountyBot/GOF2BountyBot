@@ -1,6 +1,6 @@
 from . import reactionMenu
 from ..cfg import cfg
-from discord import Message, User, Member, Colour
+from discord import Message, User, Member, Colour # type: ignore[import]
 from typing import Union, List
 
 

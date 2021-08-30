@@ -4,7 +4,7 @@ from typing import List
 from . import toolItem
 from .... import lib, botState
 from ....lib import gameMaths
-from discord import Message
+from discord import Message # type: ignore[import]
 from ....cfg import cfg, bbData
 from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu

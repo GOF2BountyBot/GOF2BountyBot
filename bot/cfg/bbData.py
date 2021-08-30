@@ -1,4 +1,4 @@
-from discord import Colour # type: ignore
+from discord import Colour # type: ignore[import]
 from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
     from ..gameObjects.shipSkin import ShipSkin

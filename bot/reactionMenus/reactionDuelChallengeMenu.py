@@ -2,7 +2,7 @@ from __future__ import annotations
 from . import reactionMenu
 from ..cfg import cfg
 from .. import botState
-from discord import Colour, Message, Embed, Member, Role
+from discord import Colour, Message, Embed, Member, Role # type: ignore[import]
 from ..scheduling import timedTask
 from..gameObjects.battles import duelRequest
 

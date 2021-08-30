@@ -3,7 +3,7 @@ from . import reactionMenu
 from ..cfg import cfg
 from ..gameObjects.items import gameItem
 from ..gameObjects.inventories import inventory
-from discord import Message, Colour, Member, Role
+from discord import Message, Colour, Member, Role # type: ignore[import]
 from .. import lib
 from ..scheduling import timedTask
 

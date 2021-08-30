@@ -1,5 +1,5 @@
 from __future__ import annotations
-from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour
+from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour # type: ignore[import]
 from ....cfg import bbData, cfg
 from .... import lib
 from .. import criminal

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Dict
-from discord import Guild
+from discord import Guild # type: ignore[import]
 from concurrent.futures import ThreadPoolExecutor
 import os
 

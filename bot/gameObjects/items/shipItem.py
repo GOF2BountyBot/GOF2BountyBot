@@ -4,7 +4,7 @@ from typing import List, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from .modules import moduleItem
 
-from discord import Embed
+from discord import Embed # type: ignore[import]
 
 from .gameItem import GameItem, spawnableItem
 from . import moduleItemFactory

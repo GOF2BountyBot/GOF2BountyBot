@@ -6,8 +6,8 @@ from .cfg import cfg, versionInfo, bbData, gameConfigurator
 
 # Discord Imports
 
-import discord
-from discord.ext.commands import Bot as ClientBaseClass
+import discord # type: ignore[import] # type: ignore[ignore]
+from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
 
 
 # Util imports

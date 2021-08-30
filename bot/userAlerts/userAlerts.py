@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Union, List
 if TYPE_CHECKING:
     from ..users import basedGuild
 
-from discord import utils, Guild, Member
+from discord import utils, Guild, Member # type: ignore[import]
 from abc import ABC, abstractmethod
 
 

@@ -1,7 +1,7 @@
 from .. import gameItem
 from abc import abstractmethod
 from .... import lib
-from discord import Message
+from discord import Message # type: ignore[import]
 from typing import List
 
 
