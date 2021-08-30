@@ -1,6 +1,9 @@
+from typing import Union, TYPE_CHECKING
 from .logging import Logger
 from aiohttp import ClientSession
 from datetime import timedelta
+if TYPE_CHECKING:
+    from .databases import userDB, guildDB, reactionMenuDB
 
 class ShutDownState:
     restart = 0
@@ -9,14 +12,12 @@ class ShutDownState:
 
 client = None # type: ignore[var-annotated]
 shutdown = ShutDownState.restart
-httpClient: ClientSession = None
+httpClient: Union[ClientSession, None] = None
 
-usersDB = None
-guildsDB = None
-reactionMenusDB = None
+usersDB: Union["userDB.UserDB", None] = None
+guildsDB: Union["guildDB.GuildDB", None] = None
+reactionMenusDB: Union["reactionMenuDB.ReactionMenuDB", None] = None
 
-newBountiesTTDB = None
-duelRequestTTDB = None
 shopRefreshTT = None
 
 taskScheduler = None

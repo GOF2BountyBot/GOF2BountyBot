@@ -464,9 +464,6 @@ async def on_ready():
 
     ##### SCHEDULING #####
 
-    botState.newBountiesTTDB = TimedTaskHeap()
-    botState.duelRequestTTDB = TimedTaskHeap()
-
     shopRefreshDelta = timedelta(**cfg.timeouts.shopRefresh)
     botState.shopRefreshTT = TimedTask(expiryDelta=shopRefreshDelta,
                                         autoReschedule=True,
