@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod, abstractclassmethod
 import inspect
-from typing import Dict, Any, Tuple, List, Union
+from typing import Dict, Any, Tuple, List, Union, cast
 from types import FunctionType
 
 def get_default_args(func: FunctionType) -> Dict[str, Any]:
@@ -53,7 +53,7 @@ class Serializable(ABC):
         return hash(repr(self))
     
     @classmethod
-    def _makeDefaults(cls, args : Dict[str, Any] = {}, ignores : Tuple[str] = (), **overrides) -> Dict[str, Any]:
+    def _makeDefaults(cls, args : Dict[str, Any] = {}, ignores : Tuple[str] = cast(Tuple[str], ()), **overrides) -> Dict[str, Any]:
         """Creates a dictionary addressing each KEYWORD argument of this class's constructor.
         Does not address positional arguments.
 
