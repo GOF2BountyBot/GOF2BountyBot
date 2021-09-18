@@ -203,7 +203,9 @@ shipMaxPriceTechLevels = [50000, 100000, 200000, 500000, 1000000, 2000000, 50000
 # This is a measurement of the old algorithm based approach
 #bountyXPLevelBoundaries = [-1, 0, 1500, 3500, 8000, 15000, 28000, 51000, 90000, 165000, 300000]
 # This is the new one based on observed criminal values
-bountyXPLevelBoundaries = [-1, 0, 1050, 2000, 3500, 10000, 18000, 61000, 71000, 90000, 1000000]
+# bountyXPLevelBoundaries = [-1, 0, 1050, 2000, 3500, 10000, 18000, 61000, 71000, 90000, 1000000]
+# This is the above, after suggested changes from testing
+bountyXPLevelBoundaries = [-1, 0, 1050, 2000, 3500, 10000, 18000, 61000, 71000, 1000000, 5000000]
 
 
 
