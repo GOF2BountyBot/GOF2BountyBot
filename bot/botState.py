@@ -11,13 +11,14 @@ from datetime import timedelta
 from github import Github
 from github.Repository import Repository
 from typing import cast
+from discord import Client # type: ignore[import]
 
 class ShutDownState:
     restart = 0
     shutdown = 1
     update = 2
 
-client = None # type: ignore[var-annotated]
+client = cast(Client, None)
 shutdown = ShutDownState.restart
 httpClient = cast("ClientSession", None)
 githubClient = cast(Github, None)
