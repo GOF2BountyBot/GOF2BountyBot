@@ -1,10 +1,12 @@
 import discord # type: ignore[import]
+from typing import cast
 import json
 
 from . import commandsDB as botCommands
 from .. import lib, botState
 from ..cfg import cfg, bbData
 from ..gameObjects.items import gameItem
+from ..gameObjects.items.shipItem import Ship
 from ..gameObjects.bounties.bounty import Bounty
 from ..databases.bountyDB import divisionNameForLevel
 
@@ -102,11 +104,11 @@ async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.reply(mention_author=False, content=":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     userItemInactives = requestedBBUser.getInactivesByName(item)
     if itemNum > userItemInactives.numKeys:
@@ -117,11 +119,12 @@ async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
         return
 
-    requestedItem = userItemInactives[itemNum - 1].item
+    requestedItem = cast(gameItem.GameItem, userItemInactives[itemNum - 1].item)
     itemName = ""
     itemEmbed = None
 
     if item == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \
@@ -213,11 +216,11 @@ async def dev_cmd_del_item_key(message : discord.Message, args : str, isDM : boo
         await message.reply(mention_author=False, content=":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.reply(mention_author=False, content=":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     userItemInactives = requestedBBUser.getInactivesByName(item)
     if itemNum > userItemInactives.numKeys:
@@ -328,11 +331,11 @@ async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool
         await message.reply(mention_author=False, content=":x: This guild's shops are disabled.")
     else:
         if divName == "":
-            for shop in guild.divisionShops.values():
+            for shop in guild.divisionShops.values(): # type: ignore
                 if shop.minLevel <= level <= shop.maxLevel:
                     shop.refreshStock()
         else:
-            guild.divisionShops[divName].refreshStock(level)
+            guild.divisionShops[divName].refreshStock(level) # type: ignore
         
         if level == -1:
             await guild.announceNewShopStock()
@@ -418,7 +421,7 @@ async def dev_cmd_debug_hangar(message : discord.Message, args : str, isDM : boo
 
             expectedKeys = itemInv.items.keys()
             for itemNum in range(len(expectedKeys)):
-                itemKey = itemInv.items.expectedKeys[itemNum]
+                itemKey = list(itemInv.items.keys())[itemNum]
                 if itemKey not in displayedItems:
                     currentItemCount = itemInv.items[itemKey].count
                     displayedItems.append(itemKey)
@@ -485,10 +488,12 @@ async def dev_cmd_crim_value(message : discord.Message, args : str, isDM : bool)
 
         bountyObj: Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
 
-        # send the user's balance
-        await message.reply(mention_author=False, content=":moneybag: **" + criminalName \
-                                    + "**'s loadout has a total value of **" \
-                                    + str(bountyObj.activeShip.getValue()) + " Credits**.")
+        if bountyObj.activeShip is None:
+            await message.reply(mention_author=False, content="This criminal has no loadout")
+        else:
+            await message.reply(mention_author=False, content=":moneybag: **" + criminalName \
+                                        + "**'s loadout has a total value of **" \
+                                        + str(bountyObj.activeShip.getValue()) + " Credits**.")
 
 botCommands.register("crim-value", dev_cmd_crim_value, 3, forceKeepArgsCasing=True, allowDM=False, helpSection="items",
                         signatureStr="**crim-value** *[criminal name]*",
