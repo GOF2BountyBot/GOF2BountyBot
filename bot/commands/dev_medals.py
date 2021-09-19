@@ -1,3 +1,4 @@
+from typing import cast
 import discord # type: ignore[import]
 import aiohttp
 import os
@@ -78,7 +79,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
     noIcon = kwargs["icon"] == ""
     noEmoji = kwargs["emoji"] == lib.emojis.BasedEmoji.EMPTY
 
-    if not noEmoji and noIcon and kwargs["emoji"].isUnicode:
+    if not noEmoji and noIcon and cast(lib.emojis.BasedEmoji, kwargs["emoji"]).isUnicode:
         await message.reply(":x: I can't extract icons from unicode emojis.\nPlease either provide a custom emoji, an icon" \
                             + " kwarg, or an attached icon image.")
         return
@@ -138,7 +139,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
             iconFile.close()
                     
     else:
-        emojiServer: discord.Guild = botState.client.get_guild(cfg.emojisServer) or \
+        emojiServer = botState.client.get_guild(cfg.emojisServer) or \
                                     await botState.client.fetch_guild(cfg.emojisServer)
         if emojiServer is None:
             botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.emojisServer",
@@ -148,7 +149,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
 
         if noEmoji:
             success = False
-            async with botState.httpClient.get(kwargs["icon"]) as resp:
+            async with botState.httpClient.get(cast(str, kwargs["icon"])) as resp:
                 try:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError as e:
@@ -161,7 +162,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                     else:
                         iconImg = await resp.read()
                         try:
-                            newEmoji: discord.Emoji = await emojiServer.create_custom_emoji(name=medalName,
+                            newEmoji = await emojiServer.create_custom_emoji(name=medalName,
                                                                                             image=iconImg,
                                                                                             reason="dev_cmd_create_medal")
                         except (discord.Forbidden, discord.HTTPException) as e:
@@ -173,7 +174,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                 return
         else:
             # When given an emoji but no icon or message attachment, the emoji is ensured earlier to be custom
-            dcEmoji: discord.Emoji = botState.client.get_emoji(kwargs["emoji"].id)
+            dcEmoji: discord.Emoji = botState.client.get_emoji(cast(lib.emojis.BasedEmoji, kwargs["emoji"]).id)
             if dcEmoji is None:
                 await message.reply(":x: Failed to get your requested emoji.")
                 botState.logger.log("dev_medals", "dev_cmd_create_medal", f"Failed to get given emoji: {kwargs['emoji']}",
@@ -189,8 +190,11 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
         await message.reply(":x: Failed to infer medal emoji. Please provide it explicitly with kwargs.")
         botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to infer medal emoji", eventType="INFER_FAIL")
         return
+
+    newIcon = cast(str, kwargs.pop("icon"))
+    newEmoji = cast(lib.emojis.BasedEmoji, kwargs.pop("emoji"))
     
-    newMedal = Medal(medalName, medalDesc, **kwargs)
+    newMedal = Medal(medalName, medalDesc, newIcon, newEmoji)
     bbData.medalsData[medalName.lower()] = newMedal.toDict()
     bbData.medalObjs[medalName.lower()] = newMedal
 
@@ -200,7 +204,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
     filePath = os.path.join(dirPath, "META.json")
     lib.jsonHandler.writeJSON(filePath, newMedal.toDict(), prettyPrint=True)
 
-    await message.reply(f"{cfg.defaultEmojis.submit.sendable} medal added successfuly: {medalName}")
+    await message.reply(f"{cast(lib.emojis.BasedEmoji, cfg.defaultEmojis.submit).sendable} medal added successfuly: {medalName}")
 
 
 botCommands.register("create-medal", dev_cmd_create_medal, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="medals", useDoc=True)
