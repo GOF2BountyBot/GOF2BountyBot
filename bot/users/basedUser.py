@@ -209,6 +209,9 @@ class BasedUser(serializable.Serializable):
         self.systemsChecked = systemsChecked
         self.bountyWins = bountyWins
 
+        if activeShip is None:
+            raise ValueError("Not given required argument: activeShip")
+
         self.activeShip = activeShip
         self.inactiveShips = inactiveShips
         self.inactiveModules = inactiveModules

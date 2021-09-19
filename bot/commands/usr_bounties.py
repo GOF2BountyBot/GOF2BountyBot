@@ -1,3 +1,4 @@
+from typing import List, cast
 import discord # type: ignore[import]
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -13,7 +14,7 @@ from ..reactionMenus import reactionDuelChallengeMenu, expiryFunctions, confirma
 from ..users import basedUser, basedGuild
 from ..gameObjects.items import shipItem
 from ..gameObjects.items.weapons import primaryWeapon
-from ..gameObjects.items.tools import crateTool
+from ..gameObjects.items.tools import crateTool, toolItem
 from ..databases.bountyDivision import BountyDivision
 from ..databases.bountyDB import nameForDivision
 from ..lib import gameMaths
@@ -79,13 +80,13 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         systemInBountyRoute = False
         userLevel = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
         # list of completed bounties to remove from the bounties database
-        toPop = []
-        toEscape = []
+        toPop: List[Bounty] = []
+        toEscape: List[Bounty] = []
         btyDivision = callingGuild.bountiesDB.divisionForLevel(userLevel)
         sightedCriminalsStr = ""
         # The total amount to increase the division's activity temperature by
         divTempDelta = 0
-        bounty: Bounty = None
+        bounty: Bounty
 
         for tlBounties in btyDivision.bounties.values():
             for bounty in tlBounties.values():
@@ -93,121 +94,125 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 checkResult = bounty.check(requestedSystem, message.author.id)
                 # If current bounty resides in the requested system
                 if checkResult == 3:
-                    duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
-                                                            cfg.duelVariancePercent)
-                    try:
-                        duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser, requestedBBUser.activeShip,
-                                                                                    bounty.criminal, bounty.activeShip,
-                                                                                    duelResults)
-                    except RuntimeError:
-                        statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
-                        statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
-                        statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["health"]["varied"], 2)))
-                        statsEmbed.add_field(name="Time To Kill",
-                                                value=message.author.mention + ": " \
-                                                    + (str(round(duelResults["ship1"]["TTK"], 2)) \
-                                                        if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + (str(round(duelResults["ship2"]["TTK"], 2)) \
-                                                        if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
-
-                        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. " \
-                                                + "The error has been logged.")
-                        duelResultsImg = None
+                    if bounty.activeShip is None:
+                        botState.logger.log("usr_bounties", "cmd_check", f"bounty {bounty.criminal.name} has no activeShip",
+                                            eventType="NO_SHIP")
                     else:
-                        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
-                        statsEmbed.set_image(url="attachment://duelResults.png")
-                        duelResultsBytes = BytesIO()
-                        duelResultsImg.save(duelResultsBytes, "PNG")
-                        duelResultsBytes.seek(0)
-                        duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
-                    
+                        duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
+                                                                cfg.duelVariancePercent)
+                        try:
+                            duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser, requestedBBUser.activeShip,
+                                                                                        bounty.criminal, bounty.activeShip,
+                                                                                        duelResults)
+                        except RuntimeError:
+                            statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
+                            statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
+                            statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["health"]["varied"], 2)))
+                            statsEmbed.add_field(name="Time To Kill",
+                                                    value=message.author.mention + ": " \
+                                                        + (str(round(duelResults["ship1"]["TTK"], 2)) \
+                                                            if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + (str(round(duelResults["ship2"]["TTK"], 2)) \
+                                                            if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
 
-                    if duelResults["winningShip"] is not requestedBBUser.activeShip:
-                        toEscape.append(bounty)
-                        # bounty.escape()
-                        bountyLost = True
-                        await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
-                                                    file=None if duelResultsImg is None else duelResultsFile)
+                            statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. " \
+                                                    + "The error has been logged.")
+                            duelResultsImg = None
+                        else:
+                            statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
+                            statsEmbed.set_image(url="attachment://duelResults.png")
+                            duelResultsBytes = BytesIO()
+                            duelResultsImg.save(duelResultsBytes, "PNG")
+                            duelResultsBytes.seek(0)
+                            duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
+                        
 
-                    else:
-                        bountyWon = True
+                        if duelResults["winningShip"] is not requestedBBUser.activeShip:
+                            toEscape.append(bounty)
+                            # bounty.escape()
+                            bountyLost = True
+                            await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
+                                                        file=None if duelResultsImg is None else duelResultsFile)
 
-                        # reward all contributing users
-                        rewards = bounty.calcRewards()
-                        levelUpMsg = ""
-                        for userID in rewards:
-                            currentBBUser = botState.usersDB.getUser(userID)
-                            currentBBUser.credits += rewards[userID]["reward"]
-                            currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
-                            currentDCUser = message.guild.get_member(currentBBUser.id)
+                        else:
+                            bountyWon = True
 
-                            oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
-                            if oldLevel == cfg.maxTechLevel:
-                                rewards[userID]["xp"] = 0
-                                continue
-                            
-                            currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            # reward all contributing users
+                            rewards = bounty.calcRewards()
+                            levelUpMsg = ""
+                            for userID in rewards:
+                                currentBBUser = botState.usersDB.getUser(userID)
+                                currentBBUser.credits += rewards[userID]["reward"]
+                                currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
+                                currentDCUser = message.guild.get_member(currentBBUser.id)
 
-                            newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
-                            if newLevel > oldLevel:
-                                levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
-                                currentBBUser.inactiveTools.addItem(levelUpCrate)
+                                oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
+                                if oldLevel == cfg.maxTechLevel:
+                                    rewards[userID]["xp"] = 0
+                                    continue
                                 
-                                oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
-                                newDiv = callingGuild.bountiesDB.divisionForLevel(newLevel)
-                                if oldDiv is newDiv:
-                                    levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
-                                                + currentDCUser.mention \
-                                                + f" reached **Bounty Hunter Level {newLevel}!** :partying_face:\n" \
-                                                + f"You got a **{levelUpCrate.name}**."
-                                
-                                else:
-                                    oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
-                                    levelUpMsg += "\n:arrow_double_up: **New Division Reached!** :sparkles:\n" \
-                                                + currentDCUser.mention \
-                                                + f" hit **Bounty Hunter Level {newLevel}**, and reached the " \
-                                                + f"**{newDivName.title()} Division!** :partying_face:\n" \
-                                                + f"You got a **{levelUpCrate.name}**."
-                                
-                                    if callingGuild.hasBountyAlertRoles:
-                                        oldRole = message.guild.get_role(oldDiv.alertRoleID)
-                                        newRole = None
-                                        if oldRole is None:
-                                            await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
-                                                                        + " division bounty alerts role, did it get deleted?")
-                                                                        
-                                        elif oldRole in message.author.roles:
-                                            newRole = message.guild.get_role(newDiv.alertRoleID)
-                                            if newRole is None:
-                                                await message.channel.send(":woozy_face: I can't find the " \
-                                                                        + f"{newDivName.title()} division's bounty alerts " \
-                                                                        + "role, did it get deleted?")
-                                        
-                                        if oldRole is not None or newRole is not None:
-                                            await callingGuild.levelUpSwapRoles(currentDCUser, message.channel, oldRole, newRole)
+                                currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
 
-                        if levelUpMsg != "":
-                            await message.channel.send(levelUpMsg)
+                                newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
+                                if newLevel > oldLevel:
+                                    levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
+                                    currentBBUser.inactiveTools.addItem(levelUpCrate)
+                                    
+                                    oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
+                                    newDiv = callingGuild.bountiesDB.divisionForLevel(newLevel)
+                                    if oldDiv is newDiv:
+                                        levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
+                                                    + currentDCUser.mention \
+                                                    + f" reached **Bounty Hunter Level {newLevel}!** :partying_face:\n" \
+                                                    + f"You got a **{levelUpCrate.name}**."
+                                    
+                                    else:
+                                        oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
+                                        levelUpMsg += "\n:arrow_double_up: **New Division Reached!** :sparkles:\n" \
+                                                    + currentDCUser.mention \
+                                                    + f" hit **Bounty Hunter Level {newLevel}**, and reached the " \
+                                                    + f"**{newDivName.title()} Division!** :partying_face:\n" \
+                                                    + f"You got a **{levelUpCrate.name}**."
+                                    
+                                        if callingGuild.hasBountyAlertRoles:
+                                            oldRole = message.guild.get_role(oldDiv.alertRoleID)
+                                            newRole = None
+                                            if oldRole is None:
+                                                await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
+                                                                            + " division bounty alerts role, did it get deleted?")
+                                                                            
+                                            elif oldRole in message.author.roles:
+                                                newRole = message.guild.get_role(newDiv.alertRoleID)
+                                                if newRole is None:
+                                                    await message.channel.send(":woozy_face: I can't find the " \
+                                                                            + f"{newDivName.title()} division's bounty alerts " \
+                                                                            + "role, did it get deleted?")
+                                            
+                                            if oldRole is not None or newRole is not None:
+                                                await callingGuild.levelUpSwapRoles(currentDCUser, message.channel, oldRole, newRole)
 
-                        # Announce the bounty has been completed
-                        await callingGuild.announceBountyWon(bounty, rewards, message.author)
-                        await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
+                            if levelUpMsg != "":
+                                await message.channel.send(levelUpMsg)
 
-                        # Raise guild's activity temperature for this bounty's tl
-                        numContributingUsers = len(set(rewards.keys()))
-                        divTempDelta += numContributingUsers * cfg.activityTempPerPlayer
+                            # Announce the bounty has been completed
+                            await callingGuild.announceBountyWon(bounty, rewards, message.author)
+                            await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
 
-                        # add this bounty to the list of bounties to be removed
-                        toPop.append(bounty)
+                            # Raise guild's activity temperature for this bounty's tl
+                            numContributingUsers = len(set(rewards.keys()))
+                            divTempDelta += numContributingUsers * cfg.activityTempPerPlayer
+
+                            # add this bounty to the list of bounties to be removed
+                            toPop.append(bounty)
 
                 # Update routes in this division containing the checked system
                 if checkResult in [2, 3]:
@@ -287,7 +292,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
 
-    division: BountyDivision = None
+    division: BountyDivision
 
     if not args:
         try:
@@ -474,7 +479,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
 
         try:
             newDuelReq = duelRequest.DuelRequest(
-                sourceBBUser, targetBBUser, stakes, None, botState.guildsDB.getGuild(message.guild.id))
+                sourceBBUser, targetBBUser, stakes, cast(timedTask.TimedTask, None), botState.guildsDB.getGuild(message.guild.id))
             duelTT = timedTask.TimedTask(expiryDelta=timedelta(**cfg.timeouts.duelRequest),
                                             expiryFunction=duelRequest.expireAndAnnounceDuelReq,
                                             expiryFunctionArgs={"duelReq": newDuelReq})
@@ -505,7 +510,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
                                                 + "To accept the challenge!\n" + duelExpiryTimeString))
 
         if message.guild.get_member(requestedUser.id) is None:
-            targetUserDCGuild = lib.discordUtil.findBBUserDCGuild(targetBBUser)
+            targetUserDCGuild = lib.discordUtil.findBUserDCGuild(targetBBUser)
             if targetUserDCGuild is None:
                 await message.reply(mention_author=False, content=":x: User not found! Did they leave the server?")
                 return
@@ -543,7 +548,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
         if message.guild.get_member(requestedUser.id) is None:
             await message.reply(mention_author=False, content=":white_check_mark: You have cancelled your duel challenge for **" \
                                         + str(requestedUser) + "**.")
-            targetUserGuild = lib.discordUtil.findBBUserDCGuild(targetBBUser)
+            targetUserGuild = lib.discordUtil.findBUserDCGuild(targetBBUser)
             if targetUserGuild is not None:
                 targetUserBBGuild = botState.guildsDB.getGuild(targetUserGuild.id)
                 if targetUserBBGuild.hasPlayChannel() and \
@@ -625,8 +630,9 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Tool number too big - you only have " + str(callingBUser.inactiveTools.numKeys) \
                                         + " tool" + ("" if callingBUser.inactiveTools.numKeys == 1 else "s") + "!")
         else:
-            result = await callingBUser.inactiveTools[toolNum - 1].item.userFriendlyUse(message, ship=callingBUser.activeShip,
-                                                                                        callingBUser=callingBUser)
+            result = await cast(toolItem.ToolItem, callingBUser.inactiveTools[toolNum - 1].item)\
+                                    .userFriendlyUse(message, ship=callingBUser.activeShip,
+                                                    callingBUser=callingBUser)
             await message.reply(mention_author=False, content=result)
 
 
