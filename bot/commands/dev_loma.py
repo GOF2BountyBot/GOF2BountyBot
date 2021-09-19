@@ -1,3 +1,4 @@
+from typing import cast
 import discord # type: ignore[import]
 import json
 
@@ -6,6 +7,7 @@ from .. import lib, botState
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.items import gameItem
+from ..gameObjects.items.shipItem import Ship
 from ..users.basedUser import BasedUser
 from ..gameObjects.lomaShop import LomaShop
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
@@ -25,7 +27,7 @@ async def dev_cmd_loma_give(message : discord.Message, args : str, isDM : bool):
                         from cfg.validItemNames (but not 'all'), followed by a serialized item
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedUser: BasedUser = None
+    requestedUser: BasedUser
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
         requestedUser = botState.usersDB.getOrAddID(message.author.id)
@@ -79,7 +81,7 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
                         from cfg.validItemNames (but not 'all'), followed by an item number from debug_loma, and a serialized ItemDiscount
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedUser: BasedUser = None
+    requestedUser: BasedUser
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
         requestedUser = botState.usersDB.getOrAddID(message.author.id)
@@ -104,14 +106,15 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
         await message.channel.send(":x: Invalid item type arg - " + itemType)
         return
 
-    itemListing: DiscountableItemListing = requestedUser.loma.getStockByName(itemType)[itemNum - 1]
+    itemListing: DiscountableItemListing = cast(DiscountableItemListing,
+                                                requestedUser.loma.getStockByName(itemType)[itemNum - 1])
     newDiscount = ItemDiscount.fromDict(discountDict)
     itemListing.pushDiscount(newDiscount)
 
     await message.channel.send(f":white_check_mark: Given one '{newDiscount.toDict()}' to **" \
                                 + lib.discordUtil.userOrMemberName(botState.client.get_user(requestedUser.id),
                                                                     message.guild) + "**, for their " \
-                                + itemListing.item.name + ".")
+                                + cast(gameItem.GameItem, itemListing.item).name + ".")
 
 botCommands.register("loma-give-discount", dev_cmd_loma_give_discount, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="loma", useDoc=True)
 
@@ -166,7 +169,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
                 shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
 
             try:
-                currentItem = currentStock[itemNum - 1].item
+                currentItem = cast(gameItem.GameItem, currentStock[itemNum - 1].item)
             except KeyError:
                 try:
                     botState.logger.log("dev_loma", "dev_cmd_debug_loma",
@@ -195,7 +198,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
                                     value="Do not attempt to buy. Could cause issues.", inline=True)
                 continue
             
-            itemListing: DiscountableItemListing = currentStock.getListing(currentItem)
+            itemListing: DiscountableItemListing = cast(DiscountableItemListing, currentStock.getListing(currentItem))
             currentItemCount = itemListing.count
             if itemListing.discounts:
                 discountedValue = int(currentItem.value * itemListing.discounts[0].mult)
@@ -216,7 +219,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
         await message.channel.send(":x: I can't DM you, " + message.author.display_name \
             + "! Please enable DMs from users who are not friends.")
         return
-    await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
+    await message.add_reaction(cast(lib.emojis.BasedEmoji, cfg.defaultEmojis.dmSent).sendable)
 
 botCommands.register("debug-loma", dev_cmd_debug_loma, 3, allowDM=True, helpSection="loma", useDoc=True)
 
@@ -261,11 +264,11 @@ async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bo
         await message.channel.send(":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.channel.send(":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     if requestedBBUser.loma is None or requestedBBUser.loma.isEmpty():
         await message.channel.send(":x: Requested user has no loma items!")
@@ -280,11 +283,12 @@ async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bo
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
         return
 
-    requestedItem = lomaItemStock[itemNum - 1].item
+    requestedItem = cast(gameItem.GameItem, lomaItemStock[itemNum - 1].item)
     itemName = ""
     itemEmbed = None
 
     if itemCategory == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \
@@ -379,11 +383,11 @@ async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM 
         await message.channel.send(":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.channel.send(":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     if requestedBBUser.loma is None or requestedBBUser.loma.isEmpty():
         await message.channel.send(":x: Requested user has no loma items!")
@@ -398,11 +402,12 @@ async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM 
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
         return
 
-    requestedItem = lomaItemStock.keys[itemNum - 1]
+    requestedItem = cast(gameItem.GameItem, lomaItemStock.keys[itemNum - 1])
     itemName = ""
     itemEmbed = None
 
     if itemCategory == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                     if requestedItem.manufacturer in bbData.factionColours \
@@ -511,17 +516,17 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
         await message.channel.send(":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.channel.send(":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
-    discountNum = argsSplit[-1]
-    if not lib.stringTyping.isInt(discountNum):
+    partialDiscountNum = argsSplit[-1]
+    if not lib.stringTyping.isInt(partialDiscountNum):
         await message.channel.send(":x: Invalid discount index!")
         return
-    discountNum = int(discountNum)
+    discountNum = int(partialDiscountNum)
 
     if requestedBBUser.loma is None or requestedBBUser.loma.isEmpty():
         await message.channel.send(":x: Requested user has no loma items!")
@@ -536,7 +541,7 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
         return
 
-    itemListing = lomaItemStock[itemNum - 1]
+    itemListing = cast(DiscountableItemListing, lomaItemStock[itemNum - 1])
 
     if discountNum > len(itemListing.discounts) - 1:
         await message.channel.send(":x: Invalid discount number! The user only has " + str(itemListing.discounts) \
@@ -546,13 +551,14 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
         await message.channel.send(":x: Invalid item number! Must be at least 0.")
         return
 
-    requestedItem = itemListing.item
+    requestedItem = cast(gameItem.GameItem, itemListing.item)
     itemName = ""
     itemEmbed = None
 
     discountObj = itemListing.discounts[discountNum]
 
     if itemCategory == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \
