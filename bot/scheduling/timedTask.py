@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import inspect
 from typing import Any, Awaitable, Protocol, Union, cast
+from .. import botState
 
 
 class _TTOptionCallbackType(Protocol):
@@ -84,7 +85,7 @@ class TimedTask:
         # Calculate expiryTime as issueTime + expiryDelta if none is given
         self.expiryTime = self.issueTime + expiryDelta if expiryTime is None else expiryTime
         # Calculate expiryDelta as expiryTime - issueTime if none is given. This is needed for rescheduling.
-        self.expiryDelta = self.expiryTime - self.issueTime if expiryDelta is None else expiryDelta
+        self.expiryDelta = (self.expiryTime - self.issueTime) if expiryDelta is None else expiryDelta
 
         self.expiryFunction = expiryFunction
         self.hasExpiryFunction = expiryFunction is not None
@@ -191,8 +192,9 @@ class TimedTask:
         except Exception as e:
             # If the task is marked to reschedule on expiry func failure, reschedule the task
             if self.rescheduleOnExpiryFuncFailure:
-                print("Exception occured in callExpiryFunction + " + str(self.expiryFunction) + ", rescheduling: " \
-                        + str(self) + ". Exception: " + str(e))
+                botState.logger.log(type(self).__name__, "callExpiryFunction",
+                                    f"Exception occured in callExpiryFunction {self.expiryFunction}, rescheduling: {self}.",
+                                    exception=e, noPrint=True)
                 await self.reschedule()
             # Otherwise, pass up the exception
             else:
@@ -339,8 +341,9 @@ class DynamicRescheduleTask(TimedTask):
             raise ValueError("delayTimeGenerator, and so initialDelta is a required argument. Received None.")
 
         # Initialise TimedTask-inherited attributes
-        super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=initialDelta, expiryFunction=expiryFunction,
-                                                    expiryFunctionArgs=expiryFunctionArgs, autoReschedule=autoReschedule,
+        super(DynamicRescheduleTask, self).__init__(issueTime=issueTime, expiryTime=expiryTime, expiryDelta=initialDelta,
+                                                    expiryFunction=expiryFunction, expiryFunctionArgs=expiryFunctionArgs,
+                                                    autoReschedule=autoReschedule,
                                                     rescheduleOnExpiryFuncFailure=rescheduleOnExpiryFuncFailure)
         self.delayTimeGenerator = delayTimeGenerator
         self.hasDelayTimeGeneratorArgs = delayTimeGeneratorArgs is not None

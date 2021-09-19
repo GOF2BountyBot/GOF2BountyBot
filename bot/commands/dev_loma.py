@@ -199,10 +199,9 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
             currentItemCount = itemListing.count
             if itemListing.discounts:
                 discountedValue = int(currentItem.value * itemListing.discounts[0].mult)
-                discountAmountStr = f"{itemListing.discounts[0].mult*100:.2f}".rstrip("0.")
+                discountAmountStr = lib.stringTyping.formatMultiplier(itemListing.discounts[0].mult)
                 valueStr = f"~~{commaSplitNum(currentItem.value)}~~ {commaSplitNum(discountedValue)}" \
-                            + f" Credits\n*{'+' if itemListing.discounts[0].mult > 1 else '-'}" \
-                            + f"{discountAmountStr}% : {itemListing.discounts[0].desc}*\n"
+                            + f" Credits\n*{discountAmountStr} : {itemListing.discounts[0].desc}*\n"
             else:
                 valueStr = f"{commaSplitNum(currentItem.value)} Credits\n"
             shopEmbed.add_field(name=str(itemNum) + ". " \

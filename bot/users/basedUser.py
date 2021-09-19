@@ -198,6 +198,8 @@ class BasedUser(serializable.Serializable):
         if guildTransferCooldownEnd is None:
             guildTransferCooldownEnd = datetime.utcnow()
 
+        self.githubIssueSubmitDelayEnd: Union[timedelta, None] = None
+
         self.id = userID
         self.credits = credits
         self.lifetimeBountyCreditsWon = lifetimeBountyCreditsWon

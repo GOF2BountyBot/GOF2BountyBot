@@ -256,7 +256,7 @@ class Bounty(serializable.Serializable):
         if self.criminal in self.division.bounties[self.techLevel]:
             self.division.owningDB.removeBountyObj(self)
         botState.taskScheduler.scheduleTask(self.respawnTT)
-        self.division.owningDB.addEscapedBounty(self, dbReload=dbReload)
+        self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
     async def _respawn(self):

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING, Tuple, Dict
+from typing import Callable, Coroutine, Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
     from discord import Member, Guild, Message # type: ignore[import]
     from ..users import basedUser, basedGuild
@@ -11,6 +11,9 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 from discord import DMChannel, GroupChannel, TextChannel # type: ignore[import]
 from ..cfg import cfg
 from ..userAlerts import userAlerts
+
+from functools import wraps, partial
+import asyncio
 
 
 def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
@@ -414,3 +417,24 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
                                             inline=False)
 
     return {"content": msgText, "embed": msgEmbed}
+
+
+def asyncWrap(func: Callable) -> Coroutine:
+    """Function decorator wrapping a synchronous function into an asynchronous executor call.
+    This is a last-resort expensive operation, as a new process is spawned off for each call of the funciton.
+    Where possible, use natively asynchronous code, e.g aiohttp instead of requests.
+
+    Author:
+    https://stackoverflow.com/a/50450553/11754606
+
+    :param Callable func: Function to wrap. Cannot be a coroutine. (any signature)
+    :return: An awaitable wrapping func
+    :rtype: Coroutine
+    """
+    @wraps(func)
+    async def run(*args, loop=None, executor=None, **kwargs):
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        pfunc = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, pfunc)
+    return run

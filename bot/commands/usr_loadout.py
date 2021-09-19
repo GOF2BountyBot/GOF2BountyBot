@@ -345,12 +345,8 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
-        await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
-                                    + "and an item number from `" + prefix + "hangar`")
-        return
-    if len(argsSplit) > 3:
-        await message.reply(mention_author=False, content=":x: Too many arguments! Please only give an item type (ship/weapon/module/turret), " \
-                                    + "an item number, and optionally `transfer` when equipping a ship.")
+        await message.reply(mention_author=False, content=f":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
+                                    + "an item number (Or a comma seperated list of item numbers) from `" + prefix + "hangar`, and optionally `transfer` when equipping a ship.")
         return
 
     item = argsSplit[0].rstrip("s")
@@ -361,83 +357,185 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
     requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
 
     itemNum = argsSplit[1]
-    if not lib.stringTyping.isInt(itemNum):
-        await message.reply(mention_author=False, content=":x: Invalid item number!")
-        return
-    itemNum = int(itemNum)
+    
+    
+    #if itemNum includes a "," -> put valid ItemNums into a list
+    if "," in itemNum:
+        multipleItems = True
+        transferItems = False
+        itemNum = []
+        for arg in argsSplit:
+            #Check if the argument is the item
+            if arg in cfg.validItemNames:
+                continue
+            #remove any ","       
+            arg = arg.rstrip(",")
 
-    userItemInactives = requestedBBUser.getInactivesByName(item)
-    if itemNum > userItemInactives.numKeys:
-        await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
-        return
-    if itemNum < 1:
-        await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
-        return
-
-    transferItems = False
-    if len(argsSplit) == 3:
-        if argsSplit[2] == "transfer":
-            if item != "ship":
-                await message.reply(mention_author=False, content=":x: `transfer` can only be used when equipping a ship!")
+            if not lib.stringTyping.isInt(arg):
+                await message.reply(mention_author=False, content=":x: Invalid item number!")
                 return
-            transferItems = True
-        else:
-            await message.reply(mention_author=False, content=":x: Invalid argument! Please only give an item type (ship/weapon/module/turret), " \
-                                        + "an item number, and optionally `transfer` when equipping a ship.")
-            return
+            arg = int(arg)
+            userItemInactives = requestedBBUser.getInactivesByName(item)
+            if arg > userItemInactives.numKeys:
+                await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+                return
+            if arg < 1:
+                await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
+                return
 
-    requestedItem = userItemInactives[itemNum - 1].item
+            if arg == "transfer":
+                transferItems = True
+                break
+            itemNum.append(arg)
+        
+        itemNum.sort()
+        
+        #Equip the items one by one
+        iterations = 1
+        for i in itemNum:
+            requestedItem = userItemInactives[i - iterations].item
 
-    if item == "ship":
-        activeShip = requestedBBUser.activeShip
-        if transferItems:
-            requestedBBUser.unequipAll(requestedItem)
-            requestedBBUser.activeShip.transferItemsTo(requestedItem)
-            requestedBBUser.unequipAll(activeShip)
+            if item == "ship":
+                activeShip = requestedBBUser.activeShip
+                if transferItems:
+                    requestedBBUser.unequipAll(requestedItem)
+                    requestedBBUser.activeShip.transferItemsTo(requestedItem)
+                    requestedBBUser.unequipAll(activeShip)
 
-        requestedBBUser.equipShipObj(requestedItem)
+                requestedBBUser.equipShipObj(requestedItem)
 
-        outStr = ":rocket: You switched to the **" + requestedItem.getNameOrNick() + "**."
-        if transferItems:
-            outStr += "\nItems thay could not fit in your new ship can be found in the hangar."
-        await message.reply(mention_author=False, content=outStr)
+                outStr = ":rocket: You switched to the **" + requestedItem.getNameOrNick() + "**."
+                if transferItems:
+                    outStr += "\nItems that could not fit in your new ship can be found in the hangar."
+                await message.reply(mention_author=False, content=outStr)
+                iterations += 1
 
-    elif item == "weapon":
-        if not requestedBBUser.activeShip.canEquipMoreWeapons():
-            await message.reply(mention_author=False, content=":x: Your active ship does not have any free weapon slots!")
-            return
+            elif item == "weapon":
+                if not requestedBBUser.activeShip.canEquipMoreWeapons():
+                    await message.reply(mention_author=False, content=":x: Your active ship does not have any free weapon slots!")
+                    return
 
-        requestedBBUser.activeShip.equipWeapon(requestedItem)
-        requestedBBUser.inactiveWeapons.removeItem(requestedItem)
+                requestedBBUser.activeShip.equipWeapon(requestedItem)
+                requestedBBUser.inactiveWeapons.removeItem(requestedItem)
 
-        await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+                await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+                iterations += 1
+                
+            elif item == "module":
+                if not requestedBBUser.activeShip.canEquipMoreModules():
+                    await message.reply(mention_author=False, content=":x: Your active ship does not have any free module slots!")
+                    return
 
-    elif item == "module":
-        if not requestedBBUser.activeShip.canEquipMoreModules():
-            await message.reply(mention_author=False, content=":x: Your active ship does not have any free module slots!")
-            return
+                if not requestedBBUser.activeShip.canEquipModuleType(type(requestedItem)):
+                    await message.reply(mention_author=False, content=":x: You already have the max of this type of module equipped!")
+                    return
 
-        if not requestedBBUser.activeShip.canEquipModuleType(type(requestedItem)):
-            await message.reply(mention_author=False, content=":x: You already have the max of this type of module equipped!")
-            return
+                requestedBBUser.activeShip.equipModule(requestedItem)
+                requestedBBUser.inactiveModules.removeItem(requestedItem)
 
-        requestedBBUser.activeShip.equipModule(requestedItem)
-        requestedBBUser.inactiveModules.removeItem(requestedItem)
+                await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+                iterations += 1
 
-        await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+            elif item == "turret":
+                if not requestedBBUser.activeShip.canEquipMoreTurrets():
+                    await message.reply(mention_author=False, content=":x: Your active ship does not have any free turret slots!")
+                    return
 
-    elif item == "turret":
-        if not requestedBBUser.activeShip.canEquipMoreTurrets():
-            await message.reply(mention_author=False, content=":x: Your active ship does not have any free turret slots!")
-            return
+                requestedBBUser.activeShip.equipTurret(requestedItem)
+                requestedBBUser.inactiveTurrets.removeItem(requestedItem)
 
-        requestedBBUser.activeShip.equipTurret(requestedItem)
-        requestedBBUser.inactiveTurrets.removeItem(requestedItem)
+                await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+                iterations += 1
+            
+            else:
+                raise NotImplementedError("Valid but unsupported item name: " + item)
+            
 
-        await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
-
+    #if there isn't a ","
     else:
-        raise NotImplementedError("Valid but unsupported item name: " + item)
+        
+        if not lib.stringTyping.isInt(itemNum):
+            await message.reply(mention_author=False, content=":x: Invalid item number!")
+            return
+        
+        if len(argsSplit) > 3:
+            await message.reply(mention_author=False, content=":x: Too many arguments! Please only give an item type (ship/weapon/module/turret), " \
+                                        + "an item number (Or a comma seperated list of item numbers), and optionally `transfer` when equipping a ship.")
+            return
+        
+        itemNum = int(itemNum)
+        userItemInactives = requestedBBUser.getInactivesByName(item)
+        if itemNum > userItemInactives.numKeys:
+            await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+            return
+        if itemNum < 1:
+            await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
+            return
+
+        transferItems = False
+        if len(argsSplit) == 3:
+            if argsSplit[2] == "transfer":
+                if item != "ship":
+                    await message.reply(mention_author=False, content=":x: `transfer` can only be used when equipping a ship!")
+                    return
+                transferItems = True
+            else:
+                await message.reply(mention_author=False, content=":x: Invalid argument! Please only give an item type (ship/weapon/module/turret), " \
+                                            + "an item number, and optionally `transfer` when equipping a ship.")
+                return
+
+        requestedItem = userItemInactives[itemNum - 1].item
+
+        if item == "ship":
+            activeShip = requestedBBUser.activeShip
+            if transferItems:
+                requestedBBUser.unequipAll(requestedItem)
+                requestedBBUser.activeShip.transferItemsTo(requestedItem)
+                requestedBBUser.unequipAll(activeShip)
+
+            requestedBBUser.equipShipObj(requestedItem)
+
+            outStr = ":rocket: You switched to the **" + requestedItem.getNameOrNick() + "**."
+            if transferItems:
+                outStr += "\nItems that could not fit in your new ship can be found in the hangar."
+            await message.reply(mention_author=False, content=outStr)
+
+        elif item == "weapon":
+            if not requestedBBUser.activeShip.canEquipMoreWeapons():
+                await message.reply(mention_author=False, content=":x: Your active ship does not have any free weapon slots!")
+                return
+
+            requestedBBUser.activeShip.equipWeapon(requestedItem)
+            requestedBBUser.inactiveWeapons.removeItem(requestedItem)
+
+            await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+
+        elif item == "module":
+            if not requestedBBUser.activeShip.canEquipMoreModules():
+                await message.reply(mention_author=False, content=":x: Your active ship does not have any free module slots!")
+                return
+
+            if not requestedBBUser.activeShip.canEquipModuleType(type(requestedItem)):
+                await message.reply(mention_author=False, content=":x: You already have the max of this type of module equipped!")
+                return
+
+            requestedBBUser.activeShip.equipModule(requestedItem)
+            requestedBBUser.inactiveModules.removeItem(requestedItem)
+
+            await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+
+        elif item == "turret":
+            if not requestedBBUser.activeShip.canEquipMoreTurrets():
+                await message.reply(mention_author=False, content=":x: Your active ship does not have any free turret slots!")
+                return
+
+            requestedBBUser.activeShip.equipTurret(requestedItem)
+            requestedBBUser.inactiveTurrets.removeItem(requestedItem)
+
+            await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
+
+        else:
+            raise NotImplementedError("Valid but unsupported item name: " + item)
 
 botCommands.register("equip", cmd_equip, 0, allowDM=True, helpSection="loadout",
                     signatureStr="**equip <item-type> <item-num>** *[transfer]*",

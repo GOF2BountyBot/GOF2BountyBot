@@ -17,8 +17,8 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
-    if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) <= 10:
-        await message.channel.send(":x: This command can only be used by level 10 bounty hunters!")
+    if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) < cfg.maxTechLevel:
+        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
     commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
@@ -88,7 +88,7 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
 bbCommands.register("kaamo get", cmd_kaamo_get, 0, helpSection="kaamo club", allowDM=True,
                     signatureStr="**kaamo get <item-type> <item-number>**",
                     shortHelp="Transfer items from the Kaamo Club to your hangar. This command can only be used by " \
-                                + "level 10 bounty hunters.")
+                                + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
 async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
@@ -159,7 +159,7 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
 bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club", allowDM=True,
                     signatureStr="**kaamo store <item-type> <item-number>**",
                     shortHelp="Transfer items from your hangar to the Kaamo Club. This command can only be used by " \
-                                + "level 10 bounty hunters.")
+                                + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
 async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):

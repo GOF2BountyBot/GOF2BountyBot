@@ -17,6 +17,33 @@ class LomaShop(guildShop.GuildShop):
     Items cannot be sold to Loma.
     """
 
+    def __init__(self, shipsStock: inventory.DiscountableTypeRestrictedInventory = None,
+                    weaponsStock: inventory.DiscountableTypeRestrictedInventory = None,
+                    modulesStock: inventory.DiscountableTypeRestrictedInventory = None,
+                    turretsStock: inventory.DiscountableTypeRestrictedInventory = None,
+                    toolsStock: inventory.DiscountableTypeRestrictedInventory = None):
+        """
+        :param shipsStock: The shop's current stock of ships (Default empty inventory.DiscountableTypeRestrictedInventory)
+        :type shipsStock: inventory.DiscountableTypeRestrictedInventory
+        :param weaponsStock: The shop's current stock of weapons (Default empty inventory.DiscountableTypeRestrictedInventory)
+        :type weaponsStock: inventory.DiscountableTypeRestrictedInventory
+        :param modulesStock: The shop's current stock of modules (Default empty inventory.DiscountableTypeRestrictedInventory)
+        :type modulesStock: inventory.DiscountableTypeRestrictedInventory
+        :param turretsStock: The shop's current stock of turrets (Default empty inventory.DiscountableTypeRestrictedInventory)
+        :type turretsStock: inventory.DiscountableTypeRestrictedInventory
+        :param toolsStock: The shop's current stock of tools (Default empty inventory.DiscountableTypeRestrictedInventory)
+        :type toolsStock: inventory.DiscountableTypeRestrictedInventory
+        """
+        shipsStock = shipsStock or inventory.DiscountableTypeRestrictedInventory(shipItem.Ship)
+        weaponsStock = weaponsStock or inventory.DiscountableTypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = modulesStock or inventory.DiscountableTypeRestrictedInventory(moduleItem.ModuleItem)
+        turretsStock = turretsStock or inventory.DiscountableTypeRestrictedInventory(turretWeapon.TurretWeapon)
+        toolsStock = toolsStock or inventory.DiscountableTypeRestrictedInventory(toolItem.ToolItem)
+
+        super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
+                            turretsStock=turretsStock, toolsStock=toolsStock)
+
+
     def userCanAffordItemObj(self, user : basedUser.BasedUser, item : gameItem.GameItem) -> bool:
         """Decide whether a user has enough credits to buy an item, taking into account any available discounts
 

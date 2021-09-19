@@ -9,6 +9,7 @@ from ..gameObjects.items import shipItem, gameItem
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
 from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
 from ..shipRenderer import shipRenderer
+from ..users.basedGuild import BasedGuild
 
 
 botCommands.addHelpSection(0, "gof2 info")
@@ -297,10 +298,16 @@ async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
         statsEmbed.add_field(name="Max Shop Spawn Chance:", value=str(itemObj.shopSpawnRate) + "%\nFor shop level " \
                                                                     + str(itemObj.techLevel))
 
+        if not itemData.get("skinnable", False):
+            statsEmbed.add_field(name="Compatible Skins:",
+                                value="This ship is not skinnable", inline=False)
         # Include compatible ship skin names
-        if compatibleSkins := itemData.get("compatibleSkins", False):
+        elif compatibleSkins := itemData.get("compatibleSkins", False):
             statsEmbed.add_field(name="Compatible Skins:",
                                 value=" • ".join(compatibleSkins), inline=False)
+        else:
+            statsEmbed.add_field(name="Compatible Skins:",
+                                value="This ship is skinnable, but currently has no compatible skins", inline=False)
 
         # include the item's aliases and wiki if they exist
         if len(itemObj.aliases) > 1:
@@ -750,7 +757,11 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        callingBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+        prefix = callingBGuild.commandPrefix
+        if "+" in args and callingBGuild.hasRendersChannel() and callingBGuild.rendersChannel.id != message.channel.id:
+            await message.reply(f":x: Skin renders are restricted to {callingBGuild.rendersChannel.mention}.")
+            return
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")

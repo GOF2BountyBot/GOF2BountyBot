@@ -5,7 +5,7 @@ from . import configurator
 # All emojis used by the bot
 defaultEmojis = cast("configurator.ConfigProxy[BasedEmoji]", {
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
-    "unrecognisedEmoji": UninitializedBasedEmoji(779632588243075072),
+    "unrecognisedEmoji": UninitializedBasedEmoji("⁉"),
     # When a message prompts a process that will take a long time (e.g rendering), this will be added to the message reactions
     # It will be removed when the long process is finished.
     "longProcess": UninitializedBasedEmoji("⏳"),
@@ -31,17 +31,16 @@ defaultEmojis = cast("configurator.ConfigProxy[BasedEmoji]", {
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
     # Default emoji to assign to shipSkinTool items
-    "shipSkinTool": UninitializedBasedEmoji(777166858516299786),
+    "shipSkinTool": UninitializedBasedEmoji("🎨"),
 
     # Default emoji to assign to bbCrates containing shipSkinTools
-    # "skinCrate": UninitializedBasedEmoji(723709178736017419)
-    "skinCrate": UninitializedBasedEmoji("🥞"),
-    # "defaultCrate": UninitializedBasedEmoji(723709178736017419)
-    "defaultCrate": UninitializedBasedEmoji("🥞"),
+    "skinCrate": UninitializedBasedEmoji("🧰"),
+
+    # Default emoji to assign to all other crates
+    "defaultCrate": UninitializedBasedEmoji("📦"),
     
     # Emoji sent with new bounty listings
-    # "newBounty": UninitializedBasedEmoji(723709178589347921)
-    "newBounty": UninitializedBasedEmoji("🥞")
+    "newBounty": UninitializedBasedEmoji("⛓")
 })
 
 timeouts = cast("configurator.ConfigProxy[Dict[str, int]]", {
@@ -70,7 +69,10 @@ timeouts = cast("configurator.ConfigProxy[Dict[str, int]]", {
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
     "newBountyDelayRandomMin": {"minutes": 5},
-    "newBountyDelayRandomMax": {"minutes": 7}
+    "newBountyDelayRandomMax": {"minutes": 7},
+
+    # The amount of time a user must wait before they are allowed to submit a new github issue
+    "githubIssueSubmitDelay": {"minutes": 5}
 })
 
 paths = cast("configurator.ConfigProxy[str]", {
@@ -113,7 +115,7 @@ maxCommandsPerHelpPage = 5
 #                           "dev_misc")
 
 includedCommandModules = (  "usr_misc", "usr_homeguilds", "usr_gof2-info", "usr_bounties", "usr_loadout", "usr_economy",
-                            "usr_kaamo", "usr_loma",
+                            "usr_kaamo", "usr_loma", "usr_github",
                             "admn_channels", "admn_misc",
                             "dev_misc", "dev_channels", "dev_bounties", "dev_items", "dev_skins", "dev_loma", "dev_kaamo",
                                 "dev_medals")
@@ -450,22 +452,22 @@ maxModuleTypeEquips = {     "ArmourModule": 1,
                             "CabinModule": -1,
                             "CloakModule": 1,
                             "CompressorModule": -1,
+                            "EmergencySystemModule": 1,
                             "GammaShieldModule": 1,
+                            "JumpDriveModule": 0,
                             "MiningDrillModule": 1,
+                            "PrimaryWeaponModModule": 1,
                             "RepairBeamModule": 1,
                             "RepairBotModule": 1,
                             "ScannerModule": 1,
+                            "ShieldInjectorModule": 1,
                             "ShieldModule": 1,
+                            "SignatureModule": 1,
                             "SpectralFilterModule": 1,
                             "ThrusterModule": 1,
+                            "TimeExtenderModule": 1,
                             "TractorBeamModule": 1,
-                            "TransfusionBeamModule": 1,
-                            "WeaponModModule": 1,
-                            "JumpDriveModule": 0,
-                            "EmergencySystemModule": 1,
-                            "SignatureModule": 1,
-                            "ShieldInjectorModule": 1,
-                            "TimeExtenderModule": 1}
+                            "TransfusionBeamModule": 1}
 
 # valid types of crateItem that are in the game. Each will be associated with a zero-indexed (crateNum) list of crate objects
 crateTypes = ("levelUp", "special")
@@ -501,3 +503,15 @@ loggingCategories = [   "usersDB", "guildsDB", "bountiesDB", "shop", "escapedBou
 
 # The maximum recursion depth of directory-walking when loading gameObjects from their JSON representation
 gameObjectCfgMaxRecursion = 6
+
+# github account access token to be used for submitting issues
+githubAccessToken = ""
+
+# github repo to submit issues into
+githubIssuesRepo = ""
+
+# a translation from github label names to user-facing label names
+githubLabelNames = {"enhancement": "feature",
+                    "i showed u my issue pls respond": "new issue"}
+
+githubIssueTemplates = ["bug_report", "feature_request", "new-item-alias"]

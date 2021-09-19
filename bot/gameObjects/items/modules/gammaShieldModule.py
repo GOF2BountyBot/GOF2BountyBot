@@ -13,7 +13,7 @@ class GammaShieldModule(moduleItem.ModuleItem):
     :vartype effect: float
     """
 
-    def __init__(self, name : str, aliases : List[str], effect : int = 0, value : int = 0,
+    def __init__(self, name : str, aliases : List[str], effect : int = 1, value : int = 0,
             wiki : str = "", manufacturer : str = "", icon : str = "",
             emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
             builtIn : bool = False):

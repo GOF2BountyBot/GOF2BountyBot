@@ -1,5 +1,6 @@
 # Set up bot config
 
+import github
 from bot.gameObjects.items import shipItem
 from .cfg import cfg, versionInfo, bbData, gameConfigurator
 
@@ -19,6 +20,7 @@ import asyncio
 import signal
 import aiohttp
 import sys
+from github import Github
 
 
 # BASED Imports
@@ -306,12 +308,12 @@ async def announceNewShopStock(guildID : int = -1):
         # loop over all guilds
         for guild in botState.guildsDB.guilds.values():
             # ensure guild has a valid playChannel
-            if not guild.shopDisabled:
+            if not guild.shopsDisabled:
                 await guild.announceNewShopStock()
     else:
         guild = botState.guildsDB.getGuild(guildID)
         # ensure guild has a valid playChannel
-        if not guild.shopDisabled:
+        if not guild.shopsDisabled:
             await guild.announceNewShopStock()
 
 
@@ -427,6 +429,16 @@ async def on_ready():
     ##### CLIENT INITIALIZATION #####
     botState.client.skinStorageChannel = botState.client.get_guild(cfg.mediaServer).get_channel(cfg.skinRendersChannel)
     botState.httpClient = aiohttp.ClientSession()
+    if cfg.githubAccessToken and cfg.githubIssuesRepo:
+        try:
+            botState.githubClient = Github(cfg.githubAccessToken)
+        except Exception as e:
+            botState.logger.log("main", "on_ready", "", exception=e)
+        else:
+            try:
+                botState.githubRepo = botState.githubClient.get_repo(cfg.githubIssuesRepo)
+            except Exception as e:
+                botState.logger.log("main", "on_ready", "", exception=e)
 
     if cfg.timedTaskCheckingType == "fixed":
         botState.taskScheduler = timedTaskHeap.TimedTaskHeap()

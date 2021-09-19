@@ -518,14 +518,20 @@ class TechLeveledShop(GuildShop):
     
     :var currentTechLevel: The current tech level of the shop, influencing the tech levels of the stock generated upon refresh
     :vartype currentTechLevel: int
+    :var minLevel: The minimum tech level that the shop can take
+    :vartype minLevel: int
+    :var maxLevel: The maximum tech level that the shop can take
+    :vartype maxLevel: int
     """
 
-    def __init__(self, shipsStock : Inventory = None, weaponsStock : Inventory = None,
+    def __init__(self, minLevel: int, maxLevel: int, shipsStock : Inventory = None, weaponsStock : Inventory = None,
                     modulesStock : Inventory = None, turretsStock : Inventory = None, toolsStock : Inventory = None,
-                    currentTechLevel : int = cfg.minTechLevel, noRefresh : bool = False):
+                    currentTechLevel : int = None, noRefresh : bool = False):
         """
         :param int currentTechLevel: The current tech level of the shop, influencing the tech levels of the stock generated
                                         upon refresh. (Default empty inventory)
+        :param int minLevel: The minimum tech level that the shop can take
+        :param int maxLevel: The maximum tech level that the shop can take
         :param inventory shipsStock: The shop's current stock of ships (Default empty inventory)
         :param inventory weaponsStock: The shop's current stock of weapons (Default empty inventory)
         :param inventory modulesStock: The shop's current stock of modules (Default empty inventory)
@@ -536,9 +542,37 @@ class TechLeveledShop(GuildShop):
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
 
-        self.currentTechLevel = currentTechLevel
+        if maxLevel > cfg.maxTechLevel:
+            raise ValueError(f"Attempted to create a shop with a max tech level above cfg.maxTechLevel: {maxLevel}")
+        if minLevel < cfg.minTechLevel:
+            raise ValueError(f"Attempted to create a shop with a min tech level below cfg.minTechLevel: {minLevel}")
+        if maxLevel < minLevel:
+            raise ValueError(f"Attempted to create a shop with a max level ({maxLevel}) higher than the min level ({minLevel})")
+            
+        self.minLevel = minLevel
+        self.maxLevel = maxLevel
+        self.currentTechLevel = currentTechLevel if currentTechLevel is not None else self.pickNewTL(guaranteeNew=False)
         if not noRefresh and self.isEmpty():
             self.refreshStock()
+
+
+    def pickNewTL(self, guaranteeNew: bool = True) -> int:
+        """Generate a new tech level for the shop.
+        This will be between self.minLevel and self.maxLevel.
+
+        :param bool guaranteeNew: When True, the new level cannot be the same as the current one, unless
+                                    self.minLevel and self.maxLevel are the same. (Default True)
+        """
+        # return gameMaths.pickRandomShopTL()
+
+        if self.minLevel == self.maxLevel:
+            return self.minLevel
+        else:
+            newTL = random.randint(self.minLevel, self.maxLevel)
+            if guaranteeNew:
+                while newTL == self.currentTechLevel:
+                    newTL = random.randint(self.minLevel, self.maxLevel)
+            return newTL
 
 
     def refreshStock(self, level : int = -1):
@@ -555,7 +589,7 @@ class TechLeveledShop(GuildShop):
         self.toolsStock.clear()
 
         if level == -1:
-            self.currentTechLevel = gameMaths.pickRandomShopTL()
+            self.currentTechLevel = self.pickNewTL()
         else:
             if level not in range(cfg.minTechLevel, cfg.maxTechLevel + 1):
                 raise ValueError("Attempted to refresh a shop at tech level " + str(level) + ". must be within the range " \
@@ -585,6 +619,8 @@ class TechLeveledShop(GuildShop):
         :rtype: dict
         """
         data = super().toDict(**kwargs)
+        data["minLevel"] = self.minLevel
+        data["maxLevel"] = self.maxLevel
         data["currentTechLevel"] = self.currentTechLevel
         return data
 
@@ -612,6 +648,7 @@ class TechLeveledShop(GuildShop):
                 for listingDict in shopDict[key]:
                     stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
 
-        return TechLeveledShop(currentTechLevel=shopDict.get("currentTechLevel", 1),
+        return TechLeveledShop(minLevel=shopDict["minLevel"], maxLevel=shopDict["maxLevel"],
+                                currentTechLevel=shopDict.get("currentTechLevel", 1),
                                 shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                                 turretsStock=turretsStock, toolsStock=toolsStock)

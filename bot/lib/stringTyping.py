@@ -91,4 +91,4 @@ def formatMultiplier(stat : float) -> str:
     :type stat: float
     :return: A sign symbol, followed by stat, followed by a percentage sign.
     """
-    return f"{'+' if stat >= 1 else '-'}{round((stat - (1 if stat > 1 else 0)) * 100)}%"
+    return f"{'+' if stat >= 1 else '-'}{round(((stat - 1) if stat > 1 else (1 - stat)) * 100)}%"

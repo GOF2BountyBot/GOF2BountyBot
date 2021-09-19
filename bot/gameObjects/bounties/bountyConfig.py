@@ -446,7 +446,7 @@ class BountyConfig:
                                                 eventType="NO_ITEMS", category="bountyConfig")
 
                     if turretTL != -1:
-                        numTurrets = random.randint(max(1, self.activeShip.maxTurrets - 1), self.activeShip.maxTurrets)
+                        numTurrets = random.randint(max(0, self.activeShip.maxTurrets - 1), self.activeShip.maxTurrets)
                         for _ in range(numTurrets):
                             currentTurret = random.choice(bbData.turretObjsByTL[turretTL])
                             # The chosen turret doesnt deal damage. If the TL has damage-dealing turrets,

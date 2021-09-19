@@ -6,6 +6,12 @@ if TYPE_CHECKING:
     from aiohttp import ClientSession
     from datetime import timedelta
 
+from aiohttp import ClientSession
+from datetime import timedelta
+from github import Github
+from github.Repository import Repository
+from typing import cast
+
 class ShutDownState:
     restart = 0
     shutdown = 1
@@ -14,6 +20,8 @@ class ShutDownState:
 client = None # type: ignore[var-annotated]
 shutdown = ShutDownState.restart
 httpClient = cast("ClientSession", None)
+githubClient = cast(Github, None)
+githubRepo = cast(Repository, None)
 
 usersDB = cast("userDB.UserDB", None)
 guildsDB = cast("guildDB.GuildDB", None)

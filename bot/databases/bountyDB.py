@@ -108,7 +108,7 @@ class BountyDB(serializable.Serializable):
         """
         divTasks = set()
         for div in self.divisions.values():
-            if not div.isFull():
+            if not div.isFull() or not div.hasMinTLBounty():
                 divTasks.add(asyncio.create_task(div.resetNewBountyCool()))
         if divTasks:
             await asyncio.wait(divTasks)
@@ -251,13 +251,13 @@ class BountyDB(serializable.Serializable):
         return sum(div.getNumBounties(includeEscaped=includeEscaped) for div in self.divisions)
 
 
-    def canMakeBounty(self) -> bounty.Bounty:
+    def canMakeBounty(self) -> bool:
         """Check whether this DB has space for more bounties
 
         :return: True if at least one division is not at capacity, False if all divisions' bounties are full
         :rtype: bool
         """
-        return any(not div.isFull() for div in self.divisions.values())
+        return any((not div.isFull() or not div.hasMinTLBounty()) for div in self.divisions.values())
 
 
     def bountyNameExists(self, name : str, level : int = None, noEscapedCrim : bool = True) -> bool:
@@ -332,7 +332,8 @@ class BountyDB(serializable.Serializable):
         div = self.divisionForLevel(bounty.techLevel)
 
         # Ensure the DB has space for the bounty
-        if not dbReload and div.isFull(includeEscaped=True):
+        if not dbReload and div.isFull(includeEscaped=True) and \
+                ((bounty.techLevel == div.minLevel and div.hasMinTLBounty()) or (bounty.techLevel != div.minLevel)):
             raise OverflowError(f"Division for the bounty ({bounty.criminal.name}, level {bounty.techLevel}) is full")
         
         if self.criminalObjExists(bounty.criminal):
@@ -357,17 +358,20 @@ class BountyDB(serializable.Serializable):
         return any(div.escapedCriminalExists(crim) for div in self.divisions.values())
 
 
-    def addEscapedBounty(self, bounty : bounty.Bounty, dbReload=False):
+    def addEscapedBounty(self, bounty : bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
         """Add a given bounty object to the escaped bounties database.
         Bounties cannot be added if the object or name already exists in the database.
 
         :param Bounty bounty: the bounty object to add to the database
+        :param bool dbReload: When true, skip checking for duplicate bounties and full divisions (Default False)
+        :param bool ignoreFull: When true, skip checking if the division is full (Default False)
         :raise ValueError: if the requested bounty's name already exists in the database
         """
         div = self.divisionForLevel(bounty.techLevel)
 
         # Ensure the DB has space for the bounty
-        if not dbReload and div.isFull(includeEscaped=True):
+        if not ignoreFull and not dbReload and div.isFull(includeEscaped=True) \
+                ((bounty.techLevel == div.minLevel and div.hasMinTLBounty()) or (bounty.techLevel != div.minLevel)):
             raise OverflowError(f"Division for the escaped bounty ({bounty.criminal.name}, level {bounty.techLevel}) is full")
         
         if self.criminalObjExists(bounty.criminal):
@@ -381,7 +385,7 @@ class BountyDB(serializable.Serializable):
         #     raise ValueError("Attempted to add a bounty whose name already exists: " + bounty.criminal.name)
 
         # Add the bounty to the database
-        div._addEscapedBounty(bounty, dbReload=dbReload)
+        div._addEscapedBounty(bounty, dbReload=dbReload, ignoreFull=ignoreFull)
 
 
     def removeEscapedBountyObj(self, bounty : bounty.Bounty):
@@ -486,7 +490,7 @@ class BountyDB(serializable.Serializable):
         newDB = BountyDB(owningBasedGuild)
 
         for minLevel, divTemp in temps.items():
-            newDB.divisionForLevel(int(minLevel)).temperature = divTemp
+            newDB.divisionForLevel(int(minLevel)).setTemp(divTemp)
 
         for bountyDict in activeBountiesData:
             newDB.addBounty(bounty.Bounty.fromDict(bountyDict, dbReload=dbReload, owningDB=newDB), dbReload=dbReload)

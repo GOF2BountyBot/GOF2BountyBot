@@ -116,17 +116,17 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Unknown value!")
     elif setting in ["shop", "shops"]:
         if value in trueStrings:
-            if not callingBBGuild.shopDisabled:
-                await message.reply(mention_author=False, content=":x: The shop is already enabled in this server!")
+            if not callingBBGuild.shopsDisabled:
+                await message.reply(mention_author=False, content=":x: Shops are already enabled in this server!")
             else:
-                callingBBGuild.enableShop()
-                await message.reply(mention_author=False, content=":white_check_mark: The shop is now enabled on this server!")
+                callingBBGuild.enableShops()
+                await message.reply(mention_author=False, content=":white_check_mark: Shops are now enabled on this server!")
         elif value in falseStrings:
-            if callingBBGuild.shopDisabled:
-                await message.reply(mention_author=False, content=":x: The shop is already disabled in this server!")
+            if callingBBGuild.shopsDisabled:
+                await message.reply(mention_author=False, content=":x: Shops are already disabled in this server!")
             else:
-                callingBBGuild.disableShop()
-                await message.reply(mention_author=False, content=":white_check_mark: The shop is now disabled on this server!")
+                callingBBGuild.disableShops()
+                await message.reply(mention_author=False, content=":white_check_mark: Shops are now disabled on this server!")
         else:
             await message.reply(mention_author=False, content=":x: Unknown value!")
     else:
@@ -259,13 +259,14 @@ async def admin_cmd_make_bounty_notify_roles(message : discord.Message, args : s
 
 botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_roles, 2,
                         signatureStr="**make-bounty-notify-roles**",
-                        shortHelp="Make 10 roles, one for each tech levle users can be, which the bot will ping when new " \
-                                    + "bounties are spawned.",
-                        longHelp="Automatically create 10 new roles, one for each tech levle users can be. When new " \
-                                    + "spawn, the bot will ping the role for the bounty's tech level. Users can self-assign" \
-                                    + " and self-unassign these roles with the `notify` command. Moving the user between " \
-                                    + "roles as they level up is handled automatically. Once created, feel free to edit the" \
-                                    + " roles, but please do not delete them, and they must remain pingable by the bot.")
+                        shortHelp=f"Make {len(cfg.bountyDivisions)} roles, one for each tech levle users can be, " \
+                                    + "which the bot will ping when new bounties are spawned.",
+                        longHelp=f"Automatically create {len(cfg.bountyDivisions)} new roles, one for each division. " \
+                                    + "When a bounty spawns into a division, that division's notify role is pinged. " \
+                                    + "Users can self-assign and self-unassign these roles with the `notify` command. " \
+                                    + "Moving the user between roles as they level up is handled automatically. " \
+                                    + "Once created, feel free to edit the roles, but please do not delete them, " \
+                                    + "and they must remain pingable by the bot.")
 
 
 async def admin_cmd_remove_bounty_notify_roles(message : discord.Message, args : str, isDM : bool):

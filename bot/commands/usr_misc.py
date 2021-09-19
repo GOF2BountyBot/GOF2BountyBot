@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 from . import commandsDB as botCommands
 from . import util_help
 from .. import lib, botState
+from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData, versionInfo
 from ..users import basedUser, basedGuild
 from ..reactionMenus import reactionMenu, reactionPollMenu
@@ -203,10 +204,10 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         nextXP = gameMaths.bountyHuntingXPForLevel(2)
         levelProgress = 0
         statsEmbed.add_field(name="Credits balance:", value=0, inline=True)
-        statsEmbed.add_field(name="Total value:", value=str(basedUser.defaultUserValue), inline=True)
+        statsEmbed.add_field(name="Total value:", value=commaSplitNum(basedUser.defaultUserValue), inline=True)
         statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
         statsEmbed.add_field(name="Bounty Hunter Level:", value="1")
-        statsEmbed.add_field(name="XP until next level:", value=str(nextXP - bountyXP))
+        statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - bountyXP))
         statsEmbed.add_field(name="Prestiges:", value="0")
         statsEmbed.add_field(name="Total systems checked:", value=0, inline=True)
         statsEmbed.add_field(name="Total bounties won:", value=0, inline=True)
@@ -233,24 +234,24 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
             for m in [i for i in userObj.medals if i.name.lower() not in bbData.medalObjs]:
                 userObj.medals.remove(m)
             statsEmbed.description = f"{''.join(m.emoji.sendable for m in userObj.medals)}\n\n{statsEmbed.description}"
-        statsEmbed.add_field(name="Credits balance:", value=str(userObj.credits), inline=True)
-        statsEmbed.add_field(name="Total value:", value=str(userObj.getStatByName("value")), inline=True)
+        statsEmbed.add_field(name="Credits balance:", value=commaSplitNum(userObj.credits), inline=True)
+        statsEmbed.add_field(name="Total value:", value=commaSplitNum(userObj.getStatByName("value")), inline=True)
         statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
         statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
         if hunterLvl == cfg.maxTechLevel:
-            statsEmbed.add_field(name="XP until next level:", value=str(nextXP - userObj.bountyHuntingXP))
-        else:
             statsEmbed.add_field(name="XP until next level:", value="*[Max Level]*")
+        else:
+            statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - userObj.bountyHuntingXP))
         statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
-        statsEmbed.add_field(name="Total systems checked:", value=str(userObj.systemsChecked), inline=True)
-        statsEmbed.add_field(name="Total bounties won:", value=str(userObj.bountyWins), inline=True)
-        statsEmbed.add_field(name="Total credits earned from bounties:", value=str(userObj.lifetimeBountyCreditsWon),
+        statsEmbed.add_field(name="Total systems checked:", value=commaSplitNum(userObj.systemsChecked), inline=True)
+        statsEmbed.add_field(name="Total bounties won:", value=commaSplitNum(userObj.bountyWins), inline=True)
+        statsEmbed.add_field(name="Total credits earned from bounties:", value=commaSplitNum(userObj.lifetimeBountyCreditsWon),
                                 inline=True)
         statsEmbed.add_field(name="‎", value="__Dueling__", inline=False)
         statsEmbed.add_field(name="Duels won:", value=str(userObj.duelWins), inline=True)
         statsEmbed.add_field(name="Duels lost:", value=str(userObj.duelLosses), inline=True)
-        statsEmbed.add_field(name="Total credits won:", value=str(userObj.duelCreditsWins), inline=True)
-        statsEmbed.add_field(name="Total credits lost:", value=str(userObj.duelCreditsLosses), inline=True)
+        statsEmbed.add_field(name="Total credits won:", value=commaSplitNum(userObj.duelCreditsWins), inline=True)
+        statsEmbed.add_field(name="Total credits lost:", value=commaSplitNum(userObj.duelCreditsLosses), inline=True)
 
     if hunterLvl == 10:
         levelProgress = 1
@@ -339,11 +340,11 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                 textDraw.text((xPad, yPad), f"Level {hunterLvl} {divisionNameForLevel(hunterLvl).title()}",
                                 cfg.userProfileLevelColour, font=font)
                 # Build current XP string
-                currentXPStr = str(bountyXP) + "/"
+                currentXPStr = commaSplitNum(bountyXP) + "/"
                 # Calculate size of current XP string
                 currentXPStrSize = font.getsize(currentXPStr)
                 # Build next XP string
-                nextXPStr = str(nextXP) + "xp"
+                nextXPStr = commaSplitNum(nextXP) + "xp"
                 # Calculate size of next XP string
                 nextXPStrSize = font.getsize(nextXPStr)
                 # Draw next XP string to image

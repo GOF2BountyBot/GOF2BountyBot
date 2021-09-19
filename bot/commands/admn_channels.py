@@ -47,7 +47,7 @@ async def admin_cmd_set_play_channel(message : discord.Message, args : str, isDM
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if args == "off":
         if requestedBBGuild.hasPlayChannel():
             requestedBBGuild.removePlayChannel()
@@ -65,6 +65,37 @@ botCommands.register("set-play-channel", admin_cmd_set_play_channel, 2, allowDM=
                     signatureStr="**set-play-channel** *[off]*",
                     longHelp="Set the channel where BountyBot will send info about completed bounties\n" \
                         + "> Use `set-play-channel off` to disable completed bounty announcements.")
+
+
+async def admin_cmd_set_renders_channel(message : discord.Message, args : str, isDM : bool):
+    """admin command for setting the current guild's autoskin renders channel
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    requestedBBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    if args == "off":
+        if requestedBBGuild.hasRendersChannel():
+            requestedBBGuild.removeRendersChannel()
+            await message.reply(":ballot_box_with_check: Renders channel removed!",
+                                mention_author=False)
+        else:
+            await message.reply(":x: This server has no renders channel set!",
+                                mention_author=False)
+    elif args != "":
+        await message.reply(":x: Invalid arguments! Can only be `off` to disable this server's renders channel, " \
+                                    + "or no args to use this channel as the renders channel.",
+                            mention_author=False)
+    else:
+        requestedBBGuild.setRendersChannel(message.channel)
+        await message.reply(":ballot_box_with_check: Renders channel set!",
+                            mention_author=False)
+
+botCommands.register("set-renders-channel", admin_cmd_set_renders_channel, 2, allowDM=False, helpSection="channels",
+                    signatureStr="**set-renders-channel** *[off]*",
+                    longHelp="Restrict custom skin rendering with `showme ship` to this channel.\n" \
+                                + "> Use `set-renders-channel off` to disable this restriction again.")
 
 
 async def admin_cmd_make_bounty_board_channels(message : discord.Message, args : str, isDM : bool):

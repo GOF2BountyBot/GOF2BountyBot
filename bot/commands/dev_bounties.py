@@ -295,11 +295,11 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
                     cooldownTasks.add(asyncio.create_task(currentGuild.bountiesDB.resetAllNewBountyTTs()))
                 elif useTL:
                     div = currentGuild.bountiesDB.divisionForLevel(tl)
-                    if not div.isFull():
+                    if not div.isFull() or not div.hasMinTLBounty():
                         cooldownTasks.add(asyncio.create_task(div.resetNewBountyCool()))
                 else:
                     div = currentGuild.bountiesDB.divisionForName(divStr)
-                    if not div.isFull():
+                    if not div.isFull() or not div.hasMinTLBounty():
                         cooldownTasks.add(asyncio.create_task(div.resetNewBountyCool()))
         if cooldownTasks:
             asyncio.wait(cooldownTasks)
@@ -315,7 +315,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
                                         + callingBBGuild.dcGuild.name + "'")
         elif useTL:
             div = callingBBGuild.bountiesDB.divisionForLevel(tl)
-            if div.isFull():
+            if div.isFull() and not div.hasMinTLBounty():
                 await message.reply(mention_author=False, content=":x: That division is full!")
             else:
                 await div.resetNewBountyCool()
@@ -323,7 +323,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
                                             + " bounty cooldown reset for '" + callingBBGuild.dcGuild.name + "'")
         else:
             div = callingBBGuild.bountiesDB.divisionForName(divStr)
-            if div.isFull():
+            if div.isFull() and not div.hasMinTLBounty():
                 await message.reply(mention_author=False, content=":x: That division is full!")
             else:
                 await div.resetNewBountyCool()
@@ -396,24 +396,24 @@ async def dev_cmd_set_temp(message : discord.Message, args : str, isDM : bool):
                 if not currentGuild.bountiesDisabled:
                     if allDivs:
                         for div in currentGuild.bountiesDB.divisions.values():
-                            div.temperature = temp
+                            div.setTemp(temp)
                     elif useTL:
                         div = currentGuild.bountiesDB.divisionForLevel(divTL)
-                        div.temperature = temp
+                        div.setTemp(temp)
                     else:
                         div = currentGuild.bountiesDB.divisionForName(divStr)
-                        div.temperature = temp
+                        div.setTemp(temp)
             await message.reply(f"Temperatures set to {temp} for {'all divisions in' if allDivs else nameForDivision(div)} all guilds!")
         else:
             if allDivs:
                 for div in callingBBGuild.bountiesDB.divisions.values():
-                    div.temperature = temp
+                    div.setTemp(temp)
             elif useTL:
                 div = callingBBGuild.bountiesDB.divisionForLevel(divTL)
-                div.temperature = temp
+                div.setTemp(temp)
             else:
                 div = callingBBGuild.bountiesDB.divisionForName(divStr)
-                div.temperature = temp
+                div.setTemp(temp)
             await message.reply(f"Temperatures set to {temp} for {'all divisions in' if allDivs else nameForDivision(div)} the guild!")
 
 botCommands.register("set-temp", dev_cmd_set_temp, 3, allowDM=False, helpSection="bounties", useDoc=True)
@@ -471,13 +471,13 @@ async def dev_cmd_canmakebounty(message : discord.Message, args : str, isDM : bo
                                         + "Division has space for more bounties")
     if allDivs:
         for div in callingBBGuild.bountiesDB.divisions.values():
-            msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull()))
+            msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull() or not div.hasMinTLBounty()))
     elif useTL:
         div = callingBBGuild.bountiesDB.divisionForLevel(tl)
-        msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull()))
+        msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull() or not div.hasMinTLBounty()))
     else:
         div = callingBBGuild.bountiesDB.divisionForName(divStr)
-        msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull()))
+        msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull() or not div.hasMinTLBounty()))
 
     await message.reply(embed=msgEmbed)
 
@@ -648,11 +648,11 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
             if not currentGuild.bountiesDisabled and currentGuild.bountiesDB.canMakeBounty():
                 if newTL == -1:
                     div = random.choice(list(currentGuild.bountiesDB.divisions.values()))
-                    while div.isFull():
+                    while div.isFull() and div.hasMinTLBounty():
                         div = random.choice(list(currentGuild.bountiesDB.divisions.values()))
                 else:
                     div = currentGuild.bountiesDB.divisionForLevel(newTL)
-                if div.isFull():
+                if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                     await message.reply(f"The {nameForDivision(div)} division is full in guild {currentGuild.dcGuild.name if currentGuild.dcGuild is not None else ''}#{currentGuild.id}, skipping this guild")
                 else:
                     newBounty = bounty.Bounty(division=div, config=config.generate(div))
@@ -668,11 +668,11 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
     else:
         if newTL == -1:
             div = random.choice(list(callingBBGuild.bountiesDB.divisions.values()))
-            while div.isFull():
+            while div.isFull() and div.hasMinTLBounty():
                 div = random.choice(list(callingBBGuild.bountiesDB.divisions.values()))
         else:
             div = callingBBGuild.bountiesDB.divisionForLevel(newTL)
-        if div.isFull():
+        if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
             await message.reply(f"The {nameForDivision(div)} division is full in that guild!")
         else:
             newBounty = bounty.Bounty(division=div, config=config.generate(div))
@@ -847,7 +847,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
                     await message.reply(mention_author=False, content=f"Skipping guild: {currentGuild.dcGuild.name if currentGuild.dcGuild is not None else ''}#{currentGuild.id} - criminal with this name already exists")
                 else:
                     div = currentGuild.bountiesDB.divisionForLevel(newTL)
-                    if div.isFull():
+                    if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                         await message.reply(f"The {nameForDivision(div)} division is full in guild {currentGuild.dcGuild.name if currentGuild.dcGuild is not None else ''}#{currentGuild.id}, skipping this guild")
                     else:
                         newBounty = bounty.Bounty(division=div, config=config.generate(div))
@@ -865,7 +865,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
             await message.reply(mention_author=False, content="A criminal with the same name already exists in that guild!")
         else:
             div = callingBBGuild.bountiesDB.divisionForLevel(newTL)
-            if div.isFull():
+            if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                 await message.reply(f"The {nameForDivision(div)} division is full in that guild!")
             else:
                 newBounty = bounty.Bounty(division=div, config=config.generate(div))
@@ -902,6 +902,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
         return
 
     newXP = int(argsSplit[1])
+    newLevel = gameMaths.calculateUserBountyHuntingLevel(newXP)
 
     requestedBBUser: basedUser.BasedUser = None
     if not botState.usersDB.idExists(requestedUser.id):
@@ -921,7 +922,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
                     await message.reply(mention_author=False, content=f":woozy_face: I can't find the {nameForDivision(oldDiv).title()}" \
                                                 + " division bounty alerts role, did it get deleted?")
             elif oldRole in requestedMember.roles:
-                newDiv = homeBGuild.bountiesDB.divisionForLevel(newXP)
+                newDiv = homeBGuild.bountiesDB.divisionForLevel(newLevel)
                 newRole = homeBGuild.dcGuild.get_role(newDiv.alertRoleID)
                 if newRole is None:
                     await message.reply(mention_author=False, content=":woozy_face: I can't find the " \
@@ -962,14 +963,7 @@ async def dev_cmd_set_bounty_level(message : discord.Message, args : str, isDM :
         await message.reply(mention_author=False, content=":x: invalid user!!")
         return
 
-    if not botState.usersDB.idExists(requestedUser.id):
-        requestedBBUser = botState.usersDB.addUser(requestedUser.id)
-    else:
-        requestedBBUser = botState.usersDB.getUser(requestedUser.id)
-
-    # update the balance
-    requestedBBUser.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(int(argsSplit[1]) + 1)
-    await message.reply(mention_author=False, content="Done!")
+    await dev_cmd_set_bounty_xp(message, f"{requestedUser.mention} {argsSplit[1]}", isDM)
 
 botCommands.register("set-bounty-level", dev_cmd_set_bounty_level, 3, allowDM=True, helpSection="bounties", useDoc=True) 
 
@@ -1148,24 +1142,24 @@ async def dev_cmd_reset_temps(message : discord.Message, args : str, isDM : bool
             if not currentGuild.bountiesDisabled:
                 if allDivs:
                     for div in currentGuild.bountiesDB.divisions.values():
-                        div.temperature = cfg.minGuildActivity
+                        div.setTemp(cfg.minGuildActivity)
                 elif useTL:
                     div = currentGuild.bountiesDB.divisionForLevel(tl)
-                    div.temperature = cfg.minGuildActivity
+                    div.setTemp(cfg.minGuildActivity)
                 else:
                     div = currentGuild.bountiesDB.divisionForName(divStr)
-                    div.temperature = cfg.minGuildActivity
+                    div.setTemp(cfg.minGuildActivity)
         await message.reply("done!")
     else:
         if allDivs:
             for div in callingBBGuild.bountiesDB.divisions.values():
-                div.temperature = cfg.minGuildActivity
+                div.setTemp(cfg.minGuildActivity)
         elif useTL:
             div = callingBBGuild.bountiesDB.divisionForLevel(tl)
-            div.temperature = cfg.minGuildActivity
+            div.setTemp(cfg.minGuildActivity)
         else:
             div = callingBBGuild.bountiesDB.divisionForName(divStr)
-            div.temperature = cfg.minGuildActivity
+            div.setTemp(cfg.minGuildActivity)
         await message.reply("Activity temperatures reset for guild.")
 
 botCommands.register("reset-temps", dev_cmd_reset_temps, 3, allowDM=False,
@@ -1224,7 +1218,7 @@ async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bo
         activityEmbed = lib.discordUtil.makeEmbed("Current New Bounty Delays", desc=message.guild.name,
                         col=discord.Colour.random(), thumb=message.guild.icon_url_as(size=64))
         for div in callingBBGuild.bountiesDB.divisions.values():
-            if div.isFull():
+            if div.isFull() and div.hasMinTLBounty():
                 activityEmbed.add_field(name=nameForDivision(div),
                                         value="<DIVISION FULL>")
             else:
@@ -1237,7 +1231,7 @@ async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bo
             div = callingBBGuild.bountiesDB.divisionForLevel(tl)
         else:
             div = callingBBGuild.bountiesDB.divisionForName(divStr)
-        if div.isFull():
+        if div.isFull() and div.hasMinTLBounty():
             await message.author.send("<DIVISION FULL>")
         else:
             await message.author.send(lib.timeUtil.td_format_noYM(div.newBountyTT.expiryDelta)

@@ -134,8 +134,9 @@ class GuildDB(serializable.Serializable):
         """Generate new stock for all shops belonging to the stored guilds
         """
         for guild in self.guilds.values():
-            if not guild.shopDisabled:
-                guild.shop.refreshStock()
+            if not guild.shopsDisabled:
+                for shop in guild.divisionShops.values():
+                    shop.refreshStock()
 
 
     def _decayGuildTemps(self, g: basedGuild.BasedGuild):
