@@ -3,7 +3,7 @@ from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
 from . import configurator
 
 # All emojis used by the bot
-defaultEmojis = cast("configurator.ConfigProxy[BasedEmoji]", {
+defaultEmojis = cast("configurator.ConfigProxy[Union[BasedEmoji, List[BasedEmoji]]]", {
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
     "unrecognisedEmoji": UninitializedBasedEmoji("⁉"),
     # When a message prompts a process that will take a long time (e.g rendering), this will be added to the message reactions
