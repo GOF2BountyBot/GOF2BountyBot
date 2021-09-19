@@ -114,7 +114,7 @@ async def dev_cmd_reset_has_poll(message : discord.Message, args : str, isDM : b
         # otherwise get the specified user's discord object and reset their poll ownership.
         # [!] no validation is done.
         else:
-            requestedBUser: BasedUser = botState.usersDB.getUser(int(args.lstrip("<@!").rstrip(">")))
+            requestedBUser = botState.usersDB.getUser(int(args.lstrip("<@!").rstrip(">")))
     except KeyError:
         await message.reply(":x: Unknown user. They may not have used the bot yet.")
 
