@@ -1,7 +1,7 @@
 import traceback
 
 
-def formatExceptionTrace(e: Exception) -> str:
+def formatExceptionTrace(e: BaseException) -> str:
     """Formats the trace for an exception into a string.
     Great for debugging errors that are swallowed by the event loop.
 

@@ -107,7 +107,7 @@ class BasedUser(serializable.Serializable):
     """
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
-                    bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : int = -1,
+                    bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : float = -1.,
                     systemsChecked : int = 0, bountyWins : int = 0, activeShip : bool = None,
                     inactiveShips : inventory.Inventory = inventory.TypeRestrictedInventory(shipItem.Ship),
                     inactiveModules : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
@@ -272,7 +272,7 @@ class BasedUser(serializable.Serializable):
         """
         self.credits = 0
         self.lifetimeBountyCreditsWon = 0
-        self.bountyCooldownEnd = -1
+        self.bountyCooldownEnd = -1.
         self.systemsChecked = 0
         self.bountyWins = 0
         self.activeShip = shipItem.Ship.fromDict(defaultShipLoadoutDict)

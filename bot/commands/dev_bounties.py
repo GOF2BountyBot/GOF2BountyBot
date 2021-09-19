@@ -1,3 +1,4 @@
+from typing import cast
 import discord # type: ignore[import]
 from datetime import datetime
 import asyncio
@@ -9,6 +10,8 @@ from .. import botState, lib
 from ..lib import gameMaths
 from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
+from ..gameObjects.bounties.criminal import Criminal
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision
 
@@ -69,14 +72,14 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
 
     if allGuilds:
         bbcClearTasks = set()
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         for currentGuild in botState.guildsDB.guilds.values():
             if not callingBBGuild.bountiesDisabled:
                 if allDivs:
                     currentGuild.bountiesDB.clearAllBounties(includeEscaped=True)
                     if callingBBGuild.hasBountyBoardChannels:
                         for div in callingBBGuild.bountiesDB.divisions.values():
-                            bbcClearTasks.add(asyncio.create_task(div.bountyBoardChannel.clear()))
+                            bbcClearTasks.add(asyncio.create_task(div.bountyBoardChannel.clear())) # type: ignore
                 elif useTL:
                     currentGuild.bountiesDB.divisionForLevel(tl).clear(includeEscaped=True)
                 else:
@@ -96,7 +99,7 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
             return
 
         if allDivs:
-            divs = callingBBGuild.bountiesDB.divisions.values()
+            divs = list(callingBBGuild.bountiesDB.divisions.values())
         elif lib.stringTyping.isInt(divStr):
             divs = [callingBBGuild.bountiesDB.divisionForLevel(tl)]
         else:
@@ -105,7 +108,7 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
         for div in divs:
             if callingBBGuild.hasBountyBoardChannels:
                 bbcTasks = set()
-                bbc = div.bountyBoardChannel
+                bbc = cast(BountyBoardChannel, div.bountyBoardChannel)
                 for tlCriminals in div.bounties.values():
                     for crim in tlCriminals:
                         if bbc.hasMessageForCriminal(crim):
@@ -288,7 +291,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
 
     if allGuilds:
         cooldownTasks = set()
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
                 if allDivs:
@@ -391,7 +394,7 @@ async def dev_cmd_set_temp(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Incorrect temp, must be float '" + tempStr + "'")
     else:
         if allGuilds:
-            currentGuild: basedGuild.BasedGuild = None
+            currentGuild: basedGuild.BasedGuild
             for currentGuild in botState.guildsDB.guilds.values():
                 if not currentGuild.bountiesDisabled:
                     if allDivs:
@@ -557,13 +560,13 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         # [1:] remove empty string before + splits
         bData = argsSplit[1:]
 
-        newTL = bData[0].rstrip(" ")
-        if newTL == "auto":
+        partialTL = bData[0].rstrip(" ")
+        if partialTL == "auto":
             newTL = -1
-        elif not lib.stringTyping.isInt(newTL) or int(newTL) < cfg.minTechLevel or int(newTL) > cfg.maxTechLevel:
-            await message.reply(f":x: Invalid tech level, must be a number between {cfg.minTechLevel} and {cfg.maxTechLevel}: {newTL}")
+        elif not lib.stringTyping.isInt(partialTL) or int(partialTL) < cfg.minTechLevel or int(partialTL) > cfg.maxTechLevel:
+            await message.reply(f":x: Invalid tech level, must be a number between {cfg.minTechLevel} and {cfg.maxTechLevel}: {partialTL}")
         else:
-            newTL = int(newTL)
+            newTL = int(partialTL)
 
         # parse the given faction
         newFaction = bData[1].rstrip(" ")
@@ -589,11 +592,11 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
                 return
 
         # parse the given route
-        newRoute = bData[3].rstrip(" ")
-        if newRoute == "auto":
+        partialRoute = bData[3].rstrip(" ")
+        if partialRoute == "auto":
             newRoute = []
         else:
-            newRoute = bData[4].split(",")
+            newRoute = partialRoute.split(",")
             newRoute[-1] = newRoute[-1].rstrip(" ")
 
         # parse the given start system
@@ -612,28 +615,29 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
             newAnswer = ""
 
         # parse the given reward amount
-        newReward = bData[8].rstrip(" ")
-        if newReward == "auto":
+        partialReward = bData[8].rstrip(" ")
+        if partialReward == "auto":
             newReward = -1
-        newReward = int(newReward)
+        newReward = int(partialReward)
 
         # parse the given end time
-        newEndTime = bData[9].rstrip(" ")
-        if newEndTime == "auto":
+        partialEndTime = bData[9].rstrip(" ")
+        if partialEndTime == "auto":
             newEndTime = -1.0
-        newEndTime = float(newEndTime)
+        newEndTime = float(partialEndTime)
 
         # parse the given icon
         newIcon = bData[10].rstrip(" ")
         if newIcon == "auto":
-            newIcon = "" if not builtIn else builtInCrimObj.icon
+            newIcon = "" if not builtIn else cast(Criminal, builtInCrimObj).icon
 
         # special bounty generation for builtIn criminals
         if builtIn:
             config = bountyConfig.BountyConfig(faction=newFaction, route=newRoute,
                                                 start=newStart, end=newEnd, answer=newAnswer,
                                                 reward=newReward, endTime=newEndTime,
-                                                isPlayer=False, icon=newIcon, name=builtInCrimObj.name, techLevel=newTL)
+                                                isPlayer=False, icon=newIcon, name=cast(Criminal, builtInCrimObj).name,
+                                                techLevel=newTL)
         # normal bounty generation for custom criminals
         else:
             config = bountyConfig.BountyConfig(faction=newFaction, name=newName, route=newRoute,
@@ -642,7 +646,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
                                                 isPlayer=False, icon=newIcon, techLevel=newTL)
 
     if allGuilds:
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         spawnTasks = set()
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled and currentGuild.bountiesDB.canMakeBounty():
@@ -736,11 +740,11 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
     # if no arguments were given, generate a completely random bounty
     # if only one argument was given, use it as a faction
     elif len(argsSplit) in (1, 2):
-        newName = argsSplit[0]
-        if lib.stringTyping.isInt(newName):
-            newName = int(newName)
-        elif lib.stringTyping.isMention(newName):
-            newName = int(argsSplit[0].lstrip("<@!").rstrip(">"))
+        partialName = argsSplit[0]
+        if lib.stringTyping.isInt(partialName):
+            newName = int(partialName)
+        elif lib.stringTyping.isMention(partialName):
+            newName = int(partialName.lstrip("<@!").rstrip(">"))
         # verify the requested user
         requestedUser = botState.client.get_user(newName)
         if requestedUser is None:
@@ -750,7 +754,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         # create a new bounty at random for the specified user
         config = bountyConfig.BountyConfig(name="<@" + str(newName) + ">", isPlayer=True,
                                             icon=str(requestedUser.avatar_url_as(size=64)),
-                                            aliases=[lib.discordUtil.userTagOrDiscrim(newName)],
+                                            aliases=[lib.discordUtil.userTagOrDiscrim(partialName)],
                                             techLevel=newTL,
                                             faction=argsSplit[1] if len(argsSplit) == 2 else "")
 
@@ -771,10 +775,10 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         # [1:] remove empty string before + splits
         bData = argsSplit[1:]
 
-        newName = argsSplit[0]
-        if lib.stringTyping.isInt(newName):
-            newName = int(newName)
-        elif lib.stringTyping.isMention(newName):
+        partialName = argsSplit[0]
+        if lib.stringTyping.isInt(partialName):
+            newName = int(partialName)
+        elif lib.stringTyping.isMention(partialName):
             newName = int(argsSplit[0].lstrip("<@!").rstrip(">"))
         # verify the requested user
         requestedUser = botState.client.get_user(newName)
@@ -788,11 +792,11 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
             newFaction = ""
 
         # parse the given route
-        newRoute = bData[2].rstrip(" ")
-        if newRoute == "auto":
+        partialRoute = bData[2].rstrip(" ")
+        if partialRoute == "auto":
             newRoute = []
         else:
-            newRoute = bData[4].split(",")
+            newRoute = partialRoute.split(",")
             newRoute[-1] = newRoute[-1].rstrip(" ")
 
         # parse the given start system
@@ -811,34 +815,34 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
             newAnswer = ""
 
         # parse the given reward amount
-        newReward = bData[6].rstrip(" ")
-        if newReward == "auto":
+        partialReward = bData[6].rstrip(" ")
+        if partialReward == "auto":
             newReward = -1
-        newReward = int(newReward)
+        newReward = int(partialReward)
 
         # parse the given end time
-        newEndTime = bData[7].rstrip(" ")
-        if newEndTime == "auto":
+        partialEndTime = bData[7].rstrip(" ")
+        if partialEndTime == "auto":
             newEndTime = -1.0
-        newEndTime = float(newEndTime)
+        newEndTime = float(partialEndTime)
 
         # parse the given icon
         newIcon = bData[8].rstrip(" ")
         if newIcon == "auto":
-            newIcon = "" if not builtIn else builtInCrimObj.icon
+            newIcon = "" if not builtIn else cast(Criminal, builtInCrimObj).icon
 
         newTL = gameMaths.calculateUserBountyHuntingLevel(requestedUser.bountyHuntingXP)
 
         config = bountyConfig.BountyConfig(name="<@" + str(newName) + ">", isPlayer=True,
                                             icon=str(requestedUser.avatar_url_as(size=64)),
-                                            aliases=[lib.discordUtil.userTagOrDiscrim(newName)],
+                                            aliases=[lib.discordUtil.userTagOrDiscrim(partialName)],
                                             techLevel=newTL,
                                             faction=newFaction, route=newRoute,
                                             start=newStart, end=newEnd, answer=newAnswer,
                                             reward=newReward, endTime=newEndTime)
 
     if allGuilds:
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         spawnTasks = set()
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
@@ -904,7 +908,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
     newXP = int(argsSplit[1])
     newLevel = gameMaths.calculateUserBountyHuntingLevel(newXP)
 
-    requestedBBUser: basedUser.BasedUser = None
+    requestedBBUser: basedUser.BasedUser
     if not botState.usersDB.idExists(requestedUser.id):
         requestedBBUser = botState.usersDB.addID(requestedUser.id)
     else:
@@ -1057,7 +1061,7 @@ async def dev_cmd_decay_temps(message : discord.Message, args : str, isDM : bool
             return
     
     if allGuilds:
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
                 if allDivs:
@@ -1137,7 +1141,7 @@ async def dev_cmd_reset_temps(message : discord.Message, args : str, isDM : bool
             return
     
     if allGuilds:
-        currentGuild: basedGuild.BasedGuild = None
+        currentGuild: basedGuild.BasedGuild
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
                 if allDivs:
@@ -1222,9 +1226,13 @@ async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bo
                 activityEmbed.add_field(name=nameForDivision(div),
                                         value="<DIVISION FULL>")
             else:
-                activityEmbed.add_field(name=nameForDivision(div),
-                                        value=lib.timeUtil.td_format_noYM(div.newBountyTT.expiryDelta)
-                                                + "\nExpiring " + div.newBountyTT.expiryTime.strftime("%B %d %H %M %S"))
+                if div.newBountyTT is None:
+                    activityEmbed.add_field(name=nameForDivision(div),
+                                            value="not full but none TT")
+                else:
+                    activityEmbed.add_field(name=nameForDivision(div),
+                                            value=lib.timeUtil.td_format_noYM(div.newBountyTT.expiryDelta)
+                                                    + "\nExpiring " + div.newBountyTT.expiryTime.strftime("%B %d %H %M %S"))
         await message.author.send(embed=activityEmbed)
     else:
         if useTL:
@@ -1234,8 +1242,11 @@ async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bo
         if div.isFull() and div.hasMinTLBounty():
             await message.author.send("<DIVISION FULL>")
         else:
-            await message.author.send(lib.timeUtil.td_format_noYM(div.newBountyTT.expiryDelta)
-                                        + "\nExpiring " + div.newBountyTT.expiryTime.strftime("%B %d %H %M %S"))
+            if div.newBountyTT is None:
+                await message.author.send("not full but none TT")
+            else:
+                await message.author.send(lib.timeUtil.td_format_noYM(div.newBountyTT.expiryDelta)
+                                            + "\nExpiring " + div.newBountyTT.expiryTime.strftime("%B %d %H %M %S"))
 
 botCommands.register("current-delay", dev_cmd_current_delay, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
