@@ -3,28 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from typing import Any, Awaitable, Protocol, Union, cast
+from typing import Any, Awaitable, Callable, Coroutine, Protocol, Union, cast
 from .. import botState
 
 
-class _TTOptionCallbackType(Protocol):
-    def __call__(self, callBackArg: Any) -> Any: ...
-
-
-class _TTOptionCallbackTypeNoArgs(Protocol):
-    def __call__(self) -> Any: ...
-
-
-class _TTOptionCallbackTypeAsync(Protocol):
-    def __call__(self, callBackArg: Any) -> Awaitable[Any]: ...
-
-
-class _TTOptionCallbackTypeAsyncNoArgs(Protocol):
-    def __call__(self) -> Awaitable[Any]: ...
-
-
-TTCallbackType = Union[_TTOptionCallbackType, _TTOptionCallbackTypeAsync,
-                        _TTOptionCallbackTypeNoArgs, _TTOptionCallbackTypeAsyncNoArgs]
+TTCallbackType = Union[Callable[[], Any], Callable[[], Coroutine[Any, Any, Any]],
+                        Callable[[Any], Any], Callable[[Any], Coroutine[Any, Any, Any]]]
 
 
 class TimedTask:
