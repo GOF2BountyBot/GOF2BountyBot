@@ -558,7 +558,7 @@ class BasedUser(serializable.Serializable):
             raise ValueError("Unknown stat name: " + str(stat))
 
 
-    def getInactivesByName(self, item : str) -> inventory:
+    def getInactivesByName(self, item : str) -> inventory.Inventory:
         """Get the all of the user's inactive (hangar) items of the named type.
         The given inventory is mutable, and can alter the contents of the user's inventory.
 
