@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Union, TYPE_CHECKING, Dict, List, MutableSet
+from typing import Union, TYPE_CHECKING, Dict, List, MutableSet, cast
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
@@ -12,6 +12,7 @@ from ..gameObjects.items import shipItem, moduleItemFactory
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
+from ..gameObjects.items import shipItem
 from ..gameObjects.userProfile.medal import Medal
 from ..gameObjects.inventories import inventory
 from ..userAlerts import userAlerts
@@ -108,7 +109,7 @@ class BasedUser(serializable.Serializable):
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
                     bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : float = -1.,
-                    systemsChecked : int = 0, bountyWins : int = 0, activeShip : bool = None,
+                    systemsChecked : int = 0, bountyWins : int = 0, activeShip : shipItem.Ship = None,
                     inactiveShips : inventory.Inventory = inventory.TypeRestrictedInventory(shipItem.Ship),
                     inactiveModules : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
                     inactiveWeapons : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
@@ -275,7 +276,7 @@ class BasedUser(serializable.Serializable):
         self.bountyCooldownEnd = -1.
         self.systemsChecked = 0
         self.bountyWins = 0
-        self.activeShip = shipItem.Ship.fromDict(defaultShipLoadoutDict)
+        self.activeShip = cast(shipItem.Ship, shipItem.Ship.fromDict(defaultShipLoadoutDict))
         self.inactiveModules.clear()
         self.inactiveShips.clear()
         self.inactiveWeapons.clear()
@@ -450,7 +451,7 @@ class BasedUser(serializable.Serializable):
             raise IndexError("Index out of range")
         if self.activeShip is not None:
             self.inactiveShips.addItem(self.activeShip)
-        self.activeShip = self.inactiveShips[index].getItem()
+        self.activeShip = cast(shipItem.Ship, self.inactiveShips[index].getItem())
         self.inactiveShips.removeItem(self.activeShip)
 
 

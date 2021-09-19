@@ -1,3 +1,4 @@
+from typing import cast
 import discord # type: ignore[import]
 
 from . import commandsDB as botCommands
@@ -210,7 +211,7 @@ async def dev_cmd_applySkin(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Please provide a skin!")
         return
 
-    activeShip = botState.usersDB.getOrAddID(message.author.id).activeShip
+    activeShip = cast(shipItem.Ship, botState.usersDB.getOrAddID(message.author.id).activeShip)
     if activeShip.isSkinned:
         await message.reply(mention_author=False, content=":x: Your ship already has a skin applied!")
         return
@@ -241,7 +242,7 @@ async def dev_cmd_unapplySkin(message : discord.Message, args : str, isDM : bool
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
 
-    activeShip = botState.usersDB.getOrAddID(message.author.id).activeShip
+    activeShip = cast(shipItem.Ship, botState.usersDB.getOrAddID(message.author.id).activeShip)
     if not activeShip.isSkinned:
         await message.reply(mention_author=False, content=":x: Your ship has no skin applied!")
     elif not activeShip.builtIn:
