@@ -1,3 +1,4 @@
+from typing import cast
 import discord # type: ignore[import]
 import json
 
@@ -6,6 +7,7 @@ from .. import lib, botState
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.items import gameItem
+from ..gameObjects.items.shipItem import Ship
 from ..users.basedUser import BasedUser
 from ..gameObjects.kaamoShop import KaamoShop
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
@@ -25,7 +27,7 @@ async def dev_cmd_kaamo_give(message : discord.Message, args : str, isDM : bool)
                         from cfg.validItemNames (but not 'all'), followed by a serialized item
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedUser: BasedUser = None
+    requestedUser: BasedUser
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
         requestedUser = botState.usersDB.getOrAddID(message.author.id)
@@ -121,7 +123,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
                 shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
 
             try:
-                currentItem = currentStock[itemNum - 1].item
+                currentItem = cast(gameItem.GameItem, currentStock[itemNum - 1].item)
             except KeyError:
                 try:
                     botState.logger.log("dev_kaamo", "dev_cmd_debug_kaamo",
@@ -164,7 +166,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
         await message.channel.send(":x: I can't DM you, " + message.author.display_name \
             + "! Please enable DMs from users who are not friends.")
         return
-    await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
+    await message.add_reaction(cast(lib.emojis.BasedEmoji, cfg.defaultEmojis.dmSent).sendable)
 
 botCommands.register("debug-kaamo", dev_cmd_debug_kaamo, 3, allowDM=True, helpSection="kaamo", useDoc=True)
 
@@ -209,11 +211,11 @@ async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : b
         await message.channel.send(":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.channel.send(":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     if requestedBBUser.kaamo is None or requestedBBUser.kaamo.isEmpty():
         await message.channel.send(":x: Requested user has no kaamo items!")
@@ -228,11 +230,12 @@ async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : b
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
         return
 
-    requestedItem = kaamoItemStock[itemNum - 1].item
+    requestedItem = cast(gameItem.GameItem, kaamoItemStock[itemNum - 1].item)
     itemName = ""
     itemEmbed = None
 
     if itemCategory == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \
@@ -327,11 +330,11 @@ async def dev_cmd_del_kaamo_item_key(message : discord.Message, args : str, isDM
         await message.channel.send(":x: Unrecognised user!")
         return
 
-    itemNum = argsSplit[2]
-    if not lib.stringTyping.isInt(itemNum):
+    partialItemNum = argsSplit[2]
+    if not lib.stringTyping.isInt(partialItemNum):
         await message.channel.send(":x: Invalid item number!")
         return
-    itemNum = int(itemNum)
+    itemNum = int(partialItemNum)
 
     if requestedBBUser.kaamo is None or requestedBBUser.kaamo.isEmpty():
         await message.channel.send(":x: Requested user has no kaamo items!")
@@ -346,11 +349,12 @@ async def dev_cmd_del_kaamo_item_key(message : discord.Message, args : str, isDM
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
         return
 
-    requestedItem = kaamoItemStock.keys[itemNum - 1]
+    requestedItem = cast(gameItem.GameItem, kaamoItemStock.keys[itemNum - 1])
     itemName = ""
     itemEmbed = None
 
     if itemCategory == "ship":
+        requestedItem = cast(Ship, requestedItem)
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                     if requestedItem.manufacturer in bbData.factionColours \
