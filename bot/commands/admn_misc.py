@@ -380,8 +380,8 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
                 return
             elif dumbReact.isID:
                 localEmoji = False
-                for localEmoji in message.guild.emojis:
-                    if localEmoji.id == dumbReact.id:
+                for currentEmoji in message.guild.emojis:
+                    if currentEmoji.id == dumbReact.id:
                         localEmoji = True
                         break
                 if not localEmoji:
