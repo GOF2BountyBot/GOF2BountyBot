@@ -9,7 +9,7 @@ from ..bounties import criminal
 import random
 from typing import Union
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps # type: ignore
 import aiohttp
 import textwrap
 
