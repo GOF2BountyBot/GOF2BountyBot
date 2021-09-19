@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from typing import Any, Awaitable, Callable, Coroutine, Protocol, Union, cast
+from typing import Any, Callable, Coroutine, Union
 from .. import botState
 
 
@@ -328,16 +328,16 @@ class DynamicRescheduleTask(TimedTask):
         if self.asyncDelayTimeGenerator:
             # Pass args to delayTimeGenerator if specified
             if self.hasDelayTimeGeneratorArgs:
-                return await cast(_DelayGenTypeAsync, self.delayTimeGenerator)(self.delayTimeGeneratorArgs)
+                return await self.delayTimeGenerator(self.delayTimeGeneratorArgs)
             else:
-                return await cast(_DelayGenTypeAsyncNoArgs, self.delayTimeGenerator)()
+                return await self.delayTimeGenerator()
         # do not await synchronous delayTimeGenerators
         else:
             # Pass args to delayTimeGenerator if specified
             if self.hasDelayTimeGeneratorArgs:
-                return cast(_DelayGenType, self.delayTimeGenerator)(self.delayTimeGeneratorArgs)
+                return self.delayTimeGenerator(self.delayTimeGeneratorArgs)
             else:
-                return cast(_DelayGenTypeNoArgs, self.delayTimeGenerator)()
+                return self.delayTimeGenerator()
 
 
     async def reschedule(self):

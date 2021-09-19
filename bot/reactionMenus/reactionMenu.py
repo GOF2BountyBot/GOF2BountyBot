@@ -1,14 +1,13 @@
 # TODO: Write a targettable ReactionMenuOption subclass, that implements targetMember and targetRole on a per-option basis.
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
-from typing_extensions import Protocol
 from ..scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Union, Dict, List, cast
+from typing import Any, Callable, Coroutine, Union, Dict, List
 import asyncio
 from ..baseClasses import serializable
 from . import expiryFunctions
@@ -16,25 +15,10 @@ from . import expiryFunctions
 
 _DCUserUnion = Union[User, Member]
 
-
-class _RMOptionCallbackType(Protocol):
-    def __call__(self, callBackArg: Any, reactingUser: _DCUserUnion = None) -> Any: ...
-
-
-class _RMOptionCallbackTypeNoArgs(Protocol):
-    def __call__(self, reactingUser: _DCUserUnion = None) -> Any: ...
-
-
-class _RMOptionCallbackTypeAsync(Protocol):
-    def __call__(self, callBackArg: Any, reactingUser: _DCUserUnion = None) -> Awaitable[Any]: ...
-
-
-class _RMOptionCallbackTypeAsyncNoArgs(Protocol):
-    def __call__(self, reactingUser: _DCUserUnion = None) -> Awaitable[Any]: ...
-
-
-MenuOptionCallbackType = Union[_RMOptionCallbackType, _RMOptionCallbackTypeAsync,
-                                _RMOptionCallbackTypeNoArgs, _RMOptionCallbackTypeAsyncNoArgs]
+MenuOptionCallbackType = Union[Callable[[], Any], Callable[[Any], Any], Callable[[_DCUserUnion], Any],
+                                Callable[[Any, _DCUserUnion], Any], Callable[[], Coroutine[Any]],
+                                Callable[[Any], Coroutine[Any]], Callable[[_DCUserUnion], Coroutine[Any]],
+                                Callable[[Any, _DCUserUnion], Coroutine[Any]]]
 
 
 class ReactionMenuOption(serializable.Serializable):
@@ -87,8 +71,8 @@ class ReactionMenuOption(serializable.Serializable):
         self.addFunc = addFunc
         self.addArgs = addArgs
 
-        addParams = inspect.signature(cast(Callable[..., Any], addFunc)).parameters
-        remParams = inspect.signature(cast(Callable[..., Any], removeFunc)).parameters
+        addParams = inspect.signature(addFunc).parameters
+        remParams = inspect.signature(removeFunc).parameters
         
         self.addIsCoroutine = addFunc is not None and inspect.iscoroutinefunction(addFunc)
         self.addIncludeUser = addFunc is not None and 'reactingUser' in addParams
@@ -112,19 +96,15 @@ class ReactionMenuOption(serializable.Serializable):
         if self.addFunc is not None:
             if self.addIncludeUser:
                 if self.addHasArgs:
-                    return await cast(_RMOptionCallbackTypeAsync, self.addFunc)(self.addArgs, reactingUser=member) \
-                        if self.addIsCoroutine else \
-                            cast(_RMOptionCallbackType, self.addFunc)(self.addArgs, reactingUser=member)
-                return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.addFunc)(reactingUser=member) \
-                    if self.addIsCoroutine else \
-                        cast(_RMOptionCallbackTypeNoArgs, self.addFunc)(reactingUser=member)
+                    return await self.addFunc(self.addArgs, reactingUser=member) \
+                        if self.addIsCoroutine else self.addFunc(self.addArgs, reactingUser=member)
+                return await self.addFunc(reactingUser=member) \
+                    if self.addIsCoroutine else self.addFunc(reactingUser=member)
             if self.addHasArgs:
-                return await cast(_RMOptionCallbackTypeAsync, self.addFunc)(self.addArgs)\
-                     if self.addIsCoroutine else \
-                         cast(_RMOptionCallbackType, self.addFunc)(self.addArgs)
-            return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.addFunc)() \
-                if self.addIsCoroutine else \
-                    cast(_RMOptionCallbackTypeNoArgs, self.addFunc)()
+                return await self.addFunc(self.addArgs) \
+                     if self.addIsCoroutine else self.addFunc(self.addArgs)
+            return await self.addFunc() \
+                if self.addIsCoroutine else self.addFunc()
 
 
     async def remove(self, member: Union[Member, User]):
@@ -138,19 +118,15 @@ class ReactionMenuOption(serializable.Serializable):
         if self.removeFunc is not None:
             if self.removeIncludeUser:
                 if self.removeHasArgs:
-                    return await cast(_RMOptionCallbackTypeAsync, self.removeFunc)(self.removeArgs, reactingUser=member) \
-                        if self.removeIsCoroutine else \
-                            cast(_RMOptionCallbackType, self.removeFunc)(self.removeArgs, reactingUser=member)
-                return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.removeFunc)(reactingUser=member) \
-                    if self.removeIsCoroutine else \
-                        cast(_RMOptionCallbackTypeNoArgs, self.removeFunc)(reactingUser=member)
+                    return await self.removeFunc(self.removeArgs, reactingUser=member) \
+                        if self.removeIsCoroutine else self.removeFunc(self.removeArgs, reactingUser=member)
+                return await self.removeFunc(reactingUser=member) \
+                    if self.removeIsCoroutine else self.removeFunc(reactingUser=member)
             if self.removeHasArgs:
-                return await cast(_RMOptionCallbackTypeAsync, self.removeFunc)(self.removeArgs)\
-                     if self.removeIsCoroutine else \
-                         cast(_RMOptionCallbackType, self.removeFunc)(self.removeArgs)
-            return await cast(_RMOptionCallbackTypeAsyncNoArgs, self.removeFunc)() \
-                if self.removeIsCoroutine else \
-                    cast(_RMOptionCallbackTypeNoArgs, self.removeFunc)()
+                return await self.removeFunc(self.removeArgs) \
+                     if self.removeIsCoroutine else self.removeFunc(self.removeArgs)
+            return await self.removeFunc() \
+                if self.removeIsCoroutine else self.removeFunc()
 
 
     @abstractmethod
