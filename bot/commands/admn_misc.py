@@ -1,3 +1,4 @@
+from typing import List, Union, cast
 import discord # type: ignore[import]
 import os
 import asyncio
@@ -451,9 +452,10 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
 
     if timeoutExists:
         timeoutDelta = timedelta(**cfg.timeouts.roleMenuExpiry if timeoutDict == {} else timeoutDict)
-        timeoutTT = timedTask.TimedTask(expiryDelta=timeoutDelta, expiryFunction=reactionRolePicker.markExpiredRoleMenu,
-                                        expiryFunctionArgs=menuMsg.id)
-        botState.taskScheduler.scheduleTask(timeoutTT)
+        timeoutTT: Union[timedTask.TimedTask, None] = timedTask.TimedTask(expiryDelta=timeoutDelta,
+                                                                        expiryFunction=reactionRolePicker.markExpiredRoleMenu,
+                                                                        expiryFunctionArgs=menuMsg.id)
+        botState.taskScheduler.scheduleTask(cast(timedTask.TimedTask, timeoutTT))
 
     else:
         timeoutTT = None
@@ -571,7 +573,7 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
         else:
             for react in menuOutput:
                 try:
-                    pickedLayers.append(cfg.defaultEmojis.numbers.index(react))
+                    pickedLayers.append(cast(List[lib.emojis.BasedEmoji], cfg.defaultEmojis.numbers).index(react))
                 except ValueError:
                     pass
 
@@ -595,7 +597,7 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
             else:
                 for react in menuOutput:
                     try:
-                        disabledLayers.append(cfg.defaultEmojis.numbers.index(react))
+                        disabledLayers.append(cast(List[lib.emojis.BasedEmoji], cfg.defaultEmojis.numbers).index(react))
                     except ValueError:
                         pass
 
@@ -648,7 +650,8 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
     await lib.discordUtil.startLongProcess(waitMsg)
     try:
         await shipRenderer.renderShip(str(message.id), shipData["path"], shipData["model"], skinPaths, disabledLayers,
-                                        cfg.skinRenderShowmeHDResolution[0], cfg.skinRenderShowmeHDResolution[1], full=full)
+                                        cfg.skinRenderShowmeHDResolution[0], cfg.skinRenderShowmeHDResolution[1],
+                                        cfg.skinRenderShowmeHDSamples, full=full)
     except shipRenderer.RenderFailed:
         await message.reply("🥺 Render failed! The error has been logged, please try a different ship.",
                             mention_author=True)
