@@ -7,8 +7,8 @@ from typing import Any, Awaitable, Callable, Coroutine, Protocol, Union, cast
 from .. import botState
 
 
-TTCallbackType = Union[Callable[[], Any], Callable[[], Coroutine[Any, Any, Any]],
-                        Callable[[Any], Any], Callable[[Any], Coroutine[Any, Any, Any]]]
+TTCallbackType = Union[Callable[[], Any], Callable[[], Coroutine[Any]],
+                        Callable[[Any], Any], Callable[[Any], Coroutine[Any]]]
 
 
 class TimedTask:
@@ -254,24 +254,8 @@ class TimedTask:
             return expiryFuncResults
 
 
-class _DelayGenType(Protocol):
-    def __call__(self, callBackArg: Any) -> timedelta: ...
-
-
-class _DelayGenTypeNoArgs(Protocol):
-    def __call__(self) -> timedelta: ...
-
-
-class _DelayGenTypeAsync(Protocol):
-    def __call__(self, callBackArg: Any) -> Awaitable[timedelta]: ...
-
-
-class _DelayGenTypeAsyncNoArgs(Protocol):
-    def __call__(self) -> Awaitable[timedelta]: ...
-
-
-DelayGeneratorType = Union[_DelayGenType, _DelayGenTypeAsync,
-                        _DelayGenTypeNoArgs, _DelayGenTypeAsyncNoArgs]
+DelayGeneratorType = Union[Callable[[], timedelta], Callable[[], Coroutine[timedelta]],
+                        Callable[[Any], timedelta], Callable[[Any], Coroutine[timedelta]]]
 
 
 class DynamicRescheduleTask(TimedTask):
