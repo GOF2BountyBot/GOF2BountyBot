@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import inspect
-from typing import Any, Callable, Coroutine, Union
+from typing import Any, Callable, Awaitable, Union
 from .. import botState
 
 
-TTCallbackType = Union[Callable[[], Any], Callable[[], Coroutine[Any]],
-                        Callable[[Any], Any], Callable[[Any], Coroutine[Any]]]
+TTCallbackType = Union[Callable[[], Any], Callable[[], Awaitable[Any]],
+                        Callable[[Any], Any], Callable[[Any], Awaitable[Any]]]
 
 
 class TimedTask:
@@ -254,8 +254,8 @@ class TimedTask:
             return expiryFuncResults
 
 
-DelayGeneratorType = Union[Callable[[], timedelta], Callable[[], Coroutine[timedelta]],
-                        Callable[[Any], timedelta], Callable[[Any], Coroutine[timedelta]]]
+DelayGeneratorType = Union[Callable[[], timedelta], Callable[[], Awaitable[timedelta]],
+                        Callable[[Any], timedelta], Callable[[Any], Awaitable[timedelta]]]
 
 
 class DynamicRescheduleTask(TimedTask):

@@ -7,7 +7,7 @@ from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, U
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Callable, Coroutine, Union, Dict, List
+from typing import Any, Callable, Awaitable, Union, Dict, List
 import asyncio
 from ..baseClasses import serializable
 from . import expiryFunctions
@@ -16,9 +16,9 @@ from . import expiryFunctions
 _DCUserUnion = Union[User, Member]
 
 MenuOptionCallbackType = Union[Callable[[], Any], Callable[[Any], Any], Callable[[_DCUserUnion], Any],
-                                Callable[[Any, _DCUserUnion], Any], Callable[[], Coroutine[Any]],
-                                Callable[[Any], Coroutine[Any]], Callable[[_DCUserUnion], Coroutine[Any]],
-                                Callable[[Any, _DCUserUnion], Coroutine[Any]]]
+                                Callable[[Any, _DCUserUnion], Any], Callable[[], Awaitable[Any]],
+                                Callable[[Any], Awaitable[Any]], Callable[[_DCUserUnion], Awaitable[Any]],
+                                Callable[[Any, _DCUserUnion], Awaitable[Any]]]
 
 
 class ReactionMenuOption(serializable.Serializable):
