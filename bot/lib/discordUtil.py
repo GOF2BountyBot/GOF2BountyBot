@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Coroutine, Union, TYPE_CHECKING, Tuple, Dict
+from typing import Any, Callable, Coroutine, Union, TYPE_CHECKING, Tuple, Dict
 if TYPE_CHECKING:
     from discord import Member, Guild, Message # type: ignore[import]
     from ..users import basedUser, basedGuild
@@ -419,7 +419,7 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
     return {"content": msgText, "embed": msgEmbed}
 
 
-def asyncWrap(func: Callable) -> Coroutine:
+def asyncWrap(func: Callable) -> Callable[..., Coroutine[Any, Any, Any]]:
     """Function decorator wrapping a synchronous function into an asynchronous executor call.
     This is a last-resort expensive operation, as a new process is spawned off for each call of the funciton.
     Where possible, use natively asynchronous code, e.g aiohttp instead of requests.
