@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import emoji
 import traceback
-from typing import Union, TYPE_CHECKING
+from typing import Any, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from discord import PartialEmoji, Emoji
 
@@ -10,7 +10,7 @@ from .. import botState
 from . import stringTyping, exceptions
 from ..baseClasses import serializable
 from ..cfg import cfg
-
+import carica
 
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji
 raiseUnkownEmojis = False
@@ -286,7 +286,7 @@ BasedEmoji.EMPTY.unicode = ""
 BasedEmoji.EMPTY.sendable = ""
 
 
-class UninitializedBasedEmoji:
+class UninitializedBasedEmoji(BasedEmoji):
     """A data class representing a BasedEmoji waiting to be initialized.
     No instances of this class should be present after bot client's on_ready event
     has finished executing.
@@ -298,3 +298,88 @@ class UninitializedBasedEmoji:
                         a string unicode character.
         """
         self.value = value
+
+    
+    def toDict(self, **kwargs) -> Any:
+        """Returns this uninitialized emoji's 'value'. Whether or not this field is serializable is unknown.
+
+        :return: The uninitialized emoji's 'value' field
+        :rtype: Any
+        """
+        return self.value
+
+
+    def __repr__(self) -> str:
+        """Get a string specifying the object type and its 'value' field.
+
+        :return: A string identifying this object.
+        :rtype: str
+        """
+        return f"<{type(self).__name__}-{self.value}>"
+
+
+    def __eq__(self, other: object) -> bool:
+        """Decide if this UninitializedBasedEmoji is equal to another.
+        Two UninitializedBasedEmojis are equal if they have the same 'value' field.
+
+        :param UninitializedBasedEmoji other: the emoji to compare this one to
+        :return: True of this emoji is semantically equal to the given emoji, False otherwise
+        :rtype: bool
+        """
+        return isinstance(other, UninitializedBasedEmoji) and self.value == other.value
+
+
+    def __str__(self) -> str:
+        """Get a string representation of this emoji's 'value' field.
+
+        :return: The emoji's 'value' field, converted to string if possible.
+        :rtype: str
+        """
+        return str(self.value)
+
+
+    @classmethod
+    def fromDict(cls, value: dict, **kwargs) -> UninitializedBasedEmoji:
+        """Wrap a value in an UninitializedBasedEmoji.
+
+        :param dict value: A value to pass to the BasedEmoji constructor
+        :return: A new UninitializedBasedEmoji object wrapping value.
+        :rtype: UninitializedBasedEmoji
+        """
+        return UninitializedBasedEmoji(value)
+
+
+    @classmethod
+    def fromPartial(cls, e: PartialEmoji, rejectInvalid: bool = False) -> UninitializedBasedEmoji:
+        """This method is only applicable to BasedEmoji, not UninitializedBasedEmoji.
+
+        :raise NotImplementedError: Always
+        """
+        raise NotImplementedError("This method is only applicable to BasedEmoji, not UninitializedBasedEmoji")
+
+
+    @classmethod
+    def fromReaction(cls, e: Union[Emoji, PartialEmoji, str], rejectInvalid: bool = False) -> UninitializedBasedEmoji:
+        """This method is only applicable to BasedEmoji, not UninitializedBasedEmoji.
+
+        :raise NotImplementedError: Always
+        """
+        raise NotImplementedError("This method is only applicable to BasedEmoji, not UninitializedBasedEmoji")
+
+
+    @classmethod
+    def fromStr(cls, s: str, rejectInvalid: bool = False) -> UninitializedBasedEmoji:
+        """This method is only applicable to BasedEmoji, not UninitializedBasedEmoji.
+
+        :raise NotImplementedError: Always
+        """
+        raise NotImplementedError("This method is only applicable to BasedEmoji, not UninitializedBasedEmoji")
+
+
+    @classmethod
+    def fromUninitialized(cls, e: UninitializedBasedEmoji, rejectInvalid=True) -> UninitializedBasedEmoji:
+        """This method is only applicable to BasedEmoji, not UninitializedBasedEmoji.
+
+        :raise NotImplementedError: Always
+        """
+        raise NotImplementedError("This method is only applicable to BasedEmoji, not UninitializedBasedEmoji")
