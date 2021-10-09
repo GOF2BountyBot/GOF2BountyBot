@@ -3,3 +3,4 @@ emoji
 toml
 PyGithub
 discord-py-slash-command
+carica
