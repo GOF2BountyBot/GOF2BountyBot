@@ -1,10 +1,29 @@
 from typing import Dict, List
 from carica.models import SerializableDataClass, SerializablePath # type: ignore[import]
 from dataclasses import dataclass
-from ..lib.emojis import BasedEmoji
+from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
 
 TimedeltaDict = Dict[str, int]
 
+def _initBasedEmoji(self, varValue, rejectInvalid=True):
+    # ensure single emoji vars are emojis
+    if isinstance(varValue, UninitializedBasedEmoji):
+        return BasedEmoji.fromUninitialized(varValue, rejectInvalid=rejectInvalid)
+
+    # ensure list emoji vars only contain emojis
+    elif any(isinstance(varValue, t) for t in (list, set, tuple)):
+        return type(varValue)(_initBasedEmoji(v, rejectInvalid=rejectInvalid) for v in varValue)
+
+    elif isinstance(varValue, dict):
+        return {k: _initBasedEmoji(v, rejectInvalid=rejectInvalid) for k, v in varValue.items()}
+
+    elif isinstance(varValue, EmojisConfig):
+        varValue.initAll()
+        return varValue
+    
+    else:
+        # raise an error on unexpected types
+        raise ValueError(f"Unexpected type {type(varValue)} in EmojisConfig: {varValue}")
 
 @dataclass
 class EmojisConfig(SerializableDataClass):
@@ -26,6 +45,11 @@ class EmojisConfig(SerializableDataClass):
     defaultCrate: BasedEmoji
     newBounty: BasedEmoji
 
+    def initAll(self, rejectInvalid=True):
+        for varName in self.__dataclass_fields__.keys():
+            varValue = getattr(self, varName)
+            setattr(self, varName, _initBasedEmoji(varValue, rejectInvalid=rejectInvalid))
+            
 
 @dataclass
 class TimeoutsConfig(SerializableDataClass):
