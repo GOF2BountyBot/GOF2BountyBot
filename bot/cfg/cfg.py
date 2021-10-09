@@ -1,102 +1,106 @@
-from typing import Dict, List, Union, cast
-from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
+from carica.models import SerializablePath # type: ignore[import]
+from ..lib.emojis import UninitializedBasedEmoji
+from . import models
 
 # All emojis used by the bot
-defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
+defaultEmojis = models.EmojisConfig(
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
-    "unrecognisedEmoji": UninitializedBasedEmoji("⁉"),
+    unrecognisedEmoji = UninitializedBasedEmoji("⁉"),
+
     # When a message prompts a process that will take a long time (e.g rendering), this will be added to the message reactions
     # It will be removed when the long process is finished.
-    "longProcess": UninitializedBasedEmoji("⏳"),
+    longProcess = UninitializedBasedEmoji("⏳"),
+
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    "dmSent": UninitializedBasedEmoji("📬"),
-    "cancel": UninitializedBasedEmoji("❌"),
-    "submit": UninitializedBasedEmoji("✅"),
-    "spiral": UninitializedBasedEmoji("🌀"),
-    "error": UninitializedBasedEmoji("❓"),
-    "accept": UninitializedBasedEmoji("👍"),
-    "reject": UninitializedBasedEmoji("👎"),
-    "next": UninitializedBasedEmoji('⏩'),
-    "previous": UninitializedBasedEmoji('⏪'),
-    "numbers": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    dmSent = UninitializedBasedEmoji("📬"),
+    cancel = UninitializedBasedEmoji("❌"),
+    submit = UninitializedBasedEmoji("✅"),
+    spiral = UninitializedBasedEmoji("🌀"),
+    error = UninitializedBasedEmoji("❓"),
+    accept = UninitializedBasedEmoji("👍"),
+    reject = UninitializedBasedEmoji("👎"),
+    next = UninitializedBasedEmoji('⏩'),
+    previous = UninitializedBasedEmoji('⏪'),
+    numbers = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                 UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                 UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                 UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
     # The default emojis to list in a reaction menu
-    "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    menuOptions = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
     # Default emoji to assign to shipSkinTool items
-    "shipSkinTool": UninitializedBasedEmoji("🎨"),
+    shipSkinTool = UninitializedBasedEmoji("🎨"),
 
     # Default emoji to assign to bbCrates containing shipSkinTools
-    "skinCrate": UninitializedBasedEmoji("🧰"),
+    skinCrate = UninitializedBasedEmoji("🧰"),
 
     # Default emoji to assign to all other crates
-    "defaultCrate": UninitializedBasedEmoji("📦"),
+    defaultCrate = UninitializedBasedEmoji("📦"),
     
     # Emoji sent with new bounty listings
-    "newBounty": UninitializedBasedEmoji("⛓")
-})
+    newBounty = UninitializedBasedEmoji("⛓")
+)
 
-timeouts = {
-    "helpMenu": {"minutes": 3},
-    "BASED_updateCheckFrequency": {"days": 1},
+timeouts = models.TimeoutsConfig(
+    helpMenu = {"minutes": 3},
+    BASED_updateCheckFrequency = {"days": 1},
+
     # The time to wait inbetween database autosaves.
-    "dataSaveFrequency": {"hours": 1},
+    dataSaveFrequency = {"hours": 1},
 
     # Amount of time before a duel request expires
-    "duelRequest": {"days": 1},
+    duelRequest = {"days": 1},
 
     # Amount of time to wait between refreshing stock of all shops
-    "shopRefresh": {"days": 0, "hours": 6, "minutes": 0, "seconds": 0},
+    shopRefresh = {"days": 0, "hours": 6, "minutes": 0, "seconds": 0},
 
     # time to put users on cooldown between using !bb check
-    "checkCooldown": {"minutes": 3},
+    checkCooldown = {"minutes": 3},
 
     # Default amount of time reaction menus should be active for
-    "roleMenuExpiry": {"days": 1},
-    "duelChallengeMenuExpiry": {"hours": 2},
-    "pollMenuExpiry": {"minutes": 5},
+    roleMenuExpiry = {"days": 1},
+    duelChallengeMenuExpiry = {"hours": 2},
+    pollMenuExpiry = {"minutes": 5},
 
     # The time between decrements to the guild activity temperatures of each tech level
-    "guildActivityDecay": {"hours": 1},
+    guildActivityDecay = {"hours": 1},
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    "newBountyDelayRandomMin": {"minutes": 5},
-    "newBountyDelayRandomMax": {"minutes": 7},
+    newBountyDelayRandomMin = {"minutes": 5},
+    newBountyDelayRandomMax = {"minutes": 7},
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    "githubIssueSubmitDelay": {"minutes": 5}
-}
+    githubIssueSubmitDelay = {"minutes": 5}
+)
 
-paths = {
+paths = models.PathsConfig(
     # path to JSON files for database saves
-    "usersDB": "saveData" + "/" + "users.json",
-    "guildsDB": "saveData" + "/" + "guilds.json",
-    "reactionMenusDB": "saveData" + "/" + "reactionMenus.json",
+    usersDB = SerializablePath("saveData" + "/" + "users.json"),
+    guildsDB = SerializablePath("saveData" + "/" + "guilds.json"),
+    reactionMenusDB = SerializablePath("saveData" + "/" + "reactionMenus.json"),
 
     # path to folder to save log txts to
-    "logsFolder": "saveData" + "/" + "logs",
+    logsFolder = SerializablePath("saveData" + "/" + "logs"),
 
     # folders containing game objects to load into the game
-    "CriminalMETAFolder": "game objects" + "/" + "criminals",
-    "shipSkinMETAFolder": "game objects" + "/" + "ship skins",
-    "bbShipUpgradesMETAFolder": "game objects" + "/" + "ship upgrades",
-    "SolarSystemMETAFolder": "game objects" + "/" + "solar systems",
-    "bbCommodityMETAFolder": "game objects" + "/" + "items" + "/" + "commodities",
-    "bbModuleMETAFolder": "game objects" + "/" + "items" + "/" + "modules",
-    "bbSecondaryMETAFolder": "game objects" + "/" + "items" + "/" + "secondaries",
-    "bbShipMETAFolder": "game objects" + "/" + "items" + "/" + "ships",
-    "bbWeaponMETAFolder": "game objects" + "/" + "items" + "/" + "weapons",
-    "bbTurretMETAFolder": "game objects" + "/" + "items" + "/" + "turrets",
-    "bbToolMETAFolder": "game objects" + "/" + "items" + "/" + "tools",
-    "bbMedalsMETAFolder": "game objects" + "/" + "user profile" + "/" + "medals"
-}
+    CriminalMETAFolder = SerializablePath("game objects" + "/" + "criminals"),
+    shipSkinMETAFolder = SerializablePath("game objects" + "/" + "ship skins"),
+    bbShipUpgradesMETAFolder = SerializablePath("game objects" + "/" + "ship upgrades"),
+    SolarSystemMETAFolder = SerializablePath("game objects" + "/" + "solar systems"),
+    bbCommodityMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "commodities"),
+    bbModuleMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "modules"),
+    bbSecondaryMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "secondaries"),
+    bbShipMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "ships"),
+    bbWeaponMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "weapons"),
+    bbTurretMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "turrets"),
+    bbToolMETAFolder = SerializablePath("game objects" + "/" + "items" + "/" + "tools"),
+    bbMedalsMETAFolder = SerializablePath("game objects" + "/" + "user profile" + "/" + "medals")
+)
 
 
 
