@@ -1,5 +1,4 @@
-import re
-from aiohttp.client import request
+from typing import Dict, cast
 import discord # type: ignore[import]
 
 from . import commandsDB as botCommands
@@ -9,6 +8,8 @@ from ..lib import gameMaths
 from ..cfg import cfg
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import divisionNameForLevel
+from ..gameObjects.guildShop import TechLeveledShop
+from ..gameObjects.items.gameItem import GameItem
 
 
 botCommands.addHelpSection(0, "economy")
@@ -113,7 +114,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     else:
         sendChannel = message.channel
 
-    requestedShop = botState.guildsDB.getGuild(message.guild.id).divisionShops[divName]
+    requestedShop = cast(Dict[str, TechLeveledShop], requestedBGuild.divisionShops)[divName]
     shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Shop", desc="__" + message.guild.name + "__\n`Current Tech Level: " \
                                                 + str(requestedShop.currentTechLevel) + "`",
                                             footerTxt="All items" if item == "all" else (item + "s").title(),
@@ -127,7 +128,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                     shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
 
                 try:
-                    currentItem = currentStock[itemNum - 1].item
+                    currentItem = cast(GameItem, currentStock[itemNum - 1].item)
                 except KeyError:
                     try:
                         botState.logger.log("Main", "cmd_shop",
