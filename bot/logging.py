@@ -2,7 +2,7 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Tuple, List
+from typing import Dict, Tuple, List
 from .lib.exceptions import formatExceptionTrace
 
 
@@ -34,7 +34,7 @@ class Logger:
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs = {cat: {} for cat in self.categories}
+        self.logs: Dict[str, Dict[datetime, str]] = {cat: {} for cat in self.categories}
 
 
     def isEmpty(self) -> bool:
@@ -59,10 +59,13 @@ class Logger:
         """
         head, headCat = None, ""
         for cat in self.logs:
-            if bool(self.logs[cat]):
+            if self.logs[cat]:
                 currHead = list(self.logs[cat].keys())[0]
                 if head is None or currHead < head:
                     head, headCat = currHead, cat
+
+        if head is None:
+            raise ValueError("Attempted to peekHeadTimeAndCategory when no logs exist")
 
         return head, headCat
 
