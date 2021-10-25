@@ -1,5 +1,5 @@
 from . import cfg
-import toml
+import toml # type: ignore[import]
 import os
 from typing import Dict, Any, Generic, List, TypeVar, Union, cast
 
