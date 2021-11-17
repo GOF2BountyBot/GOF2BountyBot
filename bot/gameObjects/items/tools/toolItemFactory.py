@@ -2,28 +2,11 @@ from . import toolItem, shipSkinTool
 from .crateTool import CrateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
-from .... import lib
 
 itemConstructors = {"Ship": shipItem.Ship.fromDict,
                         "PrimaryWeapon": primaryWeapon.PrimaryWeapon.fromDict,
                         "ModuleItem": moduleItemFactory.fromDict,
                         "TurretWeapon": turretWeapon.TurretWeapon.fromDict}
-
-
-def crateFromDict(crateDict):
-    if "crateType" not in crateDict and "itemPool" not in crateDict:
-        raise RuntimeError("Attempted to fromDict a non-builtIn crate with no itemPool field: " + str(crateDict))
-    itemPool = []
-    if "itemPool" in crateDict:
-        for itemDict in crateDict["itemPool"]:
-            if "itemType" in itemDict:
-                itemPool.append(itemConstructors[itemDict["itemType"]](itemDict))
-            else:
-                itemPool.append(itemConstructors[itemDict["type"]](itemDict))
-
-    return CrateTool(**CrateTool._makeDefaults(crateDict, ("type",), itemPool=itemPool,
-                                                emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
-                                                    if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
 
 def fromDict(toolDict : dict) -> toolItem.ToolItem:
@@ -38,10 +21,12 @@ def fromDict(toolDict : dict) -> toolItem.ToolItem:
     """
     if "type" not in toolDict:
         raise NameError("Required dictionary attribute missing: 'type'")
+    elif toolDict["type"] == "ToolItem":
+        raise ValueError("Cannot deserialize abstract type 'ToolItem'")
     return toolTypeConstructors[toolDict["type"]](toolDict)
 
 
 toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.fromDict,
-                        "CrateTool": crateFromDict,
+                        "CrateTool": CrateTool.fromDict,
                         "ToolItem": fromDict}
 itemConstructors.update(toolTypeConstructors)
