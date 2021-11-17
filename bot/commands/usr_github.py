@@ -13,6 +13,7 @@ from github.Issue import Issue
 from github.Issue import Issue
 from github import UnknownObjectException
 import re
+from urllib.parse import quote_plus
 
 
 botCommands.addHelpSection(0, "github")
@@ -88,14 +89,22 @@ async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
     
     await lib.discordUtil.startLongProcess(message)
     issues: List[Issue] = await searchIssues(args)
+    numIssues = len(issues)
+    numToShow = min(numIssues, cfg.githubIssueSearchNumResults)
 
-    resultsEmbed = discord.Embed(title="GitHub Issues Search", description=f"Search term: `{args}`\n** **",
+    if numIssues > 0 and numIssues != numToShow:
+        desc = f"Search term: `{args}`\nShowing the first {numToShow} of {numIssues} matches. See all results [here](" \
+                + f"https://github.com/GOF2BountyBot/GOF2BountyBot/issues?q=is%3Aissue+{quote_plus(args)}+in%3Atitle)."
+    else:
+        desc = f"Search term: `{args}`"
+
+    resultsEmbed = discord.Embed(title="GitHub Issues Search", description=desc,
                                     colour=discord.colour.Colour.random())
     prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
-    resultsEmbed.set_footer(text=f"GitHub repository linked in `{prefix}source`")
+    resultsEmbed.set_footer(text=f"GitHub repository linked in {prefix}source")
     resultsEmbed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
     if issues:
-        for issue in issues:
+        for issue in issues[:numToShow]:
             labelsStr = ', '.join(cfg.githubLabelNames.get(x.name, x.name) for x in issue.labels)
             resultsEmbed.add_field(name=("🟢" if issue.state == "open" else "🔴") + " " + issue.title,
                                     value=f"[#{issue.number}]({issue.url}) *({labelsStr})*")
@@ -108,7 +117,8 @@ async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
 botCommands.register("issue search", cmd_issue_search, 0, forceKeepArgsCasing=True, allowDM=True,
                         aliases=["bug search", "issues search", "git search", "github search", "feature search"],
                         helpSection="github", signatureStr="**issue search <issue-name>**",
-                        shortHelp="Search for GitHub issues with the given name, getting the 3 most similar issues.")
+                        shortHelp="Search for GitHub issues with the given name, getting the " \
+                                    + str(cfg.githubIssueSearchNumResults) + " most similar issues.")
 
 
 async def cmd_issue_get(message : discord.Message, args : str, isDM : bool):
