@@ -5,7 +5,7 @@ from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
 
 TimedeltaDict = Dict[str, int]
 
-def _initBasedEmoji(self, varValue, rejectInvalid=True):
+def _initBasedEmoji(varValue, rejectInvalid=True):
     # ensure single emoji vars are emojis
     if isinstance(varValue, UninitializedBasedEmoji):
         return BasedEmoji.fromUninitialized(varValue, rejectInvalid=rejectInvalid)
@@ -27,23 +27,23 @@ def _initBasedEmoji(self, varValue, rejectInvalid=True):
 
 @dataclass
 class EmojisConfig(SerializableDataClass):
-    unrecognisedEmoji: BasedEmoji
-    longProcess: BasedEmoji
-    dmSent: BasedEmoji
-    cancel: BasedEmoji
-    submit: BasedEmoji
-    spiral: BasedEmoji
-    error: BasedEmoji
-    accept: BasedEmoji
-    reject: BasedEmoji
-    next: BasedEmoji
-    previous: BasedEmoji
-    numbers: List[BasedEmoji]
-    menuOptions: List[BasedEmoji]
-    shipSkinTool: BasedEmoji
-    skinCrate: BasedEmoji
-    defaultCrate: BasedEmoji
-    newBounty: BasedEmoji
+    unrecognisedEmoji: UninitializedBasedEmoji
+    longProcess: UninitializedBasedEmoji
+    dmSent: UninitializedBasedEmoji
+    cancel: UninitializedBasedEmoji
+    submit: UninitializedBasedEmoji
+    spiral: UninitializedBasedEmoji
+    error: UninitializedBasedEmoji
+    accept: UninitializedBasedEmoji
+    reject: UninitializedBasedEmoji
+    next: UninitializedBasedEmoji
+    previous: UninitializedBasedEmoji
+    numbers: List[UninitializedBasedEmoji]
+    menuOptions: List[UninitializedBasedEmoji]
+    shipSkinTool: UninitializedBasedEmoji
+    skinCrate: UninitializedBasedEmoji
+    defaultCrate: UninitializedBasedEmoji
+    newBounty: UninitializedBasedEmoji
 
     def initAll(self, rejectInvalid=True):
         for varName in self.__dataclass_fields__.keys():
