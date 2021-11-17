@@ -514,3 +514,6 @@ githubLabelNames = {"enhancement": "feature",
                     "i showed u my issue pls respond": "new issue"}
 
 githubIssueTemplates = ["bug_report", "feature_request", "new-item-alias"]
+
+# Top n results will be showed in github search
+githubIssueSearchNumResults = 9
