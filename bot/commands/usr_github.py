@@ -101,7 +101,7 @@ async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
     resultsEmbed = discord.Embed(title="GitHub Issues Search", description=desc,
                                     colour=discord.colour.Colour.random())
     prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
-    resultsEmbed.set_footer(text=f"GitHub repository linked in `{prefix}source`")
+    resultsEmbed.set_footer(text=f"GitHub repository linked in {prefix}source")
     resultsEmbed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
     if issues:
         for issue in issues[:numToShow]:
