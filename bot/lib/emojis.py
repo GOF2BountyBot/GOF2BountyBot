@@ -168,6 +168,10 @@ class BasedEmoji(serializable.Serializable):
 
         if isinstance(emojiDict, BasedEmoji):
             return emojiDict
+        elif isinstance(emojiDict, str):
+            return BasedEmoji.fromStr(emojiDict)
+        elif isinstance(emojiDict, int):
+            return BasedEmoji(id=emojiDict, rejectInvalid=rejectInvalid)
         if "id" in emojiDict:
             return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
         else:
