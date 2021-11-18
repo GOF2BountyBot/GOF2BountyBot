@@ -393,7 +393,9 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
         #Equip the items one by one
         iterations = 1
         for i in itemNum:
-            requestedItem = userItemInactives[i - iterations].item
+            requestedSlot = userItemInactives[i - iterations]
+            lastItemInSlot = requestedSlot.count == 1
+            requestedItem = requestedSlot.item
 
             if item == "ship":
                 activeShip = requestedBBUser.activeShip
@@ -408,7 +410,6 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
                 if transferItems:
                     outStr += "\nItems that could not fit in your new ship can be found in the hangar."
                 await message.reply(mention_author=False, content=outStr)
-                iterations += 1
 
             elif item == "weapon":
                 if not requestedBBUser.activeShip.canEquipMoreWeapons():
@@ -419,7 +420,6 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
                 requestedBBUser.inactiveWeapons.removeItem(requestedItem)
 
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
-                iterations += 1
                 
             elif item == "module":
                 if not requestedBBUser.activeShip.canEquipMoreModules():
@@ -434,7 +434,6 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
                 requestedBBUser.inactiveModules.removeItem(requestedItem)
 
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
-                iterations += 1
 
             elif item == "turret":
                 if not requestedBBUser.activeShip.canEquipMoreTurrets():
@@ -445,10 +444,12 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
                 requestedBBUser.inactiveTurrets.removeItem(requestedItem)
 
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
-                iterations += 1
             
             else:
                 raise NotImplementedError("Valid but unsupported item name: " + item)
+
+            if lastItemInSlot:
+                iterations += 1
             
 
     #if there isn't a ","
