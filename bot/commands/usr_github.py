@@ -107,7 +107,7 @@ async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
         for issue in issues[:numToShow]:
             labelsStr = ', '.join(cfg.githubLabelNames.get(x.name, x.name) for x in issue.labels)
             resultsEmbed.add_field(name=("🟢" if issue.state == "open" else "🔴") + " " + issue.title,
-                                    value=f"[#{issue.number}]({issue.url}) *({labelsStr})*")
+                                    value=f"[#{issue.number}]({issue.html_url}) *({labelsStr})*")
     else:
         resultsEmbed.add_field(name="No results found", value="​")
 
@@ -152,7 +152,7 @@ async def cmd_issue_get(message : discord.Message, args : str, isDM : bool):
     labelsStr = ', '.join(cfg.githubLabelNames.get(x.name, x.name) for x in issue.labels)
     resultsEmbed = discord.Embed(title="GitHub Issue Lookup",
                                 description="__" + ('🟢' if issue.state == 'open' else '🔴') \
-                                            + f" [#{issue.number} {issue.title}]({issue.url})__\n" \
+                                            + f" [#{issue.number} {issue.title}]({issue.html_url})__\n" \
                                             + (f"> `{labelsStr}`\n" if labelsStr else "")
                                             + f"\n{issue.body}",
                                 colour=discord.colour.Colour.random())
@@ -197,7 +197,7 @@ botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, al
 #     labelsStr = ', '.join(cfg.githubLabelNames.get(x.name, x.name) for x in issue.labels)
 #     resultsEmbed = discord.Embed(title="GitHub Issue Lookup",
 #                                 description="__" + ('🟢' if issue.state == 'open' else '🔴') \
-#                                             + f" [#{issue.number} {issue.title}]({issue.url})__\n" \
+#                                             + f" [#{issue.number} {issue.title}]({issue.html_url})__\n" \
 #                                             + (f"> `{labelsStr}`\n" if labelsStr else "")
 #                                             + f"\n{issue.body}",
 #                                 colour=discord.colour.Colour.random())
