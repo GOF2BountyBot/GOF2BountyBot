@@ -6,6 +6,7 @@ from .. import botState, lib
 from ..cfg import cfg
 from ..reactionMenus import pagedReactionMenu, expiryFunctions
 from ..scheduling import timedTask
+from ..users.basedUser import BasedUser
 
 
 async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAccessLevel: int):
@@ -36,6 +37,9 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
         args = "miscellaneous"
 
     helpMenuTimeoutStr = lib.timeUtil.td_format_noYM(timedelta(**cfg.timeouts.helpMenu))
+
+    owningUser: BasedUser = None
+    newMenu: pagedReactionMenu.PagedReactionMenu = None
 
     try:
         if args == "":
@@ -75,11 +79,11 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                     newEmbed.set_footer(text="Page " + str(pageNum) + " of " + str(botCommands.totalEmbeds[userAccessLevel]) \
                                             + " | This menu will expire in " + helpMenuTimeoutStr + ".")
                     pages[newEmbed] = {}
-            helpMenu = pagedReactionMenu.PagedReactionMenu(
+            newMenu = pagedReactionMenu.PagedReactionMenu(
                 menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
-            await helpMenu.updateMessage()
-            botState.reactionMenusDB[menuMsg.id] = helpMenu
-            owningUser.addOwnedMenu("help", helpMenu)
+            await newMenu.updateMessage()
+            botState.reactionMenusDB[menuMsg.id] = newMenu
+            owningUser.addOwnedMenu("help", newMenu)
 
         elif args in botCommands.helpSectionEmbeds[userAccessLevel]:
             if len(botCommands.helpSectionEmbeds[userAccessLevel][args]) == 1:
@@ -102,11 +106,11 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
                     newEmbed.set_footer(text=helpEmbed.footer.text + " | This menu will expire in " \
                                         + helpMenuTimeoutStr + ".")
                     pages[newEmbed] = {}
-                helpMenu = pagedReactionMenu.PagedReactionMenu(
+                newMenu = pagedReactionMenu.PagedReactionMenu(
                     menuMsg, pages, timeout=helpTT, targetMember=message.author, owningBasedUser=owningUser)
-                await helpMenu.updateMessage()
-                botState.reactionMenusDB[menuMsg.id] = helpMenu
-                owningUser.addOwnedMenu("help", helpMenu)
+                await newMenu.updateMessage()
+                botState.reactionMenusDB[menuMsg.id] = newMenu
+                owningUser.addOwnedMenu("help", newMenu)
 
         elif args in botCommands.commands[userAccessLevel] and botCommands.commands[userAccessLevel][args].allowHelp:
             cmdObj = botCommands.commands[userAccessLevel][args]
@@ -133,6 +137,8 @@ async def util_autohelp(message: discord.Message, args: str, isDM: bool, userAcc
     except discord.Forbidden:
         await message.reply(mention_author=False, content=":x: I can't DM you, " + message.author.display_name \
                                     + "! Please enable DMs from users who are not friends.")
+        if owningUser is not None and owningUser.hasMenuOfTypeID("help") and newMenu is not None:
+            owningUser.removeOwnedMenu("help", newMenu)
         return
     else:
         if sendDM:
