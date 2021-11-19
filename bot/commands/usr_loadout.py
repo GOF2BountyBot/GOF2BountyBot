@@ -236,16 +236,17 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
     """
     requestedUser = message.author
     useDummyData = False
-    userFound = False
+    argsSplit = args.split(" ")
+    isCriminal = len(argsSplit) > 0 and argsSplit[0].lower() == "criminal"
 
-    if len(args.split(" ")) > 1 and args.split(" ")[0] != "criminal":
+    if len(argsSplit) > 1 and not isCriminal:
         await message.reply(mention_author=False, content=":x: Too many arguments! I can only take a target user/criminal!")
         return
-    elif len(args.split(" ")) == 1 and args == "criminal":
+    elif len(argsSplit) == 1 and isCriminal:
         await message.channel.send(":x: Not enough arguments! Please give the criminal name.")
         return
 
-    if args.split(" ")[0] == "criminal":
+    if isCriminal:
         if isDM:
             await message.channel.send(":x: criminal loadouts can only be requested from inside a server!")
         else:
