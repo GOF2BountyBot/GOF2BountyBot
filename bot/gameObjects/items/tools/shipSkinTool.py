@@ -67,7 +67,7 @@ class ShipSkinTool(toolItem.ToolItem):
 
         if ship.isSkinned:
             return ValueError("Attempted to apply a skin to an already-skinned ship")
-        if ship.name not in self.skin.compatibleShips:
+        if not self.skin.compatibleWithShip(ship):
             return TypeError("The given skin is not compatible with this ship")
 
         ship.applySkin(self.skin)
@@ -108,7 +108,7 @@ class ShipSkinTool(toolItem.ToolItem):
 
         if ship.isSkinned:
             return ":x: This ship already has a skin applied! Please equip a different ship."
-        if ship.name not in self.skin.compatibleShips:
+        if not self.skin.compatibleWithShip(ship):
             try:
                 message.guild
             except AttributeError:

@@ -590,43 +590,48 @@ async def cmd_info_skin(message : discord.Message, args : str, isDM : bool):
         if requestedSkin.hasWiki:
             statsEmbed.add_field(name="‎", value="[Wiki](" + requestedSkin.wiki + ")", inline=False)
 
-        compatibleShipStrs = [[]]
-        currentLen = 0
-        numJoins = 0
-        # maximum number of characters discord allows in embed values
-        maxLen = 1024
-        currentField = 0
-        joiner = " • "
-        for shipName in requestedSkin.compatibleShips:
-            shipData = bbData.builtInShipData[shipName]
-            if "emoji" in shipData:
-                try:
-                    currentStr = lib.emojis.BasedEmoji.fromStr(shipData["emoji"], rejectInvalid=True).sendable
-                except lib.exceptions.UnrecognisedCustomEmoji:
-                    currentStr = shipData["name"]
-            else:
-                currentStr = shipData["name"]
-
-            if currentLen + len(currentStr) + numJoins * len(joiner) > maxLen:
-                compatibleShipStrs.append([])
-                currentField += 1
-                currentLen = len(currentStr)
-                numJoins = 1
-            else:
-                currentLen += len(currentStr)
-                numJoins += 1
-
-            compatibleShipStrs[currentField].append(currentStr)
-        
-        if len(compatibleShipStrs) == 1:
+        if requestedSkin.allShips:
             statsEmbed.add_field(name="Compatible ships:",
-                                    value=" • ".join(compatibleShipStrs[0]) if compatibleShipStrs != [] else "None", inline=False)
+                                    value="All skinnable ships", inline=False)
         else:
-            statsEmbed.add_field(name="Compatible ships:",
-                                    value=" • ".join(compatibleShipStrs[0]), inline=False)
-            for fieldStrs in compatibleShipStrs[1:]:
-                statsEmbed.add_field(name="Compatible ships (cont.):",
-                                    value=" • ".join(fieldStrs), inline=False)
+            compatibleShipStrs = [[]]
+            currentLen = 0
+            numJoins = 0
+            # maximum number of characters discord allows in embed values
+            maxLen = 1024
+            currentField = 0
+            joiner = " • "
+            for shipName in requestedSkin.compatibleShips:
+                shipData = bbData.builtInShipData[shipName]
+                if "emoji" in shipData:
+                    try:
+                        currentStr = lib.emojis.BasedEmoji.fromStr(shipData["emoji"], rejectInvalid=True).sendable
+                    except lib.exceptions.UnrecognisedCustomEmoji:
+                        currentStr = shipData["name"]
+                else:
+                    currentStr = shipData["name"]
+
+                if currentLen + len(currentStr) + numJoins * len(joiner) > maxLen:
+                    compatibleShipStrs.append([])
+                    currentField += 1
+                    currentLen = len(currentStr)
+                    numJoins = 1
+                else:
+                    currentLen += len(currentStr)
+                    numJoins += 1
+
+                compatibleShipStrs[currentField].append(currentStr)
+            
+            if len(compatibleShipStrs) == 1:
+                statsEmbed.add_field(name="Compatible ships:",
+                                        value=" • ".join(compatibleShipStrs[0]) if compatibleShipStrs != [] else "None",
+                                        inline=False)
+            else:
+                statsEmbed.add_field(name="Compatible ships:",
+                                        value=" • ".join(compatibleShipStrs[0]), inline=False)
+                for fieldStrs in compatibleShipStrs[1:]:
+                    statsEmbed.add_field(name="Compatible ships (cont.):",
+                                        value=" • ".join(fieldStrs), inline=False)
         # send the embed
         await message.channel.send(embed=statsEmbed)
 
