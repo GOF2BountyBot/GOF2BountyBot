@@ -5,6 +5,7 @@ from .. import lib
 from discord import File
 from typing import Dict, List
 from ..baseClasses import serializable
+from .items import shipItem
 
 
 def _saveShip(ship):
@@ -23,8 +24,10 @@ def _saveShip(ship):
 
 class ShipSkin(serializable.Serializable):
     def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
-                    path : str, designer : str, wiki : str = "", disabledRegions : List[int] = []):
+                    path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
+                    allShips: bool = False):
 
+        self.allShips = allShips
         self.name = name
         self.textureRegions = textureRegions
         self.compatibleShips = list(shipRenders.keys())
@@ -53,11 +56,28 @@ class ShipSkin(serializable.Serializable):
             data["wiki"] = self.wiki
         if self.disabledRegions:
             data["disabledRegions"] = self.disabledRegions
+        if self.allShips:
+            data["allShips"] = True
         return data
 
 
     def _updateItemMETA(self, **kwargs):
         lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(**kwargs), prettyPrint=True)
+
+    
+    def compatibleWithShip(self, ship: shipItem.Ship) -> bool:
+        """Decide whether this skin is compatible with a given ship.
+
+        :param ship: The ship to check for compatibility
+        :type ship: shipItem.Ship
+        :raises KeyError: If ship is a custom item
+        :return: True if ship is skinnable and compatible with this skin, False otherwise
+        :rtype: bool
+        """
+        if ship not in bbData.builtInShipData:
+            raise KeyError("Ship not found: '" + str(ship) + "'")
+
+        return bbData.builtInShipData[ship]["skinnable"] and (self.allShips or ship.name in self.compatibleShips)
 
 
     async def addShip(self, ship, rendersChannel):

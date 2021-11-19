@@ -711,7 +711,7 @@ class Ship(GameItem):
         """
         if self.isSkinned:
             return ValueError("Attempted to apply a skin to an already-skinned ship")
-        if self.name not in skin.compatibleShips:
+        if not skin.compatibleWithShip(self):
             return TypeError("The given skin is not compatible with this ship")
         self.icon = skin.shipRenders[self.name][0]
         self.skin = skin.name
