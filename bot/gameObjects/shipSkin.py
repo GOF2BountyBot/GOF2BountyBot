@@ -65,7 +65,7 @@ class ShipSkin(serializable.Serializable):
         lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(**kwargs), prettyPrint=True)
 
     
-    def compatibleWithShip(self, ship: shipItem.Ship) -> bool:
+    def compatibleWithShip(self, ship: "shipItem.Ship") -> bool:
         """Decide whether this skin is compatible with a given ship.
 
         :param ship: The ship to check for compatibility
