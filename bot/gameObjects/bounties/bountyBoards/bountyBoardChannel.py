@@ -1,12 +1,13 @@
 from __future__ import annotations
 from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour
+from discord.message import MessageReference
 from ....cfg import bbData, cfg
 from .... import lib
 from .. import criminal
 from .... import botState
 import asyncio
 from .. import bounty
-from typing import Dict, Union
+from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union
 from ....baseClasses import serializable
 
 
@@ -50,6 +51,17 @@ noBountiesEmbed = Embed(description='> Please check back later, or use the `noti
 noBountiesEmbed.set_author(name='No Bounties Available', icon_url=stopwatchIcon)
 
 
+async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
+    """Delete a message
+
+    :param Message message: The message to delete
+    :param meta: An extra string to describe the message, only used in exceptions
+    :type meta: str
+    """
+    return await lib.discordUtil.asyncOperationWithRetry(message.delete, "delete message", "bountyboards",
+                                                        "BBC", meta, *args, **kwargs)
+
+
 class BountyBoardChannel(serializable.Serializable):
     """A channel which stores a continuously updating listing message for every active bounty.
 
@@ -62,6 +74,8 @@ class BountyBoardChannel(serializable.Serializable):
     :vartype channelIDToBeLoaded: int
     :var noBountiesMsgToBeLoaded: The id of the message to be loaded indicating that the BBC is empty, if one exists
     :vartype noBountiesMsgToBeLoaded: int
+    :var escapedBountiesMsgToBeLoaded: The id of the message to be loaded listing all escaped bounties, if one exists
+    :vartype escapedBountiesMsgToBeLoaded: int
 
     Runtime atts: These are the attributes that contribute to the BBC's runtime functionality, unlike initialisation atts.
     :var bountyMessages: A dictionary associating criminals to their listing discord.Messages.
@@ -69,12 +83,14 @@ class BountyBoardChannel(serializable.Serializable):
     :var noBountiesMessage: Either a reference to a discord.message indicating that the BBC is empty,
                             or None if no empty board message exists
     :vartype noBountiesMessage: discord.message or None
+    :var escapedBountiesMessage: A reference to a discord.message listing all escaped bounties. This *should* always exist.
+    :vartype escapedBountiesMessage: discord.message
     :var channel: The channel where this BBC's listings are to be posted
     :vartype channel: discord.TextChannel
     """
 
     def __init__(self, channelIDToBeLoaded : int, messagesToBeLoaded : Dict[int, dict],
-                    noBountiesMsgToBeLoaded : Union[int, None]):
+                    noBountiesMsgToBeLoaded : Union[int, None], escapedBountiesMsgToBeLoaded: Union[int, None]):
         """
         :param int channelIDToBeLoaded: The discord channel ID of the channel where this BBC is active,
                                         to be loaded into the BBC
@@ -86,13 +102,102 @@ class BountyBoardChannel(serializable.Serializable):
         self.messagesToBeLoaded = messagesToBeLoaded
         self.channelIDToBeLoaded = channelIDToBeLoaded
         self.noBountiesMsgToBeLoaded = noBountiesMsgToBeLoaded
+        self.escapedBountiesMsgToBeLoaded = escapedBountiesMsgToBeLoaded
 
-        # dict of {criminal: int message ID}
         self.bountyMessages: Dict[criminal.Criminal, Message] = {}
         # discord message object to be filled when no bounties exist
         self.noBountiesMessage = None
+        # discord message object to list all escaped bounties. Active even when there are no escaped bounties.
+        self.escapedBountiesMessage = None
         # discord channel object
         self.channel = None
+
+
+    def jumpUrl(self, msgId: int) -> str:
+        """Construct a jump URL to a message in self.channel
+
+        :param msgId: The ID of the message to construct a URL for
+        :type msgId: int
+        :return: A jump URL to the identified message
+        :rtype: str
+        """
+        channelID = self.channelIDToBeLoaded if self.channel is None else self.channel.id
+        guildID = None if self.channel is None else self.channel.guild.id
+        return MessageReference(message_id=msgId, channel_id=channelID, guild_id=guildID,
+                                fail_if_not_exists=False).jump_url
+
+
+    def prependJumpUrl(self, id: int, logUrls: bool, content: str) -> str:
+        """Prepend the jump url for the identified message, if instructed to. Otherwise prepend the message ID.
+
+        :param id: The ID of the message
+        :type id: int
+        :param logUrls: Whether to generate a jump URL, or prepend the ID instead
+        :type logUrls: bool
+        :param content: The content to appear after the url/id
+        :type content: str
+        :return: content, with a link or id of the message prepended
+        :rtype: str
+        """
+        return f"[{self.jumpUrl(id) if logUrls else id}]{f' {content}' if content else ''}"
+
+
+    async def loadMessageWithRetry(self, id: int, meta: str, logUrls: bool = True) -> Optional[Message]:
+        """Load a message from self.channel by id
+
+        :param id: The id of the message to load
+        :type id: int
+        :param meta: An extra string to describe the message, only used in errors
+        :type meta: str
+        :param logUrls: Whether or not to include a jump url to the message in logs (Default True)
+        :raises ValueError: If self.channel has not be set yet
+        :return: A message if one is found, None if an error occurred
+        :rtype: Optional[Message]
+        """
+        if self.channel is None:
+            raise ValueError(f"Attempted loadMessageWithRetry before initializing self.channel")
+
+        meta = self.prependJumpUrl(id, logUrls, meta)
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.fetch_message, "load message", "bountyboards",
+                                                            "BBC", meta, id)
+
+
+    async def sendMessageWithRetry(self, meta: str, *args, **kwargs) -> Optional[Message]:
+        """Send a message to self.channel
+
+        :param meta: An extra string to describe the message, only used in exceptions
+        :type meta: str
+        :raises ValueError: If self.channel has not yet been initialized
+        :return: The message that was created, or None if there was an error
+        :rtype: Optional[Message]
+        """
+        if self.channel is None:
+            raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
+
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", "bountyboards",
+                                                            "BBC", meta, *args, **kwargs)
+
+    
+    def guildAndChannelMeta(self) -> str:
+        """Construct a string detailing the guild and channel where this BBC lives.
+
+        :return: A string identifying self.channel
+        :rtype: str
+        :raises ValueError: If self.channel has not yet been initialized
+        """
+        if self.channel is None:
+            raise ValueError("Attempted to guildAndChannelMeta before initializing self.channel")
+
+        return f"g:{self.channel.guild.name}#{self.channel.guild.id} c:{self.channel.name}#{self.channel.id}"
+
+
+    async def rebuild(self, logUrls: bool = True):
+        tasks = lib.discordUtil.BasicScheduler()
+
+        if self.escapedBountiesMessage is not None:
+            tasks.add(deleteMessageWithRetry(self.escapedBountiesMessage,
+                                                self.prependJumpUrl(self.escapedBountiesMessage.id, logUrls,
+                                                                    "escaped bounties")))
 
 
     async def init(self, client : Client):
@@ -104,6 +209,40 @@ class BountyBoardChannel(serializable.Serializable):
         self.channel = client.get_channel(self.channelIDToBeLoaded) or await client.fetch_channel(self.channelIDToBeLoaded)
         if self.channel is None:
             raise lib.exceptions.NoLongerExists(f"Failed to load requested channel: {self.channelIDToBeLoaded}")
+
+        # True if the channel configuration is invalid and needs to be rebuilt
+        doReload = False
+
+        if self.escapedBountiesMsgToBeLoaded == -1:
+            doReload = True
+            self.escapedBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
+
+            self.escapedBountiesMessage = await self.sendMessageWithRetry(f"escaped bounties {self.guildAndChannelMeta()}",
+                                                                            embed=noBountiesEmbed)
+
+        elif self.isEmpty():
+            try:
+                self.escapedBountiesMessage = await self.channel.fetch_message(self.escapedBountiesMsgToBeLoaded)
+            except HTTPException:
+                succeeded = False
+                for tryNum in range(cfg.httpErrRetries):
+                    try:
+                        self.escapedBountiesMessage = await self.channel.fetch_message(self.escapedBountiesMsgToBeLoaded)
+                        succeeded = True
+                    except HTTPException:
+                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
+                        continue
+                    break
+                if not succeeded:
+                    botState.logger.log("BBC", "init", "HTTPException thrown when fetching no bounties message",
+                                category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
+            except Forbidden:
+                botState.logger.log("BBC", "init", "Forbidden exception thrown when fetching no bounties message",
+                            category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
+            except NotFound:
+                botState.logger.log("BBC", "init", "No bounties message no longer exists", category='bountyBoards',
+                            eventType="NOBTYMSG_LOAD-NOT_FOUND")
+                self.escapedBountiesMessage = None
 
         for id in self.messagesToBeLoaded:
             crim = criminal.Criminal.fromDict(self.messagesToBeLoaded[id])
@@ -381,15 +520,12 @@ class BountyBoardChannel(serializable.Serializable):
     async def clear(self):
         """Clear all bounty listings on the board.
         """
-        clearTasks = set()
+        clearTasks = lib.discordUtil.BasicScheduler()
         for criminal in self.bountyMessages.keys():
-            clearTasks.add(asyncio.create_task(self.removeCriminal(criminal)))
+            clearTasks.add(self.removeCriminal(criminal))
         if clearTasks:
-            await asyncio.wait(clearTasks)
-            for t in clearTasks:
-                if e := t.exception():
-                    botState.logger.log("bountyBoardChannel", "clear", str(e), category="bountyBoards",
-                                        exception=e)
+            await clearTasks.wait()
+            clearTasks.logExceptions("bountyBoards", "bountyBoardChannel", "clear")
 
 
     def toDict(self, **kwargs) -> dict:
