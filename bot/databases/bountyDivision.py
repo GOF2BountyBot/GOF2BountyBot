@@ -486,7 +486,7 @@ class BountyDivision(Serializable):
         if self.bountyBoardChannel is not None:
             raise RuntimeError(f"Attempted to assign a bountyboard channel for division {self.minLevel}-{self.maxLevel} " \
                                 + f"in guild {self.owningDB.owningBasedGuild.id} but one is already assigned")
-        self.bountyBoardChannel = BountyBoardChannel(channel.id, {}, -1)
+        self.bountyBoardChannel = BountyBoardChannel(self, channel.id, {}, -1)
         await self.bountyBoardChannel.init(client)
 
 
