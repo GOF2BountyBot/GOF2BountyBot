@@ -498,7 +498,8 @@ class BountyDB(serializable.Serializable):
 
         if "bountyBoardChannels" in bountyDBDict:
             for minLevel, bbcDict in bountyDBDict["bountyBoardChannels"].items():
-                newDB.divisionForLevel(int(minLevel)).bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict)
+                div = newDB.divisionForLevel(int(minLevel))
+                div.bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict, division=div)
 
         if "alertRoleIDs" in bountyDBDict:
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():

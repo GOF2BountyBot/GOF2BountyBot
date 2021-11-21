@@ -600,11 +600,12 @@ class BountyBoardChannel(serializable.Serializable):
         # dict of message id: criminal dict
         listings = {msg.id: crim.toDict(**kwargs) for crim, msg in self.bountyMessages.items()}
         return {"channel": self.channel.id, "listings": listings,
-                "noBountiesMsg": self.noBountiesMessage.id if self.noBountiesMessage is not None else -1}
+                "noBountiesMsg": self.noBountiesMessage.id if self.noBountiesMessage is not None else -1,
+                "escapedBountiesMsg": self.escapedBountiesMsg.id if self.escapedBountiesMsg is not None else -1}
 
 
     @classmethod
-    def fromDict(cls, BBCDict : dict, **kwargs) -> BountyBoardChannel:
+    def fromDict(cls, BBCDict : dict, division: BountyDivision, **kwargs) -> BountyBoardChannel:
         """Factory function constructing a new BBC from the information in the provided dictionary
         - the opposite of bountyBoardChannel.toDict
 
@@ -614,5 +615,6 @@ class BountyBoardChannel(serializable.Serializable):
         """
         if BBCDict is None:
             return None
-        return BountyBoardChannel(BBCDict["channel"], BBCDict["listings"],
-                                    BBCDict.get("noBountiesMsg", -1))
+        return BountyBoardChannel(division, BBCDict["channel"], BBCDict["listings"],
+                                    BBCDict.get("noBountiesMsg", -1),
+                                    BBCDict.get("escapedBountiesMsg", -1))
