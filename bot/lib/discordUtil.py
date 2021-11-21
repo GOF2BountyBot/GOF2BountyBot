@@ -444,3 +444,53 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
         pfunc = partial(func, *args, **kwargs)
         return await loop.run_in_executor(executor, pfunc)
     return run
+
+
+async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str, className: str, meta: str,
+                                        *fArgs, **fKwargs) -> Optional[Message]:
+        """Perform an asynchronous operation with a fixed retry, as defined in cfg.
+
+        :param f: The coroutine to execute
+        :type f: AnyCoroutine
+        :param opName: The name of the operation, to be used in error logging
+        :type opName: str
+        :param logCategory: The category to log errors into
+        :type logCategory: str
+        :param className: The name of the class calling this function, to be used in error logging
+        :type className: str
+        :param meta: An extra string to describe the operation, to be used in error logging
+        :param fArgs: All positional arguments to pass to f
+        :param fKwargs: All keyword arguments to pass to f
+        :type meta: str
+        :return: The message if it was created, None if an error occurred
+        :rtype: Optional[Message]
+        """
+        camelFName = opName.title()
+        if len(opName) > 1:
+            camelFName = camelFName[0].lower() + camelFName[1:]
+
+        def logError(e: Exception):
+            eName = type(e).__name__
+            botState.logger.log(className, camelFName,
+                                f"{eName} thrown on {opName}. Meta: " + meta,
+                                category=logCategory, eventType=eName)
+
+        try:
+            return await f(*fArgs, **fKwargs)
+        except HTTPException as e:
+            for tryNum in range(cfg.httpErrRetries):
+                try:
+                    msg = await f(*fArgs, **fKwargs)
+                    botState.logger.log(className, camelFName,
+                                        f"{opName} successful, but only after " \
+                                            + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
+                                        category=logCategory, eventType="RETRY-SUCCESS")
+                    return msg
+                except HTTPException:
+                    await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
+
+            logError(e)
+        except (Forbidden, NotFound) as e:
+            logError(e)
+
+        return None
