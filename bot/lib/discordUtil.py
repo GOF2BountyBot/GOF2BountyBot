@@ -506,12 +506,12 @@ def messageDescriptor(m: Message) -> str:
         return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
 
 
-def extractCoroName(coro: Awaitable) -> Tuple[str, str]:
+def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
     # https://stackoverflow.com/a/63933827
-    if hasattr(coro, "__qualname__"):
-        name: str = coro.__qualname__
+    if hasattr(f, "__qualname__"):
+        name: str = f.__qualname__ # type: ignore
     else:
-        name = str(coro).split(" ", 3)[-2]
+        name = str(f).split(" ", 3)[-2]
     
     if "." in name:
         i = len(name) - name[::-1].index(".")
