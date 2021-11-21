@@ -635,3 +635,21 @@ class BasicScheduler:
                 results[c] = (e, None)
         
         return results
+
+    
+    def __bool__(self) -> bool:
+        """Decide if the scheduler has any tasks registered
+
+        :return: True if at least one task is scheduled, False otherwise
+        :rtype: bool
+        """
+        return bool(self.tasks)
+
+
+    def __len__(self) -> int:
+        """Get the number of registered tasks
+
+        :return: The number of tasks
+        :rtype: int
+        """
+        return len(self.tasks)
