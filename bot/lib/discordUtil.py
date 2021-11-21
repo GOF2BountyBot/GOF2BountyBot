@@ -593,22 +593,22 @@ class BasicScheduler:
                 raise e
 
 
-    def getExceptions(self) -> List[BaseException]:
+    def getExceptions(self) -> Dict[Coroutine, BaseException]:
         """Get all exceptions set on the registered tasks. This does not raise the exceptions.
         Will also include CancelledError/InvalidStateError if raised on the task.
 
-        :return: A list of all exceptions on the registered tasks, if any
-        :rtype: List[BaseException]
+        :return: A mapping from coroutines to raised exceptions. Will be empty if no exceptions were raised
+        :rtype: Dict[Coroutine, BaseException]
         """
-        exceptions = []
+        exceptions: Dict[Coroutine, BaseException] = {}
         for t in self.tasks:
             try:
                 e = t.exception()
             except BaseException as ex:
-                exceptions.append(ex)
+                exceptions[t.get_coro()] = ex
             else:
                 if e is not None:
-                    exceptions.append(e)
+                    exceptions[t.get_coro()] = e
 
         return exceptions
 
