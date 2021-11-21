@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Union, TYPE_CHECKING, Tuple, Dict
+from typing import Any, Awaitable, Callable, Coroutine, Generator, Optional, Protocol, Set, Union, TYPE_CHECKING, Tuple, Dict, cast
+
+from discord.errors import NotFound
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
     from ..users import basedUser, basedGuild
@@ -14,6 +16,10 @@ from ..userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
+
+
+class AnyCoroutine(Protocol):
+    def __call__(*args, **kwargs) -> Awaitable: ...
 
 
 def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
