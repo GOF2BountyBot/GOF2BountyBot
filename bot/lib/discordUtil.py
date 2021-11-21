@@ -504,3 +504,56 @@ def messageDescriptor(m: Message) -> str:
         :rtype: str
         """
         return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
+
+
+def extractCoroName(coro: Awaitable) -> Tuple[str, str]:
+    # https://stackoverflow.com/a/63933827
+    if hasattr(coro, "__qualname__"):
+        name: str = coro.__qualname__
+    else:
+        name = str(coro).split(" ", 3)[-2]
+    
+    if "." in name:
+        i = len(name) - name[::-1].index(".")
+        return name[:i-1], name[i:]
+    else:
+        return "main", name
+
+
+class BasicScheduler:
+    """A very basic handler for parallelizing coroutine executions and handling their exceptions.
+    """
+    def __init__(self) -> None:
+        self.tasks: Set[asyncio.Task] = set()
+
+
+    def add(self, coro: Awaitable) -> asyncio.Future:
+        t = asyncio.create_task(coro)
+        self.tasks.add(t)
+        return t
+
+
+    async def wait(self):
+        if self.tasks:
+            await asyncio.wait(self.tasks)
+
+
+    def logExceptions(self, logCategory: str = None, className: str = None, funcName: str = None, noPrintEvent: bool = False,
+                        noPrint: bool = False):
+        if logCategory is None:
+            logCategory = "misc"
+
+        for t in self.tasks:
+            if e := t.exception():
+                if className is None or funcName is None:
+                    extractedClass, extractedFunc = extractCoroName(t.get_coro())
+                    className = extractedClass if className is None else className
+                    funcName = extractedFunc if funcName is None else funcName
+
+                botState.logger.log(className, funcName, str(e), category=logCategory, exception=e)
+
+
+    def raiseExceptions(self):
+        for t in self.tasks:
+            if e := t.exception():
+                raise e
