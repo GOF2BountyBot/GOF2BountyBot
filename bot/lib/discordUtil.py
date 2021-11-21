@@ -517,6 +517,8 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         i = len(name) - name[::-1].index(".")
         return name[:i-1], name[i:]
     else:
+        if hasattr(f, "__module__"):
+            return f.__module__, name
         return "main", name
 
 
