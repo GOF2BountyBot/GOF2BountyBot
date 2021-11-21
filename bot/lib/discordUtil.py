@@ -636,6 +636,12 @@ class BasicScheduler:
         
         return results
 
+
+    def clear(self):
+        """Delete all recorded tasks
+        """
+        self.tasks.clear()
+
     
     def __bool__(self) -> bool:
         """Decide if the scheduler has any tasks registered
