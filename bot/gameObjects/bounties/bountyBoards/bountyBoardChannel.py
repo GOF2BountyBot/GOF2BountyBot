@@ -5,11 +5,10 @@ from discord.message import MessageReference
 from ....databases.bountyDivision import BountyDivision
 from ....cfg import bbData, cfg
 from .... import lib
-from .. import criminal
+from .. import criminal, bounty
 from .... import botState
 import asyncio
-from .. import bounty
-from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union
+from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union, cast
 from ....baseClasses import serializable
 
 
@@ -214,6 +213,33 @@ class BountyBoardChannel(serializable.Serializable):
             embed.description = "No escaped bounties currently, the galaxy is safe for a little longer."
 
 
+    async def _loadEscapedBountiesMessage(self, logUrls: bool):
+        self.escapedBountiesMessage = await self.loadMessageWithRetry(self.escapedBountiesMsgToBeLoaded,
+                                                                        "escaped bounties", logUrls)
+
+    async def _loadNoBountiesMessage(self, logUrls: bool):
+        self.noBountiesMessage = await self.loadMessageWithRetry(self.noBountiesMsgToBeLoaded,
+                                                                        "no bounties", logUrls)
+
+    async def _sendNoBountiesMessage(self):
+        self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
+                                                                    embed=noBountiesEmbed)
+
+    async def _loadCriminalMsg(self, crimDict: dict, msgId: int):
+        crim = criminal.Criminal.fromDict(crimDict)
+        if self.division.criminalObjExists(crim):
+            msg = await self.loadMessageWithRetry(msgId,
+                                                    f"criminal: {crim.name}", logUrls)
+            if msg is not None:
+                self.bountyMessages[crim] = msg
+
+    async def _sendBountyMsg(self, b: bounty.Bounty):
+        msg = await self.sendMessageWithRetry(f"bounty listing: {b.criminal.name} {self.guildAndChannelMeta()}",
+                                                embed=makeBountyEmbed(b))
+        if msg is not None:
+            self.bountyMessages[b.criminal] = msg
+
+
     async def rebuild(self, logUrls: bool = True):
         """Completely rebuild all messages on the board, deleting existing messages if known.
 
@@ -222,11 +248,6 @@ class BountyBoardChannel(serializable.Serializable):
         """
         tasks = lib.discordUtil.BasicScheduler()
         divEmpty = self.division.isEmpty(includeEscaped=False)
-
-        async def sendAndSaveListing(bounty: bounty.Bounty):
-            m = await self.sendMessageWithRetry(f"bounty listing for {bounty.criminal} {self.guildAndChannelMeta()}",
-                                                embed=makeBountyEmbed(bounty))
-            self.bountyMessages[bounty.criminal] = m
 
         if self.escapedBountiesMessage is not None:
             tasks.add(deleteMessageWithRetry(self.escapedBountiesMessage,
@@ -243,16 +264,18 @@ class BountyBoardChannel(serializable.Serializable):
                 tasks.add(deleteMessageWithRetry(listing,
                                                 self.prependJumpUrl(listing.id, logUrls, f"bounty listing for {crim}")))
 
+        await tasks.wait()
+        tasks.logExceptions("bountyBoards")
         tasks.clear()
         self.escapedBountiesMessage = await self.sendMessageWithRetry(f"escaped bounties {self.guildAndChannelMeta()}",
                                                                         embed=self.makeEscapedBountiesEmbed())
         if divEmpty:
             self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
-                                                                            embed=noBountiesEmbed)
+                                                                        embed=noBountiesEmbed)
         else:
             for registry in self.division.bounties.values():
                 for bounty in registry.values():
-                    tasks.add(sendAndSaveListing(bounty))
+                    tasks.add(self._sendBountyMsg(bounty))
 
         await tasks.wait()
         if divEmpty:
@@ -263,128 +286,53 @@ class BountyBoardChannel(serializable.Serializable):
         tasks.logExceptions("bountyBoards")
 
 
-    async def init(self, client : Client):
+    async def init(self, client : Client, logUrls: bool = True):
         """Initialise the BBC's attributes to allow it to function.
         Initialisation is done here rather than in the constructor as initialisation can only be done asynchronously.
 
         :param discord.Client client: A logged in client instance used to fetch the BBC's message and channel instances
+        :param logUrls: Whether to include message jump urls in logs (Default True)
         """
         self.channel = client.get_channel(self.channelIDToBeLoaded) or await client.fetch_channel(self.channelIDToBeLoaded)
         if self.channel is None:
             raise lib.exceptions.NoLongerExists(f"Failed to load requested channel: {self.channelIDToBeLoaded}")
 
+        tasks = lib.discordUtil.BasicScheduler()
         # True if the channel configuration is invalid and needs to be rebuilt
         doReload = False
 
         if self.escapedBountiesMsgToBeLoaded == -1:
             doReload = True
-            self.escapedBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
+        else:
+            tasks.add(self._loadEscapedBountiesMessage(logUrls))
 
-            self.escapedBountiesMessage = await self.sendMessageWithRetry(f"escaped bounties {self.guildAndChannelMeta()}",
-                                                                            embed=noBountiesEmbed)
-
-        elif self.isEmpty():
-            try:
-                self.escapedBountiesMessage = await self.channel.fetch_message(self.escapedBountiesMsgToBeLoaded)
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        self.escapedBountiesMessage = await self.channel.fetch_message(self.escapedBountiesMsgToBeLoaded)
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    botState.logger.log("BBC", "init", "HTTPException thrown when fetching no bounties message",
-                                category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
-            except Forbidden:
-                botState.logger.log("BBC", "init", "Forbidden exception thrown when fetching no bounties message",
-                            category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
-            except NotFound:
-                botState.logger.log("BBC", "init", "No bounties message no longer exists", category='bountyBoards',
-                            eventType="NOBTYMSG_LOAD-NOT_FOUND")
-                self.escapedBountiesMessage = None
-
-        for id in self.messagesToBeLoaded:
-            crim = criminal.Criminal.fromDict(self.messagesToBeLoaded[id])
-
-            try:
-                msg = await self.channel.fetch_message(id)
-                self.bountyMessages[crim] = msg
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        msg = await self.channel.fetch_message(id)
-                        self.bountyMessages[crim] = msg
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    botState.logger.log("BBC", "init", "HTTPException thrown when fetching listing for criminal: " + crim.name,
-                                category='bountyBoards', eventType="LISTING_LOAD-HTTPERR")
-            except Forbidden:
-                botState.logger.log("BBC", "init", "Forbidden exception thrown when fetching listing for criminal: " + crim.name,
-                            category='bountyBoards', eventType="LISTING_LOAD-FORBIDDENERR")
-            except NotFound:
-                botState.logger.log("BBC", "init", "Listing message for criminal no longer exists: " + crim.name,
-                            category='bountyBoards', eventType="LISTING_LOAD-NOT_FOUND")
-
-        if self.noBountiesMsgToBeLoaded == -1:
-            self.noBountiesMessage = None
-            if self.isEmpty():
-                try:
-                    self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-
-                except HTTPException:
-                    succeeded = False
-                    for tryNum in range(cfg.httpErrRetries):
-                        try:
-                            self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-                            succeeded = True
-                        except HTTPException:
-                            await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                            continue
-                        break
-                    if not succeeded:
-                        botState.logger.log("BBC", "init", "HTTPException thrown when sending no bounties message",
-                                    category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
-                    self.noBountiesMessage = None
-                except Forbidden:
-                    botState.logger.log("BBC", "init", "Forbidden exception thrown when sending no bounties message",
-                                category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
-                    self.noBountiesMessage = None
-
-        elif self.isEmpty():
-            try:
-                self.noBountiesMessage = await self.channel.fetch_message(self.noBountiesMsgToBeLoaded)
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        self.noBountiesMessage = await self.channel.fetch_message(self.noBountiesMsgToBeLoaded)
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    botState.logger.log("BBC", "init", "HTTPException thrown when fetching no bounties message",
-                                category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
-            except Forbidden:
-                botState.logger.log("BBC", "init", "Forbidden exception thrown when fetching no bounties message",
-                            category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
-            except NotFound:
-                botState.logger.log("BBC", "init", "No bounties message no longer exists", category='bountyBoards',
-                            eventType="NOBTYMSG_LOAD-NOT_FOUND")
-                self.noBountiesMessage = None
+        if not self.messagesToBeLoaded:
+            if self.noBountiesMsgToBeLoaded != -1:
+                tasks.add(self._loadNoBountiesMessage(logUrls))
+            else:
+                tasks.add(self._sendNoBountiesMessage())
+        else:
+            for id, crimDict in self.messagesToBeLoaded.items():
+                tasks.add(self._loadCriminalMsg(crimDict, id))
+            
         # del self.messagesToBeLoaded
         # del self.channelIDToBeLoaded
         # del self.noBountiesMsgToBeLoaded
+
+        await tasks.wait()
+        tasks.logExceptions("bountyBoards")
+
+        if doReload:
+            await self.rebuild(logUrls)
+        else:
+            tasks.clear()
+            for tlBounties in self.division.bounties.values():
+                for b in tlBounties.values():
+                    if b.criminal not in self.bountyMessages:
+                        tasks.add(self._sendBountyMsg(b))
+            if tasks:
+                await tasks.wait()
+                tasks.logExceptions("bountyBoards")
 
 
     def hasMessageForCriminal(self, criminal : criminal.Criminal) -> bool:
