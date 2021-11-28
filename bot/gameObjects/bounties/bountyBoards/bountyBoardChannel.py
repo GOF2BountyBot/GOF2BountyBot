@@ -558,6 +558,7 @@ class BountyBoardChannel(serializable.Serializable):
         if clearTasks:
             await clearTasks.wait()
             clearTasks.logExceptions("bountyBoards", "bountyBoardChannel", "clear")
+            await self.updateEscapedBountiesMessage()
 
 
     def toDict(self, **kwargs) -> dict:
