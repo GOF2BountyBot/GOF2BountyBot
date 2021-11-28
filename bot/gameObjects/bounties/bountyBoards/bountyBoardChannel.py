@@ -225,7 +225,7 @@ class BountyBoardChannel(serializable.Serializable):
         self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
                                                                     embed=noBountiesEmbed)
 
-    async def _loadCriminalMsg(self, crimDict: dict, msgId: int):
+    async def _loadCriminalMsg(self, crimDict: dict, msgId: int, logUrls: bool = True):
         crim = criminal.Criminal.fromDict(crimDict)
         if self.division.criminalObjExists(crim):
             msg = await self.loadMessageWithRetry(msgId,
@@ -313,7 +313,7 @@ class BountyBoardChannel(serializable.Serializable):
                 tasks.add(self._sendNoBountiesMessage())
         else:
             for id, crimDict in self.messagesToBeLoaded.items():
-                tasks.add(self._loadCriminalMsg(crimDict, id))
+                tasks.add(self._loadCriminalMsg(crimDict, id, logUrls))
             
         # del self.messagesToBeLoaded
         # del self.channelIDToBeLoaded
