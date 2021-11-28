@@ -557,7 +557,7 @@ class BountyBoardChannel(serializable.Serializable):
         listings = {msg.id: crim.toDict(**kwargs) for crim, msg in self.bountyMessages.items()}
         return {"channel": self.channel.id, "listings": listings,
                 "noBountiesMsg": self.noBountiesMessage.id if self.noBountiesMessage is not None else -1,
-                "escapedBountiesMsg": self.escapedBountiesMsg.id if self.escapedBountiesMsg is not None else -1}
+                "escapedBountiesMsg": self.escapedBountiesMessage.id if self.escapedBountiesMessage is not None else -1}
 
 
     @classmethod
