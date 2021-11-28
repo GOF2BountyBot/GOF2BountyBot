@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel
 from discord.message import MessageReference
 
-from ....databases.bountyDivision import BountyDivision
+if TYPE_CHECKING:
+    from ....databases.bountyDivision import BountyDivision
 from ....cfg import bbData, cfg
 from .... import lib
 from .. import criminal, bounty
@@ -92,7 +94,7 @@ class BountyBoardChannel(serializable.Serializable):
     :vartype channel: discord.TextChannel
     """
 
-    def __init__(self, division: BountyDivision, channelIDToBeLoaded : int, messagesToBeLoaded : Dict[int, dict],
+    def __init__(self, division: "BountyDivision", channelIDToBeLoaded : int, messagesToBeLoaded : Dict[int, dict],
                     noBountiesMsgToBeLoaded : Union[int, None], escapedBountiesMsgToBeLoaded: Union[int, None]):
         """
         :param BountyDivision division: The division that this BBC represents
@@ -557,7 +559,7 @@ class BountyBoardChannel(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, BBCDict : dict, division: BountyDivision, **kwargs) -> BountyBoardChannel:
+    def fromDict(cls, BBCDict : dict, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
         """Factory function constructing a new BBC from the information in the provided dictionary
         - the opposite of bountyBoardChannel.toDict
 
