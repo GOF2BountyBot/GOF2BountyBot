@@ -170,3 +170,35 @@ async def admin_cmd_remove_bounty_board_channels(message : discord.Message, args
 botCommands.register("disable-bounty-board-channels", admin_cmd_remove_bounty_board_channels, 2, allowDM=False,
                     helpSection="channels", signatureStr="**disable-bounty-board-channels**",
                     shortHelp="Send from any channel to disable the server's bountyboard channels, without deleting them.")
+
+
+async def admin_cmd_rebuild_bounty_board_channel(message : discord.Message, args : str, isDM : bool):
+    """admin command to rebuild bounty board channel where the message was sent
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    guild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    if guild.bountiesDisabled:
+        await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
+                            + f"`{guild.commandPrefix}config bounties enable`")
+    elif not guild.hasBountyBoardChannels:
+        await message.reply(":x: This server does not have bounty board channels!")
+    else:
+        found = False
+        for div in guild.bountiesDB.divisions.values():
+            if div.bountyBoardChannel.channel == message.channel:
+                found = True
+                await div.bountyBoardChannel.rebuild()
+                break
+        if found:
+            await message.reply(mention_author=False, content=":ballot_box_with_check: Bounty board rebuilt!")
+        else:
+            await message.reply(mention_author=False, content=":x: This is not a bountyboard! Please call the command from " \
+                                + "within the board you wish to rebuild.")
+
+botCommands.register("bbc-rebuild", admin_cmd_rebuild_bounty_board_channel, 2, allowDM=False,
+                    helpSection="channels", signatureStr="**bbc-rebuild**",
+                    shortHelp="Completely rebuilds the bountyboard, removing known listing messages. " \
+                                + "This will not remove any other messages.")

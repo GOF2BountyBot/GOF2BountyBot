@@ -223,7 +223,7 @@ class BountyBoardChannel(serializable.Serializable):
 
     async def _loadNoBountiesMessage(self, logUrls: bool):
         self.noBountiesMessage = await self.loadMessageWithRetry(self.noBountiesMsgToBeLoaded,
-                                                                        "no bounties", logUrls)
+                                                                    "no bounties", logUrls)
 
     async def _sendNoBountiesMessage(self):
         self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
