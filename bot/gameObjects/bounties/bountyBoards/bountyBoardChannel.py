@@ -61,7 +61,7 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
     :param meta: An extra string to describe the message, only used in exceptions
     :type meta: str
     """
-    return await lib.discordUtil.asyncOperationWithRetry(message.delete, "delete message", "bountyboards",
+    return await lib.discordUtil.asyncOperationWithRetry(message.delete, "delete message", "bountyBoards",
                                                         "BBC", meta, *args, **kwargs)
 
 
@@ -169,7 +169,7 @@ class BountyBoardChannel(serializable.Serializable):
             raise ValueError(f"Attempted loadMessageWithRetry before initializing self.channel")
 
         meta = self.prependJumpUrl(id, logUrls, meta)
-        return await lib.discordUtil.asyncOperationWithRetry(self.channel.fetch_message, "load message", "bountyboards",
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.fetch_message, "load message", "bountyBoards",
                                                             "BBC", meta, id)
 
 
@@ -185,7 +185,7 @@ class BountyBoardChannel(serializable.Serializable):
         if self.channel is None:
             raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
 
-        return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", "bountyboards",
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", "bountyBoards",
                                                             "BBC", meta, *args, **kwargs)
 
     
