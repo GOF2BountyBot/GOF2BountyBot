@@ -267,7 +267,7 @@ class BountyBoardChannel(serializable.Serializable):
                                                 self.prependJumpUrl(self.noBountiesMessage.id, logUrls,
                                                                     "no bounties")))
 
-        for crim, listing in self.bountyMessages.values():
+        for crim, listing in self.bountyMessages.items():
             if listing is not None:
                 tasks.add(deleteMessageWithRetry(listing,
                                                 self.prependJumpUrl(listing.id, logUrls, f"bounty listing for {crim}")))
