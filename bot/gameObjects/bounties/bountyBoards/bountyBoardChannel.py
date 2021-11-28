@@ -202,29 +202,30 @@ class BountyBoardChannel(serializable.Serializable):
         return f"g:{self.channel.guild.name}#{self.channel.guild.id} c:{self.channel.name}#{self.channel.id}"
 
 
-    def makeEscapedBountiesEmbed(self) -> Embed:
+    def makeEscapedBountiesMsgKwargs(self) -> Dict[str, Union[str, Embed]]:
         """Construct an embed listing all escaped bounties in the division.
 
-        :return: An embed with details of all escaped bounties in the division
-        :rtype: Embed
+        :return: A kwargs mapping detailing the content of the BBC's escaped bounties message
+        :rtype: Dict[str, Union[str, Embed]]
         """
-        embed = Embed()
-        embed.colour = Colour.random()
-        embed.title = "Escaped Bounties"
         if any(self.division.escapedBounties.values()):
-            embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed amount of time."
-            for level, bounties in self.division.escapedBounties.items():
-                if bounties:
-                    embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
+            embed = Embed()
+            embed.colour = Colour.random()
+            embed.title = "Escaped Bounties"
+            if any(self.division.escapedBounties.values()):
+                embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed amount of time."
+                for level, bounties in self.division.escapedBounties.items():
+                    if bounties:
+                        embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
         else:
-            embed.description = "No escaped bounties currently, the galaxy is safe for a little longer."
+            embed = None
 
-        return embed
+        return {"embed": embed, "content": "‎"}
 
 
     async def updateEscapedBountiesMessage(self):
         if self.escapedBountiesMessage is not None:
-            await self.escapedBountiesMessage.edit(embed=self.makeEscapedBountiesEmbed())
+            await self.escapedBountiesMessage.edit(**self.makeEscapedBountiesMsgKwargs())
         if self.escapedBountiesMessage is None:
             await self.rebuild()
 
@@ -288,7 +289,7 @@ class BountyBoardChannel(serializable.Serializable):
         tasks.logExceptions("bountyBoards")
         tasks.clear()
         self.escapedBountiesMessage = await self.sendMessageWithRetry(f"escaped bounties {self.guildAndChannelMeta()}",
-                                                                        embed=self.makeEscapedBountiesEmbed())
+                                                                        **self.makeEscapedBountiesMsgKwargs())
         if divEmpty:
             self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
                                                                         embed=noBountiesEmbed)
