@@ -218,6 +218,8 @@ class BountyBoardChannel(serializable.Serializable):
         else:
             embed.description = "No escaped bounties currently, the galaxy is safe for a little longer."
 
+        return embed
+
 
     async def _loadEscapedBountiesMessage(self, logUrls: bool):
         self.escapedBountiesMessage = await self.loadMessageWithRetry(self.escapedBountiesMsgToBeLoaded,
