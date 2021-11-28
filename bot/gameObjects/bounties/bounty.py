@@ -271,6 +271,9 @@ class Bounty(serializable.Serializable):
         # self.division.owningDB.removeEscapedCriminal(self.criminal)
         self.respawnTT = None
 
+        if self.division.bountyBoardChannel is not None:
+            await self.division.bountyBoardChannel.updateEscapedBountiesMessage()
+
 
     def cancelRespawn(self):
         """Cancel the respawning of the bounty, by forcing the expiry of its respawn TimedTask.

@@ -1,5 +1,8 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Coroutine, Union, TYPE_CHECKING, Tuple, Dict
+from asyncio.exceptions import CancelledError, InvalidStateError
+from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Union, TYPE_CHECKING, Tuple, Dict, cast
+
+from discord.errors import NotFound
 if TYPE_CHECKING:
     from discord import Member, Guild, Message
     from ..users import basedUser, basedGuild
@@ -14,6 +17,10 @@ from ..userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
+
+
+class AnyCoroutine(Protocol):
+    def __call__(*args, **kwargs) -> Awaitable: ...
 
 
 def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
@@ -438,3 +445,217 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
         pfunc = partial(func, *args, **kwargs)
         return await loop.run_in_executor(executor, pfunc)
     return run
+
+
+async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str, className: str, meta: str,
+                                        *fArgs, **fKwargs) -> Optional[Message]:
+        """Perform an asynchronous operation with a fixed retry, as defined in cfg.
+
+        :param f: The coroutine to execute
+        :type f: AnyCoroutine
+        :param opName: The name of the operation, to be used in error logging
+        :type opName: str
+        :param logCategory: The category to log errors into
+        :type logCategory: str
+        :param className: The name of the class calling this function, to be used in error logging
+        :type className: str
+        :param meta: An extra string to describe the operation, to be used in error logging
+        :param fArgs: All positional arguments to pass to f
+        :param fKwargs: All keyword arguments to pass to f
+        :type meta: str
+        :return: The message if it was created, None if an error occurred
+        :rtype: Optional[Message]
+        """
+        camelFName = opName.title()
+        if len(opName) > 1:
+            camelFName = camelFName[0].lower() + camelFName[1:]
+
+        def logError(e: Exception):
+            eName = type(e).__name__
+            botState.logger.log(className, camelFName,
+                                f"{eName} thrown on {opName}. Meta: " + meta,
+                                category=logCategory, eventType=eName)
+
+        try:
+            return await f(*fArgs, **fKwargs)
+        except HTTPException as e:
+            for tryNum in range(cfg.httpErrRetries):
+                try:
+                    msg = await f(*fArgs, **fKwargs)
+                    botState.logger.log(className, camelFName,
+                                        f"{opName} successful, but only after " \
+                                            + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
+                                        category=logCategory, eventType="RETRY-SUCCESS")
+                    return msg
+                except HTTPException:
+                    await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
+
+            logError(e)
+        except (Forbidden, NotFound) as e:
+            logError(e)
+
+        return None
+
+
+def messageDescriptor(m: Message) -> str:
+        """Construct a string detailing a message, its channel and guild.
+
+        :param Message m: The message to describe
+        :return: A string identifying m, its channel and guild
+        :rtype: str
+        """
+        return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
+
+
+def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
+    # https://stackoverflow.com/a/63933827
+    if hasattr(f, "__qualname__"):
+        name: str = f.__qualname__ # type: ignore
+    else:
+        name = str(f).split(" ", 3)[-2]
+    
+    if "." in name:
+        i = len(name) - name[::-1].index(".")
+        return name[:i-1], name[i:]
+    else:
+        if hasattr(f, "__module__"):
+            return f.__module__, name
+        return "main", name
+
+
+class BasicScheduler:
+    """A very basic handler for parallelizing coroutine executions and handling their exceptions.
+    """
+    def __init__(self) -> None:
+        self.tasks: Set[asyncio.Task] = set()
+
+
+    def add(self, coro: Awaitable) -> asyncio.Task:
+        """Schedule a coroutine execution onto the event loop.
+        Pass a normal parenthesized call to a coroutine, but without awaiting it.
+        Execution begins immediately.
+
+        :param coro: The coroutine execution to parallelize
+        :type coro: Awaitable
+        :return: A task wrapping the execution
+        :rtype: asyncio.Task
+        """
+        t = asyncio.create_task(coro)
+        self.tasks.add(t)
+        return t
+
+
+    async def wait(self):
+        """Wait for all registered tasks to complete
+        """
+        if self.tasks:
+            await asyncio.wait(self.tasks)
+
+
+    def logExceptions(self, logCategory: str = None, className: str = None, funcName: str = None, noPrintEvent: bool = False,
+                        noPrint: bool = False):
+        """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.logger`.
+
+        :param logCategory: The category to log into (Default None)
+        :type logCategory: Optional[str]
+        :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+        :type className: Optional[str]
+        :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+        :type funcName: Optional[str]
+        :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+        :type noPrintEvent: Optional[bool]
+        :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+        :type noPrint: Optional[bool]
+        """
+        if logCategory is None:
+            logCategory = "misc"
+
+        for t in self.tasks:
+            if e := t.exception():
+                if className is None or funcName is None:
+                    extractedClass, extractedFunc = extractFuncName(t.get_coro())
+                    className = extractedClass if className is None else className
+                    funcName = extractedFunc if funcName is None else funcName
+
+                botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
+                                    noPrintEvent=noPrintEvent)
+
+
+    def raiseExceptions(self):
+        """Raise any exceptions on the registered tasks.
+        Since this operation is a raise, it will halt on the first encountered exception.
+        To handle all exceptions, call repeatedly or use getExceptions.
+
+        :raises Exception: When an exception is encountered on any registered task
+        """
+        for t in self.tasks:
+            if e := t.exception():
+                raise e
+
+
+    def getExceptions(self) -> Dict[Coroutine, BaseException]:
+        """Get all exceptions set on the registered tasks. This does not raise the exceptions.
+        Will also include CancelledError/InvalidStateError if raised on the task.
+
+        :return: A mapping from coroutines to raised exceptions. Will be empty if no exceptions were raised
+        :rtype: Dict[Coroutine, BaseException]
+        """
+        exceptions: Dict[Coroutine, BaseException] = {}
+        for t in self.tasks:
+            try:
+                e = t.exception()
+            except BaseException as ex:
+                exceptions[t.get_coro()] = ex
+            else:
+                if e is not None:
+                    exceptions[t.get_coro()] = e
+
+        return exceptions
+
+
+    def getResults(self) -> Dict[Coroutine, Tuple[Optional[BaseException], Any]]:
+        """Get all results returned by the registered tasks.
+        Results are returned as a mapping:
+        {
+            coro: (ex, result)
+        }
+        coro is the coroutine that was executed.
+        ex is the exception that was set on the task if any, including CancelledError/InvalidStateError.
+        result is the return value of the task.
+
+        :return: A mapping from coroutines to their exceptions and returned values
+        :rtype: Dict[Coroutine, Tuple[Optional[BaseException], Any]]
+        """
+        results: Dict[Coroutine, Tuple[Optional[BaseException], Any]] = {}
+        for t in self.tasks:
+            c = t.get_coro()
+            try:
+                results[c] = (None, t.result())
+            except BaseException as e:
+                results[c] = (e, None)
+        
+        return results
+
+
+    def clear(self):
+        """Delete all recorded tasks
+        """
+        self.tasks.clear()
+
+    
+    def __bool__(self) -> bool:
+        """Decide if the scheduler has any tasks registered
+
+        :return: True if at least one task is scheduled, False otherwise
+        :rtype: bool
+        """
+        return bool(self.tasks)
+
+
+    def __len__(self) -> int:
+        """Get the number of registered tasks
+
+        :return: The number of tasks
+        :rtype: int
+        """
+        return len(self.tasks)

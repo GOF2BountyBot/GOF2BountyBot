@@ -486,7 +486,7 @@ class BountyDivision(Serializable):
         if self.bountyBoardChannel is not None:
             raise RuntimeError(f"Attempted to assign a bountyboard channel for division {self.minLevel}-{self.maxLevel} " \
                                 + f"in guild {self.owningDB.owningBasedGuild.id} but one is already assigned")
-        self.bountyBoardChannel = BountyBoardChannel(channel.id, {}, -1)
+        self.bountyBoardChannel = BountyBoardChannel(self, channel.id, {}, -1, -1)
         await self.bountyBoardChannel.init(client)
 
 
@@ -640,12 +640,11 @@ class BountyDivision(Serializable):
                     else:
                         crims.add(newBounty.criminal)
                         escapedBounties[l][newBounty.criminal] = newBounty
+
+        newDiv = BountyDivision(owningDB, data["minLevel"], data["maxLevel"],
+                                **cls._makeDefaults(data, ("type",), bounties=bounties, escapedBounties=escapedBounties))
         
         if "bountyBoardChannel" in data and data["bountyBoardChannel"] is not None:
-            bbc: Union[BountyBoardChannel, None] = BountyBoardChannel.fromDict(data["bountyBoardChannel"])
-        else:
-            bbc = None
+            newDiv.bountyBoardChannel = BountyBoardChannel.fromDict(data["bountyBoardChannel"], division=newDiv)
 
-        return BountyDivision(owningDB, data["minLevel"], data["maxLevel"],
-                                **cls._makeDefaults(data, ("type",), bounties=bounties, escapedBounties=escapedBounties,
-                                                    bountyBoardChannel=bbc))
+        return newDiv

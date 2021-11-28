@@ -9,7 +9,7 @@ from typing import List
 from ..baseClasses import serializable
 from ..cfg import cfg
 from ..users import basedGuild
-from .. import botState
+from .. import botState, lib
 from .bountyDivision import BountyDivision
 
 
@@ -106,16 +106,13 @@ class BountyDB(serializable.Serializable):
     async def resetAllNewBountyTTs(self):
         """Reset all new bounty TimedTasks, immediately triggering the spawning of one bounty per division
         """
-        divTasks = set()
+        divTasks = lib.discordUtil.BasicScheduler()
         for div in self.divisions.values():
             if not div.isFull() or not div.hasMinTLBounty():
-                divTasks.add(asyncio.create_task(div.resetNewBountyCool()))
+                divTasks.add(div.resetNewBountyCool())
         if divTasks:
-            await asyncio.wait(divTasks)
-            for t in divTasks:
-                if e := t.exception():
-                    botState.logger.log("bountyDB", "resetAllNewBountyTTs", str(e), category="bountiesDB",
-                                        exception=e)
+            await divTasks.wait()
+            divTasks.logExceptions("bountiesDB", "bountyDB", "resetAllNewBountyTTs")
 
 
     def getBountyByCrim(self, crim : Criminal, level : int = None) -> bounty.Bounty:
@@ -501,7 +498,8 @@ class BountyDB(serializable.Serializable):
 
         if "bountyBoardChannels" in bountyDBDict:
             for minLevel, bbcDict in bountyDBDict["bountyBoardChannels"].items():
-                newDB.divisionForLevel(int(minLevel)).bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict)
+                div = newDB.divisionForLevel(int(minLevel))
+                div.bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict, division=div)
 
         if "alertRoleIDs" in bountyDBDict:
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():

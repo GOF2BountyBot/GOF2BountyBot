@@ -68,7 +68,7 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
             
 
     if allGuilds:
-        bbcClearTasks = set()
+        bbcClearTasks = lib.discordUtil.BasicScheduler()
         currentGuild: basedGuild.BasedGuild = None
         for currentGuild in botState.guildsDB.guilds.values():
             if not callingBBGuild.bountiesDisabled:
@@ -76,17 +76,14 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
                     currentGuild.bountiesDB.clearAllBounties(includeEscaped=True)
                     if callingBBGuild.hasBountyBoardChannels:
                         for div in callingBBGuild.bountiesDB.divisions.values():
-                            bbcClearTasks.add(asyncio.create_task(div.bountyBoardChannel.clear()))
+                            bbcClearTasks.add(div.bountyBoardChannel.clear())
                 elif useTL:
                     currentGuild.bountiesDB.divisionForLevel(tl).clear(includeEscaped=True)
                 else:
                     currentGuild.bountiesDB.divisionForName(divStr).clear(includeEscaped=True)
         if bbcClearTasks:
-            await asyncio.wait(bbcClearTasks)
-            for t in bbcClearTasks:
-                if e := t.exception():
-                    botState.logger.log("dev_bounties", "dev_cmd_clear_bounties", str(e), category="bountiesDB",
-                                        exception=e)
+            await bbcClearTasks.wait()
+            bbcClearTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_clear_bounties")
         await message.reply(":ballot_box_with_check: Active bounties cleared for all guilds.", mention_author=False)
     else:
         if callingBBGuild.bountiesDisabled:
@@ -104,18 +101,15 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
 
         for div in divs:
             if callingBBGuild.hasBountyBoardChannels:
-                bbcTasks = set()
+                bbcTasks = lib.discordUtil.BasicScheduler()
                 bbc = div.bountyBoardChannel
                 for tlCriminals in div.bounties.values():
                     for crim in tlCriminals:
                         if bbc.hasMessageForCriminal(crim):
-                            bbcTasks.add(asyncio.create_task(bbc.removeCriminal(crim)))
+                            bbcTasks.add(bbc.removeCriminal(crim))
                 if bbcTasks:
-                    await asyncio.wait(bbcTasks)
-                    for t in bbcTasks:
-                        if e := t.exception():
-                            botState.logger.log("dev_bounties", "dev_cmd_clear_bounties", str(e), category="bountiesDB",
-                                                exception=e)
+                    await bbcTasks.wait()
+                    bbcTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_clear_bounties")
             await div.clear(includeEscaped=True)
 
         await message.reply(":ballot_box_with_check: Active bounties cleared" + ((" for '" + callingBBGuild.dcGuild.name \
@@ -287,26 +281,23 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
             return
 
     if allGuilds:
-        cooldownTasks = set()
+        cooldownTasks = lib.discordUtil.BasicScheduler()
         currentGuild: basedGuild.BasedGuild = None
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
                 if allDivs:
-                    cooldownTasks.add(asyncio.create_task(currentGuild.bountiesDB.resetAllNewBountyTTs()))
+                    cooldownTasks.add(currentGuild.bountiesDB.resetAllNewBountyTTs())
                 elif useTL:
                     div = currentGuild.bountiesDB.divisionForLevel(tl)
                     if not div.isFull() or not div.hasMinTLBounty():
-                        cooldownTasks.add(asyncio.create_task(div.resetNewBountyCool()))
+                        cooldownTasks.add(div.resetNewBountyCool())
                 else:
                     div = currentGuild.bountiesDB.divisionForName(divStr)
                     if not div.isFull() or not div.hasMinTLBounty():
-                        cooldownTasks.add(asyncio.create_task(div.resetNewBountyCool()))
+                        cooldownTasks.add(div.resetNewBountyCool())
         if cooldownTasks:
-            asyncio.wait(cooldownTasks)
-            for t in cooldownTasks:
-                if e := t.exception():
-                    botState.logger.log("dev_bounties", "dev_cmd_resetnewbountycool", str(e), category="bountiesDB",
-                                        exception=e)
+            await cooldownTasks.wait()
+            cooldownTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_resetnewbountycool")
         await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty cooldowns reset across all guilds!")
     else:
         if allDivs:
@@ -643,7 +634,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
 
     if allGuilds:
         currentGuild: basedGuild.BasedGuild = None
-        spawnTasks = set()
+        spawnTasks = lib.discordUtil.BasicScheduler()
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled and currentGuild.bountiesDB.canMakeBounty():
                 if newTL == -1:
@@ -657,13 +648,10 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
                 else:
                     newBounty = bounty.Bounty(division=div, config=config.generate(div))
                     currentGuild.bountiesDB.addBounty(newBounty)
-                    spawnTasks.add(asyncio.create_task(currentGuild.announceNewBounty(newBounty)))
+                    spawnTasks.add(currentGuild.announceNewBounty(newBounty))
         if spawnTasks:
-            await asyncio.wait(spawnTasks)
-            for t in spawnTasks:
-                if e := t.exception():
-                    botState.logger.log("dev_bounties", "dev_cmd_make_bounty", str(e), category="bountiesDB",
-                                        exception=e)
+            await spawnTasks.wait()
+            spawnTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_make_bounty")
         await message.reply(mention_author=False, content=f"Criminal spawned into {len(spawnTasks)} guilds!")
     else:
         if newTL == -1:
@@ -839,7 +827,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
 
     if allGuilds:
         currentGuild: basedGuild.BasedGuild = None
-        spawnTasks = set()
+        spawnTasks = lib.discordUtil.BasicScheduler()
         for currentGuild in botState.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
                 # ensure the player does not already exist as a bounty
@@ -852,13 +840,10 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
                     else:
                         newBounty = bounty.Bounty(division=div, config=config.generate(div))
                         currentGuild.bountiesDB.addBounty(newBounty)
-                        spawnTasks.add(asyncio.create_task(currentGuild.announceNewBounty(newBounty)))
+                        spawnTasks.add(currentGuild.announceNewBounty(newBounty))
         if spawnTasks:
-            await asyncio.wait(spawnTasks)
-            for t in spawnTasks:
-                if e := t.exception():
-                    botState.logger.log("dev_bounties", "dev_cmd_make_bounty", str(e), category="bountiesDB",
-                                        exception=e)
+            await spawnTasks.wait()
+            spawnTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_make_bounty")
         await message.reply(mention_author=False, content=f"Criminal spawned into {len(spawnTasks)} guilds!")
     else:
         if callingBBGuild.bountiesDB.bountyNameExists(f"<@{newName}>"):

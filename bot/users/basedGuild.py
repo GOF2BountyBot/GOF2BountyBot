@@ -142,7 +142,7 @@ class BasedGuild(serializable.Serializable):
             raise ValueError("This guild already has bounty alert roles")
         if self.bountiesDisabled:
             raise ValueError("This guild has bounties disabled")
-        roleMakers = set()
+        roleMakers = lib.discordUtil.BasicScheduler()
         divsDone = set()
         async def makeDivRole(div: bountyDivision.BountyDivision):
             divsDone.add(div)
@@ -152,15 +152,14 @@ class BasedGuild(serializable.Serializable):
                                                     reason="Creating new bounty alert roles requested by BB command")
             div.alertRoleID = newRole.id
         for div in self.bountiesDB.divisions.values():
-            task = asyncio.create_task(makeDivRole(div))
-            roleMakers.add(task)
+            roleMakers.add(makeDivRole(div))
 
-        await asyncio.wait(roleMakers)
-        for task in roleMakers:
-            if e := task.exception():
-                for doneDiv in divsDone:
-                    doneDiv.alertRoleID = -1
-                raise e
+        await roleMakers.wait()
+        exceptions = roleMakers.getExceptions()
+        if exceptions:
+            for doneDiv in divsDone:
+                doneDiv.alertRoleID = -1
+            raise list(exceptions.values())[0]
         for div in self.bountiesDB.divisions.values():
             if div.alertRoleID == -1:
                 for doneDiv in self.bountiesDB.divisions.values():
@@ -179,7 +178,7 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasBountyAlertRoles:
             raise ValueError("This guild does not have bounty alert roles")
-        roleRemovers = set()
+        roleRemovers = lib.discordUtil.BasicScheduler()
         async def removeDivRole(div: bountyDivision.BountyDivision):
             if div.alertRoleID != -1:
                 tlRole = self.dcGuild.get_role(div.alertRoleID)
@@ -190,12 +189,9 @@ class BasedGuild(serializable.Serializable):
                     await tlRole.delete(reason="Removing new bounty alert roles requested by BB command")
                 div.alertRoleID = -1
         for div in self.bountiesDB.divisions.values():
-            task = asyncio.create_task(removeDivRole(div))
-            roleRemovers.add(task)
-        await asyncio.wait(roleRemovers)
-        for task in roleRemovers:
-            if e := task.exception():
-                raise e
+            roleRemovers.add(removeDivRole(div))
+        await roleRemovers.wait()
+        roleRemovers.raiseExceptions()
 
         self.hasBountyAlertRoles = False
 
