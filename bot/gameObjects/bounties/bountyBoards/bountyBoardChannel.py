@@ -1,5 +1,5 @@
 from __future__ import annotations
-from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour
+from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel
 from discord.message import MessageReference
 
 from ....databases.bountyDivision import BountyDivision
@@ -126,8 +126,12 @@ class BountyBoardChannel(serializable.Serializable):
         :return: A jump URL to the identified message
         :rtype: str
         """
-        channelID = self.channelIDToBeLoaded if self.channel is None else self.channel.id
-        guildID = None if self.channel is None else self.channel.guild.id
+        if self.channel is None:
+            channelID = self.channelIDToBeLoaded
+            guildID = None
+        else:
+            channelID = self.channel.id
+            guildID = self.channel.guild.id
         return MessageReference(message_id=msgId, channel_id=channelID, guild_id=guildID,
                                 fail_if_not_exists=False).jump_url
 
