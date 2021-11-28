@@ -166,9 +166,10 @@ class Logger:
                             and helps little with debugging or similar. (Default False)
         """
         if category not in self.logs:
-            self.log("misc", "Log", "log",
+            self.log("Log", "log",
                         "ATTEMPTED TO LOG TO AN UNKNOWN CATEGORY '" \
-                            + str(category) + "' -> Redirected to misc.", eventType="UNKWN_CTGR")
+                            + str(category) + "' -> Redirected to misc.", eventType="UNKWN_CTGR",
+                        category="misc")
 
         if exception is not None:
             if event == "":
