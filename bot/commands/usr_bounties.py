@@ -230,6 +230,8 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         # remove all escaped bounties
         for bounty in toEscape:
             bounty.escape()
+            if bounty.division.bountyBoardChannel is not None:
+                await bounty.division.bountyBoardChannel.updateEscapedBountiesMessage()
 
         if divTempDelta:
             # Apply the gathered temperature raises to this division

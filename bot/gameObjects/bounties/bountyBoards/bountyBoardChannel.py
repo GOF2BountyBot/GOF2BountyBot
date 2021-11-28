@@ -214,24 +214,35 @@ class BountyBoardChannel(serializable.Serializable):
         if any(self.division.escapedBounties.values()):
             embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed amount of time."
             for level, bounties in self.division.escapedBounties.items():
-                embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
+                if bounties:
+                    embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
         else:
             embed.description = "No escaped bounties currently, the galaxy is safe for a little longer."
 
         return embed
 
 
+    async def updateEscapedBountiesMessage(self):
+        if self.escapedBountiesMessage is not None:
+            await self.escapedBountiesMessage.edit(embed=self.makeEscapedBountiesEmbed())
+        if self.escapedBountiesMessage is None:
+            await self.rebuild()
+
+
     async def _loadEscapedBountiesMessage(self, logUrls: bool):
         self.escapedBountiesMessage = await self.loadMessageWithRetry(self.escapedBountiesMsgToBeLoaded,
                                                                         "escaped bounties", logUrls)
+
 
     async def _loadNoBountiesMessage(self, logUrls: bool):
         self.noBountiesMessage = await self.loadMessageWithRetry(self.noBountiesMsgToBeLoaded,
                                                                     "no bounties", logUrls)
 
+
     async def _sendNoBountiesMessage(self):
         self.noBountiesMessage = await self.sendMessageWithRetry(f"no bounties {self.guildAndChannelMeta()}",
                                                                     embed=noBountiesEmbed)
+
 
     async def _loadCriminalMsg(self, crimDict: dict, msgId: int, logUrls: bool = True):
         crim = criminal.Criminal.fromDict(crimDict)
@@ -240,6 +251,7 @@ class BountyBoardChannel(serializable.Serializable):
                                                     f"criminal: {crim.name}", logUrls)
             if msg is not None:
                 self.bountyMessages[crim] = msg
+
 
     async def _sendBountyMsg(self, b: bounty.Bounty):
         msg = await self.sendMessageWithRetry(f"bounty listing: {b.criminal.name} {self.guildAndChannelMeta()}",
