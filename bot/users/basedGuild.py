@@ -470,7 +470,7 @@ class BasedGuild(serializable.Serializable):
                     await bounty.division.bountyBoardChannel.updateBountyMessage(bounty)
 
 
-    async def announceNewBounty(self, newBounty : bounty.Bounty):
+    async def announceNewBounty(self, newBounty : bounty.Bounty, isRespawn: bool = False):
         """Announce the creation of a new bounty to this guild's announceChannel, if it has one
 
         :param bounty newBounty: the bounty to announce
@@ -478,17 +478,20 @@ class BasedGuild(serializable.Serializable):
         print("Difficulty", newBounty.techLevel, "New bounty with value:", newBounty.activeShip.getValue())
         # Create the announcement embed
         bountyEmbed = lib.discordUtil.makeEmbed(titleTxt=lib.discordUtil.criminalNameOrDiscrim(newBounty.criminal),
-                                                desc=cfg.defaultEmojis.newBounty.sendable + " __New Bounty Available__",
                                                 col=bbData.factionColours[newBounty.faction],
                                                 thumb=newBounty.criminal.icon, footerTxt=newBounty.faction.title())
+        if isRespawn:
+            bountyEmbed.description = f"{cfg.defaultEmojis.bountyRespawn.sendable} __Bounty Respawned__"
+            msg = f"A bounty has reappeared onto the **{newBounty.faction.title()}** bounty board:"
+        else:
+            bountyEmbed.description = f"{cfg.defaultEmojis.newBounty.sendable} __New Bounty Available__"
+            msg = f"A new bounty is now available from **{newBounty.faction.title()}** central command:"
+            
         bountyEmbed.add_field(name="**Reward Pool:**", value=str(newBounty.reward) + " Credits")
         bountyEmbed.add_field(name="**Difficulty:**", value=str(newBounty.techLevel))
         bountyEmbed.add_field(name="**See the culprit's loadout with:**",
                                 value="`" + self.commandPrefix + "loadout criminal " + newBounty.criminal.name + "`")
         bountyEmbed.add_field(name="**Route:**", value=", ".join(newBounty.route), inline=False)
-
-        # Create the announcement text
-        msg = "A new bounty is now available from **" + newBounty.faction.title() + "** central command:"
 
         if self.hasBountyBoardChannels:
             try:
@@ -528,7 +531,7 @@ class BasedGuild(serializable.Serializable):
             # TODO: may wish to add handling for invalid announceChannels - e.g remove them from the BasedGuild object
 
 
-    async def spawnAndAnnounceBounty(self, newBountyData):
+    async def spawnAndAnnounceBounty(self, newBountyData, isRespawn: bool = False):
         """Generate a new bounty, either at random or by the given bbBountyConfig, spawn it,
         and announce it if this guild has an appropriate channel selected.
         """
@@ -577,7 +580,7 @@ class BasedGuild(serializable.Serializable):
 
             # activate and announce the bounty
             self.bountiesDB.addBounty(newBounty)
-            await self.announceNewBounty(newBounty)
+            await self.announceNewBounty(newBounty, isRespawn=isRespawn)
         
         else:
             raise OverflowError("Attempted to spawnAndAnnounceBounty when no more space is available for bounties " \

@@ -266,7 +266,7 @@ class Bounty(serializable.Serializable):
         respawnArgs = {"newBounty": self,
                         "newConfig": BountyConfig(faction=self.criminal.faction,
                                                                 techLevel=self.techLevel)}
-        await self.division.owningDB.owningBasedGuild.spawnAndAnnounceBounty(respawnArgs)
+        await self.division.owningDB.owningBasedGuild.spawnAndAnnounceBounty(respawnArgs, isRespawn=True)
         # This is handled by spawnAndAnnounceBounty
         # self.division.owningDB.removeEscapedCriminal(self.criminal)
         self.respawnTT = None
