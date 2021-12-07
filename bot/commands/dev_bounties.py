@@ -1,5 +1,5 @@
 import discord
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 import traceback
 import random
@@ -612,7 +612,16 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         newEndTime = bData[8].rstrip(" ")
         if newEndTime == "auto":
             newEndTime = -1.0
-        newEndTime = float(newEndTime)
+        else:
+            newEndTime = float(newEndTime)
+            try:
+                endTimeDT = datetime.utcfromtimestamp(newEndTime)
+            except:
+                await message.reply(":x: Invalid end time!")
+                return
+            if endTimeDT - datetime.utcnow() < timedelta(minutes=1):
+                await message.reply(":x: Please provide an end time at least one minute in the future!")
+                return
 
         # parse the given icon
         newIcon = bData[9].rstrip(" ")
@@ -808,7 +817,16 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         newEndTime = bData[7].rstrip(" ")
         if newEndTime == "auto":
             newEndTime = -1.0
-        newEndTime = float(newEndTime)
+        else:
+            newEndTime = float(newEndTime)
+            try:
+                endTimeDT = datetime.utcfromtimestamp(newEndTime)
+            except:
+                await message.reply(":x: Invalid end time!")
+                return
+            if endTimeDT - datetime.utcnow() < timedelta(minutes=1):
+                await message.reply(":x: Please provide an end time at least one minute in the future!")
+                return
 
         # parse the given icon
         newIcon = bData[8].rstrip(" ")
