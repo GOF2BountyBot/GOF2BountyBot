@@ -584,38 +584,38 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         if newRoute == "auto":
             newRoute = []
         else:
-            newRoute = bData[4].split(",")
+            newRoute = bData[3].split(",")
             newRoute[-1] = newRoute[-1].rstrip(" ")
 
         # parse the given start system
-        newStart = bData[5].rstrip(" ")
+        newStart = bData[4].rstrip(" ")
         if newStart == "auto":
             newStart = ""
 
         # parse the given end system
-        newEnd = bData[6].rstrip(" ")
+        newEnd = bData[5].rstrip(" ")
         if newEnd == "auto":
             newEnd = ""
 
         # parse the given answer system
-        newAnswer = bData[7].rstrip(" ")
+        newAnswer = bData[6].rstrip(" ")
         if newAnswer == "auto":
             newAnswer = ""
 
         # parse the given reward amount
-        newReward = bData[8].rstrip(" ")
+        newReward = bData[7].rstrip(" ")
         if newReward == "auto":
             newReward = -1
         newReward = int(newReward)
 
         # parse the given end time
-        newEndTime = bData[9].rstrip(" ")
+        newEndTime = bData[8].rstrip(" ")
         if newEndTime == "auto":
             newEndTime = -1.0
         newEndTime = float(newEndTime)
 
         # parse the given icon
-        newIcon = bData[10].rstrip(" ")
+        newIcon = bData[9].rstrip(" ")
         if newIcon == "auto":
             newIcon = "" if not builtIn else builtInCrimObj.icon
 
@@ -780,7 +780,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         if newRoute == "auto":
             newRoute = []
         else:
-            newRoute = bData[4].split(",")
+            newRoute = bData[2].split(",")
             newRoute[-1] = newRoute[-1].rstrip(" ")
 
         # parse the given start system
