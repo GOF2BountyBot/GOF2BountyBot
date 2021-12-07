@@ -41,7 +41,7 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     # Emoji sent with new bounty listings
     "newBounty": UninitializedBasedEmoji("⛓"),
 
-    "bountyRespawn": UninitializedBasedEmoji("⛓")
+    "bountyRespawn": UninitializedBasedEmoji("⛓"),
 
     "newIssue": UninitializedBasedEmoji("📥"),
     "issueClosed": UninitializedBasedEmoji("✅"),
