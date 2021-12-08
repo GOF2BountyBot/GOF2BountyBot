@@ -20,8 +20,6 @@ usersDB = None
 guildsDB = None
 reactionMenusDB = None
 
-newBountiesTTDB = None
-duelRequestTTDB = None
 shopRefreshTT = None
 
 taskScheduler = None

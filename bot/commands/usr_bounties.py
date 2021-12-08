@@ -481,7 +481,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
                                             expiryFunction=duelRequest.expireAndAnnounceDuelReq,
                                             expiryFunctionArgs={"duelReq": newDuelReq})
             newDuelReq.duelTimeoutTask = duelTT
-            botState.duelRequestTTDB.scheduleTask(duelTT)
+            botState.taskScheduler.scheduleTask(duelTT)
             sourceBBUser.addDuelChallenge(newDuelReq)
         except KeyError:
             await message.reply(mention_author=False, content=":x: User not found! Did they leave the server?")
