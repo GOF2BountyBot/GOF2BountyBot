@@ -116,9 +116,9 @@ class Bounty(serializable.Serializable):
         if expiryTT is None:
             if endDT < datetime.utcnow():
                 self.expiryTT = None
-                self._expire()
+                self._expire(, dbReload=dbReload)
             else:
-                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self._expire)
+                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self._expire, dbReload)
                 botState.taskScheduler.scheduleTask(self.expiryTT)
         else:
             self.expiryTT = expiryTT
@@ -272,17 +272,27 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
-    def _expire(self):
+    def _expire(self, dbReload: bool = False):
         """Mark this bounty as expired, and register the bounty as expired in the owning bountyDB.
         Does not notify the guild in discord.
 
+        
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
         :raise ValueError: If the bounty is already marked as expired
         """
         if self.expired:
             raise ValueError("Attempted to mark a bounty as expired that is already expired: " + self.criminal.name)
 
         if self.criminal in self.division.bounties[self.techLevel]:
-            self.division.owningDB.removeBountyObj(self)
+            if dbReload:
+                try:
+                    self.division.owningDB.removeBountyObj(self)
+                except KeyError:
+                    pass
+            else:
+                self.division.owningDB.removeBountyObj(self)
         
         if self.expiryTT is not None:
             self.expiryTT.forceExpire(False)
