@@ -276,7 +276,6 @@ class Bounty(serializable.Serializable):
         """Mark this bounty as expired, and register the bounty as expired in the owning bountyDB.
         Does not notify the guild in discord.
 
-        
         :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
@@ -295,7 +294,7 @@ class Bounty(serializable.Serializable):
                 self.division.owningDB.removeBountyObj(self)
         
         if self.expiryTT is not None:
-            self.expiryTT.forceExpire(False)
+            self.expiryTT.syncForceExpireNoFuncNoReschedule()
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
