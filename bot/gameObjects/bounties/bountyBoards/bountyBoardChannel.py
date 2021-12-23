@@ -418,7 +418,7 @@ class BountyBoardChannel(serializable.Serializable):
         return not bool(self.bountyMessages)
 
 
-    async def addBounty(self, bounty : bounty.Bounty, message : Message):
+    async def addBounty(self, bounty : bounty.Bounty, message : Message, logUrls: bool = True):
         """Treat the given message as a listing for the given bounty, and store it in the database.
         If the BBC was previously empty, remove the empty bounty board message if one exists.
         If a HTTP error is thrown when attempting to remove the empty board message,
@@ -426,6 +426,7 @@ class BountyBoardChannel(serializable.Serializable):
 
         :param Bounty bounty: The bounty to associate with the given message
         :param discord.Message message: The message acting as a listing for the given bounty
+        :param logUrls: Whether to generate a jump URL, or prepend the ID instead
         """
         removeMsg = False
         if self.isEmpty():
@@ -440,24 +441,8 @@ class BountyBoardChannel(serializable.Serializable):
         self.bountyMessages[bounty.criminal] = message
 
         if removeMsg:
-            try:
-                await self.noBountiesMessage.delete()
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        await self.noBountiesMessage.delete()
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    print("addBounty HTTPException")
-            except Forbidden:
-                print("addBounty Forbidden")
-            except AttributeError:
-                print("addBounty no message")
+            await deleteMessageWithRetry(self.escapedBountiesMessage,
+                                        self.prependJumpUrl(self.escapedBountiesMessage.id, logUrls, "escaped bounties"))
 
 
     async def removeCriminal(self, criminal : criminal.Criminal):
@@ -484,7 +469,7 @@ class BountyBoardChannel(serializable.Serializable):
 
         if self.isEmpty():
             await self._sendNoBountiesMessage()
-            
+
 
     async def removeBounty(self, bounty : bounty.Bounty):
         """Remove the listing message stored for the given bounty from the database. 
