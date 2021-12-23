@@ -300,6 +300,22 @@ class BountyDivision(Serializable):
         await self.owningDB.owningBasedGuild.announceNewBounty(bounty)
 
 
+    async def announceBountyExpiry(self, bounty: Bounty):
+        """Announce the expiry of a bounty, updating any existing bountyboard channel, and sending a message in the play
+        channel. Does not handle removal of the bounty from the division's records
+
+        :param bounty: The bounty that expired
+        :type bounty: Bounty
+        :raises KeyError: If no record is kept for the bounty
+        """
+        table = self.escapedBounties[bounty.techLevel] if bounty.isEscaped() else self.bounties[bounty.techLevel]
+        if bounty not in table:
+            raise KeyError(f"Unknown bounty: {bounty.criminal.name}, {'' if bounty.isEscaped() else 'not '}escaped")
+        if self.bountyBoardChannel is not None and self.bountyBoardChannel.hasMessageForBounty(bounty):
+            await self.bountyBoardChannel.removeBounty(bounty)
+        await self.owningDB.owningBasedGuild.announceBountyExpired(bounty)
+
+
     def setTemp(self, newTemp: float, updateActive: bool = True):
         """Directly set the division's activity temperature to a given number.
 

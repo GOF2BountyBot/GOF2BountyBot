@@ -496,7 +496,7 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
         logError(e)
 
     return None
-
+    
 
 def messageDescriptor(m: Message) -> str:
     """Construct a string detailing a message, its channel and guild.

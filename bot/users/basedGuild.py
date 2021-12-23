@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
 from discord import TextChannel
 from typing import List, Dict, Union, cast
@@ -15,6 +16,24 @@ from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..baseClasses import serializable
 from ..databases import bountyDivision
+
+
+def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
+    """Build an embed representing the expiry of a bounty.
+    The bounty's expiry time is assumed to be now.
+
+    :param b: The bounty that has expired
+    :type b: bounty.Bounty
+    :return: An embed detailing the expiry of the bounty
+    :rtype: Embed
+    """
+    e = Embed()
+    e.set_author(name="Bounty Expired", icon_url=b.criminal.icon)
+    e.description = f"**{b.criminal.name}**\nOut of time! The bounty has expired."
+    e.colour = bbData.factionColours[b.faction]
+    activeTime = datetime.utcnow() - datetime.utcfromtimestamp(b.issueTime)
+    e.set_footer(text=f"Active time: {lib.timeUtil.td_format_noYM(activeTime)}")
+    return e
 
 
 class BasedGuild(serializable.Serializable):
@@ -636,6 +655,22 @@ class BasedGuild(serializable.Serializable):
         else:
             botState.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty won to guild " \
+                                + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
+                                + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
+
+
+    async def announceBountyExpired(self, b: bounty.Bounty):
+        """Announce the expiry of a bounty. Does not update the bountyboard channel if one exists.
+
+        :param b: The bounty that has expired
+        :type b: bounty.Bounty
+        """
+        if self.dcGuild is not None:
+            if self.hasPlayChannel():
+                await self.getPlayChannel().send(embed=makeBountyExpiredEmbed(b))
+        else:
+            botState.logger.log("Main", "AnncBtyWn",
+                                "None dcGuild received when posting bounty expiry to guild " \
                                 + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
 

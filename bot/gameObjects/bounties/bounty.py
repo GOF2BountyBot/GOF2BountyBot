@@ -118,7 +118,7 @@ class Bounty(serializable.Serializable):
                 self.expiryTT = None
                 self._expire(dbReload=dbReload)
             else:
-                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self._expire, dbReload)
+                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
                 botState.taskScheduler.scheduleTask(self.expiryTT)
         else:
             self.expiryTT = expiryTT
@@ -272,30 +272,43 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
-    def _expire(self, dbReload: bool = False):
+    async def expire(self):
+        """Mark this bounty as expired, and notify both the owning bountyDB and the owning guild in discord.
+
+        :raise ValueError: If the bounty is not currently active, e.g it has already expired
+        """
+        await self.division.announceBountyExpiry(self)
+        self._expire()
+
+
+    def _expire(self, dbReload: bool = False, killExpiryTT: bool = True):
         """Mark this bounty as expired, and register the bounty as expired in the owning bountyDB.
         Does not notify the guild in discord.
 
         :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
+        :param bool killExpiryTT: Give True to also expire the bounty's expiryTT, *without* executing the task's
+                                expiry function (Default True)
         :raise ValueError: If the bounty is already marked as expired
         """
         if self.expired:
             raise ValueError("Attempted to mark a bounty as expired that is already expired: " + self.criminal.name)
 
         if self.criminal in self.division.bounties[self.techLevel]:
+            # if the bounty is not recognised ignore it
             if dbReload:
                 try:
                     self.division.owningDB.removeBountyObj(self)
                 except KeyError:
                     pass
+            # if the bounty is not recognised throw an error
             else:
                 self.division.owningDB.removeBountyObj(self)
         
-        if self.expiryTT is not None:
+        if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
             self.expiryTT.syncForceExpireNoFuncNoReschedule()
-        self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
+            self.expiryTT = None
 
 
     async def _respawn(self):
