@@ -1,9 +1,9 @@
 # Typing imports
-from typing import TYPE_CHECKING, Union, List
+from typing import TYPE_CHECKING, Dict, Type, Union, List
 if TYPE_CHECKING:
     from ..users import basedGuild
 
-from discord import utils, Guild, Member
+from discord import utils, Guild, Member # type: ignore[import]
 from abc import ABC, abstractmethod
 
 
@@ -264,34 +264,40 @@ class UA_System_Misc(GuildRoleUserAlert):
 
 
 # Translate UA ID strings into types
-userAlertsIDsTypes = {  "shop_refresh": UA_Shop_Refresh,
+userAlertsIDsTypes: Dict[str, Type[UABase]] = {
+                        "shop_refresh": UA_Shop_Refresh,
 
                         "duels_challenge_incoming_new": UA_Duels_Challenge_Incoming_New,
                         "duels_challenge_incoming_cancel": UA_Duels_Challenge_Incoming_Cancel,
 
                         "system_updates_major": UA_System_Updates_Major,
                         "system_updates_minor": UA_System_Updates_Minor,
-                        "system_misc": UA_System_Misc}
+                        "system_misc": UA_System_Misc
+                    }
 
 # Translate UA types into ID strings
-userAlertsTypesIDs = {  UA_Shop_Refresh: "shop_refresh",
+userAlertsTypesIDs: Dict[Type[UABase], str] = { 
+                        UA_Shop_Refresh: "shop_refresh",
 
                         UA_Duels_Challenge_Incoming_New: "duels_challenge_incoming_new",
                         UA_Duels_Challenge_Incoming_Cancel: "duels_challenge_incoming_cancel",
 
                         UA_System_Updates_Major: "system_updates_major",
                         UA_System_Updates_Minor: "system_updates_minor",
-                        UA_System_Misc: "system_misc"}
+                        UA_System_Misc: "system_misc"
+                    }
 
 # Translate UA types into user-friendly alert name strings
-userAlertsTypesNames = {UA_Shop_Refresh: "new shop stock",
+userAlertsTypesNames: Dict[Type[UABase], str] = {
+                        UA_Shop_Refresh: "new shop stock",
 
                         UA_Duels_Challenge_Incoming_New: "new duel challenges",
                         UA_Duels_Challenge_Incoming_Cancel: "cancelled duel challenges",
 
                         UA_System_Updates_Major: "BountyBot major updates",
                         UA_System_Updates_Minor: "BountyBot minor updates",
-                        UA_System_Misc: "BountyBot misc. announcements"}
+                        UA_System_Misc: "BountyBot misc. announcements"
+                    }
 
 
 def getAlertIDFromHeirarchicalAliases(alertName : Union[str, List[str]]) -> List[str]:
