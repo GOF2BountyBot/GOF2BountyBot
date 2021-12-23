@@ -709,7 +709,6 @@ async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, cl
     logExceptionsOnTask(inner, logCategory=logCategory, className=className, funcName=funcName,
                         noPrintEvent=noPrintEvent, noPrint=noPrint)
     return inner.result
-    
 
 
 def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
