@@ -287,7 +287,8 @@ async def endLongProcess(message: Message):
         pass
 
 
-async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
+async def reactionFromRaw(payload: RawReactionActionEvent) -> \
+        Tuple[Optional[Message], Optional[Union[User, Member]], Optional[emojis.BasedEmoji]]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
