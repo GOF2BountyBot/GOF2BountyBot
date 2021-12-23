@@ -245,6 +245,8 @@ class BountyBoardChannel(serializable.Serializable):
 
 
     async def updateEscapedBountiesMessage(self):
+        """Rebuild the escaped bounties message with new details of any escaped bounties
+        """
         if self.escapedBountiesMessage is not None:
             self.escapedBountiesMessage = await self.editMessageWithRetry(self.escapedBountiesMessage,
                                                                             "escaped bounties"

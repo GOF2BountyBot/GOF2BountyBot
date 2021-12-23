@@ -308,11 +308,18 @@ class BountyDivision(Serializable):
         :type bounty: Bounty
         :raises KeyError: If no record is kept for the bounty
         """
-        table = self.escapedBounties[bounty.techLevel] if bounty.isEscaped() else self.bounties[bounty.techLevel]
-        if bounty not in table:
-            raise KeyError(f"Unknown bounty: {bounty.criminal.name}, {'' if bounty.isEscaped() else 'not '}escaped")
-        if self.bountyBoardChannel is not None and self.bountyBoardChannel.hasMessageForBounty(bounty):
-            await self.bountyBoardChannel.removeBounty(bounty)
+        if bounty.isEscaped():
+            if bounty not in self.escapedBounties[bounty.techLevel]:
+                raise KeyError(f"Unknown escaped bounty: {bounty.criminal.name}")
+            if self.bountyBoardChannel is not None:
+                await self.bountyBoardChannel.updateEscapedBountiesMessage()
+
+        else:
+            if bounty not in self.bounties[bounty.techLevel]:
+                raise KeyError(f"Unknown bounty: {bounty.criminal.name}")
+            if self.bountyBoardChannel is not None and self.bountyBoardChannel.hasMessageForBounty(bounty):
+                await self.bountyBoardChannel.removeBounty(bounty)
+                
         await self.owningDB.owningBasedGuild.announceBountyExpired(bounty)
 
 
