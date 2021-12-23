@@ -479,45 +479,12 @@ class BountyBoardChannel(serializable.Serializable):
                                     + criminal.name,
                                 category='bountyBoards', eventType="LISTING_REM-NO_EXST")
         # listingMsg = await self.channel.fetch_message(self.bountyMessages[criminal])
-        try:
-            await self.bountyMessages[criminal].delete()
-        except HTTPException:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "HTTPException thrown when removing bounty listing message for criminal: " \
-                                + criminal.name, category='bountyBoards', eventType="RM_LISTING-HTTPERR")
-        except Forbidden:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "Forbidden exception thrown when removing bounty listing message for criminal: " \
-                                + criminal.name, category='bountyBoards', eventType="RM_LISTING-FORBIDDENERR")
-        except NotFound:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "Bounty listing message no longer exists, BBC entry removed: " + criminal.name,
-                                category='bountyBoards', eventType="RM_LISTING-NOT_FOUND")
+        await deleteMessageWithRetry(self.bountyMessages[criminal], f"bounty: {criminal.name}")
         del self.bountyMessages[criminal]
 
         if self.isEmpty():
-            try:
-                self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    botState.logger.log("BBC", "remBty", "HTTPException thrown when sending no bounties message",
-                                category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
-                self.noBountiesMessage = None
-            except Forbidden:
-                botState.logger.log("BBC", "remBty", "Forbidden exception thrown when sending no bounties message",
-                            category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
-                self.noBountiesMessage = None
-
+            await self._sendNoBountiesMessage()
+            
 
     async def removeBounty(self, bounty : bounty.Bounty):
         """Remove the listing message stored for the given bounty from the database. 
