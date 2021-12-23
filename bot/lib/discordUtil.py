@@ -1,6 +1,6 @@
 from __future__ import annotations
 from asyncio.exceptions import CancelledError, InvalidStateError
-from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Type, Union, TYPE_CHECKING, Tuple, Dict, cast
 
 from discord.errors import NotFound
 if TYPE_CHECKING:
@@ -200,7 +200,7 @@ def getMemberByRefOverDB(uRef : str, dcGuild : Guild = None) -> User:
     return userAttempt
 
 
-def typeAlertedUserMentionOrName(alertType : userAlerts.UABase, dcUser : Union[User, Member] = None,
+def typeAlertedUserMentionOrName(alertType : Type[userAlerts.UABase], dcUser : Union[User, Member] = None,
         basedUser : basedUser.BasedUser = None, basedGuild : basedGuild.BasedGuild = None, dcGuild : Guild = None) -> str:
     """If the given user has subscribed to the given alert type, return the user's mention.
     Otherwise, return their display name and discriminator. At least one of dcUser or basedUser must be provided.
@@ -208,7 +208,7 @@ def typeAlertedUserMentionOrName(alertType : userAlerts.UABase, dcUser : Union[U
     the given user. This means that giving at least one of BasedGuild or dcGuild will drastically improve efficiency.
     TODO: rename basedGuild and basedUser so it doesnt match the class name
 
-    :param userAlerts.UABase alertType: The type of alert to check the state of
+    :param Type[userAlerts.UABase] alertType: The type of alert to check the state of
     :param discord.User dcUser: The user to check the alert state of. One of dcUser or basedUser is required. (Default None)
     :param BasedUser basedUser: The user to check the alert state of. One of dcUser or basedUser is required. (Default None)
     :param BasedGuild BasedGuild: The guild in which to check the alert state. Optional, but improves efficiency.
