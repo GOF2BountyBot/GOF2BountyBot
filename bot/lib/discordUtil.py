@@ -523,6 +523,37 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         return "main", name
 
 
+def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False):
+    """See if any exceptions occurred in `task`. If they did, then log them using `botState.logger`.
+    If `task` has not finished execution, this is treated as an exception and is logged.
+    If `task` has no exceptions set, do nothing.
+    All parameters other than `task` are optional. If not given, they will be inferred from `task`.
+
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    """
+    if e := task.exception():
+        if logCategory is None:
+            logCategory = "misc"
+
+        if className is None or funcName is None:
+            extractedClass, extractedFunc = extractFuncName(task.get_coro())
+            className = extractedClass if className is None else className
+            funcName = extractedFunc if funcName is None else funcName
+
+        botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
+                            noPrintEvent=noPrintEvent)
+
+
 class BasicScheduler:
     """A very basic handler for parallelizing coroutine executions and handling their exceptions.
     """
@@ -567,18 +598,9 @@ class BasicScheduler:
         :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
         :type noPrint: Optional[bool]
         """
-        if logCategory is None:
-            logCategory = "misc"
-
         for t in self.tasks:
-            if e := t.exception():
-                if className is None or funcName is None:
-                    extractedClass, extractedFunc = extractFuncName(t.get_coro())
-                    className = extractedClass if className is None else className
-                    funcName = extractedFunc if funcName is None else funcName
-
-                botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
-                                    noPrintEvent=noPrintEvent)
+            logExceptionsOnTask(t, logCategory=logCategory, className=className, funcName=funcName, noPrintEvent=noPrintEvent,
+                                noPrint=noPrint)
 
 
     def raiseExceptions(self):
@@ -659,3 +681,60 @@ class BasicScheduler:
         :rtype: int
         """
         return len(self.tasks)
+
+
+async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False) -> Any:
+    """Await `coro`, and then log any exceptions that occurred using `botState.logger`.
+    All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
+
+    :param coro: The coroutine whose exceptions to log
+    :type coro: Awaitable
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    :return: A task wrapping the execution
+    :rtype: asyncio.Task
+    """
+    inner = asyncio.create_task(coro)
+    await inner
+    logExceptionsOnTask(inner, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint)
+    return inner.result
+    
+
+
+def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False) -> asyncio.Task:
+    """Schedule a coroutine execution onto the event loop, and log any exceptions that occur during
+    execution with `botState.logger`.
+    Very useful for synchronously scheduling a coroutine for execution without *completely* missing any exceptions.
+    Pass a normal parenthesized call to a coroutine, but without awaiting it.
+    The task that is contructed is returned, but you don't need to do anything with this for execution to complete.
+    If your coroutine returned a value, this will be the result of the task once it completes.
+    All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
+
+    :param coro: The coroutine execution to parallelize
+    :type coro: Awaitable
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    :return: A task wrapping the execution
+    :rtype: asyncio.Task
+    """
+    return asyncio.create_task(awaitCoroAndLogExceptions(coro, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint))
