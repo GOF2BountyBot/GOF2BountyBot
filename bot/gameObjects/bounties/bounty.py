@@ -116,7 +116,7 @@ class Bounty(serializable.Serializable):
         if expiryTT is None:
             if endDT < datetime.utcnow():
                 self.expiryTT = None
-                self._expire(, dbReload=dbReload)
+                self._expire(dbReload=dbReload)
             else:
                 self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self._expire, dbReload)
                 botState.taskScheduler.scheduleTask(self.expiryTT)
