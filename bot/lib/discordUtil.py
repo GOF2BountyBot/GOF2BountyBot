@@ -498,13 +498,13 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
 
 
 def messageDescriptor(m: Message) -> str:
-        """Construct a string detailing a message, its channel and guild.
+    """Construct a string detailing a message, its channel and guild.
 
-        :param Message m: The message to describe
-        :return: A string identifying m, its channel and guild
-        :rtype: str
-        """
-        return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
+    :param Message m: The message to describe
+    :return: A string identifying m, its channel and guild
+    :rtype: str
+    """
+    return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
 
 
 def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
