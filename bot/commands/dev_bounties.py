@@ -1338,3 +1338,88 @@ botCommands.register("xp-for-level", dev_cmd_xp_for_level, 3, forceKeepArgsCasin
                         signatureStr="**xp-for-level** *[level]*",
                         shortHelp="Get the amount of xp required to reach a given bounty hunter level.")
 
+
+async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isDM : bool):
+    """Force the named bounty to expire immediately.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a criminal alias
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.channel.send(":x: Not enough arguments! Please give the criminal name.")
+        return
+
+    callingBBGuild = botState.guildsDB.getGuild(message.guild.id)
+    if callingBBGuild.bountiesDisabled:
+        await message.channel.send(":x: This server has bounties disabled!")
+        return
+
+    # look up the criminal object
+    criminalName = args.title()
+
+    # report unrecognised criminal names
+    if not callingBBGuild.bountiesDB.bountyNameExists(criminalName, noEscapedCrim=True):
+        errmsg = ":x: That pilot is not currently wanted!"
+
+        if lib.stringTyping.isMention(criminalName):
+            errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
+                        + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
+
+        await message.channel.send(errmsg)
+        return
+
+    bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
+    if datetime.utcfromtimestamp(bountyObj.endTime) < datetime.utcnow():
+        await message.reply("This bounty is already expired, removing erroneous listing.")
+        await bountyObj.expire(dbReload=True)
+    else:
+        await bountyObj.expire()
+        await message.reply("✅ Bounty expired successfully")
+
+botCommands.register("expire-bounty", dev_cmd_force_expire_bounty, 3, forceKeepArgsCasing=True, allowDM=True,
+                        helpSection="bounties", signatureStr="**expire-bounty <criminal name>**",
+                        shortHelp="Force the immediate expory if a bounty")
+
+
+async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isDM : bool):
+    """Force the named bounty to escape immediately.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a criminal alias
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.channel.send(":x: Not enough arguments! Please give the criminal name.")
+        return
+
+    callingBBGuild = botState.guildsDB.getGuild(message.guild.id)
+    if callingBBGuild.bountiesDisabled:
+        await message.channel.send(":x: This server has bounties disabled!")
+        return
+
+    # look up the criminal object
+    criminalName = args.title()
+
+    # report unrecognised criminal names
+    if not callingBBGuild.bountiesDB.bountyNameExists(criminalName, noEscapedCrim=True):
+        errmsg = ":x: That pilot is not currently wanted!"
+
+        if lib.stringTyping.isMention(criminalName):
+            errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
+                        + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
+
+        await message.channel.send(errmsg)
+        return
+
+    bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
+    if bountyObj.isEscaped():
+        await message.reply(":x: This bounty is already escaped, attempting dbReload escape...")
+        await bountyObj.escape(dbReload=True)
+    else:
+        await bountyObj.escape()
+        await message.reply("✅ Bounty escaped successfully")
+
+botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=True,
+                        helpSection="bounties", signatureStr="**escape-bounty <criminal name>**",
+                        shortHelp="Force a bounty to escape immediately")
