@@ -116,7 +116,7 @@ class Bounty(serializable.Serializable):
         if expiryTT is None:
             if endDT < datetime.utcnow():
                 self.expiryTT = None
-                self._expire(dbReload=dbReload)
+                lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
             else:
                 self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
                 botState.taskScheduler.scheduleTask(self.expiryTT)
@@ -272,13 +272,16 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
-    async def expire(self):
+    async def expire(self, dbReload: bool = False):
         """Mark this bounty as expired, and notify both the owning bountyDB and the owning guild in discord.
-
+        
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
         :raise ValueError: If the bounty is not currently active, e.g it has already expired
         """
-        await self.division.announceBountyExpiry(self)
-        self._expire()
+        await self.division.announceBountyExpiry(self, dbReload=dbReload)
+        self._expire(dbReload=dbReload)
 
 
     def _expire(self, dbReload: bool = False, killExpiryTT: bool = True):
