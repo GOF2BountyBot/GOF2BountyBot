@@ -45,6 +45,7 @@ def makeBountyEmbed(bounty : bounty.Bounty) -> Embed:
         routeStr += ", "
     embed.add_field(name="**Route:**", value=routeStr[:-2], inline=False)
     embed.add_field(name="-", value="> ~~Already checked systems~~\n> **Criminal spotted here recently**")
+    embed.add_field(name="Bounty ends:", value=f"<t:{int(bounty.endTime)}:R>")
     return embed
 
 
