@@ -300,22 +300,25 @@ class BountyDivision(Serializable):
         await self.owningDB.owningBasedGuild.announceNewBounty(bounty)
 
 
-    async def announceBountyExpiry(self, bounty: Bounty):
+    async def announceBountyExpiry(self, bounty: Bounty, dbReload: bool = False):
         """Announce the expiry of a bounty, updating any existing bountyboard channel, and sending a message in the play
         channel. Does not handle removal of the bounty from the division's records
 
         :param bounty: The bounty that expired
         :type bounty: Bounty
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
         :raises KeyError: If no record is kept for the bounty
         """
         if bounty.isEscaped():
-            if bounty not in self.escapedBounties[bounty.techLevel]:
+            if not dbReload and bounty.criminal not in self.escapedBounties[bounty.techLevel]:
                 raise KeyError(f"Unknown escaped bounty: {bounty.criminal.name}")
             if self.bountyBoardChannel is not None:
                 await self.bountyBoardChannel.updateEscapedBountiesMessage()
 
         else:
-            if bounty not in self.bounties[bounty.techLevel]:
+            if not dbReload and bounty.criminal not in self.bounties[bounty.techLevel]:
                 raise KeyError(f"Unknown bounty: {bounty.criminal.name}")
             if self.bountyBoardChannel is not None and self.bountyBoardChannel.hasMessageForBounty(bounty):
                 await self.bountyBoardChannel.removeBounty(bounty)
