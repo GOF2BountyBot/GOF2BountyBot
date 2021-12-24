@@ -1377,7 +1377,7 @@ async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isD
         await bountyObj.expire()
         await message.reply("✅ Bounty expired successfully")
 
-botCommands.register("expire-bounty", dev_cmd_force_expire_bounty, 3, forceKeepArgsCasing=True, allowDM=True,
+botCommands.register("expire-bounty", dev_cmd_force_expire_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
                         helpSection="bounties", signatureStr="**expire-bounty <criminal name>**",
                         shortHelp="Force the immediate expory if a bounty")
 
@@ -1420,6 +1420,6 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
         await bountyObj.escape()
         await message.reply("✅ Bounty escaped successfully")
 
-botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=True,
+botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
                         helpSection="bounties", signatureStr="**escape-bounty <criminal name>**",
                         shortHelp="Force a bounty to escape immediately")
