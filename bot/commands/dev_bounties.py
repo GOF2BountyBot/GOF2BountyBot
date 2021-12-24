@@ -1364,7 +1364,7 @@ async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isD
 
         if lib.stringTyping.isMention(criminalName):
             errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
-                        + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
+                        + callingBBGuild.commandPrefix + "expire-bounty Trimatix#2244`"
 
         await message.channel.send(errmsg)
         return
@@ -1379,7 +1379,7 @@ async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isD
 
 botCommands.register("expire-bounty", dev_cmd_force_expire_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
                         helpSection="bounties", signatureStr="**expire-bounty <criminal name>**",
-                        shortHelp="Force the immediate expory if a bounty")
+                        shortHelp="Force the immediate expiry of a bounty")
 
 
 async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isDM : bool):
@@ -1407,7 +1407,7 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
 
         if lib.stringTyping.isMention(criminalName):
             errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
-                        + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
+                        + callingBBGuild.commandPrefix + "escape-bounty Trimatix#2244`"
 
         await message.channel.send(errmsg)
         return
@@ -1415,11 +1415,64 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
     bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
     if bountyObj.isEscaped():
         await message.reply(":x: This bounty is already escaped, attempting dbReload escape...")
-        await bountyObj.escape(dbReload=True)
+        bountyObj.escape(dbReload=True)
+        if bountyObj.division.bountyBoardChannel is not None:
+            await bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage()
     else:
-        await bountyObj.escape()
+        bountyObj.escape()
         await message.reply("✅ Bounty escaped successfully")
 
 botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
                         helpSection="bounties", signatureStr="**escape-bounty <criminal name>**",
                         shortHelp="Force a bounty to escape immediately")
+
+
+async def dev_cmd_force_respawn_bounty(message : discord.Message, args : str, isDM : bool):
+    """Force the named bounty to respawn immediately.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a criminal alias
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.channel.send(":x: Not enough arguments! Please give the criminal name.")
+        return
+
+    callingBBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    if callingBBGuild.bountiesDisabled:
+        await message.channel.send(":x: This server has bounties disabled!")
+        return
+
+    # look up the criminal object
+    criminalName = args.title()
+
+    # report unrecognised criminal names
+    if not callingBBGuild.bountiesDB.bountyNameExists(criminalName, noEscapedCrim=False):
+        errmsg = ":x: That pilot is not currently wanted!"
+
+        if lib.stringTyping.isMention(criminalName):
+            errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
+                        + callingBBGuild.commandPrefix + "respawn-bounty Trimatix#2244`"
+
+        await message.channel.send(errmsg)
+        return
+
+    try:
+        bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getEscapedBounty(criminalName)
+    except KeyError:
+        await message.reply(":x: The bounty is not currently escaped.")
+        return
+
+    if bountyObj.isEscaped():
+        await message.reply("🥴 This bounty is marked as escaped, but recorded in the active bounties db. attempting force...")
+        botState.logger.log("dev_bounties", "dev_cmd_force_respawn_bounty",
+                            f"bounty {bountyObj.criminal.name} isEscaped but recorded in db as active",
+                            eventType="BTY_STATE_CONFLICT")
+        await bountyObj.forceRespawn()
+    else:
+        await bountyObj.forceRespawn()
+        await message.reply("✅ Bounty respawned successfully")
+
+botCommands.register("respawn-bounty", dev_cmd_force_respawn_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
+                        helpSection="bounties", signatureStr="**respawn-bounty <criminal name>**",
+                        shortHelp="Force an escaped bounty to respawn immediately")
