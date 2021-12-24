@@ -1417,9 +1417,13 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
         await message.reply(":x: This bounty is already escaped, attempting dbReload escape...")
         bountyObj.escape(dbReload=True)
         if bountyObj.division.bountyBoardChannel is not None:
+            await callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True)
             await bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage()
     else:
         bountyObj.escape()
+        if bountyObj.division.bountyBoardChannel is not None:
+            await callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True)
+            await bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage()
         await message.reply("✅ Bounty escaped successfully")
 
 botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
@@ -1468,9 +1472,9 @@ async def dev_cmd_force_respawn_bounty(message : discord.Message, args : str, is
         botState.logger.log("dev_bounties", "dev_cmd_force_respawn_bounty",
                             f"bounty {bountyObj.criminal.name} isEscaped but recorded in db as active",
                             eventType="BTY_STATE_CONFLICT")
-        await bountyObj.forceRespawn()
+        bountyObj.forceRespawn()
     else:
-        await bountyObj.forceRespawn()
+        bountyObj.forceRespawn()
         await message.reply("✅ Bounty respawned successfully")
 
 botCommands.register("respawn-bounty", dev_cmd_force_respawn_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
