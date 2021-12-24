@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel
 from discord.message import MessageReference
 
@@ -206,8 +206,9 @@ class BountyBoardChannel(serializable.Serializable):
             raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
 
         meta = self.prependJumpUrl(message.id, logUrls, meta)
-        return await lib.discordUtil.asyncOperationWithRetry(message.edit, "edit message", "bountyBoards",
-                                                            "BBC", meta, *args, **kwargs)
+        await lib.discordUtil.asyncOperationWithRetry(message.edit, "edit message", "bountyBoards",
+                                                        "BBC", meta, *args, **kwargs)
+        return message
 
     
     def guildAndChannelMeta(self) -> str:
@@ -223,35 +224,41 @@ class BountyBoardChannel(serializable.Serializable):
         return f"g:{self.channel.guild.name}#{self.channel.guild.id} c:{self.channel.name}#{self.channel.id}"
 
 
-    def makeEscapedBountiesMsgKwargs(self) -> Dict[str, Union[str, Embed]]:
+    def makeEscapedBountiesMsgKwargs(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()) -> Dict[str, Union[str, Embed]]:
         """Construct an embed listing all escaped bounties in the division.
 
         :return: A kwargs mapping detailing the content of the BBC's escaped bounties message
         :rtype: Dict[str, Union[str, Embed]]
         """
-        if any(self.division.escapedBounties.values()):
+        if ignoredBounties:
+            validBounties: Dict[int, List[bounty.Bounty]] = {}
+            for level, bounties in self.division.escapedBounties.items():
+                validBounties.update({level: [b for b in bounties.values() if b not in ignoredBounties]})
+        else:
+            validBounties = {l: [b for b in bounties.values()] for l, bounties in self.division.escapedBounties.items()}
+        
+        if any(validBounties.items()):
             embed = Embed()
             embed.colour = Colour.random()
             embed.title = "Escaped Bounties"
-            if any(self.division.escapedBounties.values()):
-                embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed "\
-                                    + "amount of time."
-                for level, bounties in self.division.escapedBounties.items():
-                    if bounties:
-                        embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
+            embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed "\
+                                + "amount of time."
+            for level, newBounties in validBounties.items():
+                if newBounties:
+                    embed.add_field(name=f"Level {level}", value=", ".join(b.criminal.name for b in newBounties))
         else:
             embed = None
 
         return {"embed": embed, "content": "‎"}
 
 
-    async def updateEscapedBountiesMessage(self):
+    async def updateEscapedBountiesMessage(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()):
         """Rebuild the escaped bounties message with new details of any escaped bounties
         """
         if self.escapedBountiesMessage is not None:
             self.escapedBountiesMessage = await self.editMessageWithRetry(self.escapedBountiesMessage,
                                                                             "escaped bounties",
-                                                                            **self.makeEscapedBountiesMsgKwargs())
+                                                                            **self.makeEscapedBountiesMsgKwargs(ignoredBounties=ignoredBounties))
         if self.escapedBountiesMessage is None:
             await self.rebuild()
 

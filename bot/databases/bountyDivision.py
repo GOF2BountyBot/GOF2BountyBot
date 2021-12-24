@@ -312,10 +312,8 @@ class BountyDivision(Serializable):
         :raises KeyError: If no record is kept for the bounty
         """
         if bounty.isEscaped():
-            if not dbReload and bounty.criminal not in self.escapedBounties[bounty.techLevel]:
-                raise KeyError(f"Unknown escaped bounty: {bounty.criminal.name}")
             if self.bountyBoardChannel is not None:
-                await self.bountyBoardChannel.updateEscapedBountiesMessage()
+                await self.bountyBoardChannel.updateEscapedBountiesMessage((bounty,))
 
         else:
             if not dbReload and bounty.criminal not in self.bounties[bounty.techLevel]:
@@ -489,6 +487,8 @@ class BountyDivision(Serializable):
                 tlBounties.clear()
         if wasFull or not self.hasMinTLBounty():
             self.tryStartBountySpawner()
+        if self.bountyBoardChannel is not None:
+            await self.bountyBoardChannel.updateEscapedBountiesMessage()
 
 
     async def resetNewBountyCool(self):

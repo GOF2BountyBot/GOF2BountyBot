@@ -298,15 +298,11 @@ class Bounty(serializable.Serializable):
         if self.expired:
             raise ValueError("Attempted to mark a bounty as expired that is already expired: " + self.criminal.name)
 
-        if self.criminal in self.division.bounties[self.techLevel]:
-            # if the bounty is not recognised ignore it
-            if dbReload:
-                try:
-                    self.division.owningDB.removeBountyObj(self)
-                except KeyError:
-                    pass
-            # if the bounty is not recognised throw an error
-            else:
+        if self.isEscaped():
+            if self.criminal in self.division.escapedBounties[self.techLevel]:
+                self.division.owningDB.removeEscapedBountyObj(self)
+        else:
+            if self.criminal in self.division.bounties[self.techLevel]:
                 self.division.owningDB.removeBountyObj(self)
         
         if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
@@ -342,14 +338,14 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.removeEscapedCriminal(self.criminal)
 
 
-    def forceRespawn(self):
+    async def forceRespawn(self):
         """Force the immediate respawning of the bounty, by forcing the expiry of its respawn TimedTask.
 
         :raise ValueError: If the bounty is not escaped
         """
         if not self.isEscaped():
             raise ValueError("Attempted to forceRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
-        self.respawnTT.forceExpire(callExpiryFunc=True)
+        await self.respawnTT.forceExpire(callExpiryFunc=True)
 
 
     def makeRespawnConfig(self):

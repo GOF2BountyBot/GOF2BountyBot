@@ -1359,7 +1359,7 @@ async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isD
     criminalName = args.title()
 
     # report unrecognised criminal names
-    if not callingBBGuild.bountiesDB.bountyNameExists(criminalName, noEscapedCrim=True):
+    if not callingBBGuild.bountiesDB.bountyNameExists(criminalName, noEscapedCrim=False):
         errmsg = ":x: That pilot is not currently wanted!"
 
         if lib.stringTyping.isMention(criminalName):
@@ -1369,7 +1369,10 @@ async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isD
         await message.channel.send(errmsg)
         return
 
-    bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
+    try:
+        bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
+    except KeyError:
+        bountyObj = callingBBGuild.bountiesDB.getEscapedBounty(criminalName)
     if datetime.utcfromtimestamp(bountyObj.endTime) < datetime.utcnow():
         await message.reply("This bounty is already expired, removing erroneous listing.")
         await bountyObj.expire(dbReload=True)
@@ -1414,7 +1417,7 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
 
     bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
     if bountyObj.isEscaped():
-        await message.reply(":x: This bounty is already escaped, attempting dbReload escape...")
+        await message.reply(":x: This bounty is already escaped")
         bountyObj.escape(dbReload=True)
         if bountyObj.division.bountyBoardChannel is not None:
             await callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True)
@@ -1467,14 +1470,14 @@ async def dev_cmd_force_respawn_bounty(message : discord.Message, args : str, is
         await message.reply(":x: The bounty is not currently escaped.")
         return
 
-    if bountyObj.isEscaped():
+    if not bountyObj.isEscaped():
         await message.reply("🥴 This bounty is marked as escaped, but recorded in the active bounties db. attempting force...")
         botState.logger.log("dev_bounties", "dev_cmd_force_respawn_bounty",
                             f"bounty {bountyObj.criminal.name} isEscaped but recorded in db as active",
                             eventType="BTY_STATE_CONFLICT")
-        bountyObj.forceRespawn()
+        await bountyObj.forceRespawn()
     else:
-        bountyObj.forceRespawn()
+        await bountyObj.forceRespawn()
         await message.reply("✅ Bounty respawned successfully")
 
 botCommands.register("respawn-bounty", dev_cmd_force_respawn_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
