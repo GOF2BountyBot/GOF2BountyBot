@@ -511,6 +511,7 @@ class BasedGuild(serializable.Serializable):
         bountyEmbed.add_field(name="**See the culprit's loadout with:**",
                                 value="`" + self.commandPrefix + "loadout criminal " + newBounty.criminal.name + "`")
         bountyEmbed.add_field(name="**Route:**", value=", ".join(newBounty.route), inline=False)
+        bountyEmbed.add_field(name="Bounty ends:", value=f"<t:{int(newBounty.endTime)}:R>")
 
         if self.hasBountyBoardChannels:
             try:
