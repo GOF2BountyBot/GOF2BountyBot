@@ -250,7 +250,7 @@ class BountyBoardChannel(serializable.Serializable):
         """
         if self.escapedBountiesMessage is not None:
             self.escapedBountiesMessage = await self.editMessageWithRetry(self.escapedBountiesMessage,
-                                                                            "escaped bounties"
+                                                                            "escaped bounties",
                                                                             **self.makeEscapedBountiesMsgKwargs())
         if self.escapedBountiesMessage is None:
             await self.rebuild()
