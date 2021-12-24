@@ -14,6 +14,9 @@ def td_format_noYM(td_object: timedelta) -> str:
     :rtype: str
     """
     seconds = int(td_object.total_seconds())
+    if past := seconds < 0:
+        seconds = abs(seconds)
+
     periods = [
         ('day', 60 * 60 * 24),
         ('hour', 60 * 60),
@@ -28,7 +31,7 @@ def td_format_noYM(td_object: timedelta) -> str:
             has_s = 's' if period_value > 1 else ''
             strings.append("%s %s%s" % (period_value, period_name, has_s))
 
-    return ", ".join(strings)
+    return ", ".join(strings) + (" ago" if past else "")
 
 
 def getRandomDelay(minmaxDict: Dict[str, timedelta]) -> timedelta:
