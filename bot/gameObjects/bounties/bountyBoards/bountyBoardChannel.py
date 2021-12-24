@@ -350,7 +350,8 @@ class BountyBoardChannel(serializable.Serializable):
         if self.escapedBountiesMsgToBeLoaded == -1:
             doReload = True
         else:
-            tasks.add(self._loadEscapedBountiesMessage(logUrls))
+            await self._loadEscapedBountiesMessage(logUrls)
+            doReload = self.escapedBountiesMessage is None
 
         if not self.messagesToBeLoaded:
             if self.noBountiesMsgToBeLoaded != -1:
@@ -443,8 +444,8 @@ class BountyBoardChannel(serializable.Serializable):
         self.bountyMessages[bounty.criminal] = message
 
         if removeMsg:
-            await deleteMessageWithRetry(self.escapedBountiesMessage,
-                                        self.prependJumpUrl(self.escapedBountiesMessage.id, logUrls, "escaped bounties"))
+            await deleteMessageWithRetry(self.noBountiesMessage,
+                                        self.prependJumpUrl(self.noBountiesMessage.id, logUrls, "no bounties"))
 
 
     async def removeCriminal(self, criminal : criminal.Criminal):
