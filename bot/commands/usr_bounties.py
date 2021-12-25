@@ -17,7 +17,7 @@ from ..gameObjects.items.tools import crateTool
 from ..databases.bountyDivision import BountyDivision
 from ..databases.bountyDB import nameForDivision
 from ..lib import gameMaths
-
+from . import util_tempdisabled
 
 botCommands.addHelpSection(0, "bounty hunting")
 
@@ -268,7 +268,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             content=f":stopwatch: **{message.author.display_name}**, your *Khador Drive* is still charging!" \
                                     + f" please wait **{lib.timeUtil.td_format_noYM(diff)}.**")
 
-botCommands.register("check", cmd_check, 0, aliases=["search"], allowDM=False, helpSection="bounty hunting",
+botCommands.register("check", util_tempdisabled.err_tempDisabled, 0, aliases=["search"], allowDM=False, helpSection="bounty hunting",
                         signatureStr="**check <system>**",
                         shortHelp="Check if any criminals are in the given system, arrest them, and get paid! 💰" \
                         + "\n🌎 This command must be used in your **home server**.")
@@ -349,7 +349,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     await message.reply(mention_author=False, embed=msgEmbed)
 
 
-botCommands.register("bounties", cmd_bounties, 0, allowDM=False, helpSection="bounty hunting",
+botCommands.register("bounties", util_tempdisabled.err_tempDisabled, 0, allowDM=False, helpSection="bounty hunting",
                         signatureStr="**bounties** *[level or division]*",
                         shortHelp="List all active bounties in your division, or the one specified",
                         longHelp="If no division is given, name all currently active bounties. In your division.\n" \
@@ -397,7 +397,7 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
                         + callingGuild.commandPrefix + "route Trimatix#2244`"
         await message.reply(mention_author=False, content=outmsg)
 
-botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**route <criminal name>**",
+botCommands.register("route", util_tempdisabled.err_tempDisabled, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**route <criminal name>**",
                         shortHelp="Get the named criminal's current route.",
                         longHelp="Get the named criminal's current route.\n" \
                                     + "For a list of aliases for a given criminal, see `info criminal`.")
@@ -635,8 +635,8 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
 botCommands.register("use", cmd_use, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**use [tool number]**",
                         shortHelp="Use the tool in your hangar with the given number. See `hangar` for tool numbers.",
                         longHelp="Use the tool in your hangar with the given number. Tool numbers can be seen next your " \
-                                    + "items in `hangar tool`. For example, if tool number `1` is a ship skin, `use 1` will" \
-                                    + " apply the skin to your active ship.")
+                                    + "items in `hangar tool`. For example, if tool number `1` is a crate, `use 1` will" \
+                                    + " open the crate.")
 
 
 async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
@@ -721,10 +721,10 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
         await message.channel.send("🛑 Prestige cancelled.")
 
 
-botCommands.register("prestige", cmd_prestige, 0, helpSection="bounty hunting", signatureStr="**prestige**",
-                        shortHelp="Reset your items and bounty hunting XP, in exchange for a ship upgrade! " \
-                            + "Command unlocked at level 10. Kaamo items are saved.",
-                        longHelp="Reset your save data, including your bounty hunter level, loadout, balance, hangar and " \
-                            + "loma. You will be awarded with a ship upgrade available in Loma!\n\n" \
-                            + "You can save items from being removed by first storing them in `Kaamo`. Items stored in " \
-                            + "`Kaamo` will be made accessible again once you reach level 10!")
+# botCommands.register("prestige", util_tempdisabled.err_tempDisabled, 0, helpSection="bounty hunting", signatureStr="**prestige**",
+#                         shortHelp="Reset your items and bounty hunting XP, in exchange for a ship upgrade! " \
+#                             + "Command unlocked at level 10. Kaamo items are saved.",
+#                         longHelp="Reset your save data, including your bounty hunter level, loadout, balance, hangar and " \
+#                             + "loma. You will be awarded with a ship upgrade available in Loma!\n\n" \
+#                             + "You can save items from being removed by first storing them in `Kaamo`. Items stored in " \
+#                             + "`Kaamo` will be made accessible again once you reach level 10!")

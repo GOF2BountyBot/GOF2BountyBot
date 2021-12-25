@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from . import inventoryListing
 from ...baseClasses import serializable
 from typing import Dict, Any, List, Tuple
@@ -288,7 +289,6 @@ class TypeRestrictedInventory(Inventory):
             raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
                             + self.itemType.__name__ + "', given '" + type(item).__name__ + "'")
         return super().getListing(item)
-
 
 
 class DiscountableTypeRestrictedInventory(TypeRestrictedInventory):

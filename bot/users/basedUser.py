@@ -13,7 +13,7 @@ from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
 from ..gameObjects.userProfile.medal import Medal
-from ..gameObjects.inventories import inventory
+from ..gameObjects.inventories import inventory, userInventory
 from ..userAlerts import userAlerts
 from datetime import datetime, timedelta
 from discord import Guild, Member # type: ignore[import]
@@ -69,7 +69,7 @@ class BasedUser(serializable.Serializable):
     :var inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
     :vartype inactiveTurrets: inventory
     :var inactiveTools: the toolItems currently in this user's inventory
-    :vartype inactiveTools: inventory
+    :vartype inactiveTools: userInventory.UserToolInventory
     :var lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
     :vartype lastSeenGuildId: int
     :var hasLastSeenGuildId: Whether or not the user currently has a lastSeenGuildId
@@ -113,9 +113,9 @@ class BasedUser(serializable.Serializable):
                     inactiveModules : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
                     inactiveWeapons : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
                     inactiveTurrets : inventory.Inventory = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon),
-                    inactiveTools : inventory.Inventory = inventory.TypeRestrictedInventory(toolItem.ToolItem),
+                    inactiveTools : userInventory.UserToolInventory = None,
                     lastSeenGuildId : int = -1, duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
-                    duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase or bool]] = {},
+                    duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
                     ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = []):
@@ -138,7 +138,7 @@ class BasedUser(serializable.Serializable):
                                             (Default empty inventory)
         :param inventory inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
                                             (Default empty inventory)
-        :param inventory inactiveTools: The toolItems currently in this user's inventory (Default empty inventory)
+        :param userInventory.UserToolInventory inactiveTools: The toolItems currently in this user's inventory (Default empty inventory)
         :param int lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
                                     (Default -1)
         :param int duelWins: The total number of duels the user has won (Default 0)
@@ -213,7 +213,7 @@ class BasedUser(serializable.Serializable):
         self.inactiveModules = inactiveModules
         self.inactiveWeapons = inactiveWeapons
         self.inactiveTurrets = inactiveTurrets
-        self.inactiveTools = inactiveTools
+        self.inactiveTools = userInventory.UserToolInventory(self) if inactiveTools is None else inactiveTools
 
         self.lastSeenGuildId = lastSeenGuildId
         self.hasLastSeenGuildId = lastSeenGuildId != -1
@@ -859,7 +859,7 @@ class BasedUser(serializable.Serializable):
         inactiveWeapons = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
         inactiveModules = inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
         inactiveTurrets = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
-        inactiveTools = inventory.TypeRestrictedInventory(toolItem.ToolItem)
+        inactiveTools = userInventory.UserToolInventory(userInventory.USER_PLACEHOLDER)
 
         for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship.fromDict),
                                         ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon.fromDict),
@@ -903,7 +903,7 @@ class BasedUser(serializable.Serializable):
                 if name in bbData.medalObjs:
                     medals.add(bbData.medalObjs[name])
 
-        return BasedUser(**cls._makeDefaults(userDict, ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned", "bountyWinsToday", "dailyBountyWinsReset"),
+        newUser = BasedUser(**cls._makeDefaults(userDict, ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned", "bountyWinsToday", "dailyBountyWinsReset"),
                                                 userID=userID, activeShip=activeShip, inactiveShips=inactiveShips,
                                                 inactiveModules=inactiveModules, inactiveWeapons=inactiveWeapons,
                                                 inactiveTurrets=inactiveTurrets, inactiveTools=inactiveTools,
@@ -911,3 +911,6 @@ class BasedUser(serializable.Serializable):
                                                 ownedMenus=ownedMenus, lifetimeBountyCreditsWon=lifetimeBountyCreditsWon,
                                                 medals=medals,
                                                 guildTransferCooldownEnd=datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) if "guildTransferCooldownEnd" in userDict else None))
+
+        newUser.inactiveTools.owningBUser = newUser
+        return newUser

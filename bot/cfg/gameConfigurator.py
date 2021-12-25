@@ -292,22 +292,22 @@ def loadAllGameObjects():
                 (bbData.builtInUpgradeData, bbData.builtInUpgradeObjs,  shipUpgrade.ShipUpgrade.fromDict),
                 (bbData.builtInTurretData,  bbData.builtInTurretObjs,   turretWeapon.TurretWeapon.fromDict),
                 (bbData.builtInModuleData,  bbData.builtInModuleObjs,   moduleItemFactory.fromDict),
-                (bbData.builtInShipSkinsData,bbData.builtInShipSkins,   shipSkin.ShipSkin.fromDict),
+                # (bbData.builtInShipSkinsData,bbData.builtInShipSkins,   shipSkin.ShipSkin.fromDict),
                 (bbData.medalsData,         bbData.medalObjs,           medal.Medal.fromDict)):
         _loadGameObjects(dataDB, objsDB, deserializer)
 
-    # generate shipSkinTool objects for each shipSkin
-    for currentSkin in bbData.builtInShipSkins.values():
-        # if len(currentSkin.compatibleShips) > 0:
-        toolName = lib.stringTyping.shipSkinNameToToolName(currentSkin.name)
-        if toolName not in bbData.builtInToolObjs:
-            newTool = shipSkinTool.ShipSkinTool(currentSkin, value=gameMaths.shipSkinValueForTL(currentSkin.averageTL),
-                                                builtIn=True)
-            bbData.builtInToolObjs[toolName] = newTool
+    # # generate shipSkinTool objects for each shipSkin
+    # for currentSkin in bbData.builtInShipSkins.values():
+    #     # if len(currentSkin.compatibleShips) > 0:
+    #     toolName = lib.stringTyping.shipSkinNameToToolName(currentSkin.name)
+    #     if toolName not in bbData.builtInToolObjs:
+    #         newTool = shipSkinTool.ShipSkinTool(currentSkin, value=gameMaths.shipSkinValueForTL(currentSkin.averageTL),
+    #                                             builtIn=True)
+    #         bbData.builtInToolObjs[toolName] = newTool
 
-        # Register skin tools in shipSkinToolsBySkin
-        if currentSkin not in bbData.shipSkinToolsBySkin:
-            bbData.shipSkinToolsBySkin[currentSkin] = bbData.builtInToolObjs[toolName]
+    #     # Register skin tools in shipSkinToolsBySkin
+    #     if currentSkin not in bbData.shipSkinToolsBySkin:
+    #         bbData.shipSkinToolsBySkin[currentSkin] = bbData.builtInToolObjs[toolName]
 
     _sortShipKeys()
     _makeShipSpawnRates()
@@ -322,7 +322,7 @@ def loadAllGameObjects():
     # Load in tools
     _loadToolObjects(bbData.builtInToolData, bbData.builtInToolObjs, toolItemFactory.fromDict)
 
-    bbData.builtInCrateObjs["levelUp"] = _makeLevelUpCrates()
+    # bbData.builtInCrateObjs["levelUp"] = _makeLevelUpCrates()
 
     # Fetch bounty names and longest bounty name
     for criminalName in bbData.builtInCriminalData:

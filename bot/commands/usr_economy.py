@@ -9,7 +9,7 @@ from ..lib import gameMaths
 from ..cfg import cfg
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import divisionNameForLevel
-
+from . import util_tempdisabled
 
 botCommands.addHelpSection(0, "economy")
 
@@ -173,7 +173,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     if sendDM:
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
-botCommands.register("shop", cmd_shop, 0, aliases=["store"], allowDM=False, helpSection="economy",
+botCommands.register("shop", util_tempdisabled.err_tempDisabled, 0, aliases=["store"], allowDM=False, helpSection="economy",
                         signatureStr="**shop** *[division-name]* *[item-type]*",
                         shortHelp="Display all items currently for sale. Shop stock is refreshed every six hours. Give an " \
                                     + "item type to only list items of that type.",
@@ -359,7 +359,7 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item)
 
-botCommands.register("buy", cmd_shop_buy, 0, allowDM=False, helpSection="economy",
+botCommands.register("buy", util_tempdisabled.err_tempDisabled, 0, allowDM=False, helpSection="economy",
                         signatureStr="**buy** *[division-name]* **<item-type> <item-number>** *[transfer] [sell]*",
                         shortHelp="Buy the requested item from the shop. Item numbers can be seen in the `shop`." \
                                     + "\n🌎 This command must be used in your **home server**.",
@@ -495,7 +495,7 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item)
 
-botCommands.register("sell", cmd_shop_sell, 0, allowDM=False, helpSection="economy",
+botCommands.register("sell", util_tempdisabled.err_tempDisabled, 0, allowDM=False, helpSection="economy",
                         signatureStr="**sell** *[division-name]* **<item-type> <item-number>** *[clear]*",
                         shortHelp="Sell the requested item from your hangar. Item numbers can be gotten from `hangar`.\n" \
                                     + "🌎 This command must be used in your **home server**.",

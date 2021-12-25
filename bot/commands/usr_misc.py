@@ -206,9 +206,9 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         statsEmbed.add_field(name="Credits balance:", value=0, inline=True)
         statsEmbed.add_field(name="Total value:", value=commaSplitNum(basedUser.defaultUserValue), inline=True)
         statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
-        statsEmbed.add_field(name="Bounty Hunter Level:", value="1")
-        statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - bountyXP))
-        statsEmbed.add_field(name="Prestiges:", value="0")
+        # statsEmbed.add_field(name="Bounty Hunter Level:", value="1")
+        # statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - bountyXP))
+        # statsEmbed.add_field(name="Prestiges:", value="0")
         statsEmbed.add_field(name="Total systems checked:", value=0, inline=True)
         statsEmbed.add_field(name="Total bounties won:", value=0, inline=True)
         statsEmbed.add_field(name="Total earned from bounties:", value=0, inline=True)
@@ -237,12 +237,12 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         statsEmbed.add_field(name="Credits balance:", value=commaSplitNum(userObj.credits), inline=True)
         statsEmbed.add_field(name="Total value:", value=commaSplitNum(userObj.getStatByName("value")), inline=True)
         statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
-        statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
-        if hunterLvl == cfg.maxTechLevel:
-            statsEmbed.add_field(name="XP until next level:", value="*[Max Level]*")
-        else:
-            statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - userObj.bountyHuntingXP))
-        statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
+        # statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
+        # if hunterLvl == cfg.maxTechLevel:
+        #     statsEmbed.add_field(name="XP until next level:", value="*[Max Level]*")
+        # else:
+        #     statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - userObj.bountyHuntingXP))
+        # statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
         statsEmbed.add_field(name="Total systems checked:", value=commaSplitNum(userObj.systemsChecked), inline=True)
         statsEmbed.add_field(name="Total bounties won:", value=commaSplitNum(userObj.bountyWins), inline=True)
         statsEmbed.add_field(name="Total credits earned from bounties:", value=commaSplitNum(userObj.lifetimeBountyCreditsWon),
@@ -253,117 +253,11 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         statsEmbed.add_field(name="Total credits won:", value=commaSplitNum(userObj.duelCreditsWins), inline=True)
         statsEmbed.add_field(name="Total credits lost:", value=commaSplitNum(userObj.duelCreditsLosses), inline=True)
 
-    if hunterLvl == 10:
-        levelProgress = 1
-
-    # Colour behind unfilled area of the xp bar
-    xpBarSil = lib.graphics.copyXPBarSilhouette()
-    # Mask describing which parts of the bar should be filled
-    xpBarMask = lib.graphics.progressBar(cfg.xpBarWidth, cfg.xpBarHeight, levelProgress)
-    # Image to mask with xpBarMask, filling the bar
-    xpBarFill = lib.graphics.copyXPBarFill(divisionNameForLevel(hunterLvl))
-    # User profile background image
-    if cfg.userProfileBackground:
-        profileBackground = lib.graphics.copyUserProfileBackground()
-    else:
-        profileBackground = Image.new("RGBA", (cfg.userProfileImgWidth, cfg.userProfileImgHeight), (0, 0, 0, 0))
-
-    # Reader for the final image, to be given to discord
-    userProfileFile = None
-    # The final image, in binary mode, to be read by userProfileFile
-    userProfileBytes = None
-    # Tracker so that we don't accidentally closeAll twice
-    filesOpen = True
-
-    xPad = int(profileBackground.size[0] * cfg.userProfileEdgePaddingX)
-    yPad = int(profileBackground.size[1] * cfg.userProfileEdgePaddingY)
-
-    def closeAll():
-        """Close all active images and readers in use for constructing the profile image
-        """
-        if filesOpen:
-            xpBarSil.close()
-            xpBarMask.close()
-            xpBarFill.close()
-            profileBackground.close()
-            if userProfileBytes is not None:
-                userProfileBytes.close()
-            if userProfileFile is not None:
-                userProfileFile.close()
-
-    # Before attempting to build XP bar, verify image sizes
-    # No need to check bar sizes, these are guaranteed by lib.graphics
-    # if xpBarSil.size != xpBarMask or xpBarSil.size != xpBarFill.size
-    # Ensure the XP bar fits within the profile background. Could fix this later with scaling if needed.
-    if xpBarSil.size[0] > profileBackground.size[0] or xpBarSil.size[1] > profileBackground.size[1]:
-        botState.logger.log("usr_misc", "cmd_stats", "XP Bar does not fit within user profile image. Image" \
-                            + f"sizes: xpBarSil {xpBarSil.size}, profileBackground {profileBackground.size}",
-                            eventType="XPBAR_DIM")
-        statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
-                                    + "The error has been logged.")
-        closeAll()
-        filesOpen = False
-    else:
-        try:
-            # Create the XP bar, by masking the fill image and placing it on top of the silhouette
-            xpBarFill = Image.composite(xpBarFill, xpBarSil, xpBarMask)
-        except ValueError as e:
-            botState.logger.log("usr_misc", "cmd_stats", "Received images of differing sizes when masking xp bar fill. Image" \
-                                + f"sizes: xpBarFill {xpBarFill.size}, xpBarSil {xpBarSil.size}, xpBarMask {xpBarMask.size}",
-                                exception=e)
-            statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
-                                        + "The error has been logged.")
-            closeAll()
-            filesOpen = False
-        else:
-            # Apply progress bar outlines
-            xpBarFill = lib.graphics.applyProgressBarOutline(xpBarFill, 1, (0, 0, 0, 0), lineColour=cfg.xpBarOutlineColour,
-                                                    lineWidth=cfg.xpBarOutlineWidth)
-            # Calculate the coordinates to paste the bar onto the background at. This is currently bottom middle.
-            barPasteLocX = int(profileBackground.size[0] / 2) - int(xpBarFill.size[0] / 2)
-            barPasteLocY = profileBackground.size[1] - xpBarFill.size[1] - yPad
-            try:
-                profileBackground.paste(xpBarFill, (barPasteLocX, barPasteLocY), xpBarFill)
-            except ValueError as e:
-                botState.logger.log("usr_misc", "cmd_stats", "Received images of differing sizes when combining xp bar " \
-                                    + f"layers. Image sizes: xpBarFill {xpBarFill.size}, profileBackground " \
-                                    + str(profileBackground.size), exception=e)
-                statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
-                                            + "The error has been logged.")
-                closeAll()
-                filesOpen = False
-            else:
-                textDraw: ImageDraw.ImageDraw = ImageDraw.Draw(profileBackground)
-                # Load font
-                font = ImageFont.truetype(cfg.userProfileFont, cfg.userProfileFontSize)
-                # Add level and division
-                textDraw.text((xPad, yPad), f"Level {hunterLvl} {divisionNameForLevel(hunterLvl).title()}",
-                                cfg.userProfileLevelColour, font=font)
-                # Build current XP string
-                currentXPStr = commaSplitNum(bountyXP) + "/"
-                # Calculate size of current XP string
-                currentXPStrSize = font.getsize(currentXPStr)
-                # Build next XP string
-                nextXPStr = commaSplitNum(nextXP) + "xp"
-                # Calculate size of next XP string
-                nextXPStrSize = font.getsize(nextXPStr)
-                # Draw next XP string to image
-                textDraw.text((cfg.userProfileImgWidth - nextXPStrSize[0] - xPad, yPad), nextXPStr,
-                                cfg.userProfileNextXPColour, font=font)
-                # Draw current XP string to image
-                textDraw.text((cfg.userProfileImgWidth - currentXPStrSize[0] - nextXPStrSize[0] - xPad, yPad), currentXPStr,
-                                cfg.userProfileXPColour, font=font)
-                userProfileBytes = BytesIO()
-                profileBackground.save(userProfileBytes, "PNG")
-                userProfileBytes.seek(0)
-
-                userProfileFile = discord.File(userProfileBytes, filename="userProfile.png")
-                statsEmbed.set_image(url="attachment://userProfile.png")
-
+    
     # send the stats embed
-    await message.reply(file=userProfileFile, mention_author=False, embed=statsEmbed)
-    closeAll()
-    filesOpen = False
+    await message.reply(mention_author=False, embed=statsEmbed)
+    # closeAll()
+    # filesOpen = False
 
 botCommands.register("stats", cmd_stats, 0, aliases=["profile"], forceKeepArgsCasing=True, allowDM=True,
                         signatureStr="**stats** *[user]*",
