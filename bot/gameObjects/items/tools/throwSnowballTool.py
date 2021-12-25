@@ -123,4 +123,4 @@ class ThrowSnowballTool(toolItem.ToolItem):
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool
         """
-        return cls(**cls._makeDefaults(data, ignores=("type",)))
+        return cls(**cls._makeDefaults(data, ignores=("type","emoji")))
