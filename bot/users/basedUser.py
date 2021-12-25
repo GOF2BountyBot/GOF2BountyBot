@@ -772,6 +772,8 @@ class BasedUser(serializable.Serializable):
             return self.inactiveTurrets
         elif isinstance(item, toolItem.ToolItem):
             return self.inactiveTools
+        elif isinstance(item, moduleItem.ModuleItem):
+            return self.inactiveModules
 
 
     def hasMenuOfTypeID(self, menuTypeID: str) -> bool:
