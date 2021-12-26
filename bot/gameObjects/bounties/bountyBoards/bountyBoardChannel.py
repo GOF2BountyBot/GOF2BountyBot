@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel
 from discord.message import MessageReference
 
@@ -45,6 +45,7 @@ def makeBountyEmbed(bounty : bounty.Bounty) -> Embed:
         routeStr += ", "
     embed.add_field(name="**Route:**", value=routeStr[:-2], inline=False)
     embed.add_field(name="-", value="> ~~Already checked systems~~\n> **Criminal spotted here recently**")
+    embed.add_field(name="Bounty ends:", value=f"<t:{int(bounty.endTime)}:R>")
     return embed
 
 
@@ -188,6 +189,27 @@ class BountyBoardChannel(serializable.Serializable):
         return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", "bountyBoards",
                                                             "BBC", meta, *args, **kwargs)
 
+
+    async def editMessageWithRetry(self, message: Message, meta: str, logUrls: bool = True, *args, **kwargs) -> \
+            Optional[Message]:
+        """Edit a message. Specify the new content using *args and **kwargs
+
+        :param Message message: The message to edit
+        :param meta: An extra string to describe the message, only used in exceptions
+        :type meta: str
+        :param logUrls: Whether or not to include a jump url to the message in logs (Default True)
+        :raises ValueError: If self.channel has not yet been initialized
+        :return: The message after editing, or None if there was an error
+        :rtype: Optional[Message]
+        """
+        if self.channel is None:
+            raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
+
+        meta = self.prependJumpUrl(message.id, logUrls, meta)
+        await lib.discordUtil.asyncOperationWithRetry(message.edit, "edit message", "bountyBoards",
+                                                        "BBC", meta, *args, **kwargs)
+        return message
+
     
     def guildAndChannelMeta(self) -> str:
         """Construct a string detailing the guild and channel where this BBC lives.
@@ -202,30 +224,41 @@ class BountyBoardChannel(serializable.Serializable):
         return f"g:{self.channel.guild.name}#{self.channel.guild.id} c:{self.channel.name}#{self.channel.id}"
 
 
-    def makeEscapedBountiesMsgKwargs(self) -> Dict[str, Union[str, Embed]]:
+    def makeEscapedBountiesMsgKwargs(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()) -> Dict[str, Union[str, Embed]]:
         """Construct an embed listing all escaped bounties in the division.
 
         :return: A kwargs mapping detailing the content of the BBC's escaped bounties message
         :rtype: Dict[str, Union[str, Embed]]
         """
-        if any(self.division.escapedBounties.values()):
+        if ignoredBounties:
+            validBounties: Dict[int, List[bounty.Bounty]] = {}
+            for level, bounties in self.division.escapedBounties.items():
+                validBounties.update({level: [b for b in bounties.values() if b not in ignoredBounties]})
+        else:
+            validBounties = {l: [b for b in bounties.values()] for l, bounties in self.division.escapedBounties.items()}
+        
+        if any(validBounties.items()):
             embed = Embed()
             embed.colour = Colour.random()
             embed.title = "Escaped Bounties"
-            if any(self.division.escapedBounties.values()):
-                embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed amount of time."
-                for level, bounties in self.division.escapedBounties.items():
-                    if bounties:
-                        embed.add_field(name=f"Level {level}", value=", ".join(c.name for c in bounties))
+            embed.description = "Escaped bounties respawn with the same loadout and a new route after a fixed "\
+                                + "amount of time."
+            for level, newBounties in validBounties.items():
+                if newBounties:
+                    embed.add_field(name=f"Level {level}", value=", ".join(b.criminal.name for b in newBounties))
         else:
             embed = None
 
         return {"embed": embed, "content": "‎"}
 
 
-    async def updateEscapedBountiesMessage(self):
+    async def updateEscapedBountiesMessage(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()):
+        """Rebuild the escaped bounties message with new details of any escaped bounties
+        """
         if self.escapedBountiesMessage is not None:
-            await self.escapedBountiesMessage.edit(**self.makeEscapedBountiesMsgKwargs())
+            self.escapedBountiesMessage = await self.editMessageWithRetry(self.escapedBountiesMessage,
+                                                                            "escaped bounties",
+                                                                            **self.makeEscapedBountiesMsgKwargs(ignoredBounties=ignoredBounties))
         if self.escapedBountiesMessage is None:
             await self.rebuild()
 
@@ -325,7 +358,8 @@ class BountyBoardChannel(serializable.Serializable):
         if self.escapedBountiesMsgToBeLoaded == -1:
             doReload = True
         else:
-            tasks.add(self._loadEscapedBountiesMessage(logUrls))
+            await self._loadEscapedBountiesMessage(logUrls)
+            doReload = self.escapedBountiesMessage is None
 
         if not self.messagesToBeLoaded:
             if self.noBountiesMsgToBeLoaded != -1:
@@ -395,7 +429,7 @@ class BountyBoardChannel(serializable.Serializable):
         return not bool(self.bountyMessages)
 
 
-    async def addBounty(self, bounty : bounty.Bounty, message : Message):
+    async def addBounty(self, bounty : bounty.Bounty, message : Message, logUrls: bool = True):
         """Treat the given message as a listing for the given bounty, and store it in the database.
         If the BBC was previously empty, remove the empty bounty board message if one exists.
         If a HTTP error is thrown when attempting to remove the empty board message,
@@ -403,6 +437,7 @@ class BountyBoardChannel(serializable.Serializable):
 
         :param Bounty bounty: The bounty to associate with the given message
         :param discord.Message message: The message acting as a listing for the given bounty
+        :param logUrls: Whether to generate a jump URL, or prepend the ID instead
         """
         removeMsg = False
         if self.isEmpty():
@@ -417,24 +452,8 @@ class BountyBoardChannel(serializable.Serializable):
         self.bountyMessages[bounty.criminal] = message
 
         if removeMsg:
-            try:
-                await self.noBountiesMessage.delete()
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        await self.noBountiesMessage.delete()
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    print("addBounty HTTPException")
-            except Forbidden:
-                print("addBounty Forbidden")
-            except AttributeError:
-                print("addBounty no message")
+            await deleteMessageWithRetry(self.noBountiesMessage,
+                                        self.prependJumpUrl(self.noBountiesMessage.id, logUrls, "no bounties"))
 
 
     async def removeCriminal(self, criminal : criminal.Criminal):
@@ -456,44 +475,11 @@ class BountyBoardChannel(serializable.Serializable):
                                     + criminal.name,
                                 category='bountyBoards', eventType="LISTING_REM-NO_EXST")
         # listingMsg = await self.channel.fetch_message(self.bountyMessages[criminal])
-        try:
-            await self.bountyMessages[criminal].delete()
-        except HTTPException:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "HTTPException thrown when removing bounty listing message for criminal: " \
-                                + criminal.name, category='bountyBoards', eventType="RM_LISTING-HTTPERR")
-        except Forbidden:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "Forbidden exception thrown when removing bounty listing message for criminal: " \
-                                + criminal.name, category='bountyBoards', eventType="RM_LISTING-FORBIDDENERR")
-        except NotFound:
-            botState.logger.log("BountyBoardChannel", "removeCriminal",
-                                "Bounty listing message no longer exists, BBC entry removed: " + criminal.name,
-                                category='bountyBoards', eventType="RM_LISTING-NOT_FOUND")
+        await deleteMessageWithRetry(self.bountyMessages[criminal], f"bounty: {criminal.name}")
         del self.bountyMessages[criminal]
 
         if self.isEmpty():
-            try:
-                self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-
-            except HTTPException:
-                succeeded = False
-                for tryNum in range(cfg.httpErrRetries):
-                    try:
-                        self.noBountiesMessage = await self.channel.send(embed=noBountiesEmbed)
-                        succeeded = True
-                    except HTTPException:
-                        await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                        continue
-                    break
-                if not succeeded:
-                    botState.logger.log("BBC", "remBty", "HTTPException thrown when sending no bounties message",
-                                category='bountyBoards', eventType="NOBTYMSG_LOAD-HTTPERR")
-                self.noBountiesMessage = None
-            except Forbidden:
-                botState.logger.log("BBC", "remBty", "Forbidden exception thrown when sending no bounties message",
-                            category='bountyBoards', eventType="NOBTYMSG_LOAD-FORBIDDENERR")
-                self.noBountiesMessage = None
+            await self._sendNoBountiesMessage()
 
 
     async def removeBounty(self, bounty : bounty.Bounty):
@@ -525,28 +511,8 @@ class BountyBoardChannel(serializable.Serializable):
                         + bounty.criminal.name, category='bountyBoards', eventType="LISTING_UPD-NO_EXST")
 
         content = self.bountyMessages[bounty.criminal].content
-        try:
-            await self.bountyMessages[bounty.criminal].edit(content=content, embed=makeBountyEmbed(bounty))
-        except HTTPException:
-            succeeded = False
-            for tryNum in range(cfg.httpErrRetries):
-                try:
-                    await self.bountyMessages[bounty.criminal].edit(content=content, embed=makeBountyEmbed(bounty))
-                    succeeded = True
-                except HTTPException:
-                    await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
-                    continue
-                break
-            if not succeeded:
-                botState.logger.log("BBC", "updBtyMsg", "HTTPException thrown when updating bounty listing for criminal: " \
-                            + bounty.criminal.name, category='bountyBoards', eventType="UPD_LSTING-HTTPERR")
-        except Forbidden:
-            botState.logger.log("BBC", "updBtyMsg", "Forbidden exception thrown when updating bounty listing for criminal: " \
-                        + bounty.criminal.name, category='bountyBoards', eventType="UPD_LSTING-FORBIDDENERR")
-        except NotFound:
-            botState.logger.log("BBC", "updBtyMsg", "Bounty listing message no longer exists, BBC entry removed: " \
-                        + bounty.criminal.name, category='bountyBoards', eventType="UPD_LSTING-NOT_FOUND")
-            await self.removeBounty(bounty)
+        await self.editMessageWithRetry(self.bountyMessages[bounty.criminal], f"bounty: {bounty.criminal.name}",
+                                        content=content, embed=makeBountyEmbed(bounty))
 
 
     async def clear(self):

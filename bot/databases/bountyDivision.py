@@ -297,7 +297,41 @@ class BountyDivision(Serializable):
         if self.isFull() and self.hasMinTLBounty():
             self.stopBountySpawner()
 
-        await self.owningDB.owningBasedGuild.announceNewBounty(bounty)
+        await self.owningDB.owningBasedGuild.announceNewBounty(bounty, isRespawn=True)
+
+
+    def _tableForBounty(self, bounty: Bounty) -> AliasableDict[Criminal, Bounty]:
+        """Convenience method to retrieve the dict where a bounty would be stored, assuming it exists in this division
+
+        :param bounty: The bounty whose dict to get
+        :type bounty: Bounty
+        :return: the dict where a bounty would be stored, assuming it exists in this division
+        :rtype: AliasableDict[Criminal, Bounty]
+        """
+        return (self.escapedBounties if bounty.isEscaped() else self.bounties)[bounty.techLevel]
+
+
+    async def announceBountyExpiry(self, bounty: Bounty, dbReload: bool = False):
+        """Announce the expiry of a bounty, updating any existing bountyboard channel, and sending a message in the play
+        channel. Does not handle removal of the bounty from the division's records
+
+        :param bounty: The bounty that expired
+        :type bounty: Bounty
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :raises KeyError: If no record is kept for the bounty
+        """
+        if not dbReload and bounty.criminal not in self._tableForBounty(bounty):
+            raise KeyError(f"Unknown bounty: {bounty.criminal.name}")
+
+        if self.bountyBoardChannel is not None:
+            if bounty.isEscaped():
+                await self.bountyBoardChannel.updateEscapedBountiesMessage(ignoredBounties=(bounty,))
+            elif self.bountyBoardChannel.hasMessageForBounty(bounty):
+                await self.bountyBoardChannel.removeBounty(bounty)
+                
+        await self.owningDB.owningBasedGuild.announceBountyExpired(bounty)
 
 
     def setTemp(self, newTemp: float, updateActive: bool = True):
@@ -463,6 +497,8 @@ class BountyDivision(Serializable):
                 tlBounties.clear()
         if wasFull or not self.hasMinTLBounty():
             self.tryStartBountySpawner()
+        if self.bountyBoardChannel is not None:
+            await self.bountyBoardChannel.updateEscapedBountiesMessage()
 
 
     async def resetNewBountyCool(self):

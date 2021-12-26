@@ -226,6 +226,15 @@ class TimedTask:
         self.gravestone = False
 
 
+    def syncForceExpireNoFuncNoReschedule(self):
+        """Synchronously force the expiry of the task, but skipping the expiry function and rescheduling behaviour.
+        """
+        # Update expiryTime
+        self.expiryTime = datetime.utcnow()
+        # Mark for removal
+        self.gravestone = True
+
+
     async def forceExpire(self, callExpiryFunc: bool = True):
         """Force the expiry of this task.
         Handles calling of this task's expiryFunction, and rescheduling if specified. Set's the task's expiryTime to now.
