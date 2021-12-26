@@ -9,7 +9,7 @@ from .items import shipItem
 
 
 def _saveShip(ship):
-    shipData = bbData.builtInShipData[ship.name]
+    shipData = bbData.builtInShipData[ship]
     shipTL = shipData["techLevel"]
     shipPath = shipData["path"]
     del shipData["techLevel"]
@@ -36,7 +36,7 @@ class ShipSkin(serializable.Serializable):
         if len(self.compatibleShips) > 0:
             self.averageTL = 0
             for ship in self.compatibleShips:
-                self.averageTL += bbData.builtInShipData[ship.name]["techLevel"]
+                self.averageTL += bbData.builtInShipData[ship]["techLevel"]
             self.averageTL = int(self.averageTL / len(self.compatibleShips))
         else:
             self.averageTL = -1
@@ -81,10 +81,10 @@ class ShipSkin(serializable.Serializable):
 
 
     async def addShip(self, ship, rendersChannel):
-        if ship.name not in bbData.builtInShipData:
+        if ship not in bbData.builtInShipData:
             raise KeyError("Ship not found: '" + str(ship) + "'")
 
-        shipData = bbData.builtInShipData[ship.name]
+        shipData = bbData.builtInShipData[ship]
 
         if not shipData["skinnable"]:
             raise ValueError("Attempted to render a skin onto an non-skinnable ship: '" + str(ship) + "'")
@@ -140,10 +140,10 @@ class ShipSkin(serializable.Serializable):
 
 
     async def removeShip(self, ship, rendersChannel):
-        if ship.name not in bbData.builtInShipData:
+        if ship not in bbData.builtInShipData:
             raise KeyError("Ship not found: '" + str(ship) + "'")
 
-        shipData = bbData.builtInShipData[ship.name]
+        shipData = bbData.builtInShipData[ship]
 
         if ship in self.compatibleShips:
             self.compatibleShips.remove(ship)
