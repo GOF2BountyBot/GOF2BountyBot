@@ -297,7 +297,18 @@ class BountyDivision(Serializable):
         if self.isFull() and self.hasMinTLBounty():
             self.stopBountySpawner()
 
-        await self.owningDB.owningBasedGuild.announceNewBounty(bounty)
+        await self.owningDB.owningBasedGuild.announceNewBounty(bounty, isRespawn=True)
+
+
+    def _tableForBounty(self, bounty: Bounty) -> AliasableDict[Criminal, Bounty]:
+        """Convenience method to retrieve the dict where a bounty would be stored, assuming it exists in this division
+
+        :param bounty: The bounty whose dict to get
+        :type bounty: Bounty
+        :return: the dict where a bounty would be stored, assuming it exists in this division
+        :rtype: AliasableDict[Criminal, Bounty]
+        """
+        return (self.escapedBounties if bounty.isEscaped() else self.bounties)[bounty.techLevel]
 
 
     async def announceBountyExpiry(self, bounty: Bounty, dbReload: bool = False):
@@ -311,14 +322,13 @@ class BountyDivision(Serializable):
                                 (Default False)
         :raises KeyError: If no record is kept for the bounty
         """
-        if bounty.isEscaped():
-            if self.bountyBoardChannel is not None:
-                await self.bountyBoardChannel.updateEscapedBountiesMessage((bounty,))
+        if not dbReload and bounty.criminal not in self._tableForBounty(bounty):
+            raise KeyError(f"Unknown bounty: {bounty.criminal.name}")
 
-        else:
-            if not dbReload and bounty.criminal not in self.bounties[bounty.techLevel]:
-                raise KeyError(f"Unknown bounty: {bounty.criminal.name}")
-            if self.bountyBoardChannel is not None and self.bountyBoardChannel.hasMessageForBounty(bounty):
+        if self.bountyBoardChannel is not None:
+            if bounty.isEscaped():
+                await self.bountyBoardChannel.updateEscapedBountiesMessage(ignoredBounties=(bounty,))
+            elif self.bountyBoardChannel.hasMessageForBounty(bounty):
                 await self.bountyBoardChannel.removeBounty(bounty)
                 
         await self.owningDB.owningBasedGuild.announceBountyExpired(bounty)
