@@ -7,7 +7,7 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
-from ..gameObjects.bounties.bounty import Bounty
+from ..gameObjects.bounties.bounty import Bounty, CheckResult
 from ..scheduling import timedTask
 from ..reactionMenus import reactionDuelChallengeMenu, expiryFunctions, confirmationReactionMenu
 from ..users import basedUser, basedGuild
@@ -92,7 +92,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 # Check the passed system in current bounty
                 checkResult = bounty.check(requestedSystem, message.author.id)
                 # If current bounty resides in the requested system
-                if checkResult == 3:
+                if checkResult == CheckResult.CORRECT:
                     duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
                                                             cfg.duelVariancePercent)
                     try:
@@ -210,11 +210,11 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         toPop.append(bounty)
 
                 # Update routes in this division containing the checked system
-                if checkResult in [2, 3]:
+                if checkResult in [CheckResult.INCORRECT, CheckResult.CORRECT]:
                     systemInBountyRoute = True
-                    await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == 3)
+                    await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == CheckResult.CORRECT)
                     # Check if any bounties are close to the requested system in their route, defined by cfg.closeBountyThreshold
-                    if checkResult == 2 and \
+                    if checkResult == CheckResult.INCORRECT and \
                             0 < bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem) < cfg.closeBountyThreshold:
                         # Print any close bounty names
                         sightedCriminalsStr += "\n**       **• Local security forces spotted **" \
