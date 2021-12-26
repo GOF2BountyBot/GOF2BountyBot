@@ -146,23 +146,31 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         levelUpMsg = ""
                         for userID in rewards:
                             currentBBUser = botState.usersDB.getUser(userID)
-                            currentBBUser.credits += rewards[userID]["reward"]
-                            currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
-                            currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
                                 rewards[userID]["xp"] = 0
                                 continue
                             
+                            oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
+                            guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
+                            # If the bounty is in the highest division, but the user has since moved to a new division
+                            # (i.e they have prestiged), do not give them rewards.
+                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
+                            if bounty.division == guildMaxDiv and oldDiv != guildMaxDiv:
+                                continue
+
                             currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+
+                            currentBBUser.credits += rewards[userID]["reward"]
+                            currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
+                            currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if newLevel > oldLevel:
                                 levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
                                 currentBBUser.inactiveTools.addItem(levelUpCrate)
                                 
-                                oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
                                 newDiv = callingGuild.bountiesDB.divisionForLevel(newLevel)
                                 if oldDiv is newDiv:
                                     levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
