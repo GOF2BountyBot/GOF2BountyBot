@@ -1415,18 +1415,26 @@ async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isD
         await message.channel.send(errmsg)
         return
 
+    tasks = lib.discordUtil.BasicScheduler()
+
     bountyObj: bounty.Bounty = callingBBGuild.bountiesDB.getBounty(criminalName)
     if bountyObj.isEscaped():
         await message.reply(":x: This bounty is already escaped")
         bountyObj.escape(dbReload=True)
         if bountyObj.division.bountyBoardChannel is not None:
-            await callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True)
-            await bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage()
+            tasks.add(callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True))
+            tasks.add(bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage())
+            await tasks.wait()
+            tasks.logExceptions(logCategory="escapedBounties", className="dev_bounties",
+                                funcName="dev_cmd_force_escape_bounty")
     else:
         bountyObj.escape()
         if bountyObj.division.bountyBoardChannel is not None:
-            await callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True)
-            await bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage()
+            tasks.add(callingBBGuild.updateBountyBoardChannel(bountyObj, bountyComplete=True))
+            tasks.add(bountyObj.division.bountyBoardChannel.updateEscapedBountiesMessage())
+            await tasks.wait()
+            tasks.logExceptions(logCategory="escapedBounties", className="dev_bounties",
+                                funcName="dev_cmd_force_escape_bounty")
         await message.reply("✅ Bounty escaped successfully")
 
 botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
