@@ -36,7 +36,7 @@ botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *
                                 + "about it, or give a page number or give a section name for brief info about a set of " \
                                 + "commands. These are the currently valid section names:\n• " \
                                 + '\n• '.join(['Bounties', "Economy", "GitHub", "GOF2 Info", "Home Servers", "Kaamo",
-                                                "Loma", 'Miscellaneous', ]),
+                                                "Loma", 'Misc']),
                      useDoc=False)
 
 
