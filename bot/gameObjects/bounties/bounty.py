@@ -353,8 +353,7 @@ class Bounty(serializable.Serializable):
             raise ValueError("Attempted to respawn on a bounty that is not awaiting respawn: " + self.criminal.name)
 
         respawnArgs = {"newBounty": self,
-                        "newConfig": BountyConfig(faction=self.criminal.faction,
-                                                                techLevel=self.techLevel)}
+                        "newConfig": self.makeRespawnConfig()}
         await self.division.owningDB.owningBasedGuild.spawnAndAnnounceBounty(respawnArgs, isRespawn=True)
         # This is handled by spawnAndAnnounceBounty
         # self.division.owningDB.removeEscapedCriminal(self.criminal)
@@ -392,7 +391,7 @@ class Bounty(serializable.Serializable):
         :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
         :rtype: BountyConfig
         """
-        return BountyConfig(faction=self.faction, name=self.name, isPlayer=self.criminal.isPlayer,
+        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer,
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 
