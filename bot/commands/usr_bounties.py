@@ -1,3 +1,4 @@
+from typing import Dict
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -7,7 +8,7 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
-from ..gameObjects.bounties.bounty import Bounty
+from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
 from ..scheduling import timedTask
 from ..reactionMenus import reactionDuelChallengeMenu, expiryFunctions, confirmationReactionMenu
 from ..users import basedUser, basedGuild
@@ -92,7 +93,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 # Check the passed system in current bounty
                 checkResult = bounty.check(requestedSystem, message.author.id)
                 # If current bounty resides in the requested system
-                if checkResult == 3:
+                if checkResult == CheckResult.CORRECT:
                     duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
                                                             cfg.duelVariancePercent)
                     try:
@@ -143,26 +144,57 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
 
                         # reward all contributing users
                         rewards = bounty.calcRewards()
+                        rewardsMeta = {i: RewardsMeta.NONE for i in rewards}
+
+                        # userID : reward
+                        distributeRewards: Dict[int, int] = {}
+                        guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
+
+                        for userID in rewards:
+                            currentBBUser: basedUser.BasedUser = botState.usersDB.getUser(userID)
+                            currentLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
+                            currentDiv = callingGuild.bountiesDB.divisionForLevel(currentLevel)
+                            
+                            # If the bounty is in the highest division, but the user has since moved to a new division
+                            # (i.e they have prestiged), Share their rewards to the other contributors
+                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
+                            if bounty.division == guildMaxDiv and currentDiv != guildMaxDiv:
+                                rewardsMeta[userID] = RewardsMeta.USER_PRESTIGED | rewardsMeta[userID]
+                                distributeRewards[userID] = rewards[userID]["reward"]
+
+                        # share rewards lost due to prestiging
+                        if distributeRewards:
+                            totalToShare = sum(distributeRewards.values())
+                            receiverIDs = [i for i in rewards if i not in distributeRewards]
+                            each = int(totalToShare / len(receiverIDs))
+                            for receiverID in receiverIDs:
+                                rewards[receiverID]["reward"] += each
+
                         levelUpMsg = ""
                         for userID in rewards:
+                            # If the bounty is in the highest division, but the user has since moved to a new division
+                            # (i.e they have prestiged), Share their rewards to the other contributors
+                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
+                            if RewardsMeta.USER_PRESTIGED & rewardsMeta[userID]:
+                                continue
+
                             currentBBUser = botState.usersDB.getUser(userID)
                             currentBBUser.credits += rewards[userID]["reward"]
                             currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
-                            currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
-                                rewards[userID]["xp"] = 0
                                 continue
-                            
+
                             currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
+                            currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if newLevel > oldLevel:
                                 levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
                                 currentBBUser.inactiveTools.addItem(levelUpCrate)
                                 
-                                oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
                                 newDiv = callingGuild.bountiesDB.divisionForLevel(newLevel)
                                 if oldDiv is newDiv:
                                     levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
@@ -199,7 +231,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             await message.channel.send(levelUpMsg)
 
                         # Announce the bounty has been completed
-                        await callingGuild.announceBountyWon(bounty, rewards, message.author)
+                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
                         await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
 
                         # Raise guild's activity temperature for this bounty's tl
@@ -210,11 +242,11 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         toPop.append(bounty)
 
                 # Update routes in this division containing the checked system
-                if checkResult in [2, 3]:
+                if checkResult in [CheckResult.INCORRECT, CheckResult.CORRECT]:
                     systemInBountyRoute = True
-                    await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == 3)
+                    await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == CheckResult.CORRECT)
                     # Check if any bounties are close to the requested system in their route, defined by cfg.closeBountyThreshold
-                    if checkResult == 2 and \
+                    if checkResult == CheckResult.INCORRECT and \
                             0 < bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem) < cfg.closeBountyThreshold:
                         # Print any close bounty names
                         sightedCriminalsStr += "\n**       **• Local security forces spotted **" \

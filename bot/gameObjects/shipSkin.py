@@ -74,10 +74,10 @@ class ShipSkin(serializable.Serializable):
         :return: True if ship is skinnable and compatible with this skin, False otherwise
         :rtype: bool
         """
-        if ship not in bbData.builtInShipData:
+        if ship.name not in bbData.builtInShipData:
             raise KeyError("Ship not found: '" + str(ship) + "'")
 
-        return bbData.builtInShipData[ship]["skinnable"] and (self.allShips or ship.name in self.compatibleShips)
+        return bbData.builtInShipData[ship.name]["skinnable"] and (self.allShips or ship.name in self.compatibleShips)
 
 
     async def addShip(self, ship, rendersChannel):

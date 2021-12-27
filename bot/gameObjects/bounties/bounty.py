@@ -13,6 +13,44 @@ from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
 from ..items.shipItem import Ship
+from enum import Enum
+
+
+class CheckResult(Enum):
+    """Indicate the result of a check. Does not indicate the result of the proceeding duel.
+    
+    0 => This system is not in the bounty route.
+    1 => this system has already been checked.
+    2 => The system was unchecked, but is not the answer.
+    3 => answer found.
+    """
+    NOT_FOUND = 0
+    ALREADY_CHECKED = 1
+    INCORRECT = 2
+    CORRECT = 3
+
+
+class RewardsMeta(Enum):
+    """Binary flags representing special cases to apply to giving rewards for checking a bounty's route
+
+    none: no flags
+    prestige: user has since prestiged, so they dont get xp and their credits are shared to the other contributor(s)
+    """
+    NONE = 0b0
+    USER_PRESTIGED = 0b1
+
+    def __and__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value & other.value
+        else:
+            return self.value & other
+
+    
+    def __or__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value | other.value
+        else:
+            return self.value | other
 
 
 class Bounty(serializable.Serializable):
@@ -172,7 +210,7 @@ class Bounty(serializable.Serializable):
         self.hasShip = True
 
 
-    def check(self, system : str, userID : int) -> int:
+    def check(self, system : str, userID : int) -> CheckResult:
         """Check a system along the route. The integer returned by this method indicates the results of the check:
         0 => This system is not in the bounty route.
         1 => this system has already been checked.
@@ -185,14 +223,14 @@ class Bounty(serializable.Serializable):
         :rtype: int
         """
         if system not in self.route:
-            return 0
+            return CheckResult.NOT_FOUND
         elif self.systemChecked(system):
-            return 1
+            return CheckResult.ALREADY_CHECKED
         else:
             self.checked[system] = userID
             if self.answer == system:
-                return 3
-            return 2
+                return CheckResult.CORRECT
+            return CheckResult.INCORRECT
 
 
     def systemChecked(self, system : str) -> bool:
