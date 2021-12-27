@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
 from discord import TextChannel
-from typing import List, Dict, Union, cast
+from typing import Any, List, Dict, Union, cast
 import asyncio
 from aiohttp import client_exceptions
 import random
@@ -16,6 +16,47 @@ from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..baseClasses import serializable
 from ..databases import bountyDivision
+
+
+def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:
+    """Format the value of a checking reward according to meta flags, if any
+
+    :param reward: The reward to format (e.g an amount of credits)
+    :type reward: str
+    :param str units: The units of the reward, e.g xp/credits/etc
+    :param flags: bounty.RewardMeta flags
+    :type flags: int
+    :return: reward, with any extra formatting added to represent flags
+    :rtype: str
+    """
+    out = f"{reward} {units}"
+    if bounty.RewardsMeta.USER_PRESTIGED & flags:
+        out = f"~~{out}~~"
+    return out
+
+
+def bountyResultsFieldKwargs(place: int, userID: int, userRewards: Dict[str, Union[int, bool]], userMeta: bounty.RewardsMeta) \
+        -> Dict[str, Any]:
+    """Build kwargs to create a new field, representing a user's contributions to solving a bounty
+    """
+    creditsGained = commaSplitNum(userRewards["reward"])
+    systemsChecked = userRewards["checked"]
+    xpGained = commaSplitNum(userRewards["xp"])
+    winner = userRewards["won"]
+
+    kwargs: Dict[str, Union[str, Any]] = dict(
+        name=f"{place}. {'🏆' if winner else ''} {formatRewardByMeta(creditsGained, 'credits', userMeta)}:",
+        value=f"<@{userID}> checked {systemsChecked}" \
+            + f" system{'s' if int(systemsChecked) != 1 else ''}",
+        inline=False
+    )
+
+    if bounty.RewardsMeta.USER_PRESTIGED & userMeta:
+        kwargs["value"] += "\n(user prestiged - credits shared out)"
+    else:
+        kwargs["value"] += f"\n*{formatRewardByMeta(xpGained, 'xp', userMeta)}*"
+
+    return kwargs
 
 
 def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
@@ -608,13 +649,15 @@ class BasedGuild(serializable.Serializable):
 
 
     async def announceBountyWon(self, bounty : bounty.Bounty, rewards : Dict[int, Dict[str, Union[int, bool]]],
-                                winningUser : Member):
+                                winningUser : Member, rewardsMeta: Dict[int, bounty.RewardsMeta]):
         """Announce the completion of a bounty
         Messages will be sent to the playChannel if one is set
 
         :param bounty bounty: the bounty to announce
         :param dict rewards: the rewards dictionary as defined by bounty.calculateRewards
         :param discord.Member winningUser: the guild member that won the bounty
+        :param rewardsMeta: mapping from user ID to binary flags for special rewards handling (bounty.RewardsMeta)
+        :type rewardsMeta: Dict[int, int]
         """
         if self.dcGuild is not None:
             if self.hasPlayChannel():
@@ -627,24 +670,15 @@ class BasedGuild(serializable.Serializable):
                                                         desc="`Suspect located in '" + bounty.answer + "'`")
 
                 # Add the winning user to the embed
-                rewardsEmbed.add_field(name="1. 🏆 " + commaSplitNum(rewards[winningUserId]["reward"]) + " credits:",
-                                        value=winningUser.mention + " checked " + str(rewards[winningUserId]["checked"]) \
-                                            + " system" + ("s" if int(rewards[winningUserId]["checked"]) != 1 else "") \
-                                            + "\n*+" + commaSplitNum(rewards[winningUserId]["xp"]) + "xp*",
-                                        inline=False)
-
+                rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUserId, rewards[winningUserId],
+                                                                    rewardsMeta[winningUserId]))
 
                 # The index of the current user in the embed
                 place = 2
                 # Loop over all non-winning users in the rewards dictionary
-                for userID in rewards:
-                    if not rewards[userID]["won"]:
-                        rewardsEmbed.add_field(name=str(place) + ". " + commaSplitNum(rewards[userID]["reward"]) + " credits:",
-                                                value="<@" + str(userID) + "> checked " \
-                                                    + str(int(rewards[userID]["checked"])) \
-                                                    + " system" + ("s" if int(rewards[userID]["checked"]) != 1 else "") \
-                                                    + "\n*+" + commaSplitNum(rewards[winningUserId]["xp"]) + "xp*",
-                                                inline=False)
+                for userID, userRewards in rewards.items():
+                    if not userRewards["won"]:
+                        rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
                         place += 1
 
                 # Send the announcement to the guild's playChannel

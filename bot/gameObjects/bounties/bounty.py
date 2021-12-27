@@ -30,6 +30,29 @@ class CheckResult(Enum):
     CORRECT = 3
 
 
+class RewardsMeta(Enum):
+    """Binary flags representing special cases to apply to giving rewards for checking a bounty's route
+
+    none: no flags
+    prestige: user has since prestiged, so they dont get xp and their credits are shared to the other contributor(s)
+    """
+    NONE = 0b0
+    USER_PRESTIGED = 0b1
+
+    def __and__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value & other.value
+        else:
+            return self.value & other
+
+    
+    def __or__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value | other.value
+        else:
+            return self.value | other
+
+
 class Bounty(serializable.Serializable):
     """A bounty listing for a criminal, to be hunted down by players.
 

@@ -1,3 +1,4 @@
+from typing import Dict
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -7,7 +8,7 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
-from ..gameObjects.bounties.bounty import Bounty, CheckResult
+from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
 from ..scheduling import timedTask
 from ..reactionMenus import reactionDuelChallengeMenu, expiryFunctions, confirmationReactionMenu
 from ..users import basedUser, basedGuild
@@ -143,27 +144,50 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
 
                         # reward all contributing users
                         rewards = bounty.calcRewards()
+                        rewardsMeta = {i: RewardsMeta.NONE for i in rewards}
+
+                        # userID : reward
+                        distributeRewards: Dict[int, int] = {}
+                        guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
+
+                        for userID in rewards:
+                            currentBBUser: basedUser.BasedUser = botState.usersDB.getUser(userID)
+                            currentLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
+                            currentDiv = callingGuild.bountiesDB.divisionForLevel(currentLevel)
+                            
+                            # If the bounty is in the highest division, but the user has since moved to a new division
+                            # (i.e they have prestiged), Share their rewards to the other contributors
+                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
+                            if bounty.division == guildMaxDiv and currentDiv != guildMaxDiv:
+                                rewardsMeta[userID] = RewardsMeta.USER_PRESTIGED | rewardsMeta[userID]
+                                distributeRewards[userID] = rewards[userID]["reward"]
+
+                        # share rewards lost due to prestiging
+                        if distributeRewards:
+                            totalToShare = sum(distributeRewards.values())
+                            receiverIDs = [i for i in rewards if i not in distributeRewards]
+                            each = int(totalToShare / len(receiverIDs))
+                            for receiverID in receiverIDs:
+                                rewards[receiverID]["reward"] += each
+
                         levelUpMsg = ""
                         for userID in rewards:
+                            # If the bounty is in the highest division, but the user has since moved to a new division
+                            # (i.e they have prestiged), Share their rewards to the other contributors
+                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
+                            if RewardsMeta.USER_PRESTIGED & rewardsMeta[userID]:
+                                continue
+
                             currentBBUser = botState.usersDB.getUser(userID)
+                            currentBBUser.credits += rewards[userID]["reward"]
+                            currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
 
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
-                                rewards[userID]["xp"] = 0
-                                continue
-                            
-                            oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
-                            guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
-                            # If the bounty is in the highest division, but the user has since moved to a new division
-                            # (i.e they have prestiged), do not give them rewards.
-                            # https://github.com/GOF2BountyBot/GOF2BountyBot/issues/462
-                            if bounty.division == guildMaxDiv and oldDiv != guildMaxDiv:
                                 continue
 
                             currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
-
-                            currentBBUser.credits += rewards[userID]["reward"]
-                            currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
+                            oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
                             currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
@@ -207,7 +231,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             await message.channel.send(levelUpMsg)
 
                         # Announce the bounty has been completed
-                        await callingGuild.announceBountyWon(bounty, rewards, message.author)
+                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
                         await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
 
                         # Raise guild's activity temperature for this bounty's tl
