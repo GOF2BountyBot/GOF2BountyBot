@@ -33,8 +33,9 @@ class KaamoShop(guildShop.GuildShop):
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock, turretsStock=turretsStock,
                             toolsStock=toolsStock)
-        self.totalItems = weaponsStock.totalItems + modulesStock.totalItems + turretsStock.totalItems + toolsStock.totalItems
-        for ship in shipsStock.items:
+        self.totalItems = self.weaponsStock.totalItems + self.modulesStock.totalItems + self.turretsStock.totalItems \
+                            + self.toolsStock.totalItems
+        for ship in self.shipsStock.items:
             self.totalItems += 1 + len(ship.weapons) + len(ship.modules) + len(ship.turrets)
 
 
