@@ -1,0 +1,302 @@
+from typing import Tuple, cast
+import discord
+from datetime import timedelta
+import os
+from PIL import Image
+import asyncio
+
+from ..cfg import cfg, bbData
+from .. import lib, botState
+from ..lib.discordUtil import truncateWithEllipse
+from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
+from ..gameObjects.items import shipItem
+from ..shipRenderer import shipRenderer
+from ..reactionMenus.reactionMenu import DummySingleUserReactionMenu
+
+CWD = os.getcwd()
+robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
+
+
+def checkImageAspectRatio(skinFile: discord.Attachment, skinPath: str) -> bool:
+    """Check whether an image is of the correct aspect ratio.
+    If it is, it will be scaled to 2048x, and `True` returned.
+    If it is not, nothing will happen, and `False` will be returned.
+    It is intended that in this case, you follow up with `fixImageAspectRatio`.
+
+    :param skinFile: Attachment referencing the image
+    :type skinFile: discord.Attachment
+    :param skinPath: Path to the image on disc
+    :type skinPath: str
+    :return: `True` if the image is now 2048x, `False` if the aspect ratio is incorrect and must be correct some other way
+    :rtype: bool
+    """
+    if skinFile.width != 2048 or skinFile.height != 2048:
+        if abs(1 - (skinFile.width / skinFile.height)) < cfg.aspectRatioTolerance:
+            workingSF = Image.open(skinPath)
+            workingSF = workingSF.resize((2048, 2048))
+            workingSF.save(skinPath)
+            workingSF.close()
+            return True
+        return False
+
+
+async def fixImageAspectRatio(skinFile: discord.Attachment, skinPath: str, message: discord.Message,
+                                itemName: str, renderReserved: bool, menuMsg: discord.Message = None) \
+                                    -> Tuple[bool, discord.Message]:
+    """Given a path to an image that is not square, as the user whether they would like it to be cropped or
+    stretched to become square, and perform the correction.
+    The user can also cancel the operation entirely. This will result in the image at `skinPath` being removed
+    from disc, and the reservation in `botState.currentRenders` being removed. If cancelled, the function will return `True`.
+    Alongside the `bool` result, the `Message` used for reaction menus is also returned for reuse in other menus.
+
+    :param skinFile: Attachment referencing the incorrect image
+    :type skinFile: discord.Attachment
+    :param skinPath: Path to the image on disc
+    :type skinPath: str
+    :param message: Message that contained the image
+    :type message: discord.Message
+    :param itemName: Name of the ship to be skinned
+    :type itemName: str
+    :param renderReserved: Whether the ship has already been reserved in botState.currentRenders
+    :type renderReserved: bool
+    :return: True if the operation was cancelled by the user, False if it succeeded to completion, followed by
+            the message used for reaction menus
+    :rtype: Tuple[bool, discord.Message]
+    """
+    if menuMsg is None:
+        menuMsg = await message.reply("** **", mention_author=False)
+
+    menuOptions = {
+        cfg.defaultEmojis.cropImage: "Crop",
+        cfg.defaultEmojis.stretchImage: "Stretch",
+        cfg.defaultEmojis.cancel: "Cancel"
+    }
+
+    actionMenu = DummySingleUserReactionMenu(menuMsg, message.author,
+                                                timedelta(**cfg.timeouts.selectImageSizeHandling),
+                                                menuOptions,
+                                                menuOptions.keys(),
+                                                desc="Your image is not square, should I crop it or stretch it?"
+                                            )
+    action = await actionMenu.doMenu()
+    if not action or action[0] == cfg.defaultEmojis.cancel:
+        if renderReserved:
+            botState.currentRenders.remove(itemName)
+        os.remove(skinPath)
+        await message.reply("🛑 Render cancelled.")
+        return True, menuMsg
+
+    workingSF = Image.open(skinPath)
+    
+    if action[0] == cfg.defaultEmojis.cropImage:
+        workingSF = lib.graphics.cropAndScale(workingSF, 2048, 2048)
+    else:
+        workingSF = workingSF.resize((2048, 2048))
+
+    workingSF.save(skinPath)
+    workingSF.close()
+    return False, menuMsg
+
+
+async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tuple[int, int], samples: int,
+                    full: bool, renderIdentifierPrefix: str = ""):
+    if message.guild is None:
+        prefix: str = cfg.defaultCommandPrefix
+    else:
+        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+
+    # look up the ship data
+    itemName = cast(str, None)
+    shipData = cast(dict, None)
+    
+    try:
+        itemData = bbData.findShipDataByAlias(userShipName)
+        itemName = itemData["name"]
+    except KeyError:
+        # report unrecognised ship names
+        await message.reply(mention_author=False,
+                            content=f":x: **{truncateWithEllipse(userShipName, 20, 15)}** is not in my database! :detective:")
+        return
+
+    if not shipData["skinnable"]:
+        await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
+        return
+
+    if len(botState.currentRenders) >= cfg.maxConcurrentRenders:
+        await message.reply(mention_author=False,
+                            content=":x: My rendering queue is full currently. Please try this command again once someone " \
+                                    + "else's render has completed.")
+        return
+    if itemName in botState.currentRenders:
+        await message.reply(mention_author=False,
+                            content=":x: Someone else is currently rendering this ship! Please use this command again " \
+                                    + f"once my other {itemName} render has completed.")
+        return
+
+    if not message.attachments:
+        await message.reply(mention_author=False,
+                            content=":x: Please attach an image to render onto your ship.")
+        return
+
+    skinFile = message.attachments[0]
+    if not skinFile.content_type.startswith("image"):
+        await message.reply(f":x: Please only attach images! That's a `{skinFile.content_type}`.")
+        return
+
+    botState.currentRenders.append(itemName)
+    skinPaths = {0: os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_0.jpg")}
+
+    try:
+        await skinFile.save(skinPaths[0])
+    except (discord.HTTPException, discord.NotFound):
+        await message.reply(mention_author=False, content=":x: I couldn't download your image. Did you delete it?")
+        botState.currentRenders.remove(itemName)
+        return
+
+    menuMsg = None
+
+    correctShape = checkImageAspectRatio(skinFile, skinPaths[0])
+    if not correctShape:
+        cancelled, menuMsg = await fixImageAspectRatio(skinFile, skinPaths[0], message, itemName, True, menuMsg)
+        if cancelled:
+            return
+
+    disabledLayers = []
+
+    if not full:
+        layerIndices = [i for i in range(1, shipData["textureRegions"] + 1)]
+
+        if menuMsg is None:
+            menuMsg = await message.reply(mention_author=False, content="** **")
+        layersPickerMenu = reactionSkinRegionPicker.ReactionSkinRegionPicker(menuMsg, message.author,
+                                                                                cfg.toolUseConfirmTimeoutSeconds,
+                                                                                numRegions=shipData["textureRegions"])
+        pickedLayers = []
+        menuOutput = await layersPickerMenu.doMenu()
+        if cfg.defaultEmojis.spiral in menuOutput:
+            pickedLayers = layerIndices
+        elif cfg.defaultEmojis.cancel in menuOutput:
+            await menuMsg.edit(mention_author=False, content="🛑 Skin render cancelled.", embed=None)
+            for skinPath in skinPaths.values():
+                os.remove(skinPath)
+            botState.currentRenders.remove(itemName)
+            return
+        else:
+            for react in menuOutput:
+                try:
+                    pickedLayers.append(cfg.defaultEmojis.numbers.index(react))
+                except ValueError:
+                    pass
+
+        remainingIndices = [i for i in layerIndices if i not in pickedLayers]
+
+        if remainingIndices:
+            disableHelpMsg = "Would you like to disable any regions?\n\n" \
+                            + "Disabled regions will appear with your provided base texture."
+            disabledLayersPickerMenu = reactionSkinRegionPicker.ReactionSkinRegionPicker(menuMsg, message.author,
+                                                                                            cfg.toolUseConfirmTimeoutSeconds,
+                                                                                            possibleRegions=remainingIndices,
+                                                                                            desc=disableHelpMsg)
+            menuOutput = await disabledLayersPickerMenu.doMenu()
+            if cfg.defaultEmojis.spiral in menuOutput:
+                disabledLayers = remainingIndices
+            elif cfg.defaultEmojis.cancel in menuOutput:
+                await menuMsg.reply(mention_author=False, content="🛑 Skin render cancelled.")
+                for skinPath in skinPaths.values():
+                    os.remove(skinPath)
+                botState.currentRenders.remove(itemName)
+                return
+            else:
+                for react in menuOutput:
+                    try:
+                        disabledLayers.append(cfg.defaultEmojis.numbers.index(react))
+                    except ValueError:
+                        pass
+
+        def showmeAdditionalMessageCheck(newMessage):
+            return newMessage.author is message.author and \
+                    (newMessage.content.lower().startswith(f"{prefix}cancel") or len(newMessage.attachments) > 0)
+
+        for regionNum in pickedLayers:
+            nextLayerMsg = await message.reply(mention_author=False,
+                                                content=f"Please send your image for texture region #{regionNum}" \
+                                                        + f", or `{prefix}cancel` to cancel the render, within " \
+                                                        + f"{cfg.toolUseConfirmTimeoutSeconds} seconds.")
+            try:
+                imgMsg = await botState.client.wait_for("message", check=showmeAdditionalMessageCheck,
+                                                        timeout=cfg.toolUseConfirmTimeoutSeconds)
+            except asyncio.TimeoutError:
+                await nextLayerMsg.edit(content="This menu has now expired. Please try the command again.")
+            else:
+                if imgMsg.content.lower().startswith(f"{prefix}cancel"):
+                    await nextLayerMsg.edit(mention_author=False, content="🛑 Skin render cancelled.")
+                    for skinPath in skinPaths.values():
+                        os.remove(skinPath)
+                    botState.currentRenders.remove(itemName)
+                    return
+
+                nextLayer = imgMsg.attachments[0]
+                skinPaths[regionNum] = os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_{regionNum}.jpg")
+
+                try:
+                    await nextLayer.save(skinPaths[regionNum])
+                except (discord.HTTPException, discord.NotFound):
+                    await message.reply(mention_author=False,
+                                        content=":x: I couldn't download your image. Did you delete it?" \
+                                                + "\n🛑 Skin render cancelled.")
+                    for skinPath in skinPaths.values():
+                        os.remove(skinPath)
+                    botState.currentRenders.remove(itemName)
+                    return
+
+                correctShape = checkImageAspectRatio(nextLayer, skinPaths[regionNum])
+                if not correctShape:
+                    cancelled, menuMsg = await fixImageAspectRatio(nextLayer, skinPaths[regionNum], message,
+                                                                    itemName, True, menuMsg)
+                    if cancelled:
+                        return
+
+    waitMsg = await message.reply(mention_author=False, content="🤖 Render started! I'll ping you when I'm done.")
+
+    renderPath = os.path.join(shipData["path"], "skins", f"{message.id}-RENDER.png")
+    outSkinPath = os.path.join(shipData["path"], "skins", f"{message.id}.jpg")
+
+    guildStr = "DM" if message.guild is None else str(message.guild.id)
+    renderIdentifier = f"{renderIdentifierPrefix}{'-' if renderIdentifierPrefix else ''}" \
+                        + f"u{message.author.id}g{guildStr}c{message.channel.id}m{message.id}s{itemName}"
+
+    await lib.discordUtil.startLongProcess(waitMsg)
+    try:
+        await shipRenderer.renderShip(str(message.id), shipData["path"], shipData["model"], skinPaths, disabledLayers,
+                                        resolution[0], resolution[1], samples, full=full)
+    except shipRenderer.RenderFailed:
+        await message.reply("🥺 Render failed! The error has been logged, please try a different ship.",
+                            mention_author=True)
+        botState.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
+    else:
+        with open(renderPath, "rb") as f:
+            rendersChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)
+            imageEmbedMsg = await rendersChannel.send(renderIdentifier, file=discord.File(f))
+            renderEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
+                                                    img=imageEmbedMsg.attachments[0].url,
+                                                    authorName="Skin Render Complete!",
+                                                    icon=robotIcon,
+                                                    footerTxt=f"Custom skinned {itemName.capitalize()}")
+            await message.reply(embed=renderEmbed, mention_author=True)
+
+    botState.currentRenders.remove(itemName)
+
+    try:
+        os.remove(renderPath)
+    except FileNotFoundError:
+        pass
+
+    for skinPath in skinPaths.values():
+        os.remove(skinPath)
+
+    try:
+        os.remove(outSkinPath)
+    except FileNotFoundError:
+        pass
+
+    await lib.discordUtil.endLongProcess(waitMsg)
