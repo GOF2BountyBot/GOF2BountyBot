@@ -42,6 +42,30 @@ factionColours = {  "terran": Colour.gold(),
 # for the sake of the bot during bot.on_ready.
 builtInShipData = {}
 
+def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
+    """Look up ship data in builtInShipData by name or alias
+
+    :param shipName: The name of the ship to find
+    :type shipName: str
+    :param ignoreCase: Whether or not to allow casing discrepencies in the ship name (Default True)
+    :type ignoreCase: bool, optional
+    :raises KeyError: If no ship data could be found withh the given name
+    :return: The ship data, which could be deserialized into a Ship object
+    :rtype: dict
+    """
+    try:
+        return next(
+            i for i in builtInShipData.values()
+            if shipName == i["name"].lower() \
+            or shipName in \
+                ([n.lower() for n in i.get("aliases", [])] \
+                if ignoreCase else \
+                i.get("aliases", []))
+        )
+    except StopIteration:
+        raise KeyError(f"Unknown ship: {shipName}")
+
+
 # Data representing all module items in the game. These are used to create bbModule objects,
 # which are stored in builtInModuleObjs in a similar dict format.
 builtInModuleData = {}
