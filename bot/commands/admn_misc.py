@@ -254,9 +254,9 @@ async def admin_cmd_make_bounty_notify_roles(message : discord.Message, args : s
 
 botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_roles, 2,
                         signatureStr="**make-bounty-notify-roles**",
-                        shortHelp=f"Make {len(cfg.bountyDivisions)} roles, one for each tech levle users can be, " \
+                        shortHelp=f"Make {len(cfg.bountyDivisionNames)} roles, one for each tech levle users can be, " \
                                     + "which the bot will ping when new bounties are spawned.",
-                        longHelp=f"Automatically create {len(cfg.bountyDivisions)} new roles, one for each division. " \
+                        longHelp=f"Automatically create {len(cfg.bountyDivisionNames)} new roles, one for each division. " \
                                     + "When a bounty spawns into a division, that division's notify role is pinged. " \
                                     + "Users can self-assign and self-unassign these roles with the `notify` command. " \
                                     + "Moving the user between roles as they level up is handled automatically. " \

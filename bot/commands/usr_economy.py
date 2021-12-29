@@ -65,7 +65,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
 
     divName = ""
     if args:
-        for n in cfg.bountyDivisions:
+        for n in cfg.bountyDivisionNames:
             if args.startswith(n):
                 divName = n
                 args = args[len(n):].lstrip()
@@ -77,11 +77,10 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     elif args != "":
         await message.reply(mention_author=False,
                             content=":x: Unknown argument! You can give either or both of:\n" \
-                                    + f"- a division name ({'/'.join(cfg.bountyDivisions)})\n" \
+                                    + f"- a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
                                     + f"- an item type (ship/weapon/module/turret/tool/all)")
         return
 
-    divisionNames = list(cfg.bountyDivisions.keys())
     userDivision = ""
 
     if botState.usersDB.idExists(message.author.id):
@@ -91,11 +90,11 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = userDivision
     else:
-        userDivision = divisionNames[0]
+        userDivision = cfg.bountyDivisionNames[0]
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if divisionNames.index(userDivision) < divisionNames.index(divName):
+    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
@@ -202,13 +201,12 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     divName = ""
     if args:
-        for n in cfg.bountyDivisions:
+        for n in cfg.bountyDivisionNames:
             if args.startswith(n):
                 divName = n
                 args = args[len(n):].lstrip()
                 break
 
-    divisionNames = list(cfg.bountyDivisions.keys())
     userDivision = ""
 
     if botState.usersDB.idExists(message.author.id):
@@ -218,11 +216,11 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = userDivision
     else:
-        userDivision = divisionNames[0]
+        userDivision = cfg.bountyDivisionNames[0]
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if divisionNames.index(userDivision) < divisionNames.index(divName):
+    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
@@ -243,7 +241,7 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
                                     + "and an item number from `" + requestedBGuild.commandPrefix + "shop`")
         return
 
-    cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisions)})\n" \
+    cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
                 + "- An item type (ship/weapon/module/turret/tool)\n" \
                 + "- An item number from `$shop`\n" \
                 + "- Optionally, `sell` and/or `transfer` when buying a ship."
@@ -387,13 +385,12 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     divName = ""
     if args:
-        for n in cfg.bountyDivisions:
+        for n in cfg.bountyDivisionNames:
             if args.startswith(n):
                 divName = n
                 args = args[len(n):].lstrip()
                 break
 
-    divisionNames = list(cfg.bountyDivisions.keys())
     userDivision = ""
 
     if botState.usersDB.idExists(message.author.id):
@@ -403,11 +400,11 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = userDivision
     else:
-        userDivision = divisionNames[0]
+        userDivision = cfg.bountyDivisionNames[0]
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if divisionNames.index(userDivision) < divisionNames.index(divName):
+    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
@@ -428,7 +425,7 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
                                     + "and an item number from `" + requestedBGuild.commandPrefix + "hangar`")
         return
 
-    cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisions)})\n" \
+    cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
                 + "- An item type (ship/weapon/module/turret/tool)\n" \
                 + "- An item number from `$shop`\n" \
                 + "- Optionally, `clear` when selling a ship."

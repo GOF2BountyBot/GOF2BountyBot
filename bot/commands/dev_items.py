@@ -312,11 +312,11 @@ async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool
                 await message.reply(mention_author=False,
                                     content=f"Invalid tech level! Must be between {cfg.minTechLevel} and {cfg.maxTechLevel}.")
             level = int(args)
-        elif args in cfg.bountyDivisions:
+        elif args in cfg.bountyDivisionNames:
             divName = args
         else:
             await message.reply("Unknown argument. Must either be a tech level or a " \
-                                    + f"division name: {'/'.join(cfg.bountyDivisions)}. " \
+                                    + f"division name: {'/'.join(cfg.bountyDivisionNames)}. " \
                                     + "When refreshing a division to a specific level, don't specify the division.",
                                 mention_author=False)
 

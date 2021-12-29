@@ -62,8 +62,8 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
             
 
@@ -276,8 +276,8 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
     if allGuilds:
@@ -372,8 +372,8 @@ async def dev_cmd_set_temp(message : discord.Message, args : str, isDM : bool):
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
     try:
@@ -454,8 +454,8 @@ async def dev_cmd_canmakebounty(message : discord.Message, args : str, isDM : bo
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
     msgEmbed = lib.discordUtil.makeEmbed(callingBBGuild.dcGuild.name if callingBBGuild.dcGuild is not None else '' \
@@ -1055,8 +1055,8 @@ async def dev_cmd_decay_temps(message : discord.Message, args : str, isDM : bool
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
     
     if allGuilds:
@@ -1135,8 +1135,8 @@ async def dev_cmd_reset_temps(message : discord.Message, args : str, isDM : bool
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
     
     if allGuilds:
@@ -1213,8 +1213,8 @@ async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bo
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
     if allDivs:
@@ -1288,8 +1288,8 @@ async def dev_cmd_current_max_bounties(message : discord.Message, args : str, is
             return
     else:
         useTL = False
-        if divStr not in cfg.bountyDivisions:
-            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisions)}")
+        if divStr not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
     if allDivs:

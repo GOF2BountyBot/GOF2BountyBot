@@ -143,7 +143,7 @@ async def admin_cmd_make_bounty_board_channels(message : discord.Message, args :
 
 botCommands.register("make-bounty-board-channels", admin_cmd_make_bounty_board_channels, 2, allowDM=False,
                     helpSection="channels", signatureStr="**make-bounty-board-channels**",
-                    longHelp=f"Create {len(cfg.bountyDivisions)} new channels, and activate them as *bountyboards*.\n" \
+                    longHelp=f"Create {len(cfg.bountyDivisionNames)} new channels, and activate them as *bountyboards*.\n" \
                                 + "BountyBoard channels show *all* information about active bounties, continuously update " \
                                 + "their listings (e.g cross through checked systems), and only show *active* bounties " \
                                 + "(listings for located bounties are removed).")
