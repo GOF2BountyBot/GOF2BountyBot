@@ -207,8 +207,9 @@ class BasedGuild(serializable.Serializable):
         async def makeDivRole(div: bountyDivision.BountyDivision):
             divsDone.add(div)
             divName = nameForDivision(div)
+            divID = cfg.bountyDivisionNames.index(divName)
             newRole = await self.dcGuild.create_role(name=f"{divName.title()} Bounty Hunter",
-                                                    colour=Colour.from_rgb(*cfg.defaultBountyAlertRoleColours[divName]),
+                                                    colour=Colour.from_rgb(*cfg.bountyAlertRoleColoursByDivision[divID]),
                                                     reason="Creating new bounty alert roles requested by BB command")
             div.alertRoleID = newRole.id
         for div in self.bountiesDB.divisions.values():

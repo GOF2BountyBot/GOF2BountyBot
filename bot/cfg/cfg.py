@@ -405,9 +405,7 @@ minGuildActivity = 1
 activityTempPerPlayer = 1
 
 # The RGB colours to make by default for each bounty alert role
-defaultBountyAlertRoleColours = {list(bountyDivisions.keys())[0]: (89, 39, 12),
-                                list(bountyDivisions.keys())[1]: (157, 94, 11),
-                                list(bountyDivisions.keys())[2]: (255, 174, 8)}
+bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
 
 
 
