@@ -309,7 +309,7 @@ botCommands.register("check", cmd_check, 0, aliases=["search"], allowDM=False, h
 async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     """List a summary of all currently active bounties in one division.
     If no division is specified, the calling user's division is used.
-    Division can be specified either as a number (a tech level), or a division name as given in cfg.bountyDivisions
+    Division can be specified either as a number (a tech level), or a division name as given in cfg.bountyDivisionNames
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, can be empty or contain a division name or tech level
@@ -337,16 +337,16 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
                 division = callingGuild.bountiesDB.divisionForLevel(int(args))
             except KeyError:
                 await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in list(cfg.bountyDivisions.keys())[:-1]) + " or " \
-                                    + list(cfg.bountyDivisions.keys())[-1])
+                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames)[:-1] + " or " \
+                                    + cfg.bountyDivisionNames[-1])
                 return
         else:
             try:
                 division = callingGuild.bountiesDB.divisionForName(args)
             except KeyError:
                 await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in list(cfg.bountyDivisions.keys())[:-1]) + " or " \
-                                    + list(cfg.bountyDivisions.keys())[-1])
+                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames[:-1]) + " or " \
+                                    + cfg.bountyDivisionNames[-1])
                 return
 
     divName = nameForDivision(division).title()

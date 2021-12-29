@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, Tuple
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
 
@@ -18,6 +18,10 @@ from datetime import timedelta
 import random
 from typing import List, Any, Union
 from discord import TextChannel, Client
+
+
+def divisionNameLevels() -> Dict[str, Tuple[int, int]]:
+    return {k: cfg.bountyDivisionLevels[i] for i, k in enumerate(cfg.bountyDivisionNames)}
 
 
 class BountyDivision(Serializable):

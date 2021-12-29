@@ -236,7 +236,8 @@ def copyXPBarFill(divName: str) -> Image.Image:
     global XP_BAR_FILLS
     if XP_BAR_FILLS == {}:
         pathsDone: Dict[str, Image.Image] = {}
-        for div, fillPath in cfg.xpBarFill.items():
+        for i, div in enumerate(cfg.bountyDivisionNames):
+            fillPath = cfg.xpBarFillsByDivision[i]
             if fillPath in pathsDone:
                 XP_BAR_FILLS[div] = pathsDone[fillPath]
             else:

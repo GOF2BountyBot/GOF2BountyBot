@@ -162,7 +162,7 @@ class BasedGuild(serializable.Serializable):
         else:
             if divisionShops is None:
                 self.divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
-                                        for divName, levels in cfg.bountyDivisions.items()}
+                                        for divName, levels in bountyDivision.divisionNameLevels().items()}
             else:
                 self.divisionShops = divisionShops
 
@@ -207,8 +207,9 @@ class BasedGuild(serializable.Serializable):
         async def makeDivRole(div: bountyDivision.BountyDivision):
             divsDone.add(div)
             divName = nameForDivision(div)
+            divID = cfg.bountyDivisionNames.index(divName)
             newRole = await self.dcGuild.create_role(name=f"{divName.title()} Bounty Hunter",
-                                                    colour=Colour.from_rgb(*cfg.defaultBountyAlertRoleColours[divName]),
+                                                    colour=Colour.from_rgb(*cfg.bountyAlertRoleColoursByDivision[divID]),
                                                     reason="Creating new bounty alert roles requested by BB command")
             div.alertRoleID = newRole.id
         for div in self.bountiesDB.divisions.values():
@@ -751,7 +752,7 @@ class BasedGuild(serializable.Serializable):
             raise ValueError("Shop are already enabled in this guild")
 
         self.divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1], noRefresh=True) \
-                                for divName, levels in cfg.bountyDivisions.items()}
+                                for divName, levels in bountyDivision.divisionNameLevels().items()}
         self.shopsDisabled = False
 
 
@@ -868,7 +869,7 @@ class BasedGuild(serializable.Serializable):
                 divisionShops = {k: guildShop.TechLeveledShop.fromDict(v) for k, v in guildDict["divisionShops"].items()}
             else:
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
-                                    for divName, levels in cfg.bountyDivisions.items()}
+                                    for divName, levels in bountyDivision.divisionNameLevels().items()}
 
         newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,
