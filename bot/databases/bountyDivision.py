@@ -237,8 +237,10 @@ class BountyDivision(Serializable):
         :rtype: int
         :raise OverflowError: When the division has no more space for bounties
         """
-        if self.isFull():
+        if self.isFull() and self.hasMinTLBounty():
             raise OverflowError("Attempted to spawn a new bounty when the DB is currently full")
+        if not self.hasMinTLBounty():
+            return self.minLevel
         try:
             return next(l for l in range(self.minLevel, self.maxLevel + 1) if not self.bounties[l])
         except StopIteration:
