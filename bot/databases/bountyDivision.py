@@ -120,7 +120,7 @@ class BountyDivision(Serializable):
         if self.newBountyTT is not None:
             botState.logger.log("BountyDivision", "tryStartBountySpawner", "Attempted to tryStartBountySpawner when a newBountyTT already exists",
                                 "newBounties", "TT_EXISTS", "\n".join(format_stack()))
-        elif self.isFull() and not self.hasMinTLBounty():
+        elif self.isFull() and self.hasMinTLBounty():
             botState.logger.log("BountyDivision", "tryStartBountySpawner", "Attempted to tryStartBountySpawner when the division is already full",
                                 "newBounties", "DIV_FULL", "\n".join(format_stack()))
         else:
