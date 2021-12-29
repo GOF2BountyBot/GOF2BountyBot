@@ -17,6 +17,7 @@ from ..reactionMenus import reactionMenu, reactionPollMenu
 from ..scheduling import timedTask
 from ..userAlerts import userAlerts
 from ..databases.bountyDB import divisionNameForLevel
+from . import util_tempdisabled
 
 
 async def cmd_help(message: discord.Message, args: str, isDM: bool):
@@ -504,7 +505,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                                                         + str(message.guild.id) + ".",
                                 category="userAlerts", exception=e)
 
-botCommands.register("notify", cmd_notify, 0, allowDM=False, signatureStr="**notify <type>** *[alert]*",
+botCommands.register("notify", util_tempdisabled.err_tempDisabled, 0, allowDM=False, signatureStr="**notify <type>** *[alert]*",
                         longHelp="Subscribe to pings when events take place. Currently, **type** can be `bounties`, " \
                             + "`shop`, `duels`, or `bot`.\n" \
                             + "> `shop` requires the `refresh` option.\n" \
