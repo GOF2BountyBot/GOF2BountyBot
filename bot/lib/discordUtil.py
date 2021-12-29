@@ -1,6 +1,6 @@
 from __future__ import annotations
 from asyncio.exceptions import CancelledError, InvalidStateError
-from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Type, Union, TYPE_CHECKING, Tuple, Dict, cast
 
 from discord.errors import NotFound
 if TYPE_CHECKING:
@@ -200,7 +200,7 @@ def getMemberByRefOverDB(uRef : str, dcGuild : Guild = None) -> User:
     return userAttempt
 
 
-def typeAlertedUserMentionOrName(alertType : userAlerts.UABase, dcUser : Union[User, Member] = None,
+def typeAlertedUserMentionOrName(alertType : Type[userAlerts.UABase], dcUser : Union[User, Member] = None,
         basedUser : basedUser.BasedUser = None, basedGuild : basedGuild.BasedGuild = None, dcGuild : Guild = None) -> str:
     """If the given user has subscribed to the given alert type, return the user's mention.
     Otherwise, return their display name and discriminator. At least one of dcUser or basedUser must be provided.
@@ -208,7 +208,7 @@ def typeAlertedUserMentionOrName(alertType : userAlerts.UABase, dcUser : Union[U
     the given user. This means that giving at least one of BasedGuild or dcGuild will drastically improve efficiency.
     TODO: rename basedGuild and basedUser so it doesnt match the class name
 
-    :param userAlerts.UABase alertType: The type of alert to check the state of
+    :param Type[userAlerts.UABase] alertType: The type of alert to check the state of
     :param discord.User dcUser: The user to check the alert state of. One of dcUser or basedUser is required. (Default None)
     :param BasedUser basedUser: The user to check the alert state of. One of dcUser or basedUser is required. (Default None)
     :param BasedGuild BasedGuild: The guild in which to check the alert state. Optional, but improves efficiency.
@@ -287,7 +287,8 @@ async def endLongProcess(message: Message):
         pass
 
 
-async def reactionFromRaw(payload: RawReactionActionEvent) -> Tuple[Message, Union[User, Member], emojis.BasedEmoji]:
+async def reactionFromRaw(payload: RawReactionActionEvent) -> \
+        Tuple[Optional[Message], Optional[Union[User, Member]], Optional[emojis.BasedEmoji]]:
     """Retrieve complete Reaction and user info from a RawReactionActionEvent payload.
 
     :param RawReactionActionEvent payload: Payload describing the reaction action
@@ -448,63 +449,63 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
 
 
 async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str, className: str, meta: str,
-                                        *fArgs, **fKwargs) -> Optional[Message]:
-        """Perform an asynchronous operation with a fixed retry, as defined in cfg.
+                                    *fArgs, **fKwargs) -> Optional[Message]:
+    """Perform an asynchronous operation with a fixed retry, as defined in cfg.
 
-        :param f: The coroutine to execute
-        :type f: AnyCoroutine
-        :param opName: The name of the operation, to be used in error logging
-        :type opName: str
-        :param logCategory: The category to log errors into
-        :type logCategory: str
-        :param className: The name of the class calling this function, to be used in error logging
-        :type className: str
-        :param meta: An extra string to describe the operation, to be used in error logging
-        :param fArgs: All positional arguments to pass to f
-        :param fKwargs: All keyword arguments to pass to f
-        :type meta: str
-        :return: The message if it was created, None if an error occurred
-        :rtype: Optional[Message]
-        """
-        camelFName = opName.title()
-        if len(opName) > 1:
-            camelFName = camelFName[0].lower() + camelFName[1:]
+    :param f: The coroutine to execute
+    :type f: AnyCoroutine
+    :param opName: The name of the operation, to be used in error logging
+    :type opName: str
+    :param logCategory: The category to log errors into
+    :type logCategory: str
+    :param className: The name of the class calling this function, to be used in error logging
+    :type className: str
+    :param meta: An extra string to describe the operation, to be used in error logging
+    :param fArgs: All positional arguments to pass to f
+    :param fKwargs: All keyword arguments to pass to f
+    :type meta: str
+    :return: The message if it was created, None if an error occurred
+    :rtype: Optional[Message]
+    """
+    camelFName = opName.title()
+    if len(opName) > 1:
+        camelFName = camelFName[0].lower() + camelFName[1:]
 
-        def logError(e: Exception):
-            eName = type(e).__name__
-            botState.logger.log(className, camelFName,
-                                f"{eName} thrown on {opName}. Meta: " + meta,
-                                category=logCategory, eventType=eName)
+    def logError(e: Exception):
+        eName = type(e).__name__
+        botState.logger.log(className, camelFName,
+                            f"{eName} thrown on {opName}. Meta: " + meta,
+                            category=logCategory, eventType=eName)
 
-        try:
-            return await f(*fArgs, **fKwargs)
-        except HTTPException as e:
-            for tryNum in range(cfg.httpErrRetries):
-                try:
-                    msg = await f(*fArgs, **fKwargs)
-                    botState.logger.log(className, camelFName,
-                                        f"{opName} successful, but only after " \
-                                            + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
-                                        category=logCategory, eventType="RETRY-SUCCESS")
-                    return msg
-                except HTTPException:
-                    await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
+    try:
+        return await f(*fArgs, **fKwargs)
+    except HTTPException as e:
+        for tryNum in range(cfg.httpErrRetries):
+            try:
+                msg = await f(*fArgs, **fKwargs)
+                botState.logger.log(className, camelFName,
+                                    f"{opName} successful, but only after " \
+                                        + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
+                                    category=logCategory, eventType="RETRY-SUCCESS")
+                return msg
+            except HTTPException:
+                await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
 
-            logError(e)
-        except (Forbidden, NotFound) as e:
-            logError(e)
+        logError(e)
+    except (Forbidden, NotFound) as e:
+        logError(e)
 
-        return None
-
+    return None
+    
 
 def messageDescriptor(m: Message) -> str:
-        """Construct a string detailing a message, its channel and guild.
+    """Construct a string detailing a message, its channel and guild.
 
-        :param Message m: The message to describe
-        :return: A string identifying m, its channel and guild
-        :rtype: str
-        """
-        return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
+    :param Message m: The message to describe
+    :return: A string identifying m, its channel and guild
+    :rtype: str
+    """
+    return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
 
 
 def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
@@ -521,6 +522,37 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         if hasattr(f, "__module__"):
             return f.__module__, name
         return "main", name
+
+
+def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False):
+    """See if any exceptions occurred in `task`. If they did, then log them using `botState.logger`.
+    If `task` has not finished execution, this is treated as an exception and is logged.
+    If `task` has no exceptions set, do nothing.
+    All parameters other than `task` are optional. If not given, they will be inferred from `task`.
+
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    """
+    if e := task.exception():
+        if logCategory is None:
+            logCategory = "misc"
+
+        if className is None or funcName is None:
+            extractedClass, extractedFunc = extractFuncName(task.get_coro())
+            className = extractedClass if className is None else className
+            funcName = extractedFunc if funcName is None else funcName
+
+        botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
+                            noPrintEvent=noPrintEvent)
 
 
 class BasicScheduler:
@@ -567,18 +599,9 @@ class BasicScheduler:
         :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
         :type noPrint: Optional[bool]
         """
-        if logCategory is None:
-            logCategory = "misc"
-
         for t in self.tasks:
-            if e := t.exception():
-                if className is None or funcName is None:
-                    extractedClass, extractedFunc = extractFuncName(t.get_coro())
-                    className = extractedClass if className is None else className
-                    funcName = extractedFunc if funcName is None else funcName
-
-                botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
-                                    noPrintEvent=noPrintEvent)
+            logExceptionsOnTask(t, logCategory=logCategory, className=className, funcName=funcName, noPrintEvent=noPrintEvent,
+                                noPrint=noPrint)
 
 
     def raiseExceptions(self):
@@ -659,3 +682,78 @@ class BasicScheduler:
         :rtype: int
         """
         return len(self.tasks)
+
+
+async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False) -> Any:
+    """Await `coro`, and then log any exceptions that occurred using `botState.logger`.
+    All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
+
+    :param coro: The coroutine whose exceptions to log
+    :type coro: Awaitable
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    :return: A task wrapping the execution
+    :rtype: asyncio.Task
+    """
+    inner = asyncio.create_task(coro)
+    await inner
+    logExceptionsOnTask(inner, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint)
+    return inner.result
+
+
+def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
+                        noPrintEvent: bool = False, noPrint: bool = False) -> asyncio.Task:
+    """Schedule a coroutine execution onto the event loop, and log any exceptions that occur during
+    execution with `botState.logger`.
+    Very useful for synchronously scheduling a coroutine for execution without *completely* missing any exceptions.
+    Pass a normal parenthesized call to a coroutine, but without awaiting it.
+    The task that is contructed is returned, but you don't need to do anything with this for execution to complete.
+    If your coroutine returned a value, this will be the result of the task once it completes.
+    All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
+
+    :param coro: The coroutine execution to parallelize
+    :type coro: Awaitable
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    :return: A task wrapping the execution
+    :rtype: asyncio.Task
+    """
+    return asyncio.create_task(awaitCoroAndLogExceptions(coro, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint))
+
+
+def truncateWithEllipse(s: str, maxLength: int, truncatedLength: int, ellipse: str = "...") -> str:
+    """If `s` is longer than `maxLength`, truncate it to `truncatedLength` and append `ellipse`.
+    If `s` is not longer than `maxLength`, do nothing.
+
+    :param s: The string to potentially truncate
+    :type s: str
+    :param maxLength: The cutoff before truncation is triggered
+    :type maxLength: int
+    :param truncatedLength: The number of characters that should remain after truncation is triggered (ignoring `ellipse`)
+    :type truncatedLength: int
+    :param ellipse: The string to append onto truncated strings (Default "...")
+    :type ellipse: str, optional
+    :return: `s` truncated to `truncatedLength` and with `ellipse` appended if `s` is longer than `maxLength`, `s` otherwise
+    :rtype: str
+    """
+    return s if len(s) <= maxLength else s[:truncatedLength] + ellipse
+    

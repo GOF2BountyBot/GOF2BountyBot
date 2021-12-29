@@ -1,7 +1,8 @@
 from __future__ import annotations
+from datetime import datetime
 from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
 from discord import TextChannel
-from typing import List, Dict, Union, cast
+from typing import Any, List, Dict, Union, cast
 import asyncio
 from aiohttp import client_exceptions
 import random
@@ -15,6 +16,65 @@ from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..baseClasses import serializable
 from ..databases import bountyDivision
+
+
+def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:
+    """Format the value of a checking reward according to meta flags, if any
+
+    :param reward: The reward to format (e.g an amount of credits)
+    :type reward: str
+    :param str units: The units of the reward, e.g xp/credits/etc
+    :param flags: bounty.RewardMeta flags
+    :type flags: int
+    :return: reward, with any extra formatting added to represent flags
+    :rtype: str
+    """
+    out = f"{reward} {units}"
+    if bounty.RewardsMeta.USER_PRESTIGED & flags:
+        out = f"~~{out}~~"
+    return out
+
+
+def bountyResultsFieldKwargs(place: int, userID: int, userRewards: Dict[str, Union[int, bool]], userMeta: bounty.RewardsMeta) \
+        -> Dict[str, Any]:
+    """Build kwargs to create a new field, representing a user's contributions to solving a bounty
+    """
+    creditsGained = commaSplitNum(userRewards["reward"])
+    systemsChecked = userRewards["checked"]
+    xpGained = "+" + commaSplitNum(userRewards["xp"])
+    winner = userRewards["won"]
+
+    kwargs: Dict[str, Union[str, Any]] = dict(
+        name=f"{place}. {'🏆' if winner else ''} {formatRewardByMeta(creditsGained, 'credits', userMeta)}:",
+        value=f"<@{userID}> checked {systemsChecked}" \
+            + f" system{'s' if int(systemsChecked) != 1 else ''}",
+        inline=False
+    )
+
+    if bounty.RewardsMeta.USER_PRESTIGED & userMeta:
+        kwargs["value"] += "\n(user prestiged - credits shared out)"
+    else:
+        kwargs["value"] += f"\n*{formatRewardByMeta(xpGained, 'xp', userMeta)}*"
+
+    return kwargs
+
+
+def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
+    """Build an embed representing the expiry of a bounty.
+    The bounty's expiry time is assumed to be now.
+
+    :param b: The bounty that has expired
+    :type b: bounty.Bounty
+    :return: An embed detailing the expiry of the bounty
+    :rtype: Embed
+    """
+    e = Embed()
+    e.set_author(name="Bounty Expired", icon_url=b.criminal.icon)
+    e.description = f"**{b.criminal.name}**\nOut of time! The bounty has expired."
+    e.colour = bbData.factionColours[b.faction]
+    activeTime = datetime.utcnow() - datetime.utcfromtimestamp(b.issueTime)
+    e.set_footer(text=f"Active time: {lib.timeUtil.td_format_noYM(activeTime)}")
+    return e
 
 
 class BasedGuild(serializable.Serializable):
@@ -102,7 +162,7 @@ class BasedGuild(serializable.Serializable):
         else:
             if divisionShops is None:
                 self.divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
-                                        for divName, levels in cfg.bountyDivisions.items()}
+                                        for divName, levels in bountyDivision.divisionNameLevels().items()}
             else:
                 self.divisionShops = divisionShops
 
@@ -147,8 +207,9 @@ class BasedGuild(serializable.Serializable):
         async def makeDivRole(div: bountyDivision.BountyDivision):
             divsDone.add(div)
             divName = nameForDivision(div)
+            divID = cfg.bountyDivisionNames.index(divName)
             newRole = await self.dcGuild.create_role(name=f"{divName.title()} Bounty Hunter",
-                                                    colour=Colour.from_rgb(*cfg.defaultBountyAlertRoleColours[divName]),
+                                                    colour=Colour.from_rgb(*cfg.bountyAlertRoleColoursByDivision[divID]),
                                                     reason="Creating new bounty alert roles requested by BB command")
             div.alertRoleID = newRole.id
         for div in self.bountiesDB.divisions.values():
@@ -492,6 +553,7 @@ class BasedGuild(serializable.Serializable):
         bountyEmbed.add_field(name="**See the culprit's loadout with:**",
                                 value="`" + self.commandPrefix + "loadout criminal " + newBounty.criminal.name + "`")
         bountyEmbed.add_field(name="**Route:**", value=", ".join(newBounty.route), inline=False)
+        bountyEmbed.add_field(name="Bounty ends:", value=f"<t:{int(newBounty.endTime)}:R>")
 
         if self.hasBountyBoardChannels:
             try:
@@ -588,13 +650,15 @@ class BasedGuild(serializable.Serializable):
 
 
     async def announceBountyWon(self, bounty : bounty.Bounty, rewards : Dict[int, Dict[str, Union[int, bool]]],
-                                winningUser : Member):
+                                winningUser : Member, rewardsMeta: Dict[int, bounty.RewardsMeta]):
         """Announce the completion of a bounty
         Messages will be sent to the playChannel if one is set
 
         :param bounty bounty: the bounty to announce
         :param dict rewards: the rewards dictionary as defined by bounty.calculateRewards
         :param discord.Member winningUser: the guild member that won the bounty
+        :param rewardsMeta: mapping from user ID to binary flags for special rewards handling (bounty.RewardsMeta)
+        :type rewardsMeta: Dict[int, int]
         """
         if self.dcGuild is not None:
             if self.hasPlayChannel():
@@ -607,24 +671,15 @@ class BasedGuild(serializable.Serializable):
                                                         desc="`Suspect located in '" + bounty.answer + "'`")
 
                 # Add the winning user to the embed
-                rewardsEmbed.add_field(name="1. 🏆 " + commaSplitNum(rewards[winningUserId]["reward"]) + " credits:",
-                                        value=winningUser.mention + " checked " + str(rewards[winningUserId]["checked"]) \
-                                            + " system" + ("s" if int(rewards[winningUserId]["checked"]) != 1 else "") \
-                                            + "\n*+" + commaSplitNum(rewards[winningUserId]["xp"]) + "xp*",
-                                        inline=False)
-
+                rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUserId, rewards[winningUserId],
+                                                                    rewardsMeta[winningUserId]))
 
                 # The index of the current user in the embed
                 place = 2
                 # Loop over all non-winning users in the rewards dictionary
-                for userID in rewards:
-                    if not rewards[userID]["won"]:
-                        rewardsEmbed.add_field(name=str(place) + ". " + commaSplitNum(rewards[userID]["reward"]) + " credits:",
-                                                value="<@" + str(userID) + "> checked " \
-                                                    + str(int(rewards[userID]["checked"])) \
-                                                    + " system" + ("s" if int(rewards[userID]["checked"]) != 1 else "") \
-                                                    + "\n*+" + commaSplitNum(rewards[winningUserId]["xp"]) + "xp*",
-                                                inline=False)
+                for userID, userRewards in rewards.items():
+                    if not userRewards["won"]:
+                        rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
                         place += 1
 
                 # Send the announcement to the guild's playChannel
@@ -636,6 +691,22 @@ class BasedGuild(serializable.Serializable):
         else:
             botState.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty won to guild " \
+                                + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
+                                + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
+
+
+    async def announceBountyExpired(self, b: bounty.Bounty):
+        """Announce the expiry of a bounty. Does not update the bountyboard channel if one exists.
+
+        :param b: The bounty that has expired
+        :type b: bounty.Bounty
+        """
+        if self.dcGuild is not None:
+            if self.hasPlayChannel():
+                await self.getPlayChannel().send(embed=makeBountyExpiredEmbed(b))
+        else:
+            botState.logger.log("Main", "AnncBtyWn",
+                                "None dcGuild received when posting bounty expiry to guild " \
                                 + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
 
@@ -681,7 +752,7 @@ class BasedGuild(serializable.Serializable):
             raise ValueError("Shop are already enabled in this guild")
 
         self.divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1], noRefresh=True) \
-                                for divName, levels in cfg.bountyDivisions.items()}
+                                for divName, levels in bountyDivision.divisionNameLevels().items()}
         self.shopsDisabled = False
 
 
@@ -798,7 +869,7 @@ class BasedGuild(serializable.Serializable):
                 divisionShops = {k: guildShop.TechLeveledShop.fromDict(v) for k, v in guildDict["divisionShops"].items()}
             else:
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
-                                    for divName, levels in cfg.bountyDivisions.items()}
+                                    for divName, levels in bountyDivision.divisionNameLevels().items()}
 
         newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled","bountiesDisabled"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,

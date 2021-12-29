@@ -50,7 +50,9 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     "gameBalance": UninitializedBasedEmoji("⚖"),
     "optimisation": UninitializedBasedEmoji("🚀"),
 
-    "money": UninitializedBasedEmoji("💰")
+    "money": UninitializedBasedEmoji("💰"),
+    "cropImage": UninitializedBasedEmoji("✂"),
+    "stretchImage": UninitializedBasedEmoji("↔")
 })
 
 timeouts = {
@@ -82,7 +84,9 @@ timeouts = {
     "newBountyDelayRandomMax": {"minutes": 7},
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    "githubIssueSubmitDelay": {"minutes": 5}
+    "githubIssueSubmitDelay": {"minutes": 5},
+
+    "selectImageSizeHandling": {"minutes": 1}
 }
 
 paths = {
@@ -205,10 +209,11 @@ itemSpawnRateResDP = 3
 minTechLevel = 1
 maxTechLevel = 10
 
-# Division name (lower): range of tech levels for bounties and players
-bountyDivisions = { "bronze": (0, 3),
-                    "silver": (4, 7),
-                    "gold": (8, 10)}
+# Names of divisions
+bountyDivisionNames = ["bronze", "silver", "gold"]
+
+# Tech-level boundaries, for players and bounties, for each division, in the same order as bountyDivisionNames
+bountyDivisionLevels = [(0, 3), (4, 7), (8, 10)]
 
 
 # Price ranges by which ships should be ranked into tech levels. 0th index = tech level 1
@@ -232,10 +237,8 @@ bountyRewardToXPGainMult = 0.1
 # The image to display behind the XP bar during cmd_stats
 userProfileBackground = "xp-bar-background.jpg"
 
-# The image to fill the XP bar with during cmd_stats, for users of each division
-xpBarFill = {list(bountyDivisions.keys())[0]: "xp-bar-fill.jpg",
-            list(bountyDivisions.keys())[1]: "xp-bar-fill.jpg",
-            list(bountyDivisions.keys())[2]: "xp-bar-fill.jpg"}
+# The image to fill the XP bar with during cmd_stats, for users of each division, in the same order as bountyDivisionNames
+xpBarFillsByDivision = ["xp-bar-fill.jpg", "xp-bar-fill.jpg", "xp-bar-fill.jpg"]
 
 # The colour that appears behind the xp bar, for the unfilled region
 xpBarSilhouetteColour = (0, 0, 0, 110)
@@ -404,9 +407,7 @@ minGuildActivity = 1
 activityTempPerPlayer = 1
 
 # The RGB colours to make by default for each bounty alert role
-defaultBountyAlertRoleColours = {list(bountyDivisions.keys())[0]: (89, 39, 12),
-                                list(bountyDivisions.keys())[1]: (157, 94, 11),
-                                list(bountyDivisions.keys())[2]: (255, 174, 8)}
+bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
 
 
 
@@ -438,6 +439,9 @@ defaultShipSkinToolIcon = "https://cdn.discordapp.com/attachments/70068354410374
 maxConcurrentRenders = 1
 
 defaultCrateIcon = "https://cdn.discordapp.com/attachments/700683544103747594/723472359113359410/secure_container.png" 
+
+# Percentage tolerance to give when deciding whether an image is of the correct aspect ratio
+aspectRatioTolerance = 0.1
 
 
 

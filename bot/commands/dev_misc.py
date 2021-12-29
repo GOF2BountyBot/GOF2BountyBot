@@ -26,8 +26,9 @@ botCommands.register("dev-help", dev_cmd_dev_help, 3, signatureStr="**dev-help**
                                     + "detailed info about it, or give a page number or give a section name for brief info.",
                         longHelp="Display information about developer-only commands.\nGive a specific command for " \
                                     + "detailed info about it, or give a page number or give a section name for brief info " \
-                                    + "about a set of commands. These are the currently valid section names:" \
-                                    + "\n- Miscellaneous")
+                                    + "about a set of commands. These are the currently valid section names:• " \
+                                + '\n• '.join(["Bounties", "Channels", "Misc", "GitHub", "Items", "Kaamo", "Loma", "Medals",
+                                                "Skins"]))
 
 
 async def dev_cmd_sleep(message: discord.Message, args: str, isDM: bool):

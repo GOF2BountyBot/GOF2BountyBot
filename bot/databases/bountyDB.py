@@ -14,7 +14,7 @@ from .bountyDivision import BountyDivision
 
 
 def nameForDivision(div: BountyDivision) -> str:
-    """Get the name for the given BountyDivision, as specified in cfg.bountyDivisions.
+    """Get the name for the given BountyDivision, as specified in cfg.bountyDivisionNames.
 
     :param BountyDivison div: The division to get the name of
     :return: The name for the given division
@@ -22,7 +22,7 @@ def nameForDivision(div: BountyDivision) -> str:
     :raise KeyError: When no name is found for the given division
     """
     try:
-        return next(k for k, v in cfg.bountyDivisions.items() if div.minLevel == v[0])
+        return next(k for i, k in enumerate(cfg.bountyDivisionNames) if div.minLevel == cfg.bountyDivisionLevels[i][0])
     except KeyError:
         raise KeyError(f"The given division is non-standard, no name found: {div} range: {div.minLevel} - {div.maxLevel}")
 
@@ -36,7 +36,8 @@ def divisionNameForLevel(tl: int) -> str:
     :raise KeyError: When no division is found for bounties of the given level
     """
     try:
-        return next(name for name, tlBoundaries in cfg.bountyDivisions.items() if tlBoundaries[0] <= tl <= tlBoundaries[1])
+        return next(k for i, k in enumerate(cfg.bountyDivisionNames) \
+                    if cfg.bountyDivisionLevels[i][0] <= tl <= cfg.bountyDivisionLevels[i][1])
     except StopIteration:
         raise KeyError(f"No division found for bounties of TL {tl}")
 
@@ -59,7 +60,7 @@ class BountyDB(serializable.Serializable):
         """
         if not dummy:
             self.divisions: Dict[range, BountyDivision] = {}
-            for minLevel, maxLevel in cfg.bountyDivisions.values():
+            for minLevel, maxLevel in cfg.bountyDivisionLevels:
                 self.divisions[range(minLevel, maxLevel+1)] = BountyDivision(self, minLevel, maxLevel)
             self.orderedDivs: List[BountyDivision] = []
             self.owningBasedGuild = owningBasedGuild
@@ -80,7 +81,7 @@ class BountyDB(serializable.Serializable):
 
 
     def divisionForName(self, name: str) -> BountyDivision:
-        """Get the stored BountyDivision for the given division name, as specified in cfg.bountyDivisions.
+        """Get the stored BountyDivision for the given division name, as specified in cfg.bountyDivisionNames.
 
         :param str name: The name of the division to get
         :return: The BountyDivison of the given name
@@ -88,9 +89,11 @@ class BountyDB(serializable.Serializable):
         :raise KeyError: When no division is found for the given name
         """
         try:
-            return self.divisionForLevel(cfg.bountyDivisions[name][0])
-        except KeyError:
+            divID = cfg.bountyDivisionNames.index(name)
+        except ValueError:
             raise KeyError(f"No BountyDivision with the given name: {name}")
+        
+        return self.divisionForLevel(cfg.bountyDivisionLevels[divID][0])
 
 
     def clearAllBounties(self, includeEscaped=True):

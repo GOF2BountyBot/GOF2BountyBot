@@ -1,13 +1,14 @@
 # TODO: Write a targettable ReactionMenuOption subclass, that implements targetMember and targetRole on a per-option basis.
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
+from datetime import datetime, timedelta
 from ..scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, NotFound, HTTPException, Forbidden, Member, User, Message, Role, RawReactionActionEvent
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Union, Dict, List
+from typing import Any, Type, Union, Dict, List
 import asyncio
 from types import FunctionType
 from ..baseClasses import serializable
@@ -199,6 +200,17 @@ class DummyReactionMenuOption(ReactionMenuOption):
         :rtype: dict
         """
         return super(DummyReactionMenuOption, self).toDict(**kwargs)
+
+
+    @classmethod
+    def fromDict(cls, data: dict, **kwargs) -> "DummyReactionMenuOption":
+        """Recreate a serialized DummyReactionMenuOption.
+
+        :param dict data: The serialized option
+        :return: A new DummyReactionMenuOption as described by `data`
+        :rtype: DummyReactionMenuOption
+        """
+        return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.fromDict(data["emoji"], **kwargs))
 
 
 class ReactionMenu(serializable.Serializable):
@@ -634,7 +646,7 @@ saveableMenuTypeNames: Dict[type, str] = {}
 saveableNameMenuTypes: Dict[str, type] = {}
 
 
-def saveableMenu(cls: type) -> type:
+def saveableMenu(cls: Type[ReactionMenu]) -> Type[ReactionMenu]:
     """A decorator registering a ReactionMenu subclass as saveable.
     Once applied, instances of your class will automatically save their toDict representation to SQL on creation,
     and the instance will be reconstructed on bot restart with your provided fromDict implementation.
@@ -654,7 +666,7 @@ def saveableMenu(cls: type) -> type:
     return cls
 
 
-def isSaveableMenuClass(cls: type) -> bool:
+def isSaveableMenuClass(cls: Type[ReactionMenu]) -> bool:
     """Decide if the given class has been registered as a saveable reaction menu.
 
     :param type cls: The class to check for saveability registration
@@ -694,3 +706,39 @@ def saveableMenuClassFromName(clsName: str) -> type:
     :raise KeyError: If no ReactionMenu subclass with the given name has been registered as saveable
     """
     return saveableNameMenuTypes[clsName]
+
+
+# inline-style menus cannot be serializable :(
+# @saveableMenu
+class DummySingleUserReactionMenu(SingleUserReactionMenu):
+    def __init__(self, msg: Message, targetMember: Union[Member, User], activeTime: timedelta,
+                options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],
+                returnTriggers: List[lib.emojis.BasedEmoji], titleTxt: str = "", desc: str = "",
+                col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+                thumb: str = "", icon: str = "", authorName: str = ""):
+
+        if isinstance(options, dict):
+            dummyOptions = {e: DummyReactionMenuOption(n, e) for e, n in options.items()}
+        else:
+            dummyOptions = {e: DummyReactionMenuOption(e.sendable, e) for e in options}
+
+        super().__init__(msg, targetMember, int(activeTime.total_seconds()), options=dummyOptions, returnTriggers=returnTriggers,
+                            titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                            authorName=authorName)
+
+
+    # @classmethod
+    # def fromDict(cls, data: dict, msg: Message = None, **kwargs) -> "DummySingleUserReactionMenu":
+    #     if msg is None:
+    #         raise ValueError("Required argument not given: msg")
+        
+    #     options = {}
+    #     for e, n in data.get("options", {}).items():
+    #         emoji = lib.emojis.BasedEmoji.fromDict(e)
+    #         options[emoji] = DummyReactionMenuOption.fromDict(n)
+
+    #     return DummySingleUserReactionMenu(msg, options, activeTime = timedelta(seconds=data["timeout"]),
+    #             options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],
+    #             returnTriggers: List[lib.emojis.BasedEmoji], titleTxt: str = "", desc: str = "",
+    #             col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+    #             thumb: str = "", icon: str = "", authorName: str = "")

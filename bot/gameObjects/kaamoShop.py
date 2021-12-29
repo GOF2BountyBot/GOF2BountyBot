@@ -18,11 +18,11 @@ class KaamoShop(guildShop.GuildShop):
     KaamoShops have a maximum capacity defined in cfg. Items equipped onto ships count towards this cap.
     """
 
-    def __init__(self, shipsStock : inventory.Inventory = inventory.TypeRestrictedInventory(shipItem.Ship),
-            weaponsStock : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
-            modulesStock : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
-            turretsStock : inventory.Inventory = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon),
-            toolsStock : inventory.Inventory = inventory.TypeRestrictedInventory(toolItem.ToolItem)):
+    def __init__(self, shipsStock : inventory.Inventory = None,
+            weaponsStock : inventory.Inventory = None,
+            modulesStock : inventory.Inventory = None,
+            turretsStock : inventory.Inventory = None,
+            toolsStock : inventory.Inventory = None):
         """
         :param Inventory shipsStock: The shop's current stock of ships (Default empty Inventory)
         :param Inventory weaponsStock: The shop's current stock of weapons (Default empty Inventory)
@@ -33,8 +33,9 @@ class KaamoShop(guildShop.GuildShop):
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock, turretsStock=turretsStock,
                             toolsStock=toolsStock)
-        self.totalItems = weaponsStock.totalItems + modulesStock.totalItems + turretsStock.totalItems + toolsStock.totalItems
-        for ship in shipsStock.items:
+        self.totalItems = self.weaponsStock.totalItems + self.modulesStock.totalItems + self.turretsStock.totalItems \
+                            + self.toolsStock.totalItems
+        for ship in self.shipsStock.items:
             self.totalItems += 1 + len(ship.weapons) + len(ship.modules) + len(ship.turrets)
 
 
@@ -356,3 +357,4 @@ class KaamoShop(guildShop.GuildShop):
 
         return KaamoShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                                 turretsStock=turretsStock, toolsStock=toolsStock)
+                                

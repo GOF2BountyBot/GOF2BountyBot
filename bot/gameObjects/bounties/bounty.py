@@ -13,6 +13,44 @@ from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
 from ..items.shipItem import Ship
+from enum import Enum
+
+
+class CheckResult(Enum):
+    """Indicate the result of a check. Does not indicate the result of the proceeding duel.
+    
+    0 => This system is not in the bounty route.
+    1 => this system has already been checked.
+    2 => The system was unchecked, but is not the answer.
+    3 => answer found.
+    """
+    NOT_FOUND = 0
+    ALREADY_CHECKED = 1
+    INCORRECT = 2
+    CORRECT = 3
+
+
+class RewardsMeta(Enum):
+    """Binary flags representing special cases to apply to giving rewards for checking a bounty's route
+
+    none: no flags
+    prestige: user has since prestiged, so they dont get xp and their credits are shared to the other contributor(s)
+    """
+    NONE = 0b0
+    USER_PRESTIGED = 0b1
+
+    def __and__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value & other.value
+        else:
+            return self.value & other
+
+    
+    def __or__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value | other.value
+        else:
+            return self.value | other
 
 
 class Bounty(serializable.Serializable):
@@ -41,10 +79,12 @@ class Bounty(serializable.Serializable):
     :vartype hasShip: bool
     :var techLevel: The current difficulty level of the bounty
     :vartype techLevel: int
+    :var expiryTT: The timedtask responsible for expiring this bounty.
+    :vartype expiryTT: TimedTask
     """
 
     def __init__(self, criminalObj : criminal.Criminal = None, config : BountyConfig = None,
-                    division : BountyDivision = None, dbReload : bool = False):
+                    division : BountyDivision = None, dbReload : bool = False, expiryTT: TimedTask = None):
         """
         :param criminalObj: The criminal to be wanted. Give None to randomly generate a criminal. (Default None)
         :type criminalObj: criminal or None
@@ -55,6 +95,8 @@ class Bounty(serializable.Serializable):
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
+        :param TimedTask expiryTT: The timedtask responsible for expiring this bounty. If None, a new task will be created
+                                (Default None)
         :raise ValueError: When dbReload is False but owningDB is not given
         """
         if not dbReload and division is None:
@@ -99,15 +141,25 @@ class Bounty(serializable.Serializable):
         self.faction = self.criminal.faction
         self.issueTime = config.issueTime
         self.endTime = config.endTime
+        endDT = datetime.utcfromtimestamp(self.endTime)
+        self.expired = False
         self.route = config.route
         self.reward = config.reward
         self.rewardPerSys = config.rewardPerSys
         self.checked = config.checked.copy()
         self.answer = config.answer
-
         self.techLevel = config.techLevel
         self.respawnTT: TimedTask = None
         self.division = division
+        if expiryTT is None:
+            if endDT < datetime.utcnow():
+                self.expiryTT = None
+                lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
+            else:
+                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
+                botState.taskScheduler.scheduleTask(self.expiryTT)
+        else:
+            self.expiryTT = expiryTT
 
 
     def clearShip(self):
@@ -158,7 +210,7 @@ class Bounty(serializable.Serializable):
         self.hasShip = True
 
 
-    def check(self, system : str, userID : int) -> int:
+    def check(self, system : str, userID : int) -> CheckResult:
         """Check a system along the route. The integer returned by this method indicates the results of the check:
         0 => This system is not in the bounty route.
         1 => this system has already been checked.
@@ -171,14 +223,14 @@ class Bounty(serializable.Serializable):
         :rtype: int
         """
         if system not in self.route:
-            return 0
+            return CheckResult.NOT_FOUND
         elif self.systemChecked(system):
-            return 1
+            return CheckResult.ALREADY_CHECKED
         else:
             self.checked[system] = userID
             if self.answer == system:
-                return 3
-            return 2
+                return CheckResult.CORRECT
+            return CheckResult.INCORRECT
 
 
     def systemChecked(self, system : str) -> bool:
@@ -237,8 +289,7 @@ class Bounty(serializable.Serializable):
 
 
     def escape(self, respawnTT : TimedTask = None, dbReload=False):
-        """Mark this bounty as escaped.
-        Does not schedule respawning or register the bounty as escaped in the owning bountyDB.
+        """Mark this bounty as escaped, schedule respawning, and register the bounty as escaped in the owning bountyDB.
 
         :param TimedTask respawnTT: The timedtask responsible for the respawning of the bounty
         :raise ValueError: If the bounty is already marked as escaped
@@ -259,13 +310,50 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
+    async def expire(self, dbReload: bool = False):
+        """Mark this bounty as expired, and notify both the owning bountyDB and the owning guild in discord.
+        
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :raise ValueError: If the bounty is not currently active, e.g it has already expired
+        """
+        await self.division.announceBountyExpiry(self, dbReload=dbReload)
+        self._expire(dbReload=dbReload)
+
+
+    def _expire(self, dbReload: bool = False, killExpiryTT: bool = True):
+        """Mark this bounty as expired, and register the bounty as expired in the owning bountyDB.
+        Does not notify the guild in discord.
+
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :param bool killExpiryTT: Give True to also expire the bounty's expiryTT, *without* executing the task's
+                                expiry function (Default True)
+        :raise ValueError: If the bounty is already marked as expired
+        """
+        if self.expired:
+            raise ValueError("Attempted to mark a bounty as expired that is already expired: " + self.criminal.name)
+
+        if self.isEscaped():
+            if self.criminal in self.division.escapedBounties[self.techLevel]:
+                self.division.owningDB.removeEscapedBountyObj(self)
+        else:
+            if self.criminal in self.division.bounties[self.techLevel]:
+                self.division.owningDB.removeBountyObj(self)
+        
+        if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
+            self.expiryTT.syncForceExpireNoFuncNoReschedule()
+            self.expiryTT = None
+
+
     async def _respawn(self):
         if not self.isEscaped():
             raise ValueError("Attempted to respawn on a bounty that is not awaiting respawn: " + self.criminal.name)
 
         respawnArgs = {"newBounty": self,
-                        "newConfig": BountyConfig(faction=self.criminal.faction,
-                                                                techLevel=self.techLevel)}
+                        "newConfig": self.makeRespawnConfig()}
         await self.division.owningDB.owningBasedGuild.spawnAndAnnounceBounty(respawnArgs, isRespawn=True)
         # This is handled by spawnAndAnnounceBounty
         # self.division.owningDB.removeEscapedCriminal(self.criminal)
@@ -287,14 +375,14 @@ class Bounty(serializable.Serializable):
         self.division.owningDB.removeEscapedCriminal(self.criminal)
 
 
-    def forceRespawn(self):
+    async def forceRespawn(self):
         """Force the immediate respawning of the bounty, by forcing the expiry of its respawn TimedTask.
 
         :raise ValueError: If the bounty is not escaped
         """
         if not self.isEscaped():
             raise ValueError("Attempted to forceRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
-        self.respawnTT.forceExpire(callExpiryFunc=True)
+        await self.respawnTT.forceExpire(callExpiryFunc=True)
 
 
     def makeRespawnConfig(self):
@@ -303,7 +391,7 @@ class Bounty(serializable.Serializable):
         :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
         :rtype: BountyConfig
         """
-        return BountyConfig(faction=self.faction, name=self.name, isPlayer=self.criminal.isPlayer,
+        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer,
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 

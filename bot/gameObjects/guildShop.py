@@ -55,7 +55,8 @@ class GuildShop(serializable.Serializable):
 
         :return: True if the shop has no items, False if it has at least one
         """
-        return all(stock.isEmpty() for stock in (self.shipsStock, self.weaponsStock, self.modulesStock, self.turretsStock))
+        return all(stock.isEmpty() for stock in \
+            (self.shipsStock, self.weaponsStock, self.modulesStock, self.turretsStock, self.toolsStock))
 
 
     def getStockByType(self, itemType: type) -> Inventory:

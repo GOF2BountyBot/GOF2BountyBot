@@ -456,7 +456,7 @@ async def on_ready():
     botState.client.loggedIn = True
 
     botState.utcOffset = datetime.now() - datetime.utcnow()
-    print(f"System time UTC offset measured at: {lib.timeUtil.td_format_noYM(botState.utcOffset)}")
+    print(f"System time UTC offset measured at: {lib.timeUtil.td_format_noYM(botState.utcOffset) or 'None'}")
 
 
     ##### EMOJI INITIALIZATION #####

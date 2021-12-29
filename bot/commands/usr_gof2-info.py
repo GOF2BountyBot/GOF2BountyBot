@@ -7,12 +7,14 @@ import asyncio
 from . import commandsDB as botCommands
 from ..cfg import bbData, cfg
 from .. import lib, botState
+from ..lib.discordUtil import truncateWithEllipse
 from ..gameObjects.items import shipItem, gameItem
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
 from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
 from ..reactionMenus import reactionMenu, reactionSkinRegionPicker
 from ..shipRenderer import shipRenderer
 from ..users.basedGuild import BasedGuild
+from . import util_autoskin
 
 
 botCommands.addHelpSection(0, "gof2 info")
@@ -762,240 +764,90 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing a ship name and optionally a skin, prefaced with a + character.
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
+    reskin = "+" in args
+
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
         callingBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
         prefix = callingBGuild.commandPrefix
-        if "+" in args and callingBGuild.hasRendersChannel() and callingBGuild.rendersChannel.id != message.channel.id:
+        if reskin and callingBGuild.hasRendersChannel() and callingBGuild.rendersChannel.id != message.channel.id:
             await message.reply(f":x: Skin renders are restricted to {callingBGuild.rendersChannel.mention}.")
             return
+
     # verify a item was given
     if args == "":
-        await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")
+        await message.reply(mention_author=False,
+                            content=f":x: Please provide a ship! E.g: `{prefix}ship Groza Mk II`")
         return
-    if "+" in args:
-        if len(args.split("+")) > 2:
+
+    full = False
+    attached = False
+
+    if reskin:
+        argsSplit = args.split("+")
+        if len(argsSplit) > 2:
             await message.reply(mention_author=False, content=":x: Please only provide one skin, with one `+`!")
             return
-        elif args.split("+")[1] == "":
-            if len(message.attachments) < 1:
-                await message.reply(mention_author=False, content=":x: Please either give a skin name after your `+`, or attach a 2048x2048 jpg " \
-                                            + "to render.")
+        elif argsSplit[1] == "":
+            if not message.attachments:
+                await message.reply(mention_author=False,
+                                    content=":x: Please either give a skin name after your `+`, " \
+                                        + "or attach an image to render.")
                 return
-            args, skin = args.split("+")[0], "$ATTACHEDFILE$"
-            if args.lower().endswith("full"):
-                args = args.split("full")[0]
-                skin = "$ATTACHEDFILEFULL$"
+            args = args.split("+")[0].rstrip()
+            attached = True
+            full = args.lower().endswith("full")
+            if full:
+                args = args.split("full")[0].rstrip()
         else:
-            args, skin = args.split("+")
+            args, skin = argsSplit
     else:
         skin = ""
 
-    # look up the ship object
-    itemName = args.rstrip(" ").title()
-    itemObj = None
-    for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
-        if shipObj.isCalled(itemName):
-            itemObj = shipObj
-    # report unrecognised ship names
-    if itemObj is None:
-        if len(itemName) < 20:
-            await message.reply(mention_author=False, content=":x: **" + itemName + "** is not in my database! :detective:")
-        else:
-            await message.reply(mention_author=False, content=":x: **" + itemName[0:15] + "**... is not in my database! :detective:")
-        return
-    if skin != "":
-        shipData = bbData.builtInShipData[itemObj.name]
-        if not shipData["skinnable"]:
-            await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
+    if attached:
+        await util_autoskin.doAutoSkin(message, args, cfg.skinRenderShowmeResolution, cfg.skinRenderShowmeSamples, full)
+    else:
+        # look up the ship object
+        try:
+            shipData = bbData.findShipDataByAlias(args)
+        except KeyError:
+            await message.reply(mention_author=False,
+                                content=f":x: **{truncateWithEllipse(args, 20, 15)}** is not in my database! :detective:")
             return
-        if skin in ["$ATTACHEDFILE$", "$ATTACHEDFILEFULL$"]:
-            if len(botState.currentRenders) >= cfg.maxConcurrentRenders:
-                await message.reply(mention_author=False, content=":x: My rendering queue is full currently. Please try this command again once " \
-                                            + "someone else's render has completed.")
-                return
-            if itemObj.name in botState.currentRenders:
-                await message.reply(mention_author=False, content=":x: Someone else is currently rendering this ship! Please use this command " \
-                                            + "again once my other " + itemObj.name + " render has completed.")
+
+        itemName = shipData["name"]
+
+        if skin:
+            if not shipData["skinnable"]:
+                await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
                 return
 
-            botState.currentRenders.append(itemObj.name)
-            if len(message.attachments) < 1:
-                await message.reply(mention_author=False, content=":x: Please either give a skin name after your `+`, " \
-                                            + "or attach a 2048x2048 jpg to render.")
-                botState.currentRenders.remove(itemObj.name)
-                return
-            skinFile = message.attachments[0]
-            if (not skinFile.filename.lower().endswith(".jpg")) or not (skinFile.width == 2048 and skinFile.height == 2048):
-                await message.reply(mention_author=False, content=":x: Please either give a skin name after your `+`, " \
-                                            + "or attach a 2048x2048 jpg to render.")
-                botState.currentRenders.remove(itemObj.name)
-                return
-            try:
-                await skinFile.save(CWD + os.sep + cfg.paths.rendererTempFolder + os.sep + str(message.id) + "_0.jpg")
-            except (discord.HTTPException, discord.NotFound):
-                await message.reply(mention_author=False, content=":x: I couldn't download your skin file. Did you delete it?")
-                botState.currentRenders.remove(itemObj.name)
-                return
-            skinPaths = {0: CWD + os.sep + cfg.paths.rendererTempFolder + os.sep + str(message.id) + "_0.jpg"}
-            disabledLayers = []
-            if skin == "$ATTACHEDFILE$" and shipData["textureRegions"]:
-                layerIndices = [i for i in range(1, shipData["textureRegions"] + 1)]
-                layersPickerMsg = await message.reply(mention_author=False, content="** **")
-                layersPickerMenu = ReactionSkinRegionPicker(layersPickerMsg, message.author, cfg.toolUseConfirmTimeoutSeconds,
-                                                            numRegions=shipData["textureRegions"])
-                pickedLayers = []
-                menuOutput = await layersPickerMenu.doMenu()
-                if cfg.defaultEmojis.spiral in menuOutput:
-                    pickedLayers = layerIndices
-                elif cfg.defaultEmojis.cancel in menuOutput:
-                    await message.reply(mention_author=False, content="🛑 Skin render cancelled.")
-                    for skinPath in skinPaths.values():
-                        os.remove(skinPath)
-                    botState.currentRenders.remove(itemObj.name)
-                    return
-                else:
-                    for react in menuOutput:
-                        try:
-                            pickedLayers.append(cfg.defaultEmojis.numbers.index(react))
-                        except ValueError:
-                            pass
-
-                remainingIndices = [i for i in layerIndices if i not in pickedLayers]
-                if remainingIndices:
-                    disabledLayersPickerMenu = ReactionSkinRegionPicker(layersPickerMsg, message.author,
-                                                                        cfg.toolUseConfirmTimeoutSeconds,
-                                                                        possibleRegions=remainingIndices,
-                                                                        desc="Would you like to disable any regions?")
-                    menuOutput = await disabledLayersPickerMenu.doMenu()
-                    if cfg.defaultEmojis.spiral in menuOutput:
-                        disabledLayers = remainingIndices
-                    elif cfg.defaultEmojis.cancel in menuOutput:
-                        await message.reply(mention_author=False, content="🛑 Skin render cancelled.")
-                        for skinPath in skinPaths.values():
-                            os.remove(skinPath)
-                        botState.currentRenders.remove(itemObj.name)
-                        return
-                    else:
-                        for react in menuOutput:
-                            try:
-                                disabledLayers.append(cfg.defaultEmojis.numbers.index(react))
-                            except ValueError:
-                                pass
-
-                def showmeAdditionalMessageCheck(newMessage):
-                    return newMessage.author == message.author and (newMessage.content.lower().startswith(prefix + "cancel") \
-                            or len(newMessage.attachments) > 0)
-                for regionNum in pickedLayers:
-                    nextLayerMsg = await message.reply(mention_author=False, content="Please send your image for texture region #" + str(regionNum) \
-                                                                + ", or `" + prefix \
-                                                                + "cancel` to cancel the render, within " \
-                                                                + str(cfg.toolUseConfirmTimeoutSeconds) + " seconds.")
-                    try:
-                        imgMsg = await botState.client.wait_for("message", check=showmeAdditionalMessageCheck,
-                                                                timeout=cfg.toolUseConfirmTimeoutSeconds)
-                    except asyncio.TimeoutError:
-                        await nextLayerMsg.edit(content="This menu has now expired. Please try the command again.\n" \
-                                                        + "🛑 Skin render cancelled.")
-                        for skinPath in skinPaths.values():
-                            os.remove(skinPath)
-                        botState.currentRenders.remove(itemObj.name)
-                        return
-                    else:
-                        if imgMsg.content.lower().startswith(prefix + "cancel"):
-                            await message.reply(mention_author=False, content="🛑 Skin render cancelled.")
-                            for skinPath in skinPaths.values():
-                                os.remove(skinPath)
-                            botState.currentRenders.remove(itemObj.name)
-                            return
-                        nextLayer = imgMsg.attachments[0]
-                        if (not nextLayer.filename.lower().endswith(".jpg")) or \
-                                not (nextLayer.width == 2048 and nextLayer.height == 2048):
-                            await message.reply(mention_author=False, content=":x: Please only give 2048x2048 jpgs!\n🛑 Skin render cancelled.")
-                            for skinPath in skinPaths.values():
-                                os.remove(skinPath)
-                            botState.currentRenders.remove(itemObj.name)
-                            return
-                        try:
-                            await nextLayer.save(CWD + os.sep + cfg.paths.rendererTempFolder + os.sep + str(message.id) \
-                                                    + "_" + str(regionNum) + ".jpg")
-                        except (discord.HTTPException, discord.NotFound):
-                            await message.reply(mention_author=False, content=":x: I couldn't download your skin file. Did you delete it?\n" \
-                                                        + "🛑 Skin render cancelled.")
-                            for skinPath in skinPaths.values():
-                                os.remove(skinPath)
-                            botState.currentRenders.remove(itemObj.name)
-                            return
-                        skinPaths[regionNum] = CWD + os.sep + cfg.paths.rendererTempFolder + os.sep + str(message.id) + "_" \
-                                                + str(regionNum) + ".jpg"
-            waitMsg = await message.reply(mention_author=False, content="🤖 Render started! I'll ping you when I'm done.")
-
-            renderPath = shipData["path"] + os.sep + "skins" + os.sep + str(message.id) + "-RENDER.png"
-            outSkinPath = shipData["path"] + os.sep + "skins" + os.sep + str(message.id) + ".jpg"
-            await lib.discordUtil.startLongProcess(waitMsg)
-            try:
-                await shipRenderer.renderShip(str(message.id), shipData["path"], shipData["model"], skinPaths, disabledLayers,
-                                                cfg.skinRenderShowmeResolution[0], cfg.skinRenderShowmeResolution[1],
-                                                cfg.skinRenderShowmeSamples,
-                                                full=skin == "$ATTACHEDFILEFULL$")
-            except shipRenderer.RenderFailed:
-                await message.reply(mention_author=True, content="🥺 Render failed! The error has been logged, " \
-                                            + "please try a different ship.")
-                botState.logger.log("Main", "cmd_showme_ship", f"Ship render failed with args: '{args}'")
-            else:
-                with open(renderPath, "rb") as f:
-                    msgText = "u" + str(message.author.id) + "g" \
-                                + ("DM" if isDM else \
-                                    str(message.guild.id)) + "c" + str(message.channel.id) + "m" + str(message.id)
-                    storageChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)
-                    imageEmbedMsg = await storageChannel.send(msgText, file=discord.File(f))
-                    renderEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
-                                                            img=imageEmbedMsg.attachments[0].url,
-                                                            authorName="Skin Render Complete!",
-                                                            icon=robotIcon,
-                                                            footerTxt="Custom skinned " + itemObj.name.capitalize())
-                    await message.reply(mention_author=True, embed=renderEmbed)
-
-            botState.currentRenders.remove(itemObj.name)
-            try:
-                os.remove(renderPath)
-            except FileNotFoundError:
-                pass
-
-            for skinPath in skinPaths.values():
-                os.remove(skinPath)
-
-            try:
-                os.remove(outSkinPath)
-            except FileNotFoundError:
-                pass
-            await lib.discordUtil.endLongProcess(waitMsg)
-            return
-        else:
-            skin = skin.lstrip(" ").lower()
+            skin = skin.lstrip().lower()
             if skin not in bbData.builtInShipSkins:
-                if len(itemName) < 20:
-                    await message.reply(mention_author=False, content=":x: The **" + skin + "** skin is not in my database! :detective:")
-                else:
-                    await message.reply(mention_author=False, content=":x: The **" + skin[0:15] + "**... skin is not in my database! :detective:")
-            elif skin not in bbData.builtInShipData[itemObj.name]["compatibleSkins"]:
-                await message.reply(mention_author=False, content=":x: That skin is not compatible with the **" + itemObj.name + "**!")
+                await message.reply(mention_author=False,
+                                    content=f":x: The **{truncateWithEllipse(skin, 20, 15)}** skin is not in my database! " \
+                                            + ":detective:")
+            elif skin not in shipData["compatibleSkins"]:
+                await message.reply(mention_author=False,
+                                    content=f":x: That skin is not compatible with the **{itemName}**!")
 
             else:
                 itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
-                                                        img=bbData.builtInShipSkins[skin].shipRenders[itemObj.name][0],
-                                                        titleTxt=itemObj.name,
+                                                        img=bbData.builtInShipSkins[skin].shipRenders[itemName][0],
+                                                        titleTxt=itemName,
                                                         footerTxt="Custom skin: " + skin.capitalize())
                 await message.reply(mention_author=False, embed=itemEmbed)
-    else:
-        if not itemObj.hasIcon:
-            await message.reply(mention_author=False, content=":x: I don't have an icon for **" + itemObj.name.title() + "**!")
         else:
-            itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(), img=itemObj.icon, titleTxt=itemObj.name,
-                                                    footerTxt=itemObj.manufacturer.capitalize() + " ship")
-            await message.reply(mention_author=False, embed=itemEmbed)
+            shipIcon = shipData.get("icon", False)
+            if shipIcon:
+                await message.reply(mention_author=False,
+                                    content=f":x: I don't have an icon for **{itemName}**!")
+            else:
+                manufacturer = shipData.get('manufacturer', 'Custom').capitalize()
+                itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(), img=shipIcon, titleTxt=itemName,
+                                                        footerTxt=f"{manufacturer} ship")
+                await message.reply(mention_author=False, embed=itemEmbed)
 
 # botCommands.register("showme-ship", cmd_showme_ship)
 

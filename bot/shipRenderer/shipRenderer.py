@@ -9,6 +9,7 @@ import subprocess
 # import sys
 from typing import List, Dict
 import os
+import pathlib
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -101,6 +102,11 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
             # Apply the texture with respect to the mask
             workingTex = Image.composite(workingTex, newTex, mask)
 
+    parent = pathlib.Path(outTexPath).parent
+    # Make sure the enclosing folder exists
+    if not parent.is_dir():
+        os.makedirs(parent)
+    # Save result
     workingTex.convert("RGB").save(outTexPath)
 
 
@@ -180,5 +186,9 @@ async def renderShip(skinName : str, shipPath : str, shipModelName : str, textur
         raise RenderFailed()
     # Crop it to content
     new_im = trim(bg)
+    # Make sure the enclosing folder exists
+    parent = pathlib.Path(render_output_file).parent
+    if not parent.is_dir():
+        os.makedirs(parent)
     # Save it back to file
     new_im.save(render_output_file)
