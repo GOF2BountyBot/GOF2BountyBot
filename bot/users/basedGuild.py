@@ -41,7 +41,7 @@ def bountyResultsFieldKwargs(place: int, userID: int, userRewards: Dict[str, Uni
     """
     creditsGained = commaSplitNum(userRewards["reward"])
     systemsChecked = userRewards["checked"]
-    xpGained = commaSplitNum(userRewards["xp"])
+    xpGained = "+" + commaSplitNum(userRewards["xp"])
     winner = userRewards["won"]
 
     kwargs: Dict[str, Union[str, Any]] = dict(
