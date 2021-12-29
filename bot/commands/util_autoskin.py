@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Tuple, cast
+from typing import Optional, Tuple, cast
 import discord
 from datetime import timedelta
 import os
@@ -99,45 +99,59 @@ async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName:
     return False, menuMsg
 
 
-async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tuple[int, int], samples: int,
-                    full: bool, renderIdentifierPrefix: str = ""):
+async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x : int, res_y : int, numSamples: int,
+                                full: bool = False) -> Tuple[str, Optional[shipRenderer.AutoskinArgs]]:
+    """Collect a usable AutoskinArgs object to pass to the ship renderer
+
+    :param message: The message that triggered the operation
+    :type message: discord.Message
+    :param userShipName: The user-provided ship name to look up
+    :type userShipName: str
+    :param res_x: width of the render
+    :type res_x: int
+    :param res_y: height of the render
+    :type res_y: int
+    :param numSamples: Number of samples of the render
+    :type numSamples: int
+    :param full: Whether to trigger autoskin at all, or just render the given texture (Default False)
+    :type full: bool, optional
+    :return: The collected parameter values, or None if an error occurred
+    :rtype: Optional[shipRenderer.AutoskinArgs]
+    """
     if message.guild is None:
         prefix: str = cfg.defaultCommandPrefix
     else:
         prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # look up the ship data
-    itemName = cast(str, None)
-    shipData = cast(dict, None)
-    
     try:
         shipData = bbData.findShipDataByAlias(userShipName)
-        itemName = shipData["name"]
     except KeyError:
         # report unrecognised ship names
         await message.reply(mention_author=False,
                             content=f":x: **{truncateWithEllipse(userShipName, 20, 15)}** is not in my database! :detective:")
-        return
+        return None
+
+    itemName = shipData["name"]
 
     if not shipData["skinnable"]:
         await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
-        return
+        return None
 
     if len(botState.currentRenders) >= cfg.maxConcurrentRenders:
         await message.reply(mention_author=False,
                             content=":x: My rendering queue is full currently. Please try this command again once someone " \
                                     + "else's render has completed.")
-        return
+        return None
     if itemName in botState.currentRenders:
         await message.reply(mention_author=False,
                             content=":x: Someone else is currently rendering this ship! Please use this command again " \
                                     + f"once my other {itemName} render has completed.")
-        return
+        return None
 
     if not message.attachments:
-        await message.reply(mention_author=False,
-                            content=":x: Please attach an image to render onto your ship.")
-        return
+        await message.reply(mention_author=False, content=":x: Please attach an image to use as your base texture.")
+        return None
 
     botState.currentRenders.append(itemName)
     skinPaths = {}
@@ -178,7 +192,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
     skinFile = message.attachments[0]
     result = await downloadImage(skinPaths, skinFile, 0)
     if not result:
-        return
+        return None
 
     menuMsg = None
 
@@ -186,7 +200,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
     if not correctShape:
         cancelled, menuMsg = await fixImageAspectRatio(skinPaths[0], message, itemName, True, menuMsg)
         if cancelled:
-            return
+            return None
 
     disabledLayers = []
 
@@ -207,7 +221,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
             for skinPath in skinPaths.values():
                 os.remove(skinPath)
             botState.currentRenders.remove(itemName)
-            return
+            return None
         else:
             for react in menuOutput:
                 try:
@@ -232,7 +246,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                 for skinPath in skinPaths.values():
                     os.remove(skinPath)
                 botState.currentRenders.remove(itemName)
-                return
+                return None
             else:
                 for react in menuOutput:
                     try:
@@ -254,39 +268,53 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                                                         timeout=cfg.toolUseConfirmTimeoutSeconds)
             except asyncio.TimeoutError:
                 await nextLayerMsg.edit(content="This menu has now expired. Please try the command again.")
-                return
+                return None
             else:
                 if imgMsg.content.lower().startswith(f"{prefix}cancel"):
                     await nextLayerMsg.edit(mention_author=False, content="🛑 Skin render cancelled.")
                     for skinPath in skinPaths.values():
                         os.remove(skinPath)
                     botState.currentRenders.remove(itemName)
-                    return
+                    return None
 
                 nextLayer = imgMsg.attachments[0]
                 result = await downloadImage(skinPaths, nextLayer, regionNum)
                 if not result:
-                    return
+                    return None
 
                 correctShape = checkImageAspectRatio(nextLayer, skinPaths[regionNum])
                 if not correctShape:
                     cancelled, _ = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, True)
                     if cancelled:
-                        return
+                        return None
+    
+    return itemName, shipRenderer.AutoskinArgs(str(message.id), shipData["path"], shipData["model"], skinPaths,
+                                                disabledLayers, res_x, res_y, numSamples, full=full)
 
+
+async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.AutoskinArgs, shipName: str,
+                    renderIdentifierPrefix: str = ""):
+    """Call shipRenderer following a render command.
+
+    :param message: The message that triggered the render
+    :type message: discord.Message
+    :param rendererArgs: The parameters to pass to the renderer
+    :type rendererArgs: shipRenderer.AutoskinArgs
+    :param renderIdentifierPrefix: Prefix for the render ID, which will be posted to the renders channel (Default ")
+    :type renderIdentifierPrefix: str, optional
+    """
     waitMsg = await message.reply(mention_author=False, content="🤖 Render started! I'll ping you when I'm done.")
 
-    renderPath = os.path.join(shipData["path"], "skins", f"{message.id}-RENDER.png")
-    outSkinPath = os.path.join(shipData["path"], "skins", f"{message.id}.jpg")
+    renderPath = os.path.join(rendererArgs.shipPath, "skins", f"{message.id}-RENDER.png")
+    outSkinPath = os.path.join(rendererArgs.shipPath, "skins", f"{message.id}.jpg")
 
     guildStr = "DM" if message.guild is None else str(message.guild.id)
     renderIdentifier = f"{renderIdentifierPrefix}{'-' if renderIdentifierPrefix else ''}" \
-                        + f"u{message.author.id}g{guildStr}c{message.channel.id}m{message.id}s{itemName}"
+                        + f"u{message.author.id}g{guildStr}c{message.channel.id}m{message.id}sh{shipName}"
 
     await lib.discordUtil.startLongProcess(waitMsg)
     try:
-        await shipRenderer.renderShip(str(message.id), shipData["path"], shipData["model"], skinPaths, disabledLayers,
-                                        resolution[0], resolution[1], samples, full=full)
+        await shipRenderer.renderShip(**rendererArgs)
     except shipRenderer.RenderFailed:
         await message.reply("🥺 Render failed! The error has been logged, please try a different ship.",
                             mention_author=True)
@@ -299,17 +327,17 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                                                     img=imageEmbedMsg.attachments[0].url,
                                                     authorName="Skin Render Complete!",
                                                     icon=robotIcon,
-                                                    footerTxt=f"Custom skinned {itemName.capitalize()}")
+                                                    footerTxt=f"Custom skinned {shipName.capitalize()}")
             await message.reply(embed=renderEmbed, mention_author=True)
 
-    botState.currentRenders.remove(itemName)
+    botState.currentRenders.remove(shipName)
 
     try:
         os.remove(renderPath)
     except FileNotFoundError:
         pass
 
-    for skinPath in skinPaths.values():
+    for skinPath in rendererArgs.textures.values():
         os.remove(skinPath)
 
     try:
