@@ -267,7 +267,8 @@ class BountyConfig:
         :raise OverflowError: When attempting to spawn a bounty into a full division
         """
         doDBCheck = not forceNoDBCheck
-        if doDBCheck and division.isFull():
+        if doDBCheck and division.isFull() and (division.hasMinTLBounty() or \
+                (not division.hasMinTLBounty() and self.techLevel not in [division.minLevel, -1])):
             raise OverflowError("The given division is full: " + bountyDB.nameForDivision(division))
             
         if noCriminal:
