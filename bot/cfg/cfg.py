@@ -48,7 +48,10 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     "bug": UninitializedBasedEmoji("🕷"),
     "feature": UninitializedBasedEmoji("✨"),
     "gameBalance": UninitializedBasedEmoji("⚖"),
-    "optimisation": UninitializedBasedEmoji("🚀")
+    "optimisation": UninitializedBasedEmoji("🚀"),
+
+    "cropImage": UninitializedBasedEmoji("✂"),
+    "stretchImage": UninitializedBasedEmoji("↔")
 })
 
 timeouts = {
@@ -80,7 +83,9 @@ timeouts = {
     "newBountyDelayRandomMax": {"minutes": 7},
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    "githubIssueSubmitDelay": {"minutes": 5}
+    "githubIssueSubmitDelay": {"minutes": 5},
+
+    "selectImageSizeHandling": {"minutes": 1}
 }
 
 paths = {
@@ -435,6 +440,9 @@ defaultShipSkinToolIcon = "https://cdn.discordapp.com/attachments/70068354410374
 maxConcurrentRenders = 1
 
 defaultCrateIcon = "https://cdn.discordapp.com/attachments/700683544103747594/723472359113359410/secure_container.png" 
+
+# Percentage tolerance to give when deciding whether an image is of the correct aspect ratio
+aspectRatioTolerance = 0.1
 
 
 
