@@ -270,7 +270,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
 
                 correctShape = checkImageAspectRatio(nextLayer, skinPaths[regionNum])
                 if not correctShape:
-                    cancelled, menuMsg = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, True, menuMsg)
+                    cancelled, _ = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, True)
                     if cancelled:
                         return
 

@@ -722,7 +722,7 @@ class DummySingleUserReactionMenu(SingleUserReactionMenu):
         else:
             dummyOptions = {e: DummyReactionMenuOption(e.sendable, e) for e in options}
 
-        super().__init__(msg, targetMember, activeTime.total_seconds(), options=dummyOptions, returnTriggers=returnTriggers,
+        super().__init__(msg, targetMember, int(activeTime.total_seconds()), options=dummyOptions, returnTriggers=returnTriggers,
                             titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
                             authorName=authorName)
 
