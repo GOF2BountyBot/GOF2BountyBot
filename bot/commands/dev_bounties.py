@@ -306,7 +306,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
                                         + callingBBGuild.dcGuild.name + "'")
         elif useTL:
             div = callingBBGuild.bountiesDB.divisionForLevel(tl)
-            if div.isFull() and not div.hasMinTLBounty():
+            if div.isFull() and div.hasMinTLBounty():
                 await message.reply(mention_author=False, content=":x: That division is full!")
             else:
                 await div.resetNewBountyCool()

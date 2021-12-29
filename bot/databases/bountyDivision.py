@@ -506,7 +506,7 @@ class BountyDivision(Serializable):
         
         :raise OverflowError: If the division is full
         """
-        if self.isFull():
+        if self.isFull() and self.hasMinTLBounty():
             raise OverflowError("Attempted to resetNewBountyCool but the division is full")
         else:
             await self.newBountyTT.forceExpire(callExpiryFunc=True)
