@@ -493,7 +493,7 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
 
     full = args.endswith("-full")
     if full:
-        args = args.split("-full")[0].rstrip(" ")
+        args = args.split("-full")[0].rstrip()
 
     await util_autoskin.doAutoSkin(message, args, cfg.skinRenderShowmeHDResolution, cfg.skinRenderShowmeHDSamples, full, "HD")
 

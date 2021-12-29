@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Tuple, cast
 import discord
 from datetime import timedelta
@@ -38,11 +39,11 @@ def checkImageAspectRatio(skinFile: discord.Attachment, skinPath: str) -> bool:
             workingSF.close()
             return True
         return False
+    return True
 
 
-async def fixImageAspectRatio(skinFile: discord.Attachment, skinPath: str, message: discord.Message,
-                                itemName: str, renderReserved: bool, menuMsg: discord.Message = None) \
-                                    -> Tuple[bool, discord.Message]:
+async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName: str, renderReserved: bool,
+                                menuMsg: discord.Message = None) -> Tuple[bool, discord.Message]:
     """Given a path to an image that is not square, as the user whether they would like it to be cropped or
     stretched to become square, and perform the correction.
     The user can also cancel the operation entirely. This will result in the image at `skinPath` being removed
@@ -110,8 +111,8 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
     shipData = cast(dict, None)
     
     try:
-        itemData = bbData.findShipDataByAlias(userShipName)
-        itemName = itemData["name"]
+        shipData = bbData.findShipDataByAlias(userShipName)
+        itemName = shipData["name"]
     except KeyError:
         # report unrecognised ship names
         await message.reply(mention_author=False,
@@ -138,26 +139,52 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                             content=":x: Please attach an image to render onto your ship.")
         return
 
-    skinFile = message.attachments[0]
-    if not skinFile.content_type.startswith("image"):
-        await message.reply(f":x: Please only attach images! That's a `{skinFile.content_type}`.")
-        return
-
     botState.currentRenders.append(itemName)
-    skinPaths = {0: os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_0.jpg")}
+    skinPaths = {}
 
-    try:
-        await skinFile.save(skinPaths[0])
-    except (discord.HTTPException, discord.NotFound):
-        await message.reply(mention_author=False, content=":x: I couldn't download your image. Did you delete it?")
-        botState.currentRenders.remove(itemName)
+    async def downloadImage(skinPaths, skinFile, key) -> bool:
+        if not skinFile.content_type.startswith("image"):
+            await message.reply(f":x: Please only attach images! That's a `{skinFile.content_type}`.\n" \
+                                + "🛑 Render cancelled.")
+            return
+        texBytes = BytesIO()
+
+        try:
+            await skinFile.save(texBytes)
+        except (discord.HTTPException, discord.NotFound):
+            await message.reply(mention_author=False,
+                                content=":x: I couldn't download your image. Did you delete it?")
+            for skinPath in skinPaths.values():
+                try:
+                    os.remove(skinPath)
+                except FileNotFoundError:
+                    pass
+            botState.currentRenders.remove(itemName)
+            texBytes.close()
+            return False
+
+        texBytes.seek(0)
+        baseTex = Image.open(texBytes)
+        if baseTex.mode == "RGBA":
+            ext = "png"
+        else:
+            ext = "jpg"
+        skinPaths[key] = os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_{key}.{ext}")
+        baseTex.save(skinPaths[key])
+        baseTex.close()
+        texBytes.close()
+        return True
+
+    skinFile = message.attachments[0]
+    result = await downloadImage(skinPaths, skinFile, 0)
+    if not result:
         return
 
     menuMsg = None
 
     correctShape = checkImageAspectRatio(skinFile, skinPaths[0])
     if not correctShape:
-        cancelled, menuMsg = await fixImageAspectRatio(skinFile, skinPaths[0], message, itemName, True, menuMsg)
+        cancelled, menuMsg = await fixImageAspectRatio(skinPaths[0], message, itemName, True, menuMsg)
         if cancelled:
             return
 
@@ -227,6 +254,7 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                                                         timeout=cfg.toolUseConfirmTimeoutSeconds)
             except asyncio.TimeoutError:
                 await nextLayerMsg.edit(content="This menu has now expired. Please try the command again.")
+                return
             else:
                 if imgMsg.content.lower().startswith(f"{prefix}cancel"):
                     await nextLayerMsg.edit(mention_author=False, content="🛑 Skin render cancelled.")
@@ -236,23 +264,13 @@ async def doAutoSkin(message: discord.Message, userShipName: str, resolution: Tu
                     return
 
                 nextLayer = imgMsg.attachments[0]
-                skinPaths[regionNum] = os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_{regionNum}.jpg")
-
-                try:
-                    await nextLayer.save(skinPaths[regionNum])
-                except (discord.HTTPException, discord.NotFound):
-                    await message.reply(mention_author=False,
-                                        content=":x: I couldn't download your image. Did you delete it?" \
-                                                + "\n🛑 Skin render cancelled.")
-                    for skinPath in skinPaths.values():
-                        os.remove(skinPath)
-                    botState.currentRenders.remove(itemName)
+                result = await downloadImage(skinPaths, nextLayer, regionNum)
+                if not result:
                     return
 
                 correctShape = checkImageAspectRatio(nextLayer, skinPaths[regionNum])
                 if not correctShape:
-                    cancelled, menuMsg = await fixImageAspectRatio(nextLayer, skinPaths[regionNum], message,
-                                                                    itemName, True, menuMsg)
+                    cancelled, menuMsg = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, True, menuMsg)
                     if cancelled:
                         return
 

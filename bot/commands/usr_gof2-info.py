@@ -792,7 +792,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
                                     content=":x: Please either give a skin name after your `+`, " \
                                         + "or attach an image to render.")
                 return
-            args = args.split("+")[0]
+            args = args.split("+")[0].rstrip()
             attached = True
             full = args.lower().endswith("full")
             if full:
