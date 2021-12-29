@@ -235,10 +235,8 @@ bountyRewardToXPGainMult = 0.1
 # The image to display behind the XP bar during cmd_stats
 userProfileBackground = "xp-bar-background.jpg"
 
-# The image to fill the XP bar with during cmd_stats, for users of each division
-xpBarFill = {list(bountyDivisions.keys())[0]: "xp-bar-fill.jpg",
-            list(bountyDivisions.keys())[1]: "xp-bar-fill.jpg",
-            list(bountyDivisions.keys())[2]: "xp-bar-fill.jpg"}
+# The image to fill the XP bar with during cmd_stats, for users of each division, in the same order as bountyDivisionNames
+xpBarFillsByDivision = ["xp-bar-fill.jpg", "xp-bar-fill.jpg", "xp-bar-fill.jpg"]
 
 # The colour that appears behind the xp bar, for the unfilled region
 xpBarSilhouetteColour = (0, 0, 0, 110)
