@@ -20,8 +20,8 @@ async def printAndExpirePollResults(msgID : int):
 
     :param int msgID: The id of the discord message containing the menu to expire
     """
-    menu = botState.reactionMenusDB[msgID]
-    menuMsg = await menu.msg.channel.fetch_message(menu.msg.id)
+    menu: ReactionPollMenu = botState.reactionMenusDB[msgID]
+    menuMsg: Message = await menu.msg.channel.fetch_message(menu.msg.id)
     results = {}
 
     if menu.owningBBUser is not None:
@@ -68,9 +68,12 @@ async def printAndExpirePollResults(msgID : int):
             #                     + "The error has been logged.", embed=pollEmbed)
             # return
             continue
-
+        
+        user: Member
         async for user in reaction.users():
             if user != botState.client.user:
+                if menu.targetRole is not None and menu.targetRole not in user.roles:
+                    continue
                 validVote = True
                 if not menu.multipleChoice:
                     for currentOption in results:
