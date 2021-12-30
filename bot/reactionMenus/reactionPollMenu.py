@@ -193,7 +193,12 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         :return: A discord.Embed representing the menu and its options
         :rtype: discord.Embed
         """
-        baseEmbed = super(ReactionPollMenu, self).getMenuEmbed()
+        baseEmbed: Embed = super(ReactionPollMenu, self).getMenuEmbed()
+        if self.targetRole is not None:
+            desc = baseEmbed.description
+            baseEmbed.description = ""
+            baseEmbed.add_field(name=desc, value=f"You must have the {self.targetRole.mention} role to vote.")
+
         if self.multipleChoice:
             baseEmbed.add_field(name="This is a multiple choice poll!", value="Voting for more than one option is allowed.",
                                 inline=False)
