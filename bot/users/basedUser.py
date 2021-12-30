@@ -616,7 +616,7 @@ class BasedUser(serializable.Serializable):
         del self.duelRequests[duelReq.targetBasedUser]
 
 
-    def removeDuelChallengeTarget(self, duelTarget : BasedUser.BasedUser):
+    def removeDuelChallengeTarget(self, duelTarget : BasedUser):
         """Remove this user's duel request that is targetted at the given user.
 
         :param BasedUser duelTarget: The target user whose duel request to remove
