@@ -160,7 +160,14 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
         if not skinFile.content_type.startswith("image"):
             await message.reply(f":x: Please only attach images! That's a `{skinFile.content_type}`.\n" \
                                 + "🛑 Render cancelled.")
-            return
+            for skinPath in skinPaths.values():
+                try:
+                    os.remove(skinPath)
+                except FileNotFoundError:
+                    pass
+            botState.currentRenders.remove(itemName)
+            return False
+            
         texBytes = BytesIO()
 
         try:
