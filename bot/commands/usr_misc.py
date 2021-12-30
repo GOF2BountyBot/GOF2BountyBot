@@ -62,7 +62,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
     srcEmbed.add_field(name="BASED",
                        value="[BASED " + versionInfo.BASED_VERSION + "](https://github.com/Trimatix/BASED)")
     srcEmbed.add_field(name="GitHub",
-                       value="Please ask the bot developer to post their GitHub repository here!")
+                       value="[GitHub Repository](https://github.com/GOF2BountyBot/GOF2BountyBot)")
     srcEmbed.add_field(name="Invite",
                        value="Please ask the bot developer to post the bot's invite link here!")
     srcEmbed.add_field(name="__Upcoming Features__",
@@ -70,7 +70,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
     srcEmbed.add_field(name="__Special Thanks__", value=" • **DeepSilver FishLabs**, creators of Galaxy on Fire 2. " \
                                                             + "I own no intellectual property rights for GOF assets.\n" \
                                                         + " • **The BountyBot testing team** for their incredible support\n" \
-                                                        + " • **NovahKiin22 and Poisonwasp** for development " \
+                                                        + " • **NovahKiin22, Poisonwasp and Kroete** for development " \
                                                             + "contributions and insights", inline=False)
     await message.reply(mention_author=False, embed=srcEmbed)
 
