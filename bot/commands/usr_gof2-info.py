@@ -1302,6 +1302,8 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         else:
             fName = shipData["name"]
 
+        await message.reply(f"{cfg.defaultEmojis.longProcess} Compositing...", mention_author=False)
+
         texPath = os.path.join(shipData["path"], "skins", f"{message.id}-GENTEX.jpg")
         shipRenderer.compositeTextures(texPath, shipData["path"], rendererArgs.textures, rendererArgs.disabledLayers)
         # if formatEmojis[1] in imgFormats:
@@ -1314,7 +1316,7 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
             imBytes.seek(0)
             pngFile = discord.File(imBytes, filename=fName + ".png")
             await message.reply("Autoskin complete!\n__PNG__",
-                                file=pngFile, mention_author=formatEmojis[1] not in imgFormats)
+                                file=pngFile, mention_author=True)
             pngFile.close()
             imBytes.close()
             im.close()
@@ -1322,8 +1324,11 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         if formatEmojis[0] in imgFormats:
             with open(texPath, "rb") as f:
                 jpgFile = discord.File(f, filename=fName + ".jpg")
-                await message.reply("__JPG__" if formatEmojis[1] in imgFormats else "Autoskin complete!\n__JPG__",
-                                    file=jpgFile, mention_author=formatEmojis[1] not in imgFormats)
+                if formatEmojis[1] in imgFormats:
+                    await message.reply("__JPG__", file=jpgFile, mention_author=False)
+                else:
+                    await message.reply("Autoskin complete!\n__JPG__", file=jpgFile,
+                                        mention_author=True)
                 jpgFile.close()
 
         try:
