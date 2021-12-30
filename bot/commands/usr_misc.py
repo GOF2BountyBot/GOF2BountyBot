@@ -634,7 +634,7 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
     The poll subject is optional. To not provide a subject, simply begin args with a new line.
 
     args may also optionally contain the following keyword arguments, given as argname=value
-    - target         : A role or user to restrict participants by. Must be a user or role mention, not ID.
+    - target         : A role to restrict participants by. Must be a role mention, not ID.
     - multiplechoice : Whether or not to allow participants to vote for multiple poll options. Must be true or false.
     - days           : The number of days that the poll should run for. Must be at least one, or unspecified.
     - hours          : The number of hours that the poll should run for. Must be at least one, or unspecified.
@@ -643,12 +643,10 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
 
     Polls must have a run length. That is, specifying ALL run time kwargs as 'off' will return an error.
 
-    TODO: restrict target kwarg to just roles, not users
-    TODO: Change options list formatting from comma separated to new line separated
     TODO: Support target IDs
 
     :param discord.Message message: the discord message calling the command
-    :param str args: A comma-separated list of space-separated emoji-option pairs, and optionally any kwargs as specified
+    :param str args: A newline-separated list of space-separated emoji-option pairs, and optionally any kwargs as specified
                         in this function's docstring
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
@@ -662,7 +660,8 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
 
     argsSplit = args.split("\n")
     if len(argsSplit) < 2:
-        await message.reply(mention_author=False, content=":x: Invalid arguments! Please provide your poll subject, followed by a new line, then " \
+        await message.reply(mention_author=False,
+                            content=":x: Invalid arguments! Please provide your poll subject, followed by a new line, then " \
                                     + "a new line-separated series of poll options.\nFor more info, see `" \
                                     + requestedBBGuild.commandPrefix + "help poll`")
         return
@@ -720,7 +719,6 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
         return
 
     targetRole = None
-    targetMember = None
     if "target" in kwArgs:
         if lib.stringTyping.isRoleMention(kwArgs["target"]):
             targetRole = message.guild.get_role(int(kwArgs["target"].lstrip("<@&").rstrip(">")))
@@ -728,14 +726,8 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False, content=":x: Unknown target role!")
                 return
 
-        elif lib.stringTyping.isMention(kwArgs["target"]):
-            targetMember = message.guild.get_member(int(kwArgs["target"].lstrip("<@!").rstrip(">")))
-            if targetMember is None:
-                await message.reply(mention_author=False, content=":x: Unknown target user!")
-                return
-
         else:
-            await message.reply(mention_author=False, content=":x: Invalid target role/user!")
+            await message.reply(mention_author=False, content=":x: Invalid target role!")
             return
 
     timeoutDict = {}
@@ -782,7 +774,6 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
 
     menu = reactionPollMenu.ReactionPollMenu(menuMsg, pollOptions, timeoutTT, pollStarter=message.author,
                                                 multipleChoice=multipleChoice, targetRole=targetRole,
-                                                targetMember=targetMember,
                                                 owningBBUser=botState.usersDB.getUser(message.author.id),
                                                 desc=pollSubject)
     await menu.updateMessage()

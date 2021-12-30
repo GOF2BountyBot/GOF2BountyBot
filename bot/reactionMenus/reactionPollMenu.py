@@ -130,7 +130,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
     def __init__(self, msg : Message, pollOptions : dict, timeout : timedTask.TimedTask,
             pollStarter : Union[User, Member] = None, multipleChoice : bool = False, titleTxt : str = "", desc : str = "",
             col : Colour = Colour.blue(), footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "",
-            authorName : str = "", targetMember : Member = None, targetRole : Role = None,
+            authorName : str = "", targetRole : Role = None,
             owningBBUser : basedUser.BasedUser = None):
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -152,8 +152,6 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required for this to be displayed.
                         (Default "")
         :param str authorName: Secondary, smaller title for the embed (Default "Poll")
-        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu.
-                                            All other reactions are ignored (Default None)
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
                                         All other reactions are ignored (Default None)
         :param bbUser owningBBUser: The bbUser who started the poll. Used for resetting whether or not a user can make
@@ -180,7 +178,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         super(ReactionPollMenu, self).__init__(msg, options=pollOptions, titleTxt=titleTxt, desc=desc, col=col,
                                                 footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName,
-                                                timeout=timeout, targetMember=targetMember, targetRole=targetRole)
+                                                timeout=timeout, targetRole=targetRole)
 
 
     def getMenuEmbed(self) -> Embed:
@@ -249,7 +247,5 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         return ReactionPollMenu(**cls._makeDefaults(rmDict, msg=msg, pollOptions=options, timeout=timeoutTT,
                                                     col=menuColour, owningBBUser=owner,
-                                                    targetMember=msg.guild.get_member(rmDict["targetMember"]) \
-                                                                    if "targetMember" in rmDict else None,
                                                     targetRole=msg.guild.get_role(rmDict["targetRole"]) \
                                                                     if "targetRole" in rmDict else None))
