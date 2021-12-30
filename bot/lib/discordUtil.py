@@ -37,9 +37,9 @@ def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
             return homeGuild
 
     dcUser: User = botState.client.get_user(user.id)
-    if dcUser is not None:
+    if dcUser is not None and dcUser.mutual_guilds:
         return dcUser.mutual_guilds[0]
-        
+
     return None
 
 
