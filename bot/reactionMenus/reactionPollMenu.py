@@ -197,7 +197,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         if self.targetRole is not None:
             desc = baseEmbed.description
             baseEmbed.description = ""
-            baseEmbed.add_field(name=desc, value=f"You must have the {self.targetRole.mention} role to vote.")
+            baseEmbed.insert_field_at(0, name=desc, value=f"You must have the {self.targetRole.mention} role to vote.")
 
         if self.multipleChoice:
             baseEmbed.add_field(name="This is a multiple choice poll!", value="Voting for more than one option is allowed.",
