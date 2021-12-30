@@ -36,12 +36,8 @@ def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
         if homeGuild is not None:
             return homeGuild
 
-    else:
-        for guild in botState.client.guilds:
-            if guild.get_member(user.id) is not None:
-                return guild
-                
-    return None
+    dcUser: User = botState.client.get_user(user.id)
+    return dcUser.mutual_guilds[0]
 
 
 def userOrMemberName(dcUser : User, dcGuild : Guild) -> str:
