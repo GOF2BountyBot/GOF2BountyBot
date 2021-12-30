@@ -31,20 +31,15 @@ def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
     :return: A discord.Guild where user is a member, if one can be found. None if no such guild can be found.
     :rtype: discord.guild or None
     """
-    if user.hasLastSeenGuildId:
-        lastSeenGuild = botState.client.get_guild(user.lastSeenGuildId)
-        if lastSeenGuild is None or lastSeenGuild.get_member(user.id) is None:
-            user.hasLastSeenGuildId = False
-        else:
-            return lastSeenGuild
+    if user.hasHomeGuild():
+        homeGuild = botState.client.get_guild(user.homeGuildID)
+        if homeGuild is not None:
+            return homeGuild
 
-    if not user.hasLastSeenGuildId:
-        for guild in botState.guildsDB.guilds.values():
-            lastSeenGuild = botState.client.get_guild(guild.id)
-            if lastSeenGuild is not None and lastSeenGuild.get_member(user.id) is not None:
-                user.lastSeenGuildId = guild.id
-                user.hasLastSeenGuildId = True
-                return lastSeenGuild
+    dcUser: User = botState.client.get_user(user.id)
+    if dcUser is not None and dcUser.mutual_guilds:
+        return dcUser.mutual_guilds[0]
+
     return None
 
 

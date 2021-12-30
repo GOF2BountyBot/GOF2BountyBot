@@ -70,10 +70,6 @@ class BasedUser(serializable.Serializable):
     :vartype inactiveTurrets: inventory
     :var inactiveTools: the toolItems currently in this user's inventory
     :vartype inactiveTools: userInventory.UserToolInventory
-    :var lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
-    :vartype lastSeenGuildId: int
-    :var hasLastSeenGuildId: Whether or not the user currently has a lastSeenGuildId
-    :vartype hasLastSeenGuildId: bool
     :var duelRequests: A dictionary mapping target BasedUser objects to DuelRequest objects.
                         Only contains duel requests issued by this user.
     :vartype duelRequests: dict[BasedUser, DuelRequest]
@@ -114,7 +110,7 @@ class BasedUser(serializable.Serializable):
                     inactiveWeapons : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
                     inactiveTurrets : inventory.Inventory = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon),
                     inactiveTools : userInventory.UserToolInventory = None,
-                    lastSeenGuildId : int = -1, duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
+                    duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
                     duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
@@ -138,9 +134,8 @@ class BasedUser(serializable.Serializable):
                                             (Default empty inventory)
         :param inventory inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
                                             (Default empty inventory)
-        :param userInventory.UserToolInventory inactiveTools: The toolItems currently in this user's inventory (Default empty inventory)
-        :param int lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
-                                    (Default -1)
+        :param userInventory.UserToolInventory inactiveTools: The toolItems currently in this user's 
+                                                                inventory (Default empty inventory)
         :param int duelWins: The total number of duels the user has won (Default 0)
         :param int duelLosses: The total number of duels the user has lost (Default 0)
         :param int duelCreditsWins: The total amount of credits the user has won through fighting duels (Default 0)
@@ -214,9 +209,6 @@ class BasedUser(serializable.Serializable):
         self.inactiveWeapons = inactiveWeapons
         self.inactiveTurrets = inactiveTurrets
         self.inactiveTools = userInventory.UserToolInventory(self) if inactiveTools is None else inactiveTools
-
-        self.lastSeenGuildId = lastSeenGuildId
-        self.hasLastSeenGuildId = lastSeenGuildId != -1
 
         self.duelRequests = {}
         self.duelWins = duelWins
@@ -463,7 +455,7 @@ class BasedUser(serializable.Serializable):
         data = {"credits": self.credits, "lifetimeBountyCreditsWon": self.lifetimeBountyCreditsWon,
                 "bountyCooldownEnd": self.bountyCooldownEnd, "systemsChecked": self.systemsChecked,
                 "bountyWins": self.bountyWins, "activeShip": self.activeShip.toDict(**kwargs),
-                "lastSeenGuildId": self.lastSeenGuildId, "duelWins": self.duelWins, "duelLosses": self.duelLosses,
+                "duelWins": self.duelWins, "duelLosses": self.duelLosses,
                 "duelCreditsWins": self.duelCreditsWins, "bountyHuntingXP": self.bountyHuntingXP,
                 "duelCreditsLosses": self.duelCreditsLosses, "homeGuildID": self.homeGuildID,
                 "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges}
@@ -905,14 +897,19 @@ class BasedUser(serializable.Serializable):
                 if name in bbData.medalObjs:
                     medals.add(bbData.medalObjs[name])
 
-        newUser = BasedUser(**cls._makeDefaults(userDict, ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned", "bountyWinsToday", "dailyBountyWinsReset"),
+        kwargIgnores = ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned",
+                        "bountyWinsToday", "dailyBountyWinsReset", "lastSeenGuildId")
+                        
+        guildTransferCooldownEnd = datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) \
+                                    if "guildTransferCooldownEnd" in userDict else None
+
+        newUser = BasedUser(**cls._makeDefaults(userDict, kwargIgnores,
                                                 userID=userID, activeShip=activeShip, inactiveShips=inactiveShips,
                                                 inactiveModules=inactiveModules, inactiveWeapons=inactiveWeapons,
                                                 inactiveTurrets=inactiveTurrets, inactiveTools=inactiveTools,
                                                 bountyHuntingXP=bountyHuntingXP, kaamo=kaamo, loma=loma,
                                                 ownedMenus=ownedMenus, lifetimeBountyCreditsWon=lifetimeBountyCreditsWon,
-                                                medals=medals,
-                                                guildTransferCooldownEnd=datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) if "guildTransferCooldownEnd" in userDict else None))
-
+                                                medals=medals, guildTransferCooldownEnd=guildTransferCooldownEnd))
+        
         newUser.inactiveTools.owningBUser = newUser
         return newUser
