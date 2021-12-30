@@ -20,8 +20,8 @@ async def printAndExpirePollResults(msgID : int):
 
     :param int msgID: The id of the discord message containing the menu to expire
     """
-    menu = botState.reactionMenusDB[msgID]
-    menuMsg = await menu.msg.channel.fetch_message(menu.msg.id)
+    menu: ReactionPollMenu = botState.reactionMenusDB[msgID]
+    menuMsg: Message = await menu.msg.channel.fetch_message(menu.msg.id)
     results = {}
 
     if menu.owningBBUser is not None:
@@ -68,9 +68,12 @@ async def printAndExpirePollResults(msgID : int):
             #                     + "The error has been logged.", embed=pollEmbed)
             # return
             continue
-
+        
+        user: Member
         async for user in reaction.users():
             if user != botState.client.user:
+                if menu.targetRole is not None and menu.targetRole not in user.roles:
+                    continue
                 validVote = True
                 if not menu.multipleChoice:
                     for currentOption in results:
@@ -130,7 +133,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
     def __init__(self, msg : Message, pollOptions : dict, timeout : timedTask.TimedTask,
             pollStarter : Union[User, Member] = None, multipleChoice : bool = False, titleTxt : str = "", desc : str = "",
             col : Colour = Colour.blue(), footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "",
-            authorName : str = "", targetMember : Member = None, targetRole : Role = None,
+            authorName : str = "", targetRole : Role = None,
             owningBBUser : basedUser.BasedUser = None):
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -152,8 +155,6 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required for this to be displayed.
                         (Default "")
         :param str authorName: Secondary, smaller title for the embed (Default "Poll")
-        :param discord.Member targetMember: The only discord.Member that is able to interact with this menu.
-                                            All other reactions are ignored (Default None)
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
                                         All other reactions are ignored (Default None)
         :param bbUser owningBBUser: The bbUser who started the poll. Used for resetting whether or not a user can make
@@ -180,7 +181,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         super(ReactionPollMenu, self).__init__(msg, options=pollOptions, titleTxt=titleTxt, desc=desc, col=col,
                                                 footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName,
-                                                timeout=timeout, targetMember=targetMember, targetRole=targetRole)
+                                                timeout=timeout, targetRole=targetRole)
 
 
     def getMenuEmbed(self) -> Embed:
@@ -192,7 +193,12 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         :return: A discord.Embed representing the menu and its options
         :rtype: discord.Embed
         """
-        baseEmbed = super(ReactionPollMenu, self).getMenuEmbed()
+        baseEmbed: Embed = super(ReactionPollMenu, self).getMenuEmbed()
+        if self.targetRole is not None:
+            desc = baseEmbed.description
+            baseEmbed.description = ""
+            baseEmbed.insert_field_at(0, name=desc, value=f"You must have the {self.targetRole.mention} role to vote.")
+
         if self.multipleChoice:
             baseEmbed.add_field(name="This is a multiple choice poll!", value="Voting for more than one option is allowed.",
                                 inline=False)
@@ -249,7 +255,5 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         return ReactionPollMenu(**cls._makeDefaults(rmDict, msg=msg, pollOptions=options, timeout=timeoutTT,
                                                     col=menuColour, owningBBUser=owner,
-                                                    targetMember=msg.guild.get_member(rmDict["targetMember"]) \
-                                                                    if "targetMember" in rmDict else None,
                                                     targetRole=msg.guild.get_role(rmDict["targetRole"]) \
                                                                     if "targetRole" in rmDict else None))
