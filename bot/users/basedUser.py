@@ -105,16 +105,16 @@ class BasedUser(serializable.Serializable):
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
                     bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : int = -1,
                     systemsChecked : int = 0, bountyWins : int = 0, activeShip : bool = None,
-                    inactiveShips : inventory.Inventory = inventory.TypeRestrictedInventory(shipItem.Ship),
-                    inactiveModules : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
-                    inactiveWeapons : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
-                    inactiveTurrets : inventory.Inventory = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon),
-                    inactiveTools : userInventory.UserToolInventory = None,
+                    inactiveShips : inventory.Inventory = None,
+                    inactiveModules : inventory.Inventory = None,
+                    inactiveWeapons : inventory.Inventory = None,
+                    inactiveTurrets : inventory.Inventory = None,
+                    inactiveTools : inventory.Inventory = None,
                     duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
                     duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = []):
+                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         :param int credits: The amount of credits (currency) this user has (Default 0)
@@ -204,11 +204,16 @@ class BasedUser(serializable.Serializable):
         self.bountyWins = bountyWins
 
         self.activeShip = activeShip
-        self.inactiveShips = inactiveShips
-        self.inactiveModules = inactiveModules
-        self.inactiveWeapons = inactiveWeapons
-        self.inactiveTurrets = inactiveTurrets
-        self.inactiveTools = userInventory.UserToolInventory(self) if inactiveTools is None else inactiveTools
+        self.inactiveShips = inactiveShips if inactiveShips is not None else \
+                                inventory.TypeRestrictedInventory(shipItem.Ship)
+        self.inactiveModules = inactiveModules if inactiveModules is not None else \
+                                inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
+        self.inactiveWeapons = inactiveWeapons if inactiveWeapons is not None else \
+                                inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
+        self.inactiveTurrets = inactiveTurrets if inactiveTurrets is not None else \
+                                inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
+        self.inactiveTools = inactiveTools if inactiveTools is not None else \
+                                userInventory.UserToolInventory(self)
 
         self.duelRequests = {}
         self.duelWins = duelWins
@@ -256,7 +261,7 @@ class BasedUser(serializable.Serializable):
         self.kaamo = kaamo
         self.loma = loma
         self.ownedMenus = ownedMenus
-        self.medals = medals
+        self.medals = medals if medals is not None else set()
 
 
     def resetUser(self):
@@ -617,7 +622,7 @@ class BasedUser(serializable.Serializable):
         del self.duelRequests[duelReq.targetBasedUser]
 
 
-    def removeDuelChallengeTarget(self, duelTarget : BasedUser.BasedUser):
+    def removeDuelChallengeTarget(self, duelTarget : BasedUser):
         """Remove this user's duel request that is targetted at the given user.
 
         :param BasedUser duelTarget: The target user whose duel request to remove
