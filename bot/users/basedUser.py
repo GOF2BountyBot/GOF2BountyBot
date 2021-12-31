@@ -276,6 +276,7 @@ class BasedUser(serializable.Serializable):
     def resetUser(self):
         """Reset the user's attributes back to their default values.
         """
+        self.classicModeEnabled = False
         self.credits = 0
         self.lifetimeBountyCreditsWon = 0
         self.bountyCooldownEnd = -1
@@ -504,6 +505,9 @@ class BasedUser(serializable.Serializable):
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
                 self.medals.remove(m)
             data["medals"] = [m.name.lower() for m in self.medals]
+
+        if self.classicModeEnabled:
+            data["classicModeEnabled"] = True
 
         return data
 
