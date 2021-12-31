@@ -61,29 +61,36 @@ class ThrowSnowballTool(toolItem.ToolItem):
         pickMsg = await message.reply("Pick your target! **Reply** to this message, pinging one victim, within 60s.")
 
         def targetCheck(m: Message) -> bool:
-            return m.type == MessageType.default and m.reference is not None and m.reference.message_id == pickMsg.id \
-                    and len(u for u in m.mentions if u != message.guild.me) == 1
+            return      m.type == MessageType.default \
+                    and m.reference is not None \
+                    and m.reference.message_id == pickMsg.id \
+                    and ((len(m.mentions) == 1 and m.mentions[0] == message.guild.me)
+                        or (len([u for u in m.mentions if u != message.guild.me]) == 1))
 
         try:
             targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
         except asyncio.TimeoutError:
             await message.reply(":x: Out of time! Please try again.")
             return
-            
-        targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
+
+        if len(targetPickedMsg.mentions) != 1:
+            targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
+        else:
+            targetUser = targetPickedMsg.mentions[0]
 
         profileAsset = targetUser.avatar_url_as(size=256, format="png")
         assetBytes = BytesIO()
-        # targetProfile = Image.frombytes("RGBA", (256, 256), await profileAsset.read())
         await profileAsset.save(assetBytes, seek_begin=True)
         assetBytes.seek(0)
         targetProfile = Image.open(assetBytes)
+        if targetProfile.mode != "RGBA":
+            targetProfile = targetProfile.convert("RGBA")
 
         overlay = Image.open(f"snowballs/{randint(0,5)}.png")
-        result = Image.alpha_composite(targetProfile, overlay)
+        targetProfile.paste(overlay, (0, 0), overlay)
 
         resultBytes = BytesIO()
-        result.save(resultBytes, "PNG")
+        targetProfile.save(resultBytes, "PNG")
         resultBytes.seek(0)
         
         splatEmbed = Embed()
@@ -95,7 +102,6 @@ class ThrowSnowballTool(toolItem.ToolItem):
         assetBytes.close()
         targetProfile.close()
         overlay.close()
-        result.close()
         resultBytes.close()
 
         return f"{message.author.display_name} threw a snowball at {targetUser.display_name}!"
