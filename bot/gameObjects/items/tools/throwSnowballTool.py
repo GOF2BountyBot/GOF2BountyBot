@@ -70,8 +70,7 @@ class ThrowSnowballTool(toolItem.ToolItem):
         try:
             targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
         except asyncio.TimeoutError:
-            await message.reply(":x: Out of time! Please try again.")
-            return
+            return ":x: Out of time! Please try again."
 
         if len(targetPickedMsg.mentions) != 1:
             targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
