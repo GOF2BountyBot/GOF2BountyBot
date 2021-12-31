@@ -100,6 +100,8 @@ class BasedUser(serializable.Serializable):
     :vartype ownedMenus: Dict[str, MutableSet[ReactionMenu]]
     :var medals: References to all medals awareded to this user
     :vartype medals: MutableSet[Medal]
+    :var classicModeEnabled: Whether or not this user is set to use classic mode
+    :vartype classicModeEnabled: bool
     """
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
@@ -114,7 +116,8 @@ class BasedUser(serializable.Serializable):
                     duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None):
+                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None,
+                    classicModeEnabled: bool = False):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         :param int credits: The amount of credits (currency) this user has (Default 0)
@@ -158,6 +161,7 @@ class BasedUser(serializable.Serializable):
         :param ownedMenus: Sets of references to all menus that user owns, by string type IDs. (default {})
         :type ownedMenus: Dict[str, MutableSet[ReactionMenu]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
+        :param bool classicModeEnabled: Whether this user has classic mode enabled
         """
         if type(userID) == float:
             userID = int(userID)
@@ -193,6 +197,7 @@ class BasedUser(serializable.Serializable):
             guildTransferCooldownEnd = datetime.utcnow()
 
         self.githubIssueSubmitDelayEnd: Union[timedelta, None] = None
+        self.classicModeEnabled = classicModeEnabled
 
         self.id = userID
         self.credits = credits
@@ -251,11 +256,16 @@ class BasedUser(serializable.Serializable):
             else:
                 self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
 
-        self.bountyHuntingXP = bountyHuntingXP
-        self.prestiges = prestiges
+        if classicModeEnabled:
+            self.bountyHuntingXP = None
+            self.prestiges = None
+            
+        else:
+            self.bountyHuntingXP = bountyHuntingXP
+            self.prestiges = prestiges
 
-        self.homeGuildID = homeGuildID
-        self.guildTransferCooldownEnd = guildTransferCooldownEnd
+            self.homeGuildID = homeGuildID
+            self.guildTransferCooldownEnd = guildTransferCooldownEnd
 
         self.kaamo = kaamo
         self.loma = loma
