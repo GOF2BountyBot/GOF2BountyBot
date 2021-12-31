@@ -7,7 +7,7 @@ from ..cfg import cfg
 from ..gameObjects import kaamoShop
 
 
-# bbCommands.addHelpSection(0, "kaamo club")
+bbCommands.addHelpSection(0, "kaamo club")
 
 
 async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
@@ -85,10 +85,10 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
     if requestedBBUser.kaamo.isEmpty():
         requestedBBUser.kaamo = None
 
-# bbCommands.register("kaamo get", cmd_kaamo_get, 0, helpSection="kaamo club", allowDM=True,
-#                     signatureStr="**kaamo get <item-type> <item-number>**",
-#                     shortHelp="Transfer items from the Kaamo Club to your hangar. This command can only be used by " \
-#                                 + f"level {cfg.maxTechLevel} bounty hunters.")
+bbCommands.register("kaamo get", cmd_kaamo_get, 0, helpSection="kaamo club", allowDM=True,
+                    signatureStr="**kaamo get <item-type> <item-number>**",
+                    shortHelp="Transfer items from the Kaamo Club to your hangar. This command can only be used by " \
+                                + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
 async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
@@ -156,10 +156,10 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item)
 
-# bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club", allowDM=True,
-#                     signatureStr="**kaamo store <item-type> <item-number>**",
-#                     shortHelp="Transfer items from your hangar to the Kaamo Club. This command can only be used by " \
-#                                 + f"level {cfg.maxTechLevel} bounty hunters.")
+bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club", allowDM=True,
+                    signatureStr="**kaamo store <item-type> <item-number>**",
+                    shortHelp="Transfer items from your hangar to the Kaamo Club. This command can only be used by " \
+                                + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
 async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
@@ -262,10 +262,10 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
     if sendDM:
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
-# bbCommands.register("kaamo", cmd_kaamo, 0, allowDM=True, helpSection="kaamo club", signatureStr="**kaamo** *[item-type]*",
-#                     shortHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-#                         + str(cfg.kaamoMaxCapacity) + " items, including items on ships.",
-#                     longHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-#                         + str(cfg.kaamoMaxCapacity) + " items, including items on ships. Give an item type " \
-#                         + "(ship/weapon/turret/module/tool) to only list items of that type.\n\n" \
-#                         + "⚠ Please be aware that `" + cfg.defaultCommandPrefix +  "kaamo store` and `" + cfg.defaultCommandPrefix + "kaamo get` can only be used by level 10 bounty hunters.")
+bbCommands.register("kaamo", cmd_kaamo, 0, allowDM=True, helpSection="kaamo club", signatureStr="**kaamo** *[item-type]*",
+                    shortHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
+                        + str(cfg.kaamoMaxCapacity) + " items, including items on ships.",
+                    longHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
+                        + str(cfg.kaamoMaxCapacity) + " items, including items on ships. Give an item type " \
+                        + "(ship/weapon/turret/module/tool) to only list items of that type.\n\n" \
+                        + "⚠ Please be aware that `" + cfg.defaultCommandPrefix +  "kaamo store` and `" + cfg.defaultCommandPrefix + "kaamo get` can only be used by level 10 bounty hunters.")

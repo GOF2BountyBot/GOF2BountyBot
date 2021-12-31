@@ -1,7 +1,6 @@
 import discord
 import time
 from datetime import timedelta
-import os
 
 from . import commandsDB as botCommands
 from . import util_help
@@ -10,11 +9,7 @@ from ..cfg import cfg
 from ..userAlerts import userAlerts
 from ..scheduling import timedTask
 from ..reactionMenus import reactionRolePicker
-from . import util_tempdisabled
 from . import util_autoskin
-
-CWD = os.getcwd()
-robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 
 
 async def admin_cmd_admin_help(message: discord.Message, args: str, isDM: bool):
@@ -99,13 +94,12 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
 
     if setting in ["bounty", "bounties"]:
         if value in trueStrings:
-            await util_tempdisabled.err_tempDisabled(message, args, isDM)
-            # if not callingBBGuild.bountiesDisabled:
-            #     await message.reply(mention_author=False, content=":x: Bounties are already enabled in this server!")
-            # else:
-            #     callingBBGuild.enableBounties()
-            #     await message.reply(mention_author=False,
-            #                         content=":white_check_mark: Bounties are now enabled on this server!")
+            if not callingBBGuild.bountiesDisabled:
+                await message.reply(mention_author=False, content=":x: Bounties are already enabled in this server!")
+            else:
+                callingBBGuild.enableBounties()
+                await message.reply(mention_author=False,
+                                    content=":white_check_mark: Bounties are now enabled on this server!")
         elif value in falseStrings:
             if callingBBGuild.bountiesDisabled:
                 await message.reply(mention_author=False, content=":x: Bounties are already disabled in this server!")
@@ -117,12 +111,11 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Unknown value!")
     elif setting in ["shop", "shops"]:
         if value in trueStrings:
-            await util_tempdisabled.err_tempDisabled(message, args, isDM)
-            # if not callingBBGuild.shopsDisabled:
-            #     await message.reply(mention_author=False, content=":x: Shops are already enabled in this server!")
-            # else:
-            #     callingBBGuild.enableShops()
-            #     await message.reply(mention_author=False, content=":white_check_mark: Shops are now enabled on this server!")
+            if not callingBBGuild.shopsDisabled:
+                await message.reply(mention_author=False, content=":x: Shops are already enabled in this server!")
+            else:
+                callingBBGuild.enableShops()
+                await message.reply(mention_author=False, content=":white_check_mark: Shops are now enabled on this server!")
         elif value in falseStrings:
             if callingBBGuild.shopsDisabled:
                 await message.reply(mention_author=False, content=":x: Shops are already disabled in this server!")
@@ -259,7 +252,7 @@ async def admin_cmd_make_bounty_notify_roles(message : discord.Message, args : s
         await requestedBBGuild.makeBountyAlertRoles()
         await message.channel.send(":white_check_mark: New roles have been created for new bounties notifications!")
 
-botCommands.register("make-bounty-notify-roles", util_tempdisabled.err_tempDisabled, 2,
+botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_roles, 2,
                         signatureStr="**make-bounty-notify-roles**",
                         shortHelp=f"Make {len(cfg.bountyDivisionNames)} roles, one for each tech levle users can be, " \
                                     + "which the bot will ping when new bounties are spawned.",
@@ -287,7 +280,7 @@ async def admin_cmd_remove_bounty_notify_roles(message : discord.Message, args :
         await requestedBBGuild.deleteBountyAlertRoles()
         await message.channel.send(":white_check_mark: New bounties notifications have been disabled, and their roles removed!")
 
-botCommands.register("remove-bounty-notify-roles", util_tempdisabled.err_tempDisabled, 2,
+botCommands.register("remove-bounty-notify-roles", admin_cmd_remove_bounty_notify_roles, 2,
                         signatureStr="**remove-bounty-notify-roles**",
                         shortHelp="Disable new bounty notifications, and remove all new bounty alert roles from the server.")
 
