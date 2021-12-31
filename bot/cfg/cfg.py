@@ -326,6 +326,9 @@ duelResultsShadowOffset = (-4, 3)
 duelResultsShadowOpacity = 0.7
 duelResultsBlurIterations = 1
 
+sendDuelResultsImage = False
+sendDuelResultsEmbed = True
+
 
 
 ##### SHOPS #####
