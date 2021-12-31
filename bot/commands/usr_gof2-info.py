@@ -1,8 +1,6 @@
 from io import BytesIO
 import discord
 import os
-from io import BytesIO
-from PIL import Image
 import asyncio
 from PIL import Image
 
@@ -14,7 +12,6 @@ from ..gameObjects.items import shipItem, gameItem
 from ..reactionMenus import reactionMenu
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
 from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
-from ..reactionMenus import reactionMenu, reactionSkinRegionPicker
 from ..shipRenderer import shipRenderer
 from ..users.basedGuild import BasedGuild
 from . import util_autoskin
@@ -711,13 +708,13 @@ async def cmd_info(message : discord.Message, args : str, isDM : bool):
                 "module": cmd_info_module,
                 "turret": cmd_info_turret,
                 "commodity": cmd_info_commodity,
-                # "skin": cmd_info_skin,
+                "skin": cmd_info_skin,
                 "medal": cmd_info_medal}
     
     if argsSplit[0] in infoCmds:
         await infoCmds[argsSplit[0]](message, args[len(argsSplit[0])+1:], isDM)
     else:
-        await message.reply(mention_author=False, content=":x: Unknown object type! (system/criminal/ship/weapon/module/turret/commodity)")
+        await message.reply(mention_author=False, content=":x: Unknown object type! (system/criminal/ship/weapon/module/turret/commodity/skin)")
 
 botCommands.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info", signatureStr="**info <object-type> <name>**",
                         shortHelp="Display information about something from GOF2. Also gives useful aliases for things.",
@@ -1068,7 +1065,7 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
     objType = ""
     itemLevel = -1
     manufacturer = ""
-    objTypes = ["system", "criminal", "ship", "weapon", "module", "turret", "commodity", "medal"]#, "skin"]
+    objTypes = ["system", "criminal", "ship", "weapon", "module", "turret", "commodity", "medal", "skin"]
 
     for arg in args.split(" "):
         if levelFound:

@@ -31,8 +31,6 @@ from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
 from bot.scheduling import timedTaskHeap
 from .reactionMenus import reactionMenu
-# register as spawnable
-from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
 
 
@@ -478,12 +476,12 @@ async def on_ready():
 
     ##### SCHEDULING #####
 
-    # shopRefreshDelta = timedelta(**cfg.timeouts.shopRefresh)
-    # botState.shopRefreshTT = TimedTask(expiryDelta=shopRefreshDelta,
-    #                                     autoReschedule=True,
-    #                                     expiryFunction=refreshAndAnnounceAllShopStocks)
+    shopRefreshDelta = timedelta(**cfg.timeouts.shopRefresh)
+    botState.shopRefreshTT = TimedTask(expiryDelta=shopRefreshDelta,
+                                        autoReschedule=True,
+                                        expiryFunction=refreshAndAnnounceAllShopStocks)
                                         
-    # botState.taskScheduler.scheduleTask(botState.shopRefreshTT)
+    botState.taskScheduler.scheduleTask(botState.shopRefreshTT)
 
     # Schedule database saving
     botState.dbSaveTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.dataSaveFrequency),
@@ -512,14 +510,14 @@ async def on_ready():
     ##### SCHEDULING CONTINUED #####
     # to be moved
     # Schedule guild activity measurement decaying
-    # botState.temperatureDecayTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.guildActivityDecay),
-    #                                         autoReschedule=True, expiryFunction=botState.guildsDB.decayAllTemps)
-    # botState.taskScheduler.scheduleTask(botState.temperatureDecayTT)
+    botState.temperatureDecayTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.guildActivityDecay),
+                                            autoReschedule=True, expiryFunction=botState.guildsDB.decayAllTemps)
+    botState.taskScheduler.scheduleTask(botState.temperatureDecayTT)
 
 
     ##### CLEANUP #####
 
-    # await initializeBountyBoardChannels()
+    await initializeBountyBoardChannels()
 
     # Set help embed thumbnails
     setHelpEmbedThumbnails()
@@ -555,8 +553,6 @@ async def on_message(message: discord.Message):
     """
     # ignore messages sent by bots
     if message.author.bot:
-        if "damn boring" in message.content:
-            await message.add_reaction("<:Banwell:855741513660366859>")
         return
 
     # React to messages containing or mentioning bountybot

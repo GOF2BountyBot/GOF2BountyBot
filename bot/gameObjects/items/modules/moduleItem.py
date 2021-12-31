@@ -1,10 +1,9 @@
-from ..gameItem import GameItem, spawnableItem
+from ..gameItem import GameItem
 from ....cfg import bbData
 from .... import lib
 from typing import List
 
 
-@spawnableItem
 class ModuleItem(GameItem):
     """"An equippable item, providing ships with various stat perks and new functionality.
     All, none, or any combination of a moduleItem's attributes may be populated.

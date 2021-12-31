@@ -1,15 +1,14 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ....users import basedUser
 import random
 from typing import List
 from . import toolItem
 from .... import lib, botState
+from ....lib import gameMaths
 from discord import Message
 from ....cfg import cfg, bbData
 from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
+from ....users.basedUser import BasedUser
 
 
 @gameItem.spawnableItem
@@ -27,8 +26,7 @@ class CrateTool(toolItem.ToolItem):
 
     def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
             manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
-            autoUse: bool = False):
+            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0):
         """
         :param List[gameItem.GameItem] itemPool: List of potential items to win. May contain duplicates.
         :param str name: The name of the crate. Must be unique.
@@ -53,7 +51,7 @@ class CrateTool(toolItem.ToolItem):
 
         super().__init__(name, [], value=value, wiki=wiki,
             manufacturer=manufacturer, icon=icon, emoji=emoji,
-            techLevel=techLevel, builtIn=builtIn, autoUse=autoUse)
+            techLevel=techLevel, builtIn=builtIn)
 
         try:
             item = next(i for i in itemPool if not gameItem.isSpawnableItemInstance(i))
@@ -75,7 +73,7 @@ class CrateTool(toolItem.ToolItem):
         """
         if "callingBUser" not in kwargs:
             raise NameError("Required kwarg not given: callingBUser")
-        if not isinstance(kwargs["callingBUser"], basedUser.BasedUser):
+        if not isinstance(kwargs["callingBUser"], BasedUser):
             raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
                             + type(kwargs["callingBUser"]).__name__)
 
@@ -137,8 +135,6 @@ class CrateTool(toolItem.ToolItem):
         :rtype: dict
         """
         data = super().toDict(**kwargs)
-        if "aliases" in data:
-            del data["aliases"]
         if self.builtIn:
             data["crateType"] = self.crateType
             data["typeNum"] = self.typeNum
@@ -182,8 +178,8 @@ class CrateTool(toolItem.ToolItem):
                     errorStr = "Invalid itemPool entry, missing type. Data: " + itemDict
                     errorType = "NO_TYPE"
                 elif itemDict["type"] not in gameItem.subClassNames:
-                    errorStr = "Invalid itemPool entry, attempted to add something other than a spawnableItem. " \
-                                + "Has the module been imported yet? Data: " + str(itemDict)
+                    errorStr = "Invalid itemPool entry, attempted to add something other than a spawnableItem. Data: " \
+                                + str(itemDict)
                     errorType = "BAD_TYPE"
                 if errorStr:
                     if skipInvalidItems:
@@ -195,6 +191,6 @@ class CrateTool(toolItem.ToolItem):
         else:
             botState.logger.log("crateTool", "fromDict", "fromDict-ing a crateTool with no itemPool.")
 
-        return CrateTool(**cls._makeDefaults(crateDict, ("type", "aliases"), itemPool=itemPool,
+        return CrateTool(**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
                                             emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
