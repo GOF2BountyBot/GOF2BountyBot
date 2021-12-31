@@ -203,21 +203,28 @@ async def fightDuel(sourceUser : User, targetUser : User, duelReq : DuelRequest,
         winningBasedUser = None
         losingBasedUser = None
 
-    try:
-        duelResultsImg = await buildDuelResultsImage(sourceBasedUser, sourceBasedUser.activeShip,
-                                                    targetBasedUser, targetBasedUser.activeShip,
-                                                    duelResults)
-    except RuntimeError:
-        statsEmbed = makeDuelStatsEmbed(duelResults, sourceUser, targetUser)
-        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. The error has been logged.")
-        duelResultsImg = None
-    else:
-        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
-        statsEmbed.set_image(url="attachment://duelResults.png")
-        duelResultsBytes = BytesIO()
-        duelResultsImg.save(duelResultsBytes, "PNG")
-        duelResultsBytes.seek(0)
-        duelResultsFile = File(duelResultsBytes, filename="duelResults.png")
+    statsEmbed = None
+    duelResultsFile = None
+
+    if cfg.sendDuelResultsImage:
+        try:
+            duelResultsImg = await buildDuelResultsImage(sourceBasedUser, sourceBasedUser.activeShip,
+                                                        targetBasedUser, targetBasedUser.activeShip,
+                                                        duelResults)
+        except RuntimeError:
+            statsEmbed = makeDuelStatsEmbed(duelResults, sourceUser, targetUser)
+            statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. The error has been logged.")
+            duelResultsImg = None
+        else:
+            statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
+            statsEmbed.set_image(url="attachment://duelResults.png")
+            duelResultsBytes = BytesIO()
+            duelResultsImg.save(duelResultsBytes, "PNG")
+            duelResultsBytes.seek(0)
+            duelResultsFile = File(duelResultsBytes, filename="duelResults.png")
+
+    if cfg.sendDuelResultsEmbed:
+        statsEmbed = makeDuelStatsEmbed(duelResults, targetBasedUser, sourceBasedUser)
 
     # battleMsg =
 

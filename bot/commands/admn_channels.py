@@ -6,6 +6,8 @@ from ..cfg import bbData, cfg
 from ..users.basedGuild import BasedGuild
 from ..databases.bountyDB import nameForDivision
 
+from . import util_tempdisabled
+
 botCommands.addHelpSection(2, "channels")
 
 
@@ -141,7 +143,7 @@ async def admin_cmd_make_bounty_board_channels(message : discord.Message, args :
                                             for div in guild.bountiesDB.divisions.values()))
         guild.hasBountyBoardChannels = True
 
-botCommands.register("make-bounty-board-channels", admin_cmd_make_bounty_board_channels, 2, allowDM=False,
+botCommands.register("make-bounty-board-channels", util_tempdisabled.err_tempDisabled, 2, allowDM=False,
                     helpSection="channels", signatureStr="**make-bounty-board-channels**",
                     longHelp=f"Create {len(cfg.bountyDivisionNames)} new channels, and activate them as *bountyboards*.\n" \
                                 + "BountyBoard channels show *all* information about active bounties, continuously update " \
@@ -167,7 +169,7 @@ async def admin_cmd_remove_bounty_board_channels(message : discord.Message, args
             div.removeBountyBoardChannel()
         await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty board channels disabled!")
 
-botCommands.register("disable-bounty-board-channels", admin_cmd_remove_bounty_board_channels, 2, allowDM=False,
+botCommands.register("disable-bounty-board-channels", util_tempdisabled.err_tempDisabled, 2, allowDM=False,
                     helpSection="channels", signatureStr="**disable-bounty-board-channels**",
                     shortHelp="Send from any channel to disable the server's bountyboard channels, without deleting them.")
 
@@ -198,7 +200,7 @@ async def admin_cmd_rebuild_bounty_board_channel(message : discord.Message, args
             await message.reply(mention_author=False, content=":x: This is not a bountyboard! Please call the command from " \
                                 + "within the board you wish to rebuild.")
 
-botCommands.register("bbc-rebuild", admin_cmd_rebuild_bounty_board_channel, 2, allowDM=False,
+botCommands.register("bbc-rebuild", util_tempdisabled.err_tempDisabled, 2, allowDM=False,
                     helpSection="channels", signatureStr="**bbc-rebuild**",
                     shortHelp="Completely rebuilds the bountyboard, removing known listing messages. " \
                                 + "This will not remove any other messages.")

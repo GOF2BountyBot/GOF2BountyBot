@@ -13,7 +13,7 @@ from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
 from ..gameObjects.userProfile.medal import Medal
-from ..gameObjects.inventories import inventory
+from ..gameObjects.inventories import inventory, userInventory
 from ..userAlerts import userAlerts
 from datetime import datetime, timedelta
 from discord import Guild, Member # type: ignore[import]
@@ -69,7 +69,7 @@ class BasedUser(serializable.Serializable):
     :var inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
     :vartype inactiveTurrets: inventory
     :var inactiveTools: the toolItems currently in this user's inventory
-    :vartype inactiveTools: inventory
+    :vartype inactiveTools: userInventory.UserToolInventory
     :var duelRequests: A dictionary mapping target BasedUser objects to DuelRequest objects.
                         Only contains duel requests issued by this user.
     :vartype duelRequests: dict[BasedUser, DuelRequest]
@@ -134,7 +134,8 @@ class BasedUser(serializable.Serializable):
                                             (Default empty inventory)
         :param inventory inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
                                             (Default empty inventory)
-        :param inventory inactiveTools: The toolItems currently in this user's inventory (Default empty inventory)
+        :param userInventory.UserToolInventory inactiveTools: The toolItems currently in this user's 
+                                                                inventory (Default empty inventory)
         :param int duelWins: The total number of duels the user has won (Default 0)
         :param int duelLosses: The total number of duels the user has lost (Default 0)
         :param int duelCreditsWins: The total amount of credits the user has won through fighting duels (Default 0)
@@ -212,7 +213,7 @@ class BasedUser(serializable.Serializable):
         self.inactiveTurrets = inactiveTurrets if inactiveTurrets is not None else \
                                 inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
         self.inactiveTools = inactiveTools if inactiveTools is not None else \
-                                inventory.TypeRestrictedInventory(toolItem.ToolItem)
+                                userInventory.UserToolInventory(self)
 
         self.duelRequests = {}
         self.duelWins = duelWins
@@ -768,6 +769,8 @@ class BasedUser(serializable.Serializable):
             return self.inactiveTurrets
         elif isinstance(item, toolItem.ToolItem):
             return self.inactiveTools
+        elif isinstance(item, moduleItem.ModuleItem):
+            return self.inactiveModules
 
 
     def hasMenuOfTypeID(self, menuTypeID: str) -> bool:
@@ -855,7 +858,7 @@ class BasedUser(serializable.Serializable):
         inactiveWeapons = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
         inactiveModules = inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
         inactiveTurrets = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
-        inactiveTools = inventory.TypeRestrictedInventory(toolItem.ToolItem)
+        inactiveTools = userInventory.UserToolInventory(userInventory.USER_PLACEHOLDER)
 
         for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship.fromDict),
                                         ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon.fromDict),
@@ -905,10 +908,13 @@ class BasedUser(serializable.Serializable):
         guildTransferCooldownEnd = datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) \
                                     if "guildTransferCooldownEnd" in userDict else None
 
-        return BasedUser(**cls._makeDefaults(userDict, kwargIgnores,
+        newUser = BasedUser(**cls._makeDefaults(userDict, kwargIgnores,
                                                 userID=userID, activeShip=activeShip, inactiveShips=inactiveShips,
                                                 inactiveModules=inactiveModules, inactiveWeapons=inactiveWeapons,
                                                 inactiveTurrets=inactiveTurrets, inactiveTools=inactiveTools,
                                                 bountyHuntingXP=bountyHuntingXP, kaamo=kaamo, loma=loma,
                                                 ownedMenus=ownedMenus, lifetimeBountyCreditsWon=lifetimeBountyCreditsWon,
                                                 medals=medals, guildTransferCooldownEnd=guildTransferCooldownEnd))
+        
+        newUser.inactiveTools.owningBUser = newUser
+        return newUser

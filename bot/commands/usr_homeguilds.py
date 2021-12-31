@@ -7,7 +7,7 @@ from ..cfg import cfg
 from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 
 
-botCommands.addHelpSection(0, "home servers")
+# botCommands.addHelpSection(0, "home servers")
 
 
 async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
@@ -37,10 +37,10 @@ async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
             await requestedBBUser.transferGuild(message.guild)
             await message.reply(mention_author=False, content=":airplane_arriving: You transferred your home server to " + message.guild.name + "!")
 
-botCommands.register("transfer", cmd_transfer, 0, allowDM=False, helpSection="home servers", signatureStr="**transfer**",
-                    shortHelp="Change your home server. This command has a long cooldown!",
-                    longHelp="Transfer your home server to the one where you sent this command. You will be asked for " \
-                                + "confirmation first, since this command has a long cooldown!")
+# botCommands.register("transfer", cmd_transfer, 0, allowDM=False, helpSection="home servers", signatureStr="**transfer**",
+#                     shortHelp="Change your home server. This command has a long cooldown!",
+#                     longHelp="Transfer your home server to the one where you sent this command. You will be asked for " \
+#                                 + "confirmation first, since this command has a long cooldown!")
 
 
 async def cmd_home(message : discord.Message, args : str, isDM : bool):
@@ -67,7 +67,7 @@ async def cmd_home(message : discord.Message, args : str, isDM : bool):
                                 + "Set your home server by using the shop or bounty board, or with the `" + prefix \
                                 + "transfer` command.")
 
-botCommands.register("home", cmd_home, 0, allowDM=True, helpSection="home servers", signatureStr="**home**",
-                    shortHelp="Get the name of your home server, if one is set.",
-                    longHelp="Get the name of your home server, if one is set. This is the the only server where you may " \
-                                + "use certain commands, such as buying items from the shop, or fighting bounties.")
+# botCommands.register("home", cmd_home, 0, allowDM=True, helpSection="home servers", signatureStr="**home**",
+#                     shortHelp="Get the name of your home server, if one is set.",
+#                     longHelp="Get the name of your home server, if one is set. This is the the only server where you may " \
+#                                 + "use certain commands, such as buying items from the shop, or fighting bounties.")

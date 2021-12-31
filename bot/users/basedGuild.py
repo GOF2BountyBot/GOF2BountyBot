@@ -871,20 +871,20 @@ class BasedGuild(serializable.Serializable):
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
                                     for divName, levels in bountyDivision.divisionNameLevels().items()}
 
-        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled"),
+        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled","bountiesDisabled"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,
                                                     announceChannel=announceChannel, playChannel=playChannel,
-                                                    rendersChannel=rendersChannel,
-                                                    divisionShops=divisionShops, shopsDisabled=shopsDisabled))
+                                                    rendersChannel=rendersChannel, bountiesDisabled=True,
+                                                    divisionShops=divisionShops, shopsDisabled=True))
 
-        if not bountiesDisabled:
-            if "bountiesDB" in guildDict:
-                bountiesDB = BountyDB.fromDict(guildDict["bountiesDB"], dbReload=dbReload, owningBasedGuild=newGuild)
-            else:
-                bountiesDB = BountyDB(newGuild)
-            newGuild.bountiesDB = bountiesDB
-            newGuild.hasBountyBoardChannels = next(i for i in newGuild.bountiesDB.divisions.values()).bountyBoardChannel \
-                                                is not None
-            newGuild.hasBountyAlertRoles = next(i for i in newGuild.bountiesDB.divisions.values()).alertRoleID != -1
+        # if not bountiesDisabled:
+        #     if "bountiesDB" in guildDict:
+        #         bountiesDB = BountyDB.fromDict(guildDict["bountiesDB"], dbReload=dbReload, owningBasedGuild=newGuild)
+        #     else:
+        #         bountiesDB = BountyDB(newGuild)
+        #     newGuild.bountiesDB = bountiesDB
+        #     newGuild.hasBountyBoardChannels = next(i for i in newGuild.bountiesDB.divisions.values()).bountyBoardChannel \
+        #                                         is not None
+        #     newGuild.hasBountyAlertRoles = next(i for i in newGuild.bountiesDB.divisions.values()).alertRoleID != -1
 
         return newGuild

@@ -9,7 +9,7 @@ from ..users.basedUser import BasedUser
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
 
 
-bbCommands.addHelpSection(0, "loma")
+# bbCommands.addHelpSection(0, "loma")
 
 async def cmd_loma_buy(message : discord.Message, args : str, isDM : bool):
     """Buy the item of the given item type, at the given index, from the user's loma shop.
@@ -82,11 +82,11 @@ async def cmd_loma_buy(message : discord.Message, args : str, isDM : bool):
     if requestedBUser.loma.isEmpty():
         requestedBUser.loma = None
 
-bbCommands.register("loma buy", cmd_loma_buy, 0, allowDM=True, helpSection="loma",
-                        signatureStr="**loma buy <item-type> <item-number>**",
-                        shortHelp="Buy the requested item from the pirates at Loma. Item numbers can be seen in `loma`.",
-                        longHelp="Buy the requested item from the pirates at Loma. Item numbers are shown next to items in " \
-                                    + "`loma`. The `sell` and `transfer` options from `shop buy` do not apply to loma.")
+# bbCommands.register("loma buy", cmd_loma_buy, 0, allowDM=True, helpSection="loma",
+#                         signatureStr="**loma buy <item-type> <item-number>**",
+#                         shortHelp="Buy the requested item from the pirates at Loma. Item numbers can be seen in `loma`.",
+#                         longHelp="Buy the requested item from the pirates at Loma. Item numbers are shown next to items in " \
+#                                     + "`loma`. The `sell` and `transfer` options from `shop buy` do not apply to loma.")
 
 
 async def cmd_loma(message : discord.Message, args : str, isDM : bool):
@@ -200,7 +200,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
     if sendDM:
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
-bbCommands.register("loma", cmd_loma, 0, allowDM=True, helpSection="loma", signatureStr="**loma** *[item-type]*",
-                    shortHelp="List all items currently on offer, to you only, by the pirates at Loma.",
-                    longHelp="List all items currently on offer, to you only, by the pirates at Loma. Give an item type " \
-                        + "(ship/weapon/turret/module/tool) to only list items of that type.")
+# bbCommands.register("loma", cmd_loma, 0, allowDM=True, helpSection="loma", signatureStr="**loma** *[item-type]*",
+#                     shortHelp="List all items currently on offer, to you only, by the pirates at Loma.",
+#                     longHelp="List all items currently on offer, to you only, by the pirates at Loma. Give an item type " \
+#                         + "(ship/weapon/turret/module/tool) to only list items of that type.")

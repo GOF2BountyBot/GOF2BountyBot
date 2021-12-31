@@ -50,6 +50,7 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     "gameBalance": UninitializedBasedEmoji("⚖"),
     "optimisation": UninitializedBasedEmoji("🚀"),
 
+    "money": UninitializedBasedEmoji("💰"),
     "cropImage": UninitializedBasedEmoji("✂"),
     "stretchImage": UninitializedBasedEmoji("↔")
 })
@@ -109,7 +110,8 @@ paths = {
     "bbWeaponMETAFolder": "game objects" + "/" + "items" + "/" + "weapons",
     "bbTurretMETAFolder": "game objects" + "/" + "items" + "/" + "turrets",
     "bbToolMETAFolder": "game objects" + "/" + "items" + "/" + "tools",
-    "bbMedalsMETAFolder": "game objects" + "/" + "user profile" + "/" + "medals"
+    "bbMedalsMETAFolder": "game objects" + "/" + "user profile" + "/" + "medals",
+    "tempRenders": "rendering-temp"
 }
 
 
@@ -141,7 +143,7 @@ defaultCommandPrefix = "$"
 ##### REACTION MENUS #####
 
 # Text to edit into expired menu messages
-expiredMenuMsg = "😴 This role menu has now expired."
+expiredMenuMsg = "😴 This menu has now expired."
 # Length of the bars in poll results bar charts
 pollMenuResultsBarLength = 10
 # Max number of role menus a guild may own
@@ -324,6 +326,9 @@ duelResultsShadowOffset = (-4, 3)
 duelResultsShadowOpacity = 0.7
 duelResultsBlurIterations = 1
 
+sendDuelResultsImage = False
+sendDuelResultsEmbed = True
+
 
 
 ##### SHOPS #####
@@ -483,7 +488,7 @@ maxModuleTypeEquips = {     "ArmourModule": 1,
                             "TransfusionBeamModule": 1}
 
 # valid types of crateItem that are in the game. Each will be associated with a zero-indexed (crateNum) list of crate objects
-crateTypes = ("levelUp", "special")
+crateTypes = ("levelUp", "special", "christmas")
 
 
 
@@ -531,3 +536,5 @@ githubIssueTemplates = ["bug_report", "feature_request", "new-item-alias"]
 
 # Top n results will be showed in github search
 githubIssueSearchNumResults = 9
+
+moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/money-bag_1f4b0.png"
