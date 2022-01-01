@@ -545,8 +545,15 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
     if args in ["bounty", "bounties", "bountys"]:
         guildMember = message.guild.get_member(message.author.id)
         if requestedBBGuild.hasBountyAlertRoles:
-            tl = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
-            tlRole = message.guild.get_role(requestedBBGuild.bountiesDB.divisionForLevel(tl).alertRoleID)
+            if requestedBBUser.classicModeEnabled:
+                tl = -1
+                div = requestedBBGuild.bountiesDB.divisionForName(cfg.classic_divisionName)
+                tlRole = message.guild.get_role(div.alertRoleID)
+                classicStr = "classic mode "
+            else:
+                tl = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
+                tlRole = message.guild.get_role(requestedBBGuild.bountiesDB.divisionForLevel(tl).alertRoleID)
+                classicStr = ""
             if tlRole in guildMember.roles:
                 try:
                     await guildMember.remove_roles(tlRole,
@@ -563,7 +570,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                     botState.logger.log("main", "cmd_notify",
                                         "aiohttp.client_exceptions.ClientOSError occurred when attempting to " \
                                             + "remove new bounty role " + tlRole.name + "#" + tlRole.id \
-                                            + ", TL " + str(tl) + ", from user " \
+                                            + ", TL " + str(tl) + f", from {classicStr}user " \
                                             + message.author.name + "#" + str(message.author.id) \
                                             +  " in guild " + message.guild.name + "#" + str(message.guild.id) + ".",
                                         category="userAlerts",
@@ -592,7 +599,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                     botState.logger.log("main", "cmd_notify",
                                         "aiohttp.client_exceptions.ClientOSError occurred when attempting to " \
                                             + "grant new bounty role " + tlRole.name + "#" + tlRole.id \
-                                            + ", TL " + str(tl) + ", from user " \
+                                            + ", TL " + str(tl) + f", from {classicStr}user " \
                                             + message.author.name + "#" + str(message.author.id) \
                                             +  " in guild " + message.guild.name + "#" + str(message.guild.id) + ".",
                                         category="userAlerts",
