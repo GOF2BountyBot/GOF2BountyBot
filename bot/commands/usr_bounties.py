@@ -402,7 +402,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     # Verify that this guild has bounties enabled
-    callingGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if callingGuild.bountiesDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
@@ -411,28 +411,31 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
 
     if not args:
         try:
-            callingUser = botState.usersDB.getUser(message.author.id)
+            callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
         except KeyError:
             division = callingGuild.bountiesDB.divisionForLevel(0)
         else:
-            userLevel = gameMaths.calculateUserBountyHuntingLevel(callingUser.bountyHuntingXP)
-            division = callingGuild.bountiesDB.divisionForLevel(userLevel)
+            if callingUser.classicModeEnabled:
+                division = callingGuild.bountiesDB.divisionForName(cfg.classic_divisionName)
+            else:
+                userLevel = gameMaths.calculateUserBountyHuntingLevel(callingUser.bountyHuntingXP)
+                division = callingGuild.bountiesDB.divisionForLevel(userLevel)
     else:
+        divKeyError = ":x: Unknown division. Give no arguments to see bounties in your division, or to see another division" \
+                    + ", give either a difficulty level (1-10), or a division name: " \
+                    + ", ".join(i.title() for i in cfg.bountyDivisionNames)[:-1] + " or " + cfg.bountyDivisionNames[-1]
+
         if lib.stringTyping.isInt(args):
             try:
                 division = callingGuild.bountiesDB.divisionForLevel(int(args))
             except KeyError:
-                await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames)[:-1] + " or " \
-                                    + cfg.bountyDivisionNames[-1])
+                await message.reply(divKeyError)
                 return
         else:
             try:
                 division = callingGuild.bountiesDB.divisionForName(args)
             except KeyError:
-                await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames[:-1]) + " or " \
-                                    + cfg.bountyDivisionNames[-1])
+                await message.reply(divKeyError)
                 return
 
     divName = nameForDivision(division).title()
@@ -443,11 +446,12 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
         return
     
     msgEmbed = discord.Embed(title=f"Active Bounties: {divName} Division",
-                                description=f"Difficulty levels {division.minLevel} - {division.maxLevel} ~ Times given in UTC",
+                                description=f"Difficulty levels {division.minLevel} - {division.maxLevel} ~ " \
+                                            + "Times given in UTC",
                                 colour=discord.Colour.random())
     msgEmbed.set_footer(icon_url=bbData.rocketIcon,
-                        text="Track down criminals and win credits using " + callingGuild.commandPrefix + "route " \
-                                + "and " + callingGuild.commandPrefix + "check!")
+                        text=f"Track down criminals and win credits using `{callingGuild.commandPrefix}route` " \
+                                + f"and {callingGuild.commandPrefix}check`!")
 
     # Collect and print summaries of all active bounties
     for tl in division.bounties:
