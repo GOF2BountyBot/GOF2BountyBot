@@ -51,7 +51,9 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     "optimisation": UninitializedBasedEmoji("🚀"),
 
     "cropImage": UninitializedBasedEmoji("✂"),
-    "stretchImage": UninitializedBasedEmoji("↔")
+    "stretchImage": UninitializedBasedEmoji("↔"),
+
+    "classicMode": UninitializedBasedEmoji("💽")
 })
 
 timeouts = {
@@ -414,6 +416,7 @@ bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
 # The number of credits to award for each system check (corresponds to the old bPointsToCreditsRatio variable)
 classic_creditsPerCheck = 1000
 
+# Name of the division to limit classic mode users to bounties of
 classic_divisionName = "bronze"
 
 
