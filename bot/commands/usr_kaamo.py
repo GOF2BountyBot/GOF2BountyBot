@@ -223,7 +223,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
         numItemsStr = str(callingBBUser.kaamo.totalItems) if callingBBUser.kaamo is not None else "0"
         shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
                                                 desc=message.author.mention + "\n*" \
-                                                    + f"{numItemsStr}/"{cfg.kaamoMaxCapacity} items*",
+                                                    + f"{numItemsStr}/{cfg.kaamoMaxCapacity} items*",
                                                 footerTxt="All items" if item == "all" else (item + "s").title(),
                                                 thumb=message.author.avatar_url_as(size=64))
 
