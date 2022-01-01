@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, Union, TYPE_CHECKING
+from typing import Dict, Set, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
@@ -243,7 +243,7 @@ class Bounty(serializable.Serializable):
         return self.checked[system] != -1
 
 
-    def calcRewards(self) -> Dict[int, Dict[str, Union[int, bool]]]:
+    def calcRewards(self, classicModeUserIDs: Set[int]) -> Dict[int, Dict[str, Union[int, bool]]]:
         """Calculate the winning user and how many credits (and in the future, xp points) to award to which contributing users
 
         :return: A dictionary of user IDs to rewards. rewards are given as a dict, giving the number of systems checked,
@@ -267,7 +267,10 @@ class Bounty(serializable.Serializable):
                 if self.checked[system] != winningUserID:
                     # currentReward = int(self.reward / len(self.route))
                     # currentReward = bbConfig.classic_creditsPerCheck
-                    currentReward = self.rewardPerSys
+                    if self.checked[system] in classicModeUserIDs:
+                        currentReward = cfg.classic_creditsPerCheck
+                    else:
+                        currentReward = self.rewardPerSys
                     rewards[self.checked[system]]["reward"] += currentReward
                     creditsPool -= currentReward
 
