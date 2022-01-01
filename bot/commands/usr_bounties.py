@@ -2,6 +2,7 @@ from typing import Dict, Optional
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
+from PIL import Image
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -169,11 +170,15 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
             for bounty in tlBounties.values():
                 # Check the passed system in current bounty
                 checkResult = bounty.check(requestedSystem, message.author.id)
+                statsEmbed: Optional[discord.Embed] = None
+                duelResultsImg: Optional[Image.Image] = None
+
                 # If current bounty resides in the requested system
                 if checkResult == CheckResult.CORRECT:
-                    duelWon = False
-                    if not requestedBBUser.classicModeEnabled:
+                    if requestedBBUser.classicModeEnabled:
                         duelWon = True
+                    else:
+                        duelWon = False
                         duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
                                                                 cfg.duelVariancePercent)
                         try:
@@ -226,7 +231,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         bountyWon = True
 
                         basedUsers: Dict[int, basedUser.BasedUser] = \
-                            {i: botState.usersDB.getOrAddID(i) for i in rewards.keys()}
+                            {i: botState.usersDB.getOrAddID(i) for i in set(bounty.checked.values())}
                         classicModeUserIDs = set(u.id for u in basedUsers.values() if u.classicModeEnabled)
                         nonClassicModeUserIDs = set(u.id for u in basedUsers.values() if u.id not in classicModeUserIDs)
 
