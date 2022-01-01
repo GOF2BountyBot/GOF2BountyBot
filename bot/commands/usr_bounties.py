@@ -494,8 +494,8 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
 
     # verify a criminal was specified
     if args == "":
-        await message.reply(mention_author=False, content=":x: Please provide the criminal name! E.g: `" + callingGuild.commandPrefix \
-                                    + "route Kehnor`")
+        await message.reply(mention_author=False, content=":x: Please provide the criminal name! " \
+                                    + f"E.g: `{callingGuild.commandPrefix}route Kehnor`")
         return
 
     requestedBountyName = args
@@ -519,7 +519,8 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
                         + callingGuild.commandPrefix + "route Trimatix#2244`"
         await message.reply(mention_author=False, content=outmsg)
 
-botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**route <criminal name>**",
+botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting",
+                        signatureStr="**route <criminal name>**",
                         shortHelp="Get the named criminal's current route.",
                         longHelp="Get the named criminal's current route.\n" \
                                     + "For a list of aliases for a given criminal, see `info criminal`.")
@@ -546,17 +547,17 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
     """
     argsSplit = args.split(" ")
     if len(argsSplit) == 0:
-        await message.reply(mention_author=False, content=":x: Please provide an action (`challenge`/`cancel`/`accept`/`reject or decline`), " \
-                                    + "a user, and the stakes (an amount of credits)!")
+        await message.reply(":x: Please provide an action (`challenge`/`cancel`/`accept`/`reject or decline`), " \
+                                    + "a user, and the stakes (an amount of credits)!", mention_author=False)
         return
     action = argsSplit[0]
     if action not in ["challenge", "cancel", "accept", "reject", "decline"]:
-        await message.reply(mention_author=False, content=":x: Invalid action! please choose from `challenge`, `cancel`, " \
-                                    + "`reject/decline` or `accept`.")
+        await message.reply(":x: Invalid action! please choose from `challenge`, `cancel`, " \
+                                    + "`reject/decline` or `accept`.", mention_author=False)
         return
     if action == "challenge":
         if len(argsSplit) < 3:
-            await message.reply(mention_author=False, content=":x: Please provide a user and the stakes (an amount of credits)!")
+            await message.reply(":x: Please provide a user and the stakes (an amount of credits)!", mention_author=False)
             return
     else:
         if len(argsSplit) < 2:
@@ -774,6 +775,9 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
         return
 
     callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if callingBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
     if gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP) < 10:
         await message.channel.send(":x: This command can only be used by level 10 bounty hunters!")
         return
