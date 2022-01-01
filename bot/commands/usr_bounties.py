@@ -75,7 +75,7 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
         raise RuntimeError(f"Unsupported result: {confirmResults}")
 
 botCommands.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "classic-mode", "retro-mode"],
-                    shortHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta. " \
+                    shortHelp="Toggle \"classic mode\", which emulates the BountyBot beta. " \
                             + "See `help classic` for more info.",
                     longHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta.\n" \
                             + "In this mode, you win bounties immediately by finding the correct system - you do not need " \
