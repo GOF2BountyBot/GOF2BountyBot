@@ -23,6 +23,71 @@ from ..lib import gameMaths
 botCommands.addHelpSection(0, "bounty hunting")
 
 
+async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: bool):
+    """Toggle 'classic mode' for the calling user.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+
+
+    if callingUser.classicModeEnabled:
+        confirmMsgText = "Missing the BountyBot beta? You might prefer classic mode:\n" \
+                        + "• No dueling, win bounties by finding the correct system\n" \
+                        + "• No XP or levelling\n" \
+                        + "• Get a fixed 1000 credits per system check\n" \
+                        + f"• Restricted to {cfg.bountyDivisionNames[0]} division bounties, but any shops\n" \
+                        + "\nBy enabling classic mode, you will lose all of your XP, but you will keep your " \
+                        + "credits and items. Classic mode can be disabled again at any time."
+    else:
+        confirmMsgText = "You currently have classic mode enabled. Disable it to play with exciting new features:\n" \
+                        + "• Beat bounties in a duel to win their rewards\n" \
+                        + "• Progress through bounty hunter levels and get new customization items\n" \
+                        + "• Gain huge rewards for beating tougher bounties\n", \
+                        + "\nBy disabling classic mode will keep everything, including items, credits and stats, and you " \
+                        + "will begin at bounty hunter level 1. Classic mode can be enabled again at any time."
+
+    actionText = "Disable" if callingUser.classicModeEnabled else "Enable"
+    confirmMsg: discord.Message = await message.reply(confirmMsgText, mention_author=False)
+    confirmMenu = confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
+                                    timedelta(**cfg.timeouts.toggleClassicMode).total_seconds(),
+                                    desc=f"{actionText} classic mode now?\nThis command can be used again at any time.",
+                                    col=discord.Colour.random())
+    
+    confirmResults = await confirmMenu.doMenu()
+    if not confirmResults:
+        await confirmMsg.edit(":x: Out of time, please try this command again.")
+    elif confirmResults[0] == cfg.defaultEmojis.reject:
+        await confirmMsg.edit("🛑 Classic mode toggle cancelled.", embed=None)
+
+    elif confirmResults[0] == cfg.defaultEmojis.accept:
+        if callingUser.classicModeEnabled:
+            callingUser.disableClassicMode()
+        else:
+            callingUser.enableClassicMode()
+
+        await message.reply(f"{cfg.defaultEmojis.submit} You have now {actionText.lower()}d classic mode.")
+    
+    else:
+        raise RuntimeError(f"Unsupported result: {confirmResults}")
+
+botCommands.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "classic-mode", "retro-mode"],
+                    shortHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta. " \
+                            + "See `help classic` for more info.",
+                    longHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta.\n" \
+                            + "In this mode, you win bounties immediately by finding the correct system - you do not need " \
+                                + "to duel bounties to win.\n"
+                            + f"You will receive a fixed {cfg.classic_creditsPerCheck} credits per system check.\n" \
+                            + "XP and levelling are disabled, meaning you will not get level-up, division-up " \
+                                + "or prestige bonuses.\n"
+                            + "You are restricted to bounties in the lowest division " \
+                                + f"({cfg.bountyDivisionNames[0]})\n" \
+                            + "Use this command to enable or disable classic mode, at any time.")
+
+
+
 async def cmd_check(message : discord.Message, args : str, isDM : bool):
     """Check a system for bounties and handle rewards
 

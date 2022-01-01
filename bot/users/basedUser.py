@@ -839,6 +839,28 @@ class BasedUser(serializable.Serializable):
             del self.ownedMenus[menuTypeID]
 
 
+    def enableClassicMode(self):
+        """Enable BountyBot's "classic mode" for this user, which aims to emulate the BountyBot beta.
+
+        :raises ValueError: If classic mode is already enabled for this user
+        """
+        if self.classicModeEnabled:
+            raise ValueError(f"Classic mode is already enabled for this user {self}")
+        self.bountyHuntingXP = None
+        self.classicModeEnabled = True
+
+
+    def disableClassicMode(self):
+        """Disable BountyBot classic mode for this user.
+
+        :raises ValueError: If classic mode is already disabled for this user
+        """
+        if not self.classicModeEnabled:
+            raise ValueError(f"Classic mode is already disabled for this user {self}")
+        self.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(cfg.minTechLevel)
+        self.classicModeEnabled = False
+
+
     def __str__(self) -> str:
         """Get a short string summary of this BasedUser. Currently only contains the user ID and home guild ID.
 

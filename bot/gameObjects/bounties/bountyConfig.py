@@ -460,7 +460,7 @@ class BountyConfig:
                             self.activeShip.equipTurret(currentTurret)
 
         if self.reward == -1:
-            # self.reward = int(len(self.route) * cfg.bPointsToCreditsRatio \
+            # self.reward = int(len(self.route) * cfg.classic_creditsPerCheck \
             #                 + self.activeShip.getValue() * cfg.shipValueRewardPercentage)
             self.rewardPerSys = gameMaths.rewardPerSysCheck(self.techLevel, self.activeShip.getValue())
             self.reward = self.rewardPerSys * len(self.route)

@@ -266,7 +266,7 @@ class Bounty(serializable.Serializable):
                 rewards[self.checked[system]]["checked"] += 1
                 if self.checked[system] != winningUserID:
                     # currentReward = int(self.reward / len(self.route))
-                    # currentReward = bbConfig.bPointsToCreditsRatio
+                    # currentReward = bbConfig.classic_creditsPerCheck
                     currentReward = self.rewardPerSys
                     rewards[self.checked[system]]["reward"] += currentReward
                     creditsPool -= currentReward

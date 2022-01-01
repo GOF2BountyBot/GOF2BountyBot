@@ -85,7 +85,10 @@ timeouts = {
     # The amount of time a user must wait before they are allowed to submit a new github issue
     "githubIssueSubmitDelay": {"minutes": 5},
 
-    "selectImageSizeHandling": {"minutes": 1}
+    # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
+    "selectImageSizeHandling": {"minutes": 1},
+
+    "toggleClassicMode": {"minutes": 2}
 }
 
 paths = {
@@ -375,9 +378,6 @@ fallbackRouteScale = 5
 # Whether or not to log th calculation of delays between new bounty generation
 logNewBountyDelays = True
 
-# The number of credits to award for each bPoint (each system in a criminal route)
-bPointsToCreditsRatio = 1000
-
 # number of bounties ahead of a checked system in a route to report a recent criminal spotting (+1)
 closeBountyThreshold = 4
 
@@ -406,6 +406,13 @@ activityTempPerPlayer = 1
 
 # The RGB colours to make by default for each bounty alert role
 bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
+
+
+
+##### CLASSIC MODE #####
+
+# The number of credits to award for each system check (corresponds to the old bPointsToCreditsRatio variable)
+classic_creditsPerCheck = 1000
 
 
 
