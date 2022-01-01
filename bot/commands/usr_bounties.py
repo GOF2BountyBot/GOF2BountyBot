@@ -46,7 +46,7 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
         confirmMsgText = "You currently have classic mode enabled. Disable it to play with exciting new features:\n" \
                         + "• Beat bounties in a duel to win their rewards\n" \
                         + "• Progress through bounty hunter levels and get new customization items\n" \
-                        + "• Gain huge rewards for beating tougher bounties\n", \
+                        + "• Gain huge rewards for beating tougher bounties\n" \
                         + "\nBy disabling classic mode will keep everything, including items, credits and stats, and you " \
                         + "will begin at bounty hunter level 1. Classic mode can be enabled again at any time."
 
