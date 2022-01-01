@@ -328,7 +328,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
 
                         # Announce the bounty has been completed
                         await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
-                        await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
+                        if statsEmbed is not None or duelResultsImg is not None:
+                            await message.channel.send(embed=statsEmbed,
+                                                        file=None if duelResultsImg is None else duelResultsFile)
 
                         # Raise guild's activity temperature for this bounty's tl
                         numContributingUsers = len(basedUsers)
