@@ -251,6 +251,7 @@ class Bounty(serializable.Serializable):
         :rtype: dict[int, dict[str, int or bool]]]
         """
         creditsPool = self.reward
+        rewardPerSys = self.rewardPerSys
         rewards = {}
         checkedSystems = 0
         for system in self.route:
@@ -260,6 +261,17 @@ class Bounty(serializable.Serializable):
                     rewards[self.checked[system]] = {"reward": 0, "checked": 0, "won": False, "xp":0}
 
         winningUserID = self.checked[self.answer]
+        if classicModeUserIDs:
+            if winningUserID in classicModeUserIDs:
+                winningUserSystems = [system for system in self.route if not self.systemChecked(system) \
+                                        or self.checked[system] == winningUserID]
+                rewards[self.checked[self.answer]]["reward"] = len(winningUserSystems) * cfg.classic_creditsPerCheck
+            
+            if len(classicModeUserIDs) > 1:
+                classicModeSystems = [system for system in self.route if self.checked[system] in classicModeUserIDs]
+                classicModePool = len(classicModeSystems) * cfg.classic_creditsPerCheck
+                numNonClassicModeSystems = len(self.route) - len(classicModeSystems)
+                rewardPerSys = (creditsPool - classicModePool) / numNonClassicModeSystems
 
         for system in self.route:
             if self.systemChecked(system):
@@ -270,11 +282,12 @@ class Bounty(serializable.Serializable):
                     if self.checked[system] in classicModeUserIDs:
                         currentReward = cfg.classic_creditsPerCheck
                     else:
-                        currentReward = self.rewardPerSys
+                        currentReward = rewardPerSys
                     rewards[self.checked[system]]["reward"] += currentReward
                     creditsPool -= currentReward
 
-        rewards[self.checked[self.answer]]["reward"] = creditsPool
+        if winningUserID not in classicModeUserIDs:
+            rewards[self.checked[self.answer]]["reward"] = creditsPool
         rewards[self.checked[self.answer]]["won"] = True
 
         for user in rewards:
