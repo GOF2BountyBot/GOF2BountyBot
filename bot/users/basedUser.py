@@ -264,8 +264,8 @@ class BasedUser(serializable.Serializable):
             self.bountyHuntingXP = bountyHuntingXP
             self.prestiges = prestiges
 
-            self.homeGuildID = homeGuildID
-            self.guildTransferCooldownEnd = guildTransferCooldownEnd
+        self.homeGuildID = homeGuildID
+        self.guildTransferCooldownEnd = guildTransferCooldownEnd
 
         self.kaamo = kaamo
         self.loma = loma
