@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from aiohttp.client import request
 import discord
 
@@ -58,7 +59,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     :param str args: either empty string, or one of cfg.validItemNames
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if requestedBGuild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have shops.")
         return
@@ -83,10 +84,15 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
 
     userDivision = ""
 
+    bUser: Optional[basedUser.BasedUser] = None
+
     if botState.usersDB.idExists(message.author.id):
         bUser = botState.usersDB.getUser(message.author.id)
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
-        userDivision = divisionNameForLevel(userLevel)
+        if bUser.classicModeEnabled:
+            userDivision = cfg.classic_divisionName
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
+            userDivision = divisionNameForLevel(userLevel)
         if not divName:
             divName = userDivision
     else:
@@ -94,7 +100,9 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
+    isClassicMode = bUser is not None and bUser.classicModeEnabled
+
+    if not isClassicMode and cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
@@ -112,9 +120,15 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     else:
         sendChannel = message.channel
 
+    classicModeDesc = ("You are playing in classic mode. " \
+                    + "You can access any shop by giving its division name in shop commands.\n") \
+                    if isClassicMode else ""
+
     requestedShop = botState.guildsDB.getGuild(message.guild.id).divisionShops[divName]
-    shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Shop", desc="__" + message.guild.name + "__\n`Current Tech Level: " \
-                                                + str(requestedShop.currentTechLevel) + "`",
+    shopEmbed = lib.discordUtil.makeEmbed(titleTxt=f"{divName} Shop",
+                                            desc=f"__{message.guild.name}__\n" \
+                                                + classicModeDesc \
+                                                + f"`Current Tech Level: {requestedShop.currentTechLevel}`",
                                             footerTxt="All items" if item == "all" else (item + "s").title(),
                                             thumb="" if message.guild.icon is None else message.guild.icon_url_as(size=64))
 
