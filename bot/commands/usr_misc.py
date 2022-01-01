@@ -233,7 +233,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         if isClassic:
             classicEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.classicMode
             if classicEmoji.isUnicode:
-                statsEmbed.description += f"\n`{classicEmoji.sendable} classic mode enabled (see {prefix}help classic)"
+                statsEmbed.description += f"\n`{classicEmoji.sendable} classic mode enabled (see {prefix}help classic)`"
             else:
                 statsEmbed.description += f"\n{classicEmoji.sendable} Classic mode enabled *(see `{prefix}help classic`)*"
         else:

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -31,10 +31,21 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    callingUser: Optional[basedUser.BasedUser] = None
+    if botState.usersDB.idExists(message.author.id):
+        callingUser = botState.usersDB.getUser(message.author.id)
+        currentStatus = callingUser.classicModeEnabled
+    else:
+        currentStatus = False
 
-
-    if not callingUser.classicModeEnabled:
+    if currentStatus:
+        confirmMsgText = "You currently have classic mode enabled. Disable it to play with exciting new features:\n" \
+                        + "• Beat bounties in a duel to win their rewards\n" \
+                        + "• Progress through bounty hunter levels and get new customization items\n" \
+                        + "• Gain huge rewards for beating tougher bounties\n" \
+                        + "\nBy disabling classic mode will keep everything, including items, credits and stats, and you " \
+                        + "will begin at bounty hunter level 1. Classic mode can be enabled again at any time."
+    else:
         confirmMsgText = "Missing the BountyBot beta? You might prefer classic mode:\n" \
                         + "• No dueling, win bounties by finding the correct system\n" \
                         + "• No XP or levelling\n" \
@@ -42,15 +53,8 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
                         + f"• Restricted to {cfg.bountyDivisionNames[0]} division bounties, but any shops\n" \
                         + "\nBy enabling classic mode, you will lose all of your XP, but you will keep your " \
                         + "credits and items. Classic mode can be disabled again at any time."
-    else:
-        confirmMsgText = "You currently have classic mode enabled. Disable it to play with exciting new features:\n" \
-                        + "• Beat bounties in a duel to win their rewards\n" \
-                        + "• Progress through bounty hunter levels and get new customization items\n" \
-                        + "• Gain huge rewards for beating tougher bounties\n" \
-                        + "\nBy disabling classic mode will keep everything, including items, credits and stats, and you " \
-                        + "will begin at bounty hunter level 1. Classic mode can be enabled again at any time."
 
-    actionText = "Disable" if callingUser.classicModeEnabled else "Enable"
+    actionText = "Disable" if currentStatus else "Enable"
     confirmMsg: discord.Message = await message.reply(confirmMsgText, mention_author=False)
     confirmMenu = confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
                                     timedelta(**cfg.timeouts.toggleClassicMode).total_seconds(),
@@ -64,6 +68,8 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
         await confirmMsg.edit(content="🛑 Classic mode toggle cancelled.", embed=None)
 
     elif confirmResults[0] == cfg.defaultEmojis.accept:
+        if callingUser is None:
+            callingUser = botState.usersDB.addID(message.author.id)
         if callingUser.classicModeEnabled:
             callingUser.disableClassicMode()
         else:
