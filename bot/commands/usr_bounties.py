@@ -6,6 +6,7 @@ from io import BytesIO
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
+from ..lib.discordUtil import stringTyping, truncateWithEllipse
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
 from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
@@ -127,9 +128,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
     # reject if the requested system is not in the database
     if systObj is None:
         if len(requestedSystem) < 20:
-            await message.reply(mention_author=False, content=":x: The **" + requestedSystem + "** system is not on my star map! :map:")
-        else:
-            await message.reply(mention_author=False, content=":x: The **" + requestedSystem[0:15] + "**... system is not on my star map! :map:")
+            await message.reply(mention_author=False,
+                                content=f":x: The **{truncateWithEllipse(requestedSystem, 20, 15)}** system is not " \
+                                        + "on my star map! :map:")
         return
 
     requestedSystem = systObj.name
@@ -143,15 +144,20 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         bountyWon = False
         bountyLost = False
         systemInBountyRoute = False
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
+
+        if requestedBBUser.classicModeEnabled:
+            btyDivision = callingGuild.bountiesDB.divisionForName(cfg.classic_divisionName)
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
+            btyDivision = callingGuild.bountiesDB.divisionForLevel(userLevel)
+
         # list of completed bounties to remove from the bounties database
         toPop = []
         toEscape = []
-        btyDivision = callingGuild.bountiesDB.divisionForLevel(userLevel)
         sightedCriminalsStr = ""
         # The total amount to increase the division's activity temperature by
         divTempDelta = 0
-        bounty: Bounty = None
+        bounty: Bounty
 
         for tlBounties in btyDivision.bounties.values():
             for bounty in tlBounties.values():
@@ -159,64 +165,75 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 checkResult = bounty.check(requestedSystem, message.author.id)
                 # If current bounty resides in the requested system
                 if checkResult == CheckResult.CORRECT:
-                    duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
-                                                            cfg.duelVariancePercent)
-                    try:
-                        duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser, requestedBBUser.activeShip,
-                                                                                    bounty.criminal, bounty.activeShip,
-                                                                                    duelResults)
-                    except RuntimeError:
-                        statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
-                        statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
-                        statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["health"]["varied"], 2)))
-                        statsEmbed.add_field(name="Time To Kill",
-                                                value=message.author.mention + ": " \
-                                                    + (str(round(duelResults["ship1"]["TTK"], 2)) \
-                                                        if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + (str(round(duelResults["ship2"]["TTK"], 2)) \
-                                                        if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
+                    duelWon = False
+                    if not requestedBBUser.classicModeEnabled:
+                        duelWon = True
+                        duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
+                                                                cfg.duelVariancePercent)
+                        try:
+                            duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser,
+                                                                                        requestedBBUser.activeShip,
+                                                                                        bounty.criminal, bounty.activeShip,
+                                                                                        duelResults)
+                        except RuntimeError:
+                            statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
+                            statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
+                            statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["health"]["varied"], 2)))
+                            statsEmbed.add_field(name="Time To Kill",
+                                                    value=message.author.mention + ": " \
+                                                        + (str(round(duelResults["ship1"]["TTK"], 2)) \
+                                                            if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + (str(round(duelResults["ship2"]["TTK"], 2)) \
+                                                            if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
 
-                        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. " \
-                                                + "The error has been logged.")
-                        duelResultsImg = None
-                    else:
-                        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
-                        statsEmbed.set_image(url="attachment://duelResults.png")
-                        duelResultsBytes = BytesIO()
-                        duelResultsImg.save(duelResultsBytes, "PNG")
-                        duelResultsBytes.seek(0)
-                        duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
-                    
+                            statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image." \
+                                                    + " The error has been logged.")
+                            duelResultsImg = None
+                        else:
+                            statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
+                            statsEmbed.set_image(url="attachment://duelResults.png")
+                            duelResultsBytes = BytesIO()
+                            duelResultsImg.save(duelResultsBytes, "PNG")
+                            duelResultsBytes.seek(0)
+                            duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
+                        
 
-                    if duelResults["winningShip"] is not requestedBBUser.activeShip:
-                        toEscape.append(bounty)
-                        # bounty.escape()
-                        bountyLost = True
-                        await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
-                                                    file=None if duelResultsImg is None else duelResultsFile)
+                        if duelResults["winningShip"] is not requestedBBUser.activeShip:
+                            toEscape.append(bounty)
+                            # bounty.escape()
+                            bountyLost = True
+                            await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
+                                                        file=None if duelResultsImg is None else duelResultsFile)
+                        else:
+                            duelWon = True
 
-                    else:
+                    if duelWon:
                         bountyWon = True
 
+                        basedUsers: Dict[int, basedUser.BasedUser] = \
+                            {i: botState.usersDB.getOrAddID(i) for i in rewards.keys()}
+                        classicModeUserIDs = set(u.id for u in basedUsers.values() if u.classicModeEnabled)
+                        nonClassicModeUserIDs = set(u.id for u in basedUsers.values() if u.id not in classicModeUserIDs)
+
                         # reward all contributing users
-                        rewards = bounty.calcRewards()
+                        rewards = bounty.calcRewards(classicModeUserIDs)
                         rewardsMeta = {i: RewardsMeta.NONE for i in rewards}
 
                         # userID : reward
                         distributeRewards: Dict[int, int] = {}
                         guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
 
-                        for userID in rewards:
-                            currentBBUser: basedUser.BasedUser = botState.usersDB.getUser(userID)
+                        for userID in nonClassicModeUserIDs:
+                            currentBBUser = basedUsers[userID]
                             currentLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             currentDiv = callingGuild.bountiesDB.divisionForLevel(currentLevel)
                             
@@ -230,7 +247,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         # share rewards lost due to prestiging
                         if distributeRewards:
                             totalToShare = sum(distributeRewards.values())
-                            receiverIDs = [i for i in rewards if i not in distributeRewards]
+                            receiverIDs = [i for i in rewards if i not in distributeRewards and i in nonClassicModeUserIDs]
                             each = int(totalToShare / len(receiverIDs))
                             for receiverID in receiverIDs:
                                 rewards[receiverID]["reward"] += each
@@ -243,9 +260,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             if RewardsMeta.USER_PRESTIGED & rewardsMeta[userID]:
                                 continue
 
-                            currentBBUser = botState.usersDB.getUser(userID)
+                            currentBBUser = basedUsers[userID]
                             currentBBUser.credits += rewards[userID]["reward"]
                             currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
+
+                            if currentBBUser.classicModeEnabled:
+                                continue
 
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
@@ -300,7 +320,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
 
                         # Raise guild's activity temperature for this bounty's tl
-                        numContributingUsers = len(set(rewards.keys()))
+                        numContributingUsers = len(basedUsers)
                         divTempDelta += numContributingUsers * cfg.activityTempPerPlayer
 
                         # add this bounty to the list of bounties to be removed
@@ -310,9 +330,10 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 if checkResult in [CheckResult.INCORRECT, CheckResult.CORRECT]:
                     systemInBountyRoute = True
                     await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == CheckResult.CORRECT)
-                    # Check if any bounties are close to the requested system in their route, defined by cfg.closeBountyThreshold
-                    if checkResult == CheckResult.INCORRECT and \
-                            0 < bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem) < cfg.closeBountyThreshold:
+                    # Check if any bounties are close to the requested system in their route,
+                    # defined by cfg.closeBountyThreshold
+                    distanceToAnswer = bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem)
+                    if checkResult == CheckResult.INCORRECT and 0 < distanceToAnswer < cfg.closeBountyThreshold:
                         # Print any close bounty names
                         sightedCriminalsStr += "\n**       **• Local security forces spotted **" \
                                                 + lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
