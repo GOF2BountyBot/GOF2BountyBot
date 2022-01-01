@@ -34,7 +34,7 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
     callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
 
 
-    if callingUser.classicModeEnabled:
+    if not callingUser.classicModeEnabled:
         confirmMsgText = "Missing the BountyBot beta? You might prefer classic mode:\n" \
                         + "• No dueling, win bounties by finding the correct system\n" \
                         + "• No XP or levelling\n" \
@@ -59,9 +59,9 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
     
     confirmResults = await confirmMenu.doMenu()
     if not confirmResults:
-        await confirmMsg.edit(":x: Out of time, please try this command again.")
+        await confirmMsg.edit(content=":x: Out of time, please try this command again.")
     elif confirmResults[0] == cfg.defaultEmojis.reject:
-        await confirmMsg.edit("🛑 Classic mode toggle cancelled.", embed=None)
+        await confirmMsg.edit(content="🛑 Classic mode toggle cancelled.", embed=None)
 
     elif confirmResults[0] == cfg.defaultEmojis.accept:
         if callingUser.classicModeEnabled:
