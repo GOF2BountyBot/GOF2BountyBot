@@ -258,11 +258,11 @@ class BasedUser(serializable.Serializable):
 
         if classicModeEnabled:
             self.bountyHuntingXP = None
-            self.prestiges = None
             
         else:
             self.bountyHuntingXP = bountyHuntingXP
-            self.prestiges = prestiges
+
+        self.prestiges = prestiges
 
         self.homeGuildID = homeGuildID
         self.guildTransferCooldownEnd = guildTransferCooldownEnd
