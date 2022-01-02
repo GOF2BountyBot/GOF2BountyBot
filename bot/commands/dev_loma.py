@@ -104,7 +104,13 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
         await message.channel.send(":x: Invalid item type arg - " + itemType)
         return
 
-    itemListing: DiscountableItemListing = requestedUser.loma.getStockByName(itemType)[itemNum - 1]
+    itemTypeStock = requestedUser.loma.getStockByName(itemType)
+    try:
+        itemListing: DiscountableItemListing = itemTypeStock[itemNum - 1]
+    except ValueError:
+        await message.reply(f":x: The doesn't have any {itemType}s!")
+        return
+
     newDiscount = ItemDiscount.fromDict(discountDict)
     itemListing.pushDiscount(newDiscount)
 
