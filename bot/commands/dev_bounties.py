@@ -748,10 +748,10 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         if botState.usersDB.idExists(requestedUser.id):
             requestedBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
             activeShip = requestedBUser.activeShip
-            if requestedUser.classicModeEnabled:
+            if requestedBUser.classicModeEnabled:
                 newTL = cfg.minTechLevel
             else:
-                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedUser.bountyHuntingXP)
+                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedBUser.bountyHuntingXP)
         else:
             activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
             newTL = cfg.minTechLevel
@@ -848,10 +848,10 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         if botState.usersDB.idExists(requestedUser.id):
             requestedBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
             activeShip = requestedBUser.activeShip
-            if requestedUser.classicModeEnabled:
+            if requestedBUser.classicModeEnabled:
                 newTL = cfg.minTechLevel
             else:
-                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedUser.bountyHuntingXP)
+                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedBUser.bountyHuntingXP)
         else:
             activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
             newTL = cfg.minTechLevel
@@ -934,7 +934,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
     else:
         requestedBBUser = botState.usersDB.getUser(requestedUser.id)
 
-    if requestedUser.classicModeEnabled:
+    if requestedBBUser.classicModeEnabled:
         await message.reply(":x: That user has classic mode enabled!")
 
     # Handle bounty alert roles updates
