@@ -936,6 +936,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
 
     if requestedBBUser.classicModeEnabled:
         await message.reply(":x: That user has classic mode enabled!")
+        return
 
     # Handle bounty alert roles updates
     if requestedBBUser.hasHomeGuild and botState.guildsDB.idExists(requestedBBUser.homeGuildID):
