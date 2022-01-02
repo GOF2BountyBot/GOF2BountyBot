@@ -211,7 +211,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
 
     disabledLayers = []
 
-    if not full:
+    if shipData["textureRegions"] > 0 and not full:
         layerIndices = [i for i in range(1, shipData["textureRegions"] + 1)]
 
         if menuMsg is None:
