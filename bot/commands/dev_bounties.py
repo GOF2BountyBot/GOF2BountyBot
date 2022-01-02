@@ -9,6 +9,7 @@ from .. import botState, lib
 from ..lib import gameMaths
 from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
+from ..gameObjects.items import shipItem
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision
 
@@ -743,12 +744,23 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         if requestedUser is None:
             await message.reply(mention_author=False, content=":x: Player not found!")
             return
-        newTL = gameMaths.calculateUserBountyHuntingLevel(requestedUser.bountyHuntingXP)
+        
+        if botState.usersDB.idExists(requestedUser.id):
+            requestedBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
+            activeShip = requestedBUser.activeShip
+            if requestedBUser.classicModeEnabled:
+                newTL = cfg.minTechLevel
+            else:
+                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedBUser.bountyHuntingXP)
+        else:
+            activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
+            newTL = cfg.minTechLevel
+
         # create a new bounty at random for the specified user
         config = bountyConfig.BountyConfig(name="<@" + str(newName) + ">", isPlayer=True,
                                             icon=str(requestedUser.avatar_url_as(size=64)),
                                             aliases=[lib.discordUtil.userTagOrDiscrim(newName)],
-                                            techLevel=newTL,
+                                            techLevel=newTL, activeShip=activeShip,
                                             faction=argsSplit[1] if len(argsSplit) == 2 else "")
 
     elif len(argsSplit) != 9:
@@ -832,13 +844,22 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
         newIcon = bData[8].rstrip(" ")
         if newIcon == "auto":
             newIcon = "" if not builtIn else builtInCrimObj.icon
-
-        newTL = gameMaths.calculateUserBountyHuntingLevel(requestedUser.bountyHuntingXP)
+        
+        if botState.usersDB.idExists(requestedUser.id):
+            requestedBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
+            activeShip = requestedBUser.activeShip
+            if requestedBUser.classicModeEnabled:
+                newTL = cfg.minTechLevel
+            else:
+                newTL = gameMaths.calculateUserBountyHuntingLevel(requestedBUser.bountyHuntingXP)
+        else:
+            activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
+            newTL = cfg.minTechLevel
 
         config = bountyConfig.BountyConfig(name="<@" + str(newName) + ">", isPlayer=True,
                                             icon=str(requestedUser.avatar_url_as(size=64)),
                                             aliases=[lib.discordUtil.userTagOrDiscrim(newName)],
-                                            techLevel=newTL,
+                                            techLevel=newTL, activeShip=activeShip,
                                             faction=newFaction, route=newRoute,
                                             start=newStart, end=newEnd, answer=newAnswer,
                                             reward=newReward, endTime=newEndTime)
@@ -912,6 +933,10 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
         requestedBBUser = botState.usersDB.addID(requestedUser.id)
     else:
         requestedBBUser = botState.usersDB.getUser(requestedUser.id)
+
+    if requestedBBUser.classicModeEnabled:
+        await message.reply(":x: That user has classic mode enabled!")
+        return
 
     # Handle bounty alert roles updates
     if requestedBBUser.hasHomeGuild and botState.guildsDB.idExists(requestedBBUser.homeGuildID):

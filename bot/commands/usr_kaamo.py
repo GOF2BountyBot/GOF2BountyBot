@@ -1,10 +1,13 @@
 import discord
 
+from bot.users import basedUser
+
 from . import commandsDB as bbCommands
 from .. import botState, lib
 from ..lib import gameMaths
 from ..cfg import cfg
 from ..gameObjects import kaamoShop
+from ..users import basedUser
 
 
 bbCommands.addHelpSection(0, "kaamo club")
@@ -16,7 +19,14 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
+    if not botState.usersDB.idExists(message.author.id):
+        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
+        return
+
+    requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if requestedBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
     if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) < cfg.maxTechLevel:
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
@@ -101,7 +111,10 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
-    requestedBBUser = botState.usersDB.getUser(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if requestedBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
     if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) < cfg.maxTechLevel:
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
@@ -185,73 +198,85 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
 
     sendChannel = None
     sendDM = False
-    callingBBUser = botState.usersDB.getOrAddID(message.author.id)
 
-    if item == "all":
-        if message.author.dm_channel is None:
-            await message.author.create_dm()
-        if message.author.dm_channel is None:
-            sendChannel = message.channel
-        else:
-            sendChannel = message.author.dm_channel
-            sendDM = True
-    else:
-        sendChannel = message.channel
-
-    shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
-                                            desc=message.author.mention + "\n*" + (str(callingBBUser.kaamo.totalItems) \
-                                                    if callingBBUser.kaamo is not None else "0") \
-                                                + "/" + str(cfg.kaamoMaxCapacity) + " items*",
+    if not botState.usersDB.idExists(message.author.id):
+        shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
+                                            desc=f"{message.author.mention}\n*0/{cfg.kaamoMaxCapacity} items*",
                                             footerTxt="All items" if item == "all" else (item + "s").title(),
                                             thumb=message.author.avatar_url_as(size=64))
-
-    if callingBBUser.kaamo is None or callingBBUser.kaamo.totalItems == 0:
         shopEmbed.add_field(name="‎", value="No items stored.")
+    
     else:
-        for currentItemType in ["ship", "weapon", "module", "turret", "tool"]:
-            if item in ["all", currentItemType]:
-                currentStock = callingBBUser.kaamo.getStockByName(currentItemType)
-                for itemNum in range(1, currentStock.numKeys + 1):
-                    if itemNum == 1:
-                        shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
+        callingBBUser = botState.usersDB.getUser(message.author.id)
 
-                    try:
-                        currentItem = currentStock[itemNum - 1].item
-                    except KeyError:
+        if item == "all":
+            if message.author.dm_channel is None:
+                await message.author.create_dm()
+            if message.author.dm_channel is None:
+                sendChannel = message.channel
+            else:
+                sendChannel = message.author.dm_channel
+                sendDM = True
+        else:
+            sendChannel = message.channel
+
+        numItemsStr = str(callingBBUser.kaamo.totalItems) if callingBBUser.kaamo is not None else "0"
+        shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
+                                                desc=message.author.mention + "\n*" \
+                                                    + f"{numItemsStr}/{cfg.kaamoMaxCapacity} items*",
+                                                footerTxt="All items" if item == "all" else (item + "s").title(),
+                                                thumb=message.author.avatar_url_as(size=64))
+
+        if callingBBUser.kaamo is None or callingBBUser.kaamo.totalItems == 0:
+            shopEmbed.add_field(name="‎", value="No items stored.")
+        else:
+            for currentItemType in ["ship", "weapon", "module", "turret", "tool"]:
+                if item in ["all", currentItemType]:
+                    currentStock = callingBBUser.kaamo.getStockByName(currentItemType)
+                    for itemNum in range(1, currentStock.numKeys + 1):
+                        if itemNum == 1:
+                            shopEmbed.add_field(name="‎",
+                                                value=f"__**{currentItemType.title()}s**__",
+                                                inline=False)
+
                         try:
-                            botState.logger.log("Main", "cmd_kaamo",
-                                                "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
-                                                    + "' (index " + str(itemNum-1) \
-                                                    + "), which was not found in the shop stock",
-                                                category="shop", eventType="UNKWN_KEY")
-                        except IndexError:
-                            break
-                        except AttributeError as e:
-                            keysStr = ""
-                            for item in currentStock.items:
-                                keysStr += str(item) + ", "
-                            botState.logger.log("Main", "cmd_kaamo",
-                                                "Unexpected type in " + currentItemType + "sStock KEYS, index " \
-                                                    + str(itemNum-1) + ". Got " \
-                                                    + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
-                                                    + keysStr[:-2],
-                                                category="shop", eventType="INVTY_KEY_TYPE")
+                            currentItem = currentStock[itemNum - 1].item
+                        except KeyError:
+                            try:
+                                botState.logger.log("Main", "cmd_kaamo",
+                                                    f"Requested {currentItemType} '{currentStock.keys[itemNum-1].name}" \
+                                                        + f"' (index {itemNum-1}" \
+                                                        + "), which was not found in the shop stock",
+                                                    category="shop", eventType="UNKWN_KEY")
+                            except IndexError:
+                                break
+                            except AttributeError as e:
+                                keysStr = ""
+                                for item in currentStock.items:
+                                    keysStr += str(item) + ", "
+                                botState.logger.log("Main", "cmd_kaamo",
+                                                    f"Unexpected type in {currentItemType}sStock KEYS, index " \
+                                                        + str(itemNum-1) + ". Got " \
+                                                        + type(currentStock.keys[itemNum-1]).__name__ \
+                                                        + ".\nInventory keys: " \
+                                                        + keysStr[:-2],
+                                                    category="shop", eventType="INVTY_KEY_TYPE")
+                                shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" \
+                                                        + currentStock.keys[itemNum-1] + "'",
+                                                    value="Do not attempt to get. Could cause issues.", inline=True)
+                                continue
                             shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" \
-                                                    + currentStock.keys[itemNum-1] + "'",
+                                                    + currentStock.keys[itemNum-1].name + "'",
                                                 value="Do not attempt to get. Could cause issues.", inline=True)
                             continue
-                        shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" \
-                                                + currentStock.keys[itemNum-1].name + "'",
-                                            value="Do not attempt to get. Could cause issues.", inline=True)
-                        continue
 
-                    currentItemCount = currentStock.items[currentItem].count
-                    shopEmbed.add_field(name=str(itemNum) + ". " \
-                                            + (currentItem.emoji.sendable + " " if currentItem.hasEmoji else "") \
-                                            + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
-                                            + "**" + currentItem.name + "**",
-                                        value=lib.stringTyping.commaSplitNum(currentItem.value) + " Credits\n" \
-                                            + currentItem.statsStringShort(), inline=True)
+                        currentItemCount = currentStock.items[currentItem].count
+                        shopEmbed.add_field(name=str(itemNum) + ". " \
+                                                + (currentItem.emoji.sendable + " " if currentItem.hasEmoji else "") \
+                                                + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
+                                                + "**" + currentItem.name + "**",
+                                            value=lib.stringTyping.commaSplitNum(currentItem.value) + " Credits\n" \
+                                                + currentItem.statsStringShort(), inline=True)
 
     try:
         await sendChannel.send(embed=shopEmbed)
@@ -264,8 +289,10 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
 
 bbCommands.register("kaamo", cmd_kaamo, 0, allowDM=True, helpSection="kaamo club", signatureStr="**kaamo** *[item-type]*",
                     shortHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-                        + str(cfg.kaamoMaxCapacity) + " items, including items on ships.",
+                        + f"{cfg.kaamoMaxCapacity} items, including items on ships.",
                     longHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-                        + str(cfg.kaamoMaxCapacity) + " items, including items on ships. Give an item type " \
+                        + f"{cfg.kaamoMaxCapacity} items, including items on ships. Give an item type " \
                         + "(ship/weapon/turret/module/tool) to only list items of that type.\n\n" \
-                        + "⚠ Please be aware that `" + cfg.defaultCommandPrefix +  "kaamo store` and `" + cfg.defaultCommandPrefix + "kaamo get` can only be used by level 10 bounty hunters.")
+                        + f"⚠ Please be aware that `{cfg.defaultCommandPrefix}kaamo store` and `" \
+                        + f"{cfg.defaultCommandPrefix}kaamo get` can only be used by level " \
+                        + f"{cfg.maxTechLevel} bounty hunters.")
