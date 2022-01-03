@@ -810,11 +810,12 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
         skin = ""
 
     if attached:
-        shipName, rendererArgs = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeResolution[0],
+        result = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeResolution[0],
                                                                         cfg.skinRenderShowmeResolution[1],
                                                                         cfg.skinRenderShowmeSamples, full)
-        if rendererArgs is None:
+        if result is None:
             return
+        shipName, rendererArgs = result
         await util_autoskin.doAutoSkin(message, rendererArgs, shipName)
     else:
         # look up the ship object
@@ -1272,9 +1273,10 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         #     itemEmbed = lib.discordUtil.makeEmbed(col=lib.discordUtil.randomColour(), img=bbData.builtInShipSkins[skin].shipRenders[itemObj.name][0], titleTxt=itemObj.name, footerTxt="Custom skin: " + skin.capitalize())
         #     await message.channel.send(embed=itemEmbed)
     else:
-        _, rendererArgs = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1)
-        if rendererArgs is None:
+        result = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1)
+        if result is None:
             return
+        _, rendererArgs = result
         
         # TODO: ALLOW RENDERING STRAIGHT TO AEI WITH AEIEDITOR BY CATLABS
         formatEmojis = (
