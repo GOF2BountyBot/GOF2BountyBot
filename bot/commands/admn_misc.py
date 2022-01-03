@@ -495,11 +495,12 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
     if full:
         args = args.split("-full")[0].rstrip()
 
-    shipName, rendererArgs = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeHDResolution[0],
+    result = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeHDResolution[0],
                                                                         cfg.skinRenderShowmeHDResolution[1],
                                                                         cfg.skinRenderShowmeHDSamples, full)
-    if rendererArgs is None:
+    if result is None:
         return
+    shipName, rendererArgs = result
     await util_autoskin.doAutoSkin(message, rendererArgs, shipName, "HD")
 
 
