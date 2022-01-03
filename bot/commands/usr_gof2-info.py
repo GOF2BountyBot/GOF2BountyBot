@@ -809,7 +809,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     if attached:
         result = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeResolution[0],
                                                                         cfg.skinRenderShowmeResolution[1],
-                                                                        cfg.skinRenderShowmeSamples, full)
+                                                                        cfg.skinRenderShowmeSamples, full, True)
         if result is None:
             return
         shipName, rendererArgs = result
@@ -1270,7 +1270,7 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         #     itemEmbed = lib.discordUtil.makeEmbed(col=lib.discordUtil.randomColour(), img=bbData.builtInShipSkins[skin].shipRenders[itemObj.name][0], titleTxt=itemObj.name, footerTxt="Custom skin: " + skin.capitalize())
         #     await message.channel.send(embed=itemEmbed)
     else:
-        result = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1)
+        result = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1, False)
         if result is None:
             return
         _, rendererArgs = result

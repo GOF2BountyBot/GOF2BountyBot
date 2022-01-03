@@ -100,7 +100,7 @@ async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName:
 
 
 async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x : int, res_y : int, numSamples: int,
-                                full: bool = False) -> Tuple[str, Optional[shipRenderer.AutoskinArgs]]:
+                                doQueue: bool, full: bool = False) -> Tuple[str, Optional[shipRenderer.AutoskinArgs]]:
     """Collect a usable AutoskinArgs object to pass to the ship renderer
 
     :param message: The message that triggered the operation
@@ -138,12 +138,12 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
         await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
         return None
 
-    if len(botState.currentRenders) >= cfg.maxConcurrentRenders:
+    if doQueue and len(botState.currentRenders) >= cfg.maxConcurrentRenders:
         await message.reply(mention_author=False,
                             content=":x: My rendering queue is full currently. Please try this command again once someone " \
                                     + "else's render has completed.")
         return None
-    if itemName in botState.currentRenders:
+    if doQueue and itemName in botState.currentRenders:
         await message.reply(mention_author=False,
                             content=":x: Someone else is currently rendering this ship! Please use this command again " \
                                     + f"once my other {itemName} render has completed.")
@@ -153,7 +153,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
         await message.reply(mention_author=False, content=":x: Please attach an image to use as your base texture.")
         return None
 
-    botState.currentRenders.append(itemName)
+    if doQueue:
+        botState.currentRenders.append(itemName)
     skinPaths = {}
 
     async def downloadImage(skinPaths, skinFile, key) -> bool:
@@ -165,7 +166,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                     os.remove(skinPath)
                 except FileNotFoundError:
                     pass
-            botState.currentRenders.remove(itemName)
+            if doQueue:
+                botState.currentRenders.remove(itemName)
             return False
             
         texBytes = BytesIO()
@@ -180,7 +182,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                     os.remove(skinPath)
                 except FileNotFoundError:
                     pass
-            botState.currentRenders.remove(itemName)
+            if doQueue:
+                botState.currentRenders.remove(itemName)
             texBytes.close()
             return False
 
@@ -205,7 +208,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
 
     correctShape = checkImageAspectRatio(skinFile, skinPaths[0])
     if not correctShape:
-        cancelled, menuMsg = await fixImageAspectRatio(skinPaths[0], message, itemName, True, menuMsg)
+        cancelled, menuMsg = await fixImageAspectRatio(skinPaths[0], message, itemName, doQueue, menuMsg)
         if cancelled:
             return None
 
@@ -227,7 +230,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
             await menuMsg.edit(mention_author=False, content="🛑 Skin render cancelled.", embed=None)
             for skinPath in skinPaths.values():
                 os.remove(skinPath)
-            botState.currentRenders.remove(itemName)
+            if doQueue:
+                botState.currentRenders.remove(itemName)
             return None
         else:
             for react in menuOutput:
@@ -252,7 +256,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                 await menuMsg.reply(mention_author=False, content="🛑 Skin render cancelled.")
                 for skinPath in skinPaths.values():
                     os.remove(skinPath)
-                botState.currentRenders.remove(itemName)
+                if doQueue:
+                    botState.currentRenders.remove(itemName)
                 return None
             else:
                 for react in menuOutput:
@@ -281,7 +286,8 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                     await nextLayerMsg.edit(mention_author=False, content="🛑 Skin render cancelled.")
                     for skinPath in skinPaths.values():
                         os.remove(skinPath)
-                    botState.currentRenders.remove(itemName)
+                    if doQueue:
+                        botState.currentRenders.remove(itemName)
                     return None
 
                 nextLayer = imgMsg.attachments[0]
@@ -291,7 +297,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
 
                 correctShape = checkImageAspectRatio(nextLayer, skinPaths[regionNum])
                 if not correctShape:
-                    cancelled, _ = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, True)
+                    cancelled, _ = await fixImageAspectRatio(skinPaths[regionNum], message, itemName, doQueue)
                     if cancelled:
                         return None
     
