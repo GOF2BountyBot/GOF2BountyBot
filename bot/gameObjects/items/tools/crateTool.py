@@ -128,6 +128,15 @@ class CrateTool(toolItem.ToolItem):
             return "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
+    def statsStringLong(self) -> str:
+        if len(self.itemPool) > 30:
+            return "Use to open the crate and receive one of the following:\n\n" \
+                + f"*{' • '.join(i.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible items*"
+        else:
+            return "Use to open the crate and receive one of the following:\n\n" \
+                + "*" + " • ".join(i.name for i in self.itemPool) + "*"
+
+
     def toDict(self, **kwargs) -> dict:
         """Serialize this crate into dictionary format.
 
