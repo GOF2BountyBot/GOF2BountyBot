@@ -9,6 +9,7 @@ from ..cfg import bbData, cfg
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
 from ..gameObjects.items import shipItem, gameItem
+from ..gameObjects.items.tools import toolItem
 from ..reactionMenus import reactionMenu
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
 from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
@@ -685,6 +686,72 @@ async def cmd_info_medal(message : discord.Message, args : str, isDM : bool):
 # bbCommands.register("info-medal", cmd_info_medal)
 
 
+async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
+    """return information about a specified tool
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: string containing a tool name
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not bbData.builtInToolObjs:
+        await message.reply(":x: There are currently no tools in the game.")
+        return
+
+    if isDM:
+        prefix = cfg.defaultCommandPrefix
+    else:
+        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    # verify a item was given
+    if args == "":
+        await message.channel.send(":x: Please provide a tool! Example: " \
+                                + f"`{prefix}info tool {next(i for i in bbData.builtInToolObjs)}`")
+        return
+
+    toolName = args.title()
+    requestedTool: toolItem.ToolItem = None
+    for potentialName in bbData.builtInToolObjs.keys():
+        if bbData.builtInToolObjs[potentialName].isCalled(toolName):
+            requestedTool = bbData.builtInToolObjs[potentialName]
+
+    if toolName not in bbData.builtInToolObjs:
+        if len(toolName) < 20:
+            await message.channel.send(":x: The **" + toolName + "** tool is not in my database! :detective:")
+        else:
+            await message.channel.send(":x: The **" + toolName[0:15] + "**... tool is not in my database! :detective:")
+    else:
+        # build the stats embed
+        statsEmbed = lib.discordUtil.makeEmbed(desc="__Tool File__\n" + requestedTool.statsStringLong(),
+                                                titleTxt=requestedTool.name,
+                                                thumb=requestedTool.icon if requestedTool.hasIcon else None)
+        if requestedTool.hasTechLevel:
+            statsEmbed.add_field(name="Tech Level:", value=requestedTool.techLevel)
+
+        # include the item's aliases and wiki if they exist
+        if len(requestedTool.aliases) > 1:
+            aliasStr = ""
+            for alias in requestedTool.aliases:
+                aliasStr += alias + ", "
+            statsEmbed.add_field(name="Aliases:", value=aliasStr[:-2], inline=False)
+        if requestedTool.hasWiki:
+            statsEmbed.add_field(name="‎", value="[Wiki](" + requestedTool.wiki + ")", inline=False)
+        # send the embed
+        await message.reply(mention_author=False, embed=statsEmbed)
+
+# bbCommands.register("info-medal", cmd_info_medal)
+
+
+INFO_CMDS = {"system": cmd_info_system,
+                "criminal": cmd_info_criminal,
+                "ship": cmd_info_ship,
+                "weapon": cmd_info_weapon,
+                "module": cmd_info_module,
+                "turret": cmd_info_turret,
+                # "commodity": cmd_info_commodity,
+                "skin": cmd_info_skin,
+                "medal": cmd_info_medal,
+                "tool": cmd_info_tool}
+
+
 async def cmd_info(message : discord.Message, args : str, isDM : bool):
     """Return statistics about a named game object, of a specified type.
     The named used to reference the object may be an alias.
@@ -700,26 +767,18 @@ async def cmd_info(message : discord.Message, args : str, isDM : bool):
         return
 
     argsSplit = args.split(" ")
-
-    infoCmds = {"system": cmd_info_system,
-                "criminal": cmd_info_criminal,
-                "ship": cmd_info_ship,
-                "weapon": cmd_info_weapon,
-                "module": cmd_info_module,
-                "turret": cmd_info_turret,
-                "commodity": cmd_info_commodity,
-                "skin": cmd_info_skin,
-                "medal": cmd_info_medal}
     
-    if argsSplit[0] in infoCmds:
-        await infoCmds[argsSplit[0]](message, args[len(argsSplit[0])+1:], isDM)
+    if argsSplit[0] in INFO_CMDS:
+        await INFO_CMDS[argsSplit[0]](message, args[len(argsSplit[0])+1:], isDM)
     else:
-        await message.reply(mention_author=False, content=":x: Unknown object type! (system/criminal/ship/weapon/module/turret/commodity/skin)")
+        await message.reply(mention_author=False,
+                            content=f":x: Unknown object type! ({'/'.join(INFO_CMDS)})")
 
 botCommands.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info", signatureStr="**info <object-type> <name>**",
                         shortHelp="Display information about something from GOF2. Also gives useful aliases for things.",
-                        longHelp="Display information about something from GOF2. object-type must be criminal, system, " \
-                                    + "ship, weapon, module, or turret. Also gives the a list of aliases that can be used " \
+                        longHelp=f"Display information about something from GOF2." \
+                                + f" object-type must be {'/'.join(INFO_CMDS)}." \
+                                + " Also gives the a list of aliases that can be used " \
                                     + "to refer to your object in commands.")
 
 

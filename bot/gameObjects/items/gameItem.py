@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import List
+from typing import List, Type, TypeVar, cast
 
 from ...baseClasses import aliasable
 from abc import abstractmethod
@@ -132,14 +132,19 @@ class GameItem(aliasable.Aliasable):
         return data
 
 
-def spawnableItem(cls):
+TClass = TypeVar("TClass")
+
+
+def spawnableItem(cls: TClass) -> TClass:
+    if not isinstance(cls, type):
+        raise ValueError("spawnableItem can only be applied to classes")
     if not issubclass(cls, GameItem):
         raise TypeError("Invalid use of spawnableItem decorator: " + cls.__name__ + " is not a gameItem subtype")
     if cls not in nameSubClasses:
         nameSubClasses[cls] = cls.__name__
     if cls.__name__ not in subClassNames:
         subClassNames[cls.__name__] = cls
-    return cls
+    return cast(TClass, cls)
 
 
 def spawnItem(data : dict) -> GameItem:

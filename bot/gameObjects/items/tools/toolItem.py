@@ -59,6 +59,15 @@ class ToolItem(gameItem.GameItem):
         return "*No effect*"
 
 
+    def statsStringLong(self) -> str:
+        """Summarise all the statistics and functionality of this item as a string.
+
+        :return: A string summarising the statistics and functionality of this item
+        :rtype: str
+        """
+        return self.statsStringShort()
+
+
     @abstractmethod
     def toDict(self, **kwargs) -> dict:
         """Serialize this tool into dictionary format.
