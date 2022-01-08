@@ -1,6 +1,6 @@
 from __future__ import annotations
 import random
-from typing import List
+from typing import Dict, Generic, List, Optional, Type, TypeVar
 from . import toolItem
 from .... import lib, botState
 from ....lib import gameMaths
@@ -9,6 +9,18 @@ from ....cfg import cfg, bbData
 from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
+from . import shipSkinTool
+
+
+singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
+
+def singleTypeCrate(itemType: Type[gameItem.GameItem]):
+    def dec_register(cls: Type["CrateTool"]):
+        if itemType in singleTypeCrates:
+            raise KeyError("A singleTypeCrate is already registered with this type")
+        singleTypeCrates[itemType] = cls
+        return cls
+    return dec_register
 
 
 @gameItem.spawnableItem
@@ -105,14 +117,14 @@ class CrateTool(toolItem.ToolItem):
         confirmation = await InlineConfirmationMenu(confirmMsg, message.author,
                                                     cfg.toolUseConfirmTimeoutSeconds).doMenu()
 
-        if cfg.defaultEmojis.reject in confirmation:
-            return "🛑 Crate open cancelled."
-        elif cfg.defaultEmojis.accept in confirmation:
+        if cfg.defaultEmojis.accept in confirmation:
             newItem = random.choice(self.itemPool)
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
             callingBUser.inactiveTools.removeItem(self)
 
             return "🎉 Success! You got a " + newItem.name + "!"
+        else:
+            return "🛑 Crate open cancelled."
 
 
     def statsStringShort(self) -> str:
@@ -179,6 +191,8 @@ class CrateTool(toolItem.ToolItem):
             crateToSpawn = crateDict
 
         itemPool = []
+        singleType: Optional[Type[gameItem.GameItem]] = None
+        allSingleType = True
         if "itemPool" in crateToSpawn:
             for itemDict in crateToSpawn["itemPool"]:
                 errorStr = ""
@@ -196,10 +210,66 @@ class CrateTool(toolItem.ToolItem):
                     else:
                         raise ValueError(errorStr)
                 else:
-                    itemPool.append(gameItem.spawnItem(itemDict))
+                    newItem = gameItem.spawnItem(itemDict)
+                    itemPool.append(newItem)
+                    if allSingleType:
+                        if singleType is None:
+                            singleType = type(newItem)
+                        elif type(newItem) is not singleType:
+                            singleType = None
+                            allSingleType = False
+
         else:
             botState.logger.log("crateTool", "fromDict", "fromDict-ing a crateTool with no itemPool.")
+
+        if allSingleType and singleType in singleTypeCrates:
+            return singleTypeCrates[singleType](**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
+                                                emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
+                                                        if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
         return CrateTool(**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
                                             emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
+
+
+@gameItem.spawnableItem
+@singleTypeCrate(shipSkinTool.ShipSkinTool)
+class ShipSkinCrateTool(CrateTool):
+    """A crate that only contains ShipSkinTools.
+    Has a custom statsStringLong.
+    """
+    
+    def __init__(self, itemPool: List[shipSkinTool.ShipSkinTool], name : str = "", value : int = 0, wiki : str = "",
+            manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
+            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0):
+        """
+        :param List[shipSkinTool.ShipSkinTool] itemPool: List of potential items to win. May contain duplicates.
+        :param str name: The name of the crate. Must be unique.
+        :param int value: The number of credits that this item can be bought/sold for at a shop. (Default 0)
+        :param str wiki: A web page that is displayed as the wiki page for this item. (Default "")
+        :param str manufacturer: The name of the manufacturer of this item (Default "")
+        :param str icon: A URL pointing to an image to use for this item's icon (Default "")
+        :param lib.emojis.BasedEmoji emoji: The emoji to use for this item's small icon (Default lib.emojis.BasedEmoji.EMPTY)
+        :param int techLevel: A rating from 1 to 10 of this item's technical advancement, generally for crates this isn't
+                                limited, e.g a measure of the rarity of the items, or of the items' TLs maybe (Default -1)
+        :param bool builtIn: Whether this is a BountyBot standard crate (loaded in from JSON) or a custom spawned
+                                item (Default False)
+        :param str crateType: A string identifier for the type of crate, to aid in loading from file in the case of contents
+                                changes (Default "")
+        :param int typeNum: A sub-type of crateType, e.g where crateType is levelup, typeNum might be the player's new level
+                                (Default 0)
+        """
+        if any(not isinstance(i, shipSkinTool.ShipSkinTool) for i in itemPool):
+            raise TypeError(f"all items in itemPool must be of type {shipSkinTool.ShipSkinTool.__name__}")
+        super().__init__(itemPool, name=name, value=value, wiki=wiki,
+            manufacturer=manufacturer, icon=icon, emoji=emoji,
+            techLevel=techLevel, builtIn=builtIn, crateType=crateType, typeNum=typeNum)
+
+
+    def statsStringLong(self) -> str:
+        if len(self.itemPool) > 30:
+            return "Use to open the crate and receive one of the following skins:\n\n" \
+                + f"*{' • '.join(i.skin.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible skins*"
+        else:
+            return "Use to open the crate and receive one of the following skins:\n\n" \
+                + "*" + " • ".join(i.skin.name for i in self.itemPool) + "*"
