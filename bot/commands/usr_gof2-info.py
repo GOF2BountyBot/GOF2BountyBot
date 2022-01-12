@@ -310,13 +310,13 @@ async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
         if not itemData.get("skinnable", False):
             statsEmbed.add_field(name="Compatible Skins:",
                                 value="This ship is not skinnable", inline=False)
-        # Include compatible ship skin names
-        elif compatibleSkins := itemData.get("compatibleSkins", False):
-            statsEmbed.add_field(name="Compatible Skins:",
-                                value=" • ".join(compatibleSkins), inline=False)
-        else:
-            statsEmbed.add_field(name="Compatible Skins:",
-                                value="This ship is skinnable, but currently has no compatible skins", inline=False)
+        # # Include compatible ship skin names
+        # elif compatibleSkins := itemData.get("compatibleSkins", False):
+        #     statsEmbed.add_field(name="Compatible Skins:",
+        #                         value=" • ".join(compatibleSkins), inline=False)
+        # else:
+        #     statsEmbed.add_field(name="Compatible Skins:",
+        #                         value="This ship is skinnable, but currently has no compatible skins", inline=False)
 
         # include the item's aliases and wiki if they exist
         if len(itemObj.aliases) > 1:
@@ -796,8 +796,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
         elif argsSplit[1] == "":
             if not message.attachments:
                 await message.reply(mention_author=False,
-                                    content=":x: Please either give a skin name after your `+`, " \
-                                        + "or attach an image to render.")
+                                    content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
                 return
             args = args.split("+")[0].rstrip()
             attached = True
@@ -818,6 +817,9 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
         shipName, rendererArgs = result
         await util_autoskin.doAutoSkin(message, rendererArgs, shipName)
     else:
+        await message.reply(mention_author=False,
+                                    content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
+        return
         # look up the ship object
         try:
             shipData = bbData.findShipDataByAlias(args)

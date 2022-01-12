@@ -100,7 +100,7 @@ async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName:
 
 
 async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x : int, res_y : int, numSamples: int,
-                                full: bool = False) -> Tuple[str, Optional[shipRenderer.AutoskinArgs]]:
+                                full: bool = False) -> Optional[Tuple[str, shipRenderer.AutoskinArgs]]:
     """Collect a usable AutoskinArgs object to pass to the ship renderer
 
     :param message: The message that triggered the operation
