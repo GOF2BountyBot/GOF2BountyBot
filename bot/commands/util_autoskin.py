@@ -192,6 +192,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
         if baseTex.mode == "RGBA":
             ext = "png"
         else:
+            baseTex = baseTex.convert("RGB")
             ext = "jpg"
         skinPaths[key] = os.path.join(CWD, cfg.paths.rendererTempFolder, f"{message.id}_{key}.{ext}")
         baseTex.save(skinPaths[key])
