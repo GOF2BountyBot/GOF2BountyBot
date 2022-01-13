@@ -75,11 +75,12 @@ class ShipSkinTool(toolItem.ToolItem):
             callingBUser.inactiveTools.removeItem(self)
 
 
-    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
         """Apply the skin to the given ship.
         After use, the tool will be removed from callingBUser's inventory. To disable this, pass callingBUser as None.
 
         :param Message message: The discord message that triggered this tool use
+        :param str argsStr: Ignored
         :return: A user-friendly message summarising the result of the tool use.
         :rtype: str
         """

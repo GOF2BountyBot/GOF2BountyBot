@@ -7,7 +7,7 @@ from PIL import Image
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
-from ..lib.discordUtil import stringTyping, truncateWithEllipse
+from ..lib.discordUtil import truncateWithEllipse
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
 from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
@@ -747,14 +747,26 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
     :param str args: a single integer indicating the index of the tool to use
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    callingBUser = botState.usersDB.getOrAddID(message.author.id)
-    callingGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
+    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
 
-    if not lib.stringTyping.isInt(args):
+    if not args:
         await message.reply(mention_author=False, content=":x: Please give the number of the tool you would like to use! e.g: `" \
                                     + callingGuild.commandPrefix + "use 1`")
     else:
-        toolNum = int(args)
+        argsSplit = args.split(" ")
+        toolNumStr = argsSplit[0]
+        if len(argsSplit) == 1:
+            args = ""
+        else:
+            args = args[len(toolNumStr):]
+
+        if not lib.stringTyping.isInt(toolNumStr):
+            await message.reply(f":x: {truncateWithEllipse(toolNumStr, 15, 10)} is not a number!",
+                                mention_author=False)
+            return
+
+        toolNum = int(toolNumStr)
         if toolNum < 1:
             await message.reply(mention_author=False, content=":x: Tool number must be at least 1!")
         elif callingBUser.inactiveTools.isEmpty():
@@ -763,9 +775,10 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Tool number too big - you only have " + str(callingBUser.inactiveTools.numKeys) \
                                         + " tool" + ("" if callingBUser.inactiveTools.numKeys == 1 else "s") + "!")
         else:
-            result = await callingBUser.inactiveTools[toolNum - 1].item.userFriendlyUse(message, ship=callingBUser.activeShip,
+            result = await callingBUser.inactiveTools[toolNum - 1].item.userFriendlyUse(message, args, ship=callingBUser.activeShip,
                                                                                         callingBUser=callingBUser)
-            await message.reply(mention_author=False, content=result)
+            if result:
+                await message.reply(mention_author=False, content=result)
 
 
 botCommands.register("use", cmd_use, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**use [tool number]**",
