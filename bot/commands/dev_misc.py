@@ -5,6 +5,9 @@ from datetime import datetime
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..users.basedUser import BasedUser
+from ..gameObjects.items.tools import crateTool
+from datetime import timedelta
+from ..reactionMenus import giveawayMenu
 
 from . import util_help
 
@@ -192,3 +195,22 @@ async def dev_cmd_reset_transfer_cool(message : discord.Message, args : str, isD
 
 
 botCommands.register("reset-transfer-cool", dev_cmd_reset_transfer_cool, 3, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str, isDM : bool):
+    """developer command starting a giveaway of the keith stocking crate for 48 hours
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignore
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    giveawayMsg = await message.channel.send("‎")
+    stocking = crateTool.CrateTool.fromDict({"type": "CrateTool", "crateType": "christmas", "typeNum": 2021, "builtIn": True})
+    menu = giveawayMenu.GiveawayMenu(giveawayMsg, [stocking], activeTime=timedelta(days=3),
+                                        titleTxt="Merry Christmas!", 
+                                        desc="React below to receive your stocking!\nFind it in your `$hangar tool`, and open it with the new `$use` command.",
+                                        col=discord.Colour.random())
+
+    botState.reactionMenusDB[giveawayMsg.id] = menu
+    await menu.updateMessage()
+
+botCommands.register("start-stocking-giveaway", dev_cmd_start_stocking_giveaway, 3, useDoc=True)

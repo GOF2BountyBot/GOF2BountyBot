@@ -1,8 +1,11 @@
+from typing import TYPE_CHECKING, Any, Coroutine
+if TYPE_CHECKING:
+    from ....users import basedUser
 from .. import gameItem
 from abc import abstractmethod
-from .... import lib
+from .... import lib, botState
 from discord import Message
-from typing import List
+from typing import Callable, List
 
 
 class ToolItem(gameItem.GameItem):
@@ -12,7 +15,7 @@ class ToolItem(gameItem.GameItem):
 
     def __init__(self, name : str, aliases : List[str], value : int = 0, wiki : str = "",
             manufacturer : str = "", icon : str = "", emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY,
-            techLevel : int = -1, builtIn : bool = False):
+            techLevel : int = -1, builtIn : bool = False, autoUse: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -25,9 +28,12 @@ class ToolItem(gameItem.GameItem):
                                 effectiveness compared to other items of the same type (Default -1)
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData) or a custom spawned
                                 item (Default False)
+        :param bool autoUse: Whether use of this item should be automatically triggered upon entering a user's hangar
+                                (Default False)
         """
         super().__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon, emoji=emoji,
                             techLevel=techLevel, builtIn=builtIn)
+        self.autoUse = autoUse
 
 
     @abstractmethod
@@ -77,4 +83,35 @@ class ToolItem(gameItem.GameItem):
         :return: The default gameItem toDict implementation, with an added 'type' field
         :rtype: dict
         """
-        return super().toDict(**kwargs)
+        data = super().toDict(**kwargs)
+        data["autoUse"] = self.autoUse
+        return data
+
+
+def singleUse(func: Callable) -> Callable:
+    """Decorator to apply to ToolItem use methods. The tool becomes single use, automatically removing itself
+    from callingBUsers inactiveTools after use.
+    """
+    async def inner(self: ToolItem, *args, callingBUser: "basedUser.BasedUser" = None, **kwargs):
+        if callingBUser is None:
+            raise ValueError("Missing required argument: callingBUser")
+        result = await func(self, *args, callingBUser=callingBUser, **kwargs)
+        if self in callingBUser.inactiveTools:
+            callingBUser.inactiveTools.removeItem(self)
+        return result
+
+    return inner
+
+
+def userFriendlySingleUse(func: Callable) -> Callable:
+    """Decorator to apply to ToolItem user friendly use methods. The tool becomes single use, automatically removing itself
+    from calling user's inactiveTools after use.
+    """
+    async def inner(self: ToolItem, message: Message, *args, **kwargs):
+        callingBUser = botState.usersDB.getOrAddID(message.author.id)
+        result = await func(self, message, *args, **kwargs)
+        if self in callingBUser.inactiveTools:
+            callingBUser.inactiveTools.removeItem(self)
+        return result
+
+    return inner
