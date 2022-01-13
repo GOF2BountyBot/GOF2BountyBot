@@ -19,7 +19,8 @@ class ShipSkinTool(toolItem.ToolItem):
     This tool is single use. If a calling user is given, the tool is removed from that user's inventory after use.
     """
     def __init__(self, skin : ShipSkin, value : int = 0, wiki : str = "", icon : str = cfg.defaultShipSkinToolIcon,
-            emoji : lib.emojis.BasedEmoji = None, techLevel : int = -1, builtIn : bool = False):
+            emoji : lib.emojis.BasedEmoji = None, techLevel : int = -1, builtIn : bool = False,
+            autoUse: bool = False):
         """
         :param shipSkin shipSkin: The skin that this tool applies.
         :param int value: The number of credits that this item can be bought/sold for at a shop. (Default 0)
@@ -39,7 +40,8 @@ class ShipSkinTool(toolItem.ToolItem):
                             "Ship Skin " + skin.name + "Skin " + skin.name], value=value,
                             wiki=wiki if wiki else skin.wiki if skin.hasWiki else "",
                             manufacturer=skin.designer, icon=icon, emoji=emoji,
-                            techLevel=techLevel if techLevel > -1 else skin.averageTL, builtIn=builtIn)
+                            techLevel=techLevel if techLevel > -1 else skin.averageTL, builtIn=builtIn,
+                            autoUse=autoUse)
         self.skin = skin
 
 
