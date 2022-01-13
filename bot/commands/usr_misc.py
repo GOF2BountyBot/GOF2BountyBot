@@ -6,6 +6,7 @@ import operator
 import traceback
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+import random
 
 from . import commandsDB as botCommands
 from . import util_help
@@ -803,3 +804,34 @@ botCommands.register("poll", cmd_poll, 0, forceKeepArgsCasing=True, allowDM=Fals
                                 + "role.\n" \
                             + "- You may specify the length of the poll, with each time division on a new line. Acceptable " \
                                 + "time divisions are: `seconds`, `minutes`, `hours`, `days`. (default: minutes=5)")
+
+
+async def cmd_drink(message : discord.Message, args : str, isDM : bool):
+    """Show a random drink message.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    await message.reply(random.choice(bbData.drinkMessages), mention_author=False)
+
+botCommands.register("drink", cmd_drink, 0, allowDM=True, signatureStr="**drink**",
+                        shortHelp="Order a refreshing drink from the bar.")
+
+
+async def cmd_drink_premium(message : discord.Message, args : str, isDM : bool):
+    """Show a random premium drink message, with a global cooldown.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    now = datetime.utcnow()
+    if botState.premiumCooldownEnd is None or now > botState.premiumCooldownEnd:
+        botState.premiumCooldownEnd = now + bbData.premiumDrinkTimeout
+        await message.reply(random.choice(bbData.premiumDrinkMessages), mention_author=False)
+    else:
+        await message.reply(bbData.premiumDrinkTimeoutMessage, mention_author=False)
+
+botCommands.register("premium", cmd_drink_premium, 0, allowDM=True, signatureStr="**premium**",
+                        shortHelp="Order something extra-special from the bar. Supply is very limited on these goodies!")

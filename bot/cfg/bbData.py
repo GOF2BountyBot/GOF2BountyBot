@@ -183,6 +183,5 @@ premiumDrinkMessages = [
     "I recommend the Rigant Mix. Looks a bit weird, but it really sucks you in. <:rigant:925809129539371008>"
 ]
 
-premiumTimeoutMessage = "I'm sorry, we've run out for just now! Please wait for stocks to be refilled. Maybe ten minutes or so."
-nextPremium = None
-premiumTimeout = timedelta(minutes=10)
+premiumDrinkTimeoutMessage = "I'm sorry, we've run out for just now! Please wait for stocks to be refilled. Maybe ten minutes or so."
+premiumDrinkTimeout = timedelta(minutes=10)
