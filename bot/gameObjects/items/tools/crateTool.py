@@ -1,4 +1,7 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ....users import basedUser
 import random
 from typing import Dict, Generic, List, Optional, Type, TypeVar
 from . import toolItem
@@ -38,7 +41,8 @@ class CrateTool(toolItem.ToolItem):
 
     def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
             manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0):
+            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
+            autoUse: bool = False):
         """
         :param List[gameItem.GameItem] itemPool: List of potential items to win. May contain duplicates.
         :param str name: The name of the crate. Must be unique.
@@ -63,7 +67,7 @@ class CrateTool(toolItem.ToolItem):
 
         super().__init__(name, [], value=value, wiki=wiki,
             manufacturer=manufacturer, icon=icon, emoji=emoji,
-            techLevel=techLevel, builtIn=builtIn)
+            techLevel=techLevel, builtIn=builtIn, autoUse=autoUse)
 
         try:
             item = next(i for i in itemPool if not gameItem.isSpawnableItemInstance(i))
@@ -156,6 +160,8 @@ class CrateTool(toolItem.ToolItem):
         :rtype: dict
         """
         data = super().toDict(**kwargs)
+        if "aliases" in data:
+            del data["aliases"]
         if self.builtIn:
             data["crateType"] = self.crateType
             data["typeNum"] = self.typeNum
@@ -201,8 +207,8 @@ class CrateTool(toolItem.ToolItem):
                     errorStr = "Invalid itemPool entry, missing type. Data: " + itemDict
                     errorType = "NO_TYPE"
                 elif itemDict["type"] not in gameItem.subClassNames:
-                    errorStr = "Invalid itemPool entry, attempted to add something other than a spawnableItem. Data: " \
-                                + str(itemDict)
+                    errorStr = "Invalid itemPool entry, attempted to add something other than a spawnableItem. " \
+                                + "Has the module been imported yet? Data: " + str(itemDict)
                     errorType = "BAD_TYPE"
                 if errorStr:
                     if skipInvalidItems:
@@ -227,7 +233,7 @@ class CrateTool(toolItem.ToolItem):
                                                 emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
                                                         if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
-        return CrateTool(**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
+        return CrateTool(**cls._makeDefaults(crateDict, ("type", "aliases"), itemPool=itemPool,
                                             emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
@@ -241,7 +247,8 @@ class ShipSkinCrateTool(CrateTool):
     
     def __init__(self, itemPool: List[shipSkinTool.ShipSkinTool], name : str = "", value : int = 0, wiki : str = "",
             manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0):
+            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
+            autoUse: bool = False):
         """
         :param List[shipSkinTool.ShipSkinTool] itemPool: List of potential items to win. May contain duplicates.
         :param str name: The name of the crate. Must be unique.
@@ -263,7 +270,7 @@ class ShipSkinCrateTool(CrateTool):
             raise TypeError(f"all items in itemPool must be of type {shipSkinTool.ShipSkinTool.__name__}")
         super().__init__(itemPool, name=name, value=value, wiki=wiki,
             manufacturer=manufacturer, icon=icon, emoji=emoji,
-            techLevel=techLevel, builtIn=builtIn, crateType=crateType, typeNum=typeNum)
+            techLevel=techLevel, builtIn=builtIn, crateType=crateType, typeNum=typeNum, autoUse=autoUse)
 
 
     def statsStringLong(self) -> str:

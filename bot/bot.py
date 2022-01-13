@@ -31,6 +31,8 @@ from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
 from bot.scheduling import timedTaskHeap
 from .reactionMenus import reactionMenu
+# register as spawnable
+from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
 
 

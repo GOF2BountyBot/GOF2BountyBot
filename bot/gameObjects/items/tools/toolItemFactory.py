@@ -1,5 +1,5 @@
-from . import toolItem, shipSkinTool
-from .crateTool import CrateTool, ShipSkinCrateTool
+from . import toolItem, shipSkinTool, throwSnowballTool
+from . import crateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
 
@@ -27,7 +27,8 @@ def fromDict(toolDict : dict) -> toolItem.ToolItem:
 
 
 toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.fromDict,
-                        "CrateTool": CrateTool.fromDict,
+                        "CrateTool": crateTool.CrateTool.fromDict,
                         "ToolItem": fromDict,
-                        "ShipSkinCrateTool": ShipSkinCrateTool.fromDict}
+                        "ShipSkinCrateTool": crateTool.ShipSkinCrateTool.fromDict,
+                        "ThrowSnowballTool": throwSnowballTool.ThrowSnowballTool.fromDict}
 itemConstructors.update(toolTypeConstructors)
