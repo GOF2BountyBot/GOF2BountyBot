@@ -44,11 +44,12 @@ class ToolItem(gameItem.GameItem):
 
 
     @abstractmethod
-    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
         """A version of self.use intended to be called by users, where exceptions are never thrown in the case of
         user error, and results strings are always returned.
 
         :param Message message: The discord message that triggered this tool use
+        :param str argsStr: A potentially empty string of arguments for use, probably extracted from message
         :return: A user-friendly message summarising the result of the tool use.
         :rtype: str
         """

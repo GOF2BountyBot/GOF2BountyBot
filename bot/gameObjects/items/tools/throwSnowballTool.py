@@ -50,31 +50,40 @@ class ThrowSnowballTool(toolItem.ToolItem):
 
 
     @toolItem.userFriendlySingleUse
-    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
         """Pick a user, and throw a snowball at them by rendering a snowball image over their profile
         :param Message message: The discord message that triggered this tool use
+        :param str argsStr: Optionally, a string containing a user mention or ID.
         :return: A user-friendly message summarising the result of the tool use.
         :rtype: str
         """
-        pickMsg = await message.reply("Pick your target! **Reply** to this message, pinging one victim, within 60s.")
-
-        def targetCheck(m: Message) -> bool:
-            return      m.type == MessageType.default \
-                    and m.reference is not None \
-                    and m.reference.message_id == pickMsg.id \
-                    and ((len(m.mentions) == 1 and m.mentions[0] == message.guild.me)
-                        or (len([u for u in m.mentions if u != message.guild.me]) == 1))
-
-        try:
-            targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
-        except asyncio.TimeoutError:
-            await message.reply(":x: Out of time! Please try again.")
-            return
-
-        if len(targetPickedMsg.mentions) != 1:
-            targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
+        if argsStr:
+            if not lib.stringTyping.isInt(argsStr) and not lib.stringTyping.isMention(argsStr):
+                return ":x: This tool accepts either a user ID or user @mention."
+            targetId = int(argsStr.lstrip("<@!").rstrip(">"))
+            targetUser = botState.client.get_user(targetId)
+            if targetUser is None:
+                return ":x: Unknown user!"
         else:
-            targetUser = targetPickedMsg.mentions[0]
+            pickMsg = await message.reply("Pick your target! **Reply** to this message, pinging one victim, within 60s.")
+
+            def targetCheck(m: Message) -> bool:
+                return      m.type == MessageType.default \
+                        and m.reference is not None \
+                        and m.reference.message_id == pickMsg.id \
+                        and ((len(m.mentions) == 1 and m.mentions[0] == message.guild.me)
+                            or (len([u for u in m.mentions if u != message.guild.me]) == 1))
+
+            try:
+                targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
+            except asyncio.TimeoutError:
+                await message.reply(":x: Out of time! Please try again.")
+                return
+
+            if len(targetPickedMsg.mentions) != 1:
+                targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
+            else:
+                targetUser = targetPickedMsg.mentions[0]
 
         profileAsset = targetUser.avatar_url_as(size=256, format="png")
         assetBytes = BytesIO()
