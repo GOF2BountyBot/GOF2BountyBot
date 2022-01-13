@@ -759,7 +759,7 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
         if len(argsSplit) == 1:
             args = ""
         else:
-            args = args[len(toolNumStr):]
+            args = args[len(toolNumStr)+1:]
 
         if not lib.stringTyping.isInt(toolNumStr):
             await message.reply(f":x: {truncateWithEllipse(toolNumStr, 15, 10)} is not a number!",
