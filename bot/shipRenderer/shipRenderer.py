@@ -7,11 +7,12 @@ Written by Trimatix
 from PIL import Image, ImageChops, ImageOps
 import subprocess
 # import sys
-from typing import List, Dict
+from typing import Any, List, Dict
 import os
 import pathlib
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 CWD = os.getcwd()
@@ -192,3 +193,41 @@ async def renderShip(skinName : str, shipPath : str, shipModelName : str, textur
         os.makedirs(parent)
     # Save it back to file
     new_im.save(render_output_file)
+
+
+@dataclass
+class AutoskinArgs:
+    """A dataclass representation of the arguments required for renderShip.
+    This class is compatible with variadic function parameter unpacking:
+    ```
+    >>> x = AutoskinArgs("skin", "ship/path.bbShip", "model.obj", {0: "mytex.jpg"}, [2, 3], 1920, 1080, 128)
+    >>> renderShip(**x)
+    """
+    skinName: str
+    shipPath: str
+    shipModelName: str
+    textures: Dict[int, str]
+    disabledLayers: List[int]
+    res_x : int
+    res_y : int
+    numSamples: int
+    full: bool = False
+
+    def keys(self) -> List[str]:
+        return self.__dataclass_fields__.keys()
+
+    def __getitem__(self, k: str) -> Any:
+        """Get a config setting by name
+
+        :param k: Name of the parameter to read
+        :type k: str
+        :return: The current value of the parameter
+        :rtype: Any
+        """
+        return getattr(self, k)
+
+
+async def renderShipByArgs(args: AutoskinArgs):
+    """Call renderShip, using an AutoskinArgs object instead of individual arguments.
+    """
+    return await renderShip(**args)

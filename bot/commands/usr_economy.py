@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from aiohttp.client import request
 import discord
 
@@ -58,7 +59,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     :param str args: either empty string, or one of cfg.validItemNames
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if requestedBGuild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have shops.")
         return
@@ -83,10 +84,15 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
 
     userDivision = ""
 
+    bUser: Optional[basedUser.BasedUser] = None
+
     if botState.usersDB.idExists(message.author.id):
         bUser = botState.usersDB.getUser(message.author.id)
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
-        userDivision = divisionNameForLevel(userLevel)
+        if bUser.classicModeEnabled:
+            userDivision = cfg.classic_divisionName
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
+            userDivision = divisionNameForLevel(userLevel)
         if not divName:
             divName = userDivision
     else:
@@ -94,7 +100,9 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
+    isClassicMode = bUser is not None and bUser.classicModeEnabled
+
+    if not isClassicMode and cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
@@ -112,9 +120,15 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     else:
         sendChannel = message.channel
 
+    classicModeDesc = ("You are playing in classic mode. " \
+                    + "You can access any shop by giving its division name in shop commands.\n") \
+                    if isClassicMode else ""
+
     requestedShop = botState.guildsDB.getGuild(message.guild.id).divisionShops[divName]
-    shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Shop", desc="__" + message.guild.name + "__\n`Current Tech Level: " \
-                                                + str(requestedShop.currentTechLevel) + "`",
+    shopEmbed = lib.discordUtil.makeEmbed(titleTxt=f"{divName} Shop",
+                                            desc=f"__{message.guild.name}__\n" \
+                                                + classicModeDesc \
+                                                + f"`Current Tech Level: {requestedShop.currentTechLevel}`",
                                             footerTxt="All items" if item == "all" else (item + "s").title(),
                                             thumb="" if message.guild.icon is None else message.guild.icon_url_as(size=64))
 
@@ -209,10 +223,15 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     userDivision = ""
 
+    bUser: Optional[basedUser.BasedUser] = None
+
     if botState.usersDB.idExists(message.author.id):
         bUser = botState.usersDB.getUser(message.author.id)
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
-        userDivision = divisionNameForLevel(userLevel)
+        if bUser.classicModeEnabled:
+            userDivision = cfg.classic_divisionName
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
+            userDivision = divisionNameForLevel(userLevel)
         if not divName:
             divName = userDivision
     else:
@@ -220,14 +239,19 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
+    isClassicMode = bUser is not None and bUser.classicModeEnabled
+
+    if not isClassicMode and cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
     requestedShop = requestedBGuild.divisionShops[divName]
 
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
-    requestedBUser = botState.usersDB.getOrAddID(message.author.id)
+    if bUser is None:
+        requestedBUser = botState.usersDB.AddID(message.author.id)
+    else:
+        requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
         await requestedBUser.transferGuild(message.guild)
         await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
@@ -237,8 +261,9 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
-        await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
-                                    + "and an item number from `" + requestedBGuild.commandPrefix + "shop`")
+        await message.reply(":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
+                            + f"and an item number from `{requestedBGuild.commandPrefix}shop`",
+                            mention_author=False)
         return
 
     cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
@@ -252,7 +277,8 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     item = argsSplit[0].rstrip("s")
     if item == "all" or item not in cfg.validItemNames:
-        await message.reply(mention_author=False, content=":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.")
+        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.",
+                            mention_author=False)
         return
 
     itemNum = argsSplit[1]
@@ -265,8 +291,8 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         if shopItemStock.numKeys == 0:
             await message.reply(mention_author=False, content=":x: This shop has no " + item + "s in stock!")
         else:
-            await message.reply(mention_author=False, content=":x: Invalid item number! This shop has " + str(shopItemStock.numKeys) \
-                                        + " " + item + "(s).")
+            await message.reply(f":x: Invalid item number! This shop has {shopItemStock.numKeys} {item}(s).",
+                                mention_author=False)
         return
 
     if itemNum < 1:
@@ -279,22 +305,27 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         for arg in argsSplit[2:]:
             if arg == "transfer":
                 if transferItems:
-                    await message.reply(mention_author=False, content=":x: Invalid argument! Please only specify `transfer` once!")
+                    await message.reply(":x: Invalid argument! Please only specify `transfer` once!",
+                                        mention_author=False)
                     return
                 if item != "ship":
-                    await message.reply(mention_author=False, content=":x: `transfer` can only be used when buying a ship!")
+                    await message.reply(":x: `transfer` can only be used when buying a ship!",
+                                        mention_author=False)
                     return
                 transferItems = True
             elif arg == "sell":
                 if sellOldShip:
-                    await message.reply(mention_author=False, content=":x: Invalid argument! Please only specify `sell` once!")
+                    await message.reply(":x: Invalid argument! Please only specify `sell` once!",
+                                        mention_author=False)
                     return
                 if item != "ship":
-                    await message.reply(mention_author=False, content=":x: `sell` can only be used when buying a ship!")
+                    await message.reply(":x: `sell` can only be used when buying a ship!",
+                                        mention_author=False)
                     return
                 sellOldShip = True
             else:
-                await message.reply(mention_author=False, content=f":x: Invalid argument! Please only give:\n{cmdArgsStr}")
+                await message.reply(f":x: Invalid argument! Please only give:\n{cmdArgsStr}",
+                                    mention_author=False)
                 return
 
     requestedItem = shopItemStock[itemNum - 1].item
@@ -307,7 +338,8 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         if (not sellOldShip and not requestedShop.userCanAffordItemObj(requestedBUser, requestedItem)) or \
                     (sellOldShip and not requestedShop.amountCanAffordShipObj(requestedBUser.credits \
                     + requestedBUser.activeShip.getValue(shipUpgradesOnly=transferItems), requestedItem)):
-            await message.reply(mention_author=False, content=":x: You can't afford that item! (" + str(requestedItem.getValue()) + ")")
+            await message.reply(f":x: You can't afford that item! ({requestedItem.getValue()})",
+                                mention_author=False)
             return
 
         requestedBUser.inactiveShips.addItem(requestedItem)
@@ -345,15 +377,17 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     elif item in ["weapon", "module", "turret", "tool"]:
         if not requestedShop.userCanAffordItemObj(requestedBUser, requestedItem):
-            await message.reply(mention_author=False, content=":x: You can't afford that item! (" + str(requestedItem.value) + ")")
+            await message.reply(f":x: You can't afford that item! ({requestedItem.getValue()})",
+                                mention_author=False)
             return
 
         requestedBUser.credits -= requestedItem.value
         requestedBUser.getInactivesByName(item).addItem(requestedItem)
         shopItemStock.removeItem(requestedItem)
 
-        await message.reply(mention_author=False, content=":moneybag: Congratulations on your new **" + requestedItem.name \
-                                    + "**! \n\nYour balance is now: **" + str(requestedBUser.credits) + " credits**.")
+        await message.reply(f":moneybag: Congratulations on your new **{requestedItem.name}" \
+                            + f"**! \n\nYour balance is now: **{requestedBUser.credits} credits**.",
+                            mention_author=False)
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item)
 
@@ -393,10 +427,15 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     userDivision = ""
 
+    bUser: Optional[basedUser.BasedUser] = None
+
     if botState.usersDB.idExists(message.author.id):
         bUser = botState.usersDB.getUser(message.author.id)
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
-        userDivision = divisionNameForLevel(userLevel)
+        if bUser.classicModeEnabled:
+            userDivision = cfg.classic_divisionName
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
+            userDivision = divisionNameForLevel(userLevel)
         if not divName:
             divName = userDivision
     else:
@@ -404,14 +443,17 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
         if not divName:
             divName = divisionNameForLevel(cfg.minTechLevel)
 
-    if cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
+    isClassicMode = bUser is not None and bUser.classicModeEnabled
+
+    if not isClassicMode and cfg.bountyDivisionNames.index(userDivision) < cfg.bountyDivisionNames.index(divName):
         await message.reply(f":x: You are not high enough level to use the {divName} shop!")
         return
 
-    requestedShop = requestedBGuild.divisionShops[divName]
-
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
-    requestedBUser = botState.usersDB.getOrAddID(message.author.id)
+    if bUser is None:
+        requestedBUser = botState.usersDB.AddID(message.author.id)
+    else:
+        requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
         await requestedBUser.transferGuild(message.guild)
         await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
@@ -421,8 +463,9 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
-        await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
-                                    + "and an item number from `" + requestedBGuild.commandPrefix + "hangar`")
+        await message.reply(":x: Not enough arguments! Please provide both an item type (ship/weapon/module/turret) " \
+                            + f"and an item number from `{requestedBGuild.commandPrefix}hangar`",
+                            mention_author=False)
         return
 
     cmdArgsStr = f"- Optionally, a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
@@ -436,7 +479,8 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     item = argsSplit[0].rstrip("s")
     if item == "all" or item not in cfg.validItemNames:
-        await message.reply(mention_author=False, content=":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
+        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
+                            mention_author=False)
         return
 
     itemNum = argsSplit[1]
@@ -447,7 +491,8 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     userItemInactives = requestedBUser.getInactivesByName(item)
     if itemNum > userItemInactives.numKeys:
-        await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+        await message.reply(f":x: Invalid item number! You have {userItemInactives.numKeys} {item}s.",
+                            mention_author=False)
         return
     if itemNum < 1:
         await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
@@ -464,6 +509,7 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=f":x: Invalid argument! Please only give:\n{cmdArgsStr}")
             return
 
+    requestedShop = requestedBGuild.divisionShops[divName]
     shopItemStock = requestedShop.getStockByName(item)
     requestedItem = userItemInactives[itemNum - 1].item
 
@@ -475,8 +521,8 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
         userItemInactives.removeItem(requestedItem)
         shopItemStock.addItem(requestedItem)
 
-        outStr = ":moneybag: You sold your **" + requestedItem.getNameOrNick() + "** for **" \
-                    + str(requestedItem.getValue()) + " credits**!"
+        outStr = f":moneybag: You sold your **{requestedItem.getNameOrNick()}** for **" \
+                    + f"{requestedItem.getValue()} credits**!"
         if clearItems:
             outStr += "\nItems removed from the ship can be found in the hangar."
         await message.reply(mention_author=False, content=outStr)
@@ -486,8 +532,8 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
             "turret": requestedShop.userSellTurretObj,
             "tool": requestedShop.userSellToolObj}[item](requestedBUser, requestedItem)
 
-        await message.reply(mention_author=False, content=":moneybag: You sold your **" + requestedItem.name + "** for **" \
-                                    + str(requestedItem.getValue()) + " credits**!")
+        await message.reply(mention_author=False, content=f":moneybag: You sold your **{requestedItem.name}** for **" \
+                            f"{requestedItem.getValue()} credits**!")
 
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item)

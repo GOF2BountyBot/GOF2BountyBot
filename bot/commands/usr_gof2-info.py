@@ -1,12 +1,16 @@
+from io import BytesIO
 import discord
 import os
 import asyncio
+from PIL import Image
 
 from . import commandsDB as botCommands
 from ..cfg import bbData, cfg
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
 from ..gameObjects.items import shipItem, gameItem
+from ..gameObjects.items.tools import toolItem
+from ..reactionMenus import reactionMenu
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
 from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
 from ..shipRenderer import shipRenderer
@@ -17,6 +21,7 @@ from . import util_autoskin
 botCommands.addHelpSection(0, "gof2 info")
 CWD = os.getcwd()
 robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
+SCROLL_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/scroll_1f4dc.png"
 
 
 async def cmd_map(message : discord.Message, args : str, isDM : bool):
@@ -681,6 +686,72 @@ async def cmd_info_medal(message : discord.Message, args : str, isDM : bool):
 # bbCommands.register("info-medal", cmd_info_medal)
 
 
+async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
+    """return information about a specified tool
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: string containing a tool name
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not bbData.builtInToolObjs:
+        await message.reply(":x: There are currently no tools in the game.")
+        return
+
+    if isDM:
+        prefix = cfg.defaultCommandPrefix
+    else:
+        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    # verify a item was given
+    if args == "":
+        await message.channel.send(":x: Please provide a tool! Example: " \
+                                + f"`{prefix}info tool {next(i for i in bbData.builtInToolObjs)}`")
+        return
+
+    toolName = args.title()
+    requestedTool: toolItem.ToolItem = None
+    for potentialName in bbData.builtInToolObjs.keys():
+        if bbData.builtInToolObjs[potentialName].isCalled(toolName):
+            requestedTool = bbData.builtInToolObjs[potentialName]
+
+    if toolName not in bbData.builtInToolObjs:
+        if len(toolName) < 20:
+            await message.channel.send(":x: The **" + toolName + "** tool is not in my database! :detective:")
+        else:
+            await message.channel.send(":x: The **" + toolName[0:15] + "**... tool is not in my database! :detective:")
+    else:
+        # build the stats embed
+        statsEmbed = lib.discordUtil.makeEmbed(desc="__Tool File__\n" + requestedTool.statsStringLong(),
+                                                titleTxt=requestedTool.name,
+                                                thumb=requestedTool.icon if requestedTool.hasIcon else None)
+        if requestedTool.hasTechLevel:
+            statsEmbed.add_field(name="Tech Level:", value=requestedTool.techLevel)
+
+        # include the item's aliases and wiki if they exist
+        if len(requestedTool.aliases) > 1:
+            aliasStr = ""
+            for alias in requestedTool.aliases:
+                aliasStr += alias + ", "
+            statsEmbed.add_field(name="Aliases:", value=aliasStr[:-2], inline=False)
+        if requestedTool.hasWiki:
+            statsEmbed.add_field(name="‎", value="[Wiki](" + requestedTool.wiki + ")", inline=False)
+        # send the embed
+        await message.reply(mention_author=False, embed=statsEmbed)
+
+# bbCommands.register("info-medal", cmd_info_medal)
+
+
+INFO_CMDS = {"system": cmd_info_system,
+                "criminal": cmd_info_criminal,
+                "ship": cmd_info_ship,
+                "weapon": cmd_info_weapon,
+                "module": cmd_info_module,
+                "turret": cmd_info_turret,
+                # "commodity": cmd_info_commodity,
+                "skin": cmd_info_skin,
+                "medal": cmd_info_medal,
+                "tool": cmd_info_tool}
+
+
 async def cmd_info(message : discord.Message, args : str, isDM : bool):
     """Return statistics about a named game object, of a specified type.
     The named used to reference the object may be an alias.
@@ -696,26 +767,18 @@ async def cmd_info(message : discord.Message, args : str, isDM : bool):
         return
 
     argsSplit = args.split(" ")
-
-    infoCmds = {"system": cmd_info_system,
-                "criminal": cmd_info_criminal,
-                "ship": cmd_info_ship,
-                "weapon": cmd_info_weapon,
-                "module": cmd_info_module,
-                "turret": cmd_info_turret,
-                "commodity": cmd_info_commodity,
-                "skin": cmd_info_skin,
-                "medal": cmd_info_medal}
     
-    if argsSplit[0] in infoCmds:
-        await infoCmds[argsSplit[0]](message, args[len(argsSplit[0])+1:], isDM)
+    if argsSplit[0] in INFO_CMDS:
+        await INFO_CMDS[argsSplit[0]](message, args[len(argsSplit[0])+1:], isDM)
     else:
-        await message.reply(mention_author=False, content=":x: Unknown object type! (system/criminal/ship/weapon/module/turret/commodity/skin)")
+        await message.reply(mention_author=False,
+                            content=f":x: Unknown object type! ({'/'.join(INFO_CMDS)})")
 
 botCommands.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info", signatureStr="**info <object-type> <name>**",
                         shortHelp="Display information about something from GOF2. Also gives useful aliases for things.",
-                        longHelp="Display information about something from GOF2. object-type must be criminal, system, " \
-                                    + "ship, weapon, module, or turret. Also gives the a list of aliases that can be used " \
+                        longHelp=f"Display information about something from GOF2." \
+                                + f" object-type must be {'/'.join(INFO_CMDS)}." \
+                                + " Also gives the a list of aliases that can be used " \
                                     + "to refer to your object in commands.")
 
 
@@ -803,7 +866,13 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
         skin = ""
 
     if attached:
-        await util_autoskin.doAutoSkin(message, args, cfg.skinRenderShowmeResolution, cfg.skinRenderShowmeSamples, full)
+        result = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeResolution[0],
+                                                                        cfg.skinRenderShowmeResolution[1],
+                                                                        cfg.skinRenderShowmeSamples, full, True)
+        if result is None:
+            return
+        shipName, rendererArgs = result
+        await util_autoskin.doAutoSkin(message, rendererArgs, shipName)
     else:
         # look up the ship object
         try:
@@ -1192,3 +1261,149 @@ botCommands.register("list", cmd_list, 0, allowDM=True, helpSection="gof2 info",
                         signatureStr="**list** *[level <tech-level>]* *[manufacturer]* **<object-type>**",
                         shortHelp="List all objects in the game that match the given criteria. For example: " \
                             + "`list vossk criminals` or `list level 3 terran ships`")
+
+
+async def cmd_texture(message : discord.Message, args : str, isDM : bool):	
+    """Perform autoskin image compositing, and return the resulting texture.
+    TODO: When allowing built in skin textures, update all docstrings and message sends
+    
+    :param discord.Message message: the discord message calling the command. Must have an image attached
+    :param str args: string containing a ship name.
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """	
+    if isDM:
+        prefix: str = cfg.defaultCommandPrefix
+    else:
+        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+
+    # verify a item was given
+    if args == "":
+        await message.reply(mention_author=False,
+                            content=f":x: Please provide a ship! E.g: `{prefix}texture Groza Mk II`")
+        return
+
+    attached = False
+    skin = ""
+
+    # TODO: Uncomment when getting textures of registered skins is implemented
+    # if "+" in args:
+    #     argsSplit = args.split("+")
+    #     if len(argsSplit) > 2:
+    #         await message.reply(mention_author=False, content=":x: Please only provide one skin, with one `+`!")
+    #         return
+    #     elif argsSplit[1] != "":
+    #         args, skin = argsSplit
+    if skin == "":
+        if not message.attachments:
+            # TODO: Uncomment when getting textures of registered skins is implemented
+            # await message.reply(mention_author=False,
+            #                     content=":x: Please either give a skin name after your `+`, " \
+            #                         + "or attach an image to use as your base texture.")
+            await message.reply(mention_author=False,
+                                content=":x: Please attach an image to use as your base texture.")
+            return
+        
+        attached = True
+
+    try:
+        shipData = bbData.findShipDataByAlias(args)
+    except KeyError:
+        await message.reply(f":x: The **{truncateWithEllipse(args, 20, 15)}** ship is not in my database! :detective:")
+        return
+
+    if not attached:
+        raise NotImplementedError()
+        # TODO: Uncomment when getting textures of registered skins is implemented
+        # skin = skin.lstrip(" ").lower()
+        # if skin not in bbData.builtInShipSkins:
+        #     await message.channel.send(f":x: The **{truncateWithEllipse(skin, 20, 15)}** skin is not in my database! " \
+        #                                 + ":detective:")
+        #     return
+
+        # if skin not in shipData["compatibleSkins"]:
+        #     await message.channel.send(f":x: That skin is not compatible with the **{shipData['name']}**!\n" \
+        #                                 + f"See `{prefix}info ship {shipData['name']}` for a list of compatible skins.")
+        #     return
+        # TODO: This is the part where you should look up and send the image
+        # else:
+        #     itemEmbed = lib.discordUtil.makeEmbed(col=lib.discordUtil.randomColour(), img=bbData.builtInShipSkins[skin].shipRenders[itemObj.name][0], titleTxt=itemObj.name, footerTxt="Custom skin: " + skin.capitalize())
+        #     await message.channel.send(embed=itemEmbed)
+    else:
+        result = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1, False)
+        if result is None:
+            return
+        _, rendererArgs = result
+        
+        # TODO: ALLOW RENDERING STRAIGHT TO AEI WITH AEIEDITOR BY CATLABS
+        formatEmojis = (
+            lib.emojis.BasedEmoji(unicode="🇯"),
+            lib.emojis.BasedEmoji(unicode="🇵"),
+            lib.emojis.BasedEmoji(unicode="🌀")
+        ) #lib.emojis.BasedEmoji(unicode="🇦"), lib.emojis.BasedEmoji(unicode="🌀"))
+
+        formatOptions = {
+            formatEmojis[0]: reactionMenu.DummyReactionMenuOption("JPG", formatEmojis[0]),
+            # formatEmojis[1]: reactionMenu.DummyReactionMenuOption("AEI", formatEmojis[1]),
+            formatEmojis[1]: reactionMenu.DummyReactionMenuOption("PNG", formatEmojis[1]),
+            formatEmojis[2]: reactionMenu.DummyReactionMenuOption("Both", formatEmojis[2])
+        }
+        formatsMenu = reactionMenu.SingleUserReactionMenu(await message.channel.send("** **"), message.author,
+                                                            60, formatOptions, # desc="AEI images can be dropped straight into your game.",
+                                                            list(formatEmojis),
+                                                            icon=SCROLL_ICON,
+                                                            authorName="In what format(s) would you like the texture?")
+        imgFormats = await formatsMenu.doMenu()
+        if imgFormats == []:
+            return
+        if formatEmojis[2] in imgFormats:
+            imgFormats = (formatEmojis[0], formatEmojis[1])
+
+        if "model" in shipData:
+            fName = ".".join(shipData["model"].split(".")[:-1])
+        else:
+            fName = shipData["name"]
+
+        await message.reply(f"{cfg.defaultEmojis.longProcess} Compositing...", mention_author=False)
+
+        texPath = os.path.join(shipData["path"], "skins", f"{message.id}-GENTEX.jpg")
+        shipRenderer.compositeTextures(texPath, shipData["path"], rendererArgs.textures, rendererArgs.disabledLayers)
+        # if formatEmojis[1] in imgFormats:
+        # TODO: generate and send AEI here
+
+        if formatEmojis[1] in imgFormats:
+            im = Image.open(texPath)
+            imBytes = BytesIO()
+            im.save(imBytes, "PNG")
+            imBytes.seek(0)
+            pngFile = discord.File(imBytes, filename=fName + ".png")
+            await message.reply("Autoskin complete!\n__PNG__",
+                                file=pngFile, mention_author=True)
+            pngFile.close()
+            imBytes.close()
+            im.close()
+
+        if formatEmojis[0] in imgFormats:
+            with open(texPath, "rb") as f:
+                jpgFile = discord.File(f, filename=fName + ".jpg")
+                if formatEmojis[1] in imgFormats:
+                    await message.reply("__JPG__", file=jpgFile, mention_author=False)
+                else:
+                    await message.reply("Autoskin complete!\n__JPG__", file=jpgFile,
+                                        mention_author=True)
+                jpgFile.close()
+
+        try:
+            os.remove(texPath)
+        except FileNotFoundError:
+            pass
+
+        for skinPath in rendererArgs.textures.values():
+            os.remove(skinPath)
+
+
+botCommands.register("texture", cmd_texture, 0, aliases=["tex"], helpSection="gof2 info", signatureStr="**texture <ship-name>**",
+                    shortHelp="Generate a ship texture file from your own images with autoskin. This is the same system as " \
+                                + "`showmme ship`.",
+                    longHelp="Generate the texture file for custom ship skin with autoskin. This is the system used by" \
+                                + "`showme ship`, except this command will send you the generated texture file instead of a render." \
+                                + "\nUsage of this command is the same as `showme ship`, except you should not provide a `+`.")

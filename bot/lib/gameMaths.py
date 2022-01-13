@@ -206,13 +206,15 @@ def calculateUserBountyHuntingLevel(xp):
 
 def rewardPerSysCheck(techLevel : int, loadoutValue: int) -> int:
     """The number of credits to award for each system check of a bounty
+    This implmentation is guaranteed to be at least cfg.classic_creditsPerCheck
 
     :param int techLevel: The level of the bounty
     :param int loadoutValue: The total value of the criminal's loadout
     :return: The number of credits to award participating players for each system they check in the bounty's route
     :rtype: int
     """
-    return int((loadoutValue * (1.3 if techLevel == 1 else 1)) / (2*(techLevel+(1 if techLevel == 1 else 2)) * 10))
+    return max(cfg.classic_creditsPerCheck,
+                int((loadoutValue * (1.3 if techLevel == 1 else 1)) / (2*(techLevel+(1 if techLevel == 1 else 2)) * 10)))
 
 
 def crateValueForTL(TL : int) -> int:

@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, Union, TYPE_CHECKING
+from typing import Dict, Set, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
@@ -243,7 +243,7 @@ class Bounty(serializable.Serializable):
         return self.checked[system] != -1
 
 
-    def calcRewards(self) -> Dict[int, Dict[str, Union[int, bool]]]:
+    def calcRewards(self, classicModeUserIDs: Set[int]) -> Dict[int, Dict[str, Union[int, bool]]]:
         """Calculate the winning user and how many credits (and in the future, xp points) to award to which contributing users
 
         :return: A dictionary of user IDs to rewards. rewards are given as a dict, giving the number of systems checked,
@@ -251,6 +251,7 @@ class Bounty(serializable.Serializable):
         :rtype: dict[int, dict[str, int or bool]]]
         """
         creditsPool = self.reward
+        rewardPerSys = self.rewardPerSys
         rewards = {}
         checkedSystems = 0
         for system in self.route:
@@ -260,18 +261,38 @@ class Bounty(serializable.Serializable):
                     rewards[self.checked[system]] = {"reward": 0, "checked": 0, "won": False, "xp":0}
 
         winningUserID = self.checked[self.answer]
+        if classicModeUserIDs:
+            if winningUserID in classicModeUserIDs:
+                winningUserSystems = [system for system in self.route if not self.systemChecked(system) \
+                                        or self.checked[system] == winningUserID]
+                rewards[self.checked[self.answer]]["reward"] = len(winningUserSystems) * cfg.classic_creditsPerCheck
+            
+            if len(set(self.checked.values())) > 1 and \
+                    any(True for i in self.checked.values() if i != winningUserID and i not in classicModeUserIDs):
+                classicModeSystems = [system for system in self.route if self.checked[system] in classicModeUserIDs]
+                if winningUserID in classicModeUserIDs:
+                    classicModeSystems += [system for system in self.route if not self.systemChecked(system)]
+                classicModePool = len(classicModeSystems) * cfg.classic_creditsPerCheck
+                numNonClassicModeSystems = len(self.route) - len(classicModeSystems)
+                if winningUserID not in classicModeUserIDs:
+                    numNonClassicModeSystems += len([system for system in self.route if not self.systemChecked(system)])
+                rewardPerSys = int((creditsPool - classicModePool) / numNonClassicModeSystems)
 
         for system in self.route:
             if self.systemChecked(system):
                 rewards[self.checked[system]]["checked"] += 1
                 if self.checked[system] != winningUserID:
                     # currentReward = int(self.reward / len(self.route))
-                    # currentReward = bbConfig.bPointsToCreditsRatio
-                    currentReward = self.rewardPerSys
+                    # currentReward = bbConfig.classic_creditsPerCheck
+                    if self.checked[system] in classicModeUserIDs:
+                        currentReward = cfg.classic_creditsPerCheck
+                    else:
+                        currentReward = rewardPerSys
                     rewards[self.checked[system]]["reward"] += currentReward
                     creditsPool -= currentReward
 
-        rewards[self.checked[self.answer]]["reward"] = creditsPool
+        if winningUserID not in classicModeUserIDs:
+            rewards[self.checked[self.answer]]["reward"] = creditsPool
         rewards[self.checked[self.answer]]["won"] = True
 
         for user in rewards:

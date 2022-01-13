@@ -70,10 +70,6 @@ class BasedUser(serializable.Serializable):
     :vartype inactiveTurrets: inventory
     :var inactiveTools: the toolItems currently in this user's inventory
     :vartype inactiveTools: inventory
-    :var lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
-    :vartype lastSeenGuildId: int
-    :var hasLastSeenGuildId: Whether or not the user currently has a lastSeenGuildId
-    :vartype hasLastSeenGuildId: bool
     :var duelRequests: A dictionary mapping target BasedUser objects to DuelRequest objects.
                         Only contains duel requests issued by this user.
     :vartype duelRequests: dict[BasedUser, DuelRequest]
@@ -104,21 +100,24 @@ class BasedUser(serializable.Serializable):
     :vartype ownedMenus: Dict[str, MutableSet[ReactionMenu]]
     :var medals: References to all medals awareded to this user
     :vartype medals: MutableSet[Medal]
+    :var classicModeEnabled: Whether or not this user is set to use classic mode
+    :vartype classicModeEnabled: bool
     """
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
                     bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : int = -1,
                     systemsChecked : int = 0, bountyWins : int = 0, activeShip : bool = None,
-                    inactiveShips : inventory.Inventory = inventory.TypeRestrictedInventory(shipItem.Ship),
-                    inactiveModules : inventory.Inventory = inventory.TypeRestrictedInventory(moduleItem.ModuleItem),
-                    inactiveWeapons : inventory.Inventory = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon),
-                    inactiveTurrets : inventory.Inventory = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon),
-                    inactiveTools : inventory.Inventory = inventory.TypeRestrictedInventory(toolItem.ToolItem),
-                    lastSeenGuildId : int = -1, duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
-                    duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase or bool]] = {},
+                    inactiveShips : inventory.Inventory = None,
+                    inactiveModules : inventory.Inventory = None,
+                    inactiveWeapons : inventory.Inventory = None,
+                    inactiveTurrets : inventory.Inventory = None,
+                    inactiveTools : inventory.Inventory = None,
+                    duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
+                    duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = []):
+                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None,
+                    classicModeEnabled: bool = False):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         :param int credits: The amount of credits (currency) this user has (Default 0)
@@ -139,8 +138,6 @@ class BasedUser(serializable.Serializable):
         :param inventory inactiveTurrets: The turretWeapons currently in this user's inventory (unequipped)
                                             (Default empty inventory)
         :param inventory inactiveTools: The toolItems currently in this user's inventory (Default empty inventory)
-        :param int lastSeenGuildId: The ID of the guild where this user was last active. Not guaranteed to be present.
-                                    (Default -1)
         :param int duelWins: The total number of duels the user has won (Default 0)
         :param int duelLosses: The total number of duels the user has lost (Default 0)
         :param int duelCreditsWins: The total amount of credits the user has won through fighting duels (Default 0)
@@ -164,6 +161,7 @@ class BasedUser(serializable.Serializable):
         :param ownedMenus: Sets of references to all menus that user owns, by string type IDs. (default {})
         :type ownedMenus: Dict[str, MutableSet[ReactionMenu]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
+        :param bool classicModeEnabled: Whether this user has classic mode enabled
         """
         if type(userID) == float:
             userID = int(userID)
@@ -199,6 +197,7 @@ class BasedUser(serializable.Serializable):
             guildTransferCooldownEnd = datetime.utcnow()
 
         self.githubIssueSubmitDelayEnd: Union[timedelta, None] = None
+        self.classicModeEnabled = classicModeEnabled
 
         self.id = userID
         self.credits = credits
@@ -209,14 +208,16 @@ class BasedUser(serializable.Serializable):
         self.bountyWins = bountyWins
 
         self.activeShip = activeShip
-        self.inactiveShips = inactiveShips
-        self.inactiveModules = inactiveModules
-        self.inactiveWeapons = inactiveWeapons
-        self.inactiveTurrets = inactiveTurrets
-        self.inactiveTools = inactiveTools
-
-        self.lastSeenGuildId = lastSeenGuildId
-        self.hasLastSeenGuildId = lastSeenGuildId != -1
+        self.inactiveShips = inactiveShips if inactiveShips is not None else \
+                                inventory.TypeRestrictedInventory(shipItem.Ship)
+        self.inactiveModules = inactiveModules if inactiveModules is not None else \
+                                inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
+        self.inactiveWeapons = inactiveWeapons if inactiveWeapons is not None else \
+                                inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
+        self.inactiveTurrets = inactiveTurrets if inactiveTurrets is not None else \
+                                inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
+        self.inactiveTools = inactiveTools if inactiveTools is not None else \
+                                inventory.TypeRestrictedInventory(toolItem.ToolItem)
 
         self.duelRequests = {}
         self.duelWins = duelWins
@@ -255,7 +256,12 @@ class BasedUser(serializable.Serializable):
             else:
                 self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
 
-        self.bountyHuntingXP = bountyHuntingXP
+        if classicModeEnabled:
+            self.bountyHuntingXP = None
+            
+        else:
+            self.bountyHuntingXP = bountyHuntingXP
+
         self.prestiges = prestiges
 
         self.homeGuildID = homeGuildID
@@ -264,12 +270,13 @@ class BasedUser(serializable.Serializable):
         self.kaamo = kaamo
         self.loma = loma
         self.ownedMenus = ownedMenus
-        self.medals = medals
+        self.medals = medals if medals is not None else set()
 
 
     def resetUser(self):
         """Reset the user's attributes back to their default values.
         """
+        self.classicModeEnabled = False
         self.credits = 0
         self.lifetimeBountyCreditsWon = 0
         self.bountyCooldownEnd = -1
@@ -463,7 +470,7 @@ class BasedUser(serializable.Serializable):
         data = {"credits": self.credits, "lifetimeBountyCreditsWon": self.lifetimeBountyCreditsWon,
                 "bountyCooldownEnd": self.bountyCooldownEnd, "systemsChecked": self.systemsChecked,
                 "bountyWins": self.bountyWins, "activeShip": self.activeShip.toDict(**kwargs),
-                "lastSeenGuildId": self.lastSeenGuildId, "duelWins": self.duelWins, "duelLosses": self.duelLosses,
+                "duelWins": self.duelWins, "duelLosses": self.duelLosses,
                 "duelCreditsWins": self.duelCreditsWins, "bountyHuntingXP": self.bountyHuntingXP,
                 "duelCreditsLosses": self.duelCreditsLosses, "homeGuildID": self.homeGuildID,
                 "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges}
@@ -498,6 +505,9 @@ class BasedUser(serializable.Serializable):
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
                 self.medals.remove(m)
             data["medals"] = [m.name.lower() for m in self.medals]
+
+        if self.classicModeEnabled:
+            data["classicModeEnabled"] = True
 
         return data
 
@@ -625,7 +635,7 @@ class BasedUser(serializable.Serializable):
         del self.duelRequests[duelReq.targetBasedUser]
 
 
-    def removeDuelChallengeTarget(self, duelTarget : BasedUser.BasedUser):
+    def removeDuelChallengeTarget(self, duelTarget : BasedUser):
         """Remove this user's duel request that is targetted at the given user.
 
         :param BasedUser duelTarget: The target user whose duel request to remove
@@ -829,6 +839,28 @@ class BasedUser(serializable.Serializable):
             del self.ownedMenus[menuTypeID]
 
 
+    def enableClassicMode(self):
+        """Enable BountyBot's "classic mode" for this user, which aims to emulate the BountyBot beta.
+
+        :raises ValueError: If classic mode is already enabled for this user
+        """
+        if self.classicModeEnabled:
+            raise ValueError(f"Classic mode is already enabled for this user {self}")
+        self.bountyHuntingXP = None
+        self.classicModeEnabled = True
+
+
+    def disableClassicMode(self):
+        """Disable BountyBot classic mode for this user.
+
+        :raises ValueError: If classic mode is already disabled for this user
+        """
+        if not self.classicModeEnabled:
+            raise ValueError(f"Classic mode is already disabled for this user {self}")
+        self.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(cfg.minTechLevel)
+        self.classicModeEnabled = False
+
+
     def __str__(self) -> str:
         """Get a short string summary of this BasedUser. Currently only contains the user ID and home guild ID.
 
@@ -903,11 +935,16 @@ class BasedUser(serializable.Serializable):
                 if name in bbData.medalObjs:
                     medals.add(bbData.medalObjs[name])
 
-        return BasedUser(**cls._makeDefaults(userDict, ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned", "bountyWinsToday", "dailyBountyWinsReset"),
+        kwargIgnores = ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned",
+                        "bountyWinsToday", "dailyBountyWinsReset", "lastSeenGuildId")
+                        
+        guildTransferCooldownEnd = datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) \
+                                    if "guildTransferCooldownEnd" in userDict else None
+
+        return BasedUser(**cls._makeDefaults(userDict, kwargIgnores,
                                                 userID=userID, activeShip=activeShip, inactiveShips=inactiveShips,
                                                 inactiveModules=inactiveModules, inactiveWeapons=inactiveWeapons,
                                                 inactiveTurrets=inactiveTurrets, inactiveTools=inactiveTools,
                                                 bountyHuntingXP=bountyHuntingXP, kaamo=kaamo, loma=loma,
                                                 ownedMenus=ownedMenus, lifetimeBountyCreditsWon=lifetimeBountyCreditsWon,
-                                                medals=medals,
-                                                guildTransferCooldownEnd=datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) if "guildTransferCooldownEnd" in userDict else None))
+                                                medals=medals, guildTransferCooldownEnd=guildTransferCooldownEnd))

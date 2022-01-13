@@ -1,5 +1,5 @@
 from . import toolItem, shipSkinTool
-from .crateTool import CrateTool
+from .crateTool import CrateTool, ShipSkinCrateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
 
@@ -28,5 +28,6 @@ def fromDict(toolDict : dict) -> toolItem.ToolItem:
 
 toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.fromDict,
                         "CrateTool": CrateTool.fromDict,
-                        "ToolItem": fromDict}
+                        "ToolItem": fromDict,
+                        "ShipSkinCrateTool": ShipSkinCrateTool.fromDict}
 itemConstructors.update(toolTypeConstructors)

@@ -1,11 +1,13 @@
-from typing import Dict
+from typing import Dict, Optional
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
+from PIL import Image
 
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
+from ..lib.discordUtil import stringTyping, truncateWithEllipse
 from ..cfg import cfg, bbData
 from ..gameObjects.battles import duelRequest
 from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
@@ -21,6 +23,77 @@ from ..lib import gameMaths
 
 
 botCommands.addHelpSection(0, "bounty hunting")
+
+
+async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: bool):
+    """Toggle 'classic mode' for the calling user.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    callingUser: Optional[basedUser.BasedUser] = None
+    if botState.usersDB.idExists(message.author.id):
+        callingUser = botState.usersDB.getUser(message.author.id)
+        currentStatus = callingUser.classicModeEnabled
+    else:
+        currentStatus = False
+
+    if currentStatus:
+        confirmMsgText = "You currently have classic mode enabled. Disable it to play with exciting new features:\n" \
+                        + "• Beat bounties in a duel to win their rewards\n" \
+                        + "• Progress through bounty hunter levels and get new customization items\n" \
+                        + "• Gain huge rewards for beating tougher bounties\n" \
+                        + "\nBy disabling classic mode will keep everything, including items, credits and stats, and you " \
+                        + "will begin at bounty hunter level 1. Classic mode can be enabled again at any time."
+    else:
+        confirmMsgText = "Missing the BountyBot beta? You might prefer classic mode:\n" \
+                        + "• No dueling, win bounties by finding the correct system\n" \
+                        + "• No XP or levelling\n" \
+                        + "• Get a fixed 1000 credits per system check\n" \
+                        + f"• Restricted to {cfg.bountyDivisionNames[0]} division bounties, but any shops\n" \
+                        + "\nBy enabling classic mode, you will lose all of your XP, but you will keep your " \
+                        + "credits and items. Classic mode can be disabled again at any time."
+
+    actionText = "Disable" if currentStatus else "Enable"
+    confirmMsg: discord.Message = await message.reply(confirmMsgText, mention_author=False)
+    confirmMenu = confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
+                                    timedelta(**cfg.timeouts.toggleClassicMode).total_seconds(),
+                                    desc=f"{actionText} classic mode now?\nThis command can be used again at any time.",
+                                    col=discord.Colour.random())
+    
+    confirmResults = await confirmMenu.doMenu()
+    if not confirmResults:
+        await confirmMsg.edit(content=":x: Out of time, please try this command again.")
+    elif confirmResults[0] == cfg.defaultEmojis.reject:
+        await confirmMsg.edit(content="🛑 Classic mode toggle cancelled.", embed=None)
+
+    elif confirmResults[0] == cfg.defaultEmojis.accept:
+        if callingUser is None:
+            callingUser = botState.usersDB.addID(message.author.id)
+        if callingUser.classicModeEnabled:
+            callingUser.disableClassicMode()
+        else:
+            callingUser.enableClassicMode()
+
+        await message.reply(f"{cfg.defaultEmojis.submit} You have now {actionText.lower()}d classic mode.")
+    
+    else:
+        raise RuntimeError(f"Unsupported result: {confirmResults}")
+
+botCommands.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "classic-mode", "retro-mode"],
+                    shortHelp="Toggle \"classic mode\", which emulates the BountyBot beta. " \
+                            + "See `help classic` for more info.",
+                    longHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta.\n" \
+                            + "In this mode, you win bounties immediately by finding the correct system - you do not need " \
+                                + "to duel bounties to win.\n"
+                            + f"You will receive a fixed {cfg.classic_creditsPerCheck} credits per system check.\n" \
+                            + "XP and levelling are disabled, meaning you will not get level-up, division-up " \
+                                + "or prestige bonuses.\n"
+                            + "You are restricted to bounties in the lowest division " \
+                                + f"({cfg.bountyDivisionNames[0]})\n" \
+                            + "Use this command to enable or disable classic mode, at any time.")
+
 
 
 async def cmd_check(message : discord.Message, args : str, isDM : bool):
@@ -62,9 +135,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
     # reject if the requested system is not in the database
     if systObj is None:
         if len(requestedSystem) < 20:
-            await message.reply(mention_author=False, content=":x: The **" + requestedSystem + "** system is not on my star map! :map:")
-        else:
-            await message.reply(mention_author=False, content=":x: The **" + requestedSystem[0:15] + "**... system is not on my star map! :map:")
+            await message.reply(mention_author=False,
+                                content=f":x: The **{truncateWithEllipse(requestedSystem, 20, 15)}** system is not " \
+                                        + "on my star map! :map:")
         return
 
     requestedSystem = systObj.name
@@ -78,80 +151,100 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         bountyWon = False
         bountyLost = False
         systemInBountyRoute = False
-        userLevel = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
+
+        if requestedBBUser.classicModeEnabled:
+            btyDivision = callingGuild.bountiesDB.divisionForName(cfg.classic_divisionName)
+        else:
+            userLevel = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
+            btyDivision = callingGuild.bountiesDB.divisionForLevel(userLevel)
+
         # list of completed bounties to remove from the bounties database
         toPop = []
         toEscape = []
-        btyDivision = callingGuild.bountiesDB.divisionForLevel(userLevel)
         sightedCriminalsStr = ""
         # The total amount to increase the division's activity temperature by
         divTempDelta = 0
-        bounty: Bounty = None
+        bounty: Bounty
 
         for tlBounties in btyDivision.bounties.values():
             for bounty in tlBounties.values():
                 # Check the passed system in current bounty
                 checkResult = bounty.check(requestedSystem, message.author.id)
+                statsEmbed: Optional[discord.Embed] = None
+                duelResultsImg: Optional[Image.Image] = None
+
                 # If current bounty resides in the requested system
                 if checkResult == CheckResult.CORRECT:
-                    duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
-                                                            cfg.duelVariancePercent)
-                    try:
-                        duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser, requestedBBUser.activeShip,
-                                                                                    bounty.criminal, bounty.activeShip,
-                                                                                    duelResults)
-                    except RuntimeError:
-                        statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
-                        statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
-                        statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
-                                                value=message.author.mention + ": " \
-                                                    + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + str(round(duelResults["ship2"]["health"]["varied"], 2)))
-                        statsEmbed.add_field(name="Time To Kill",
-                                                value=message.author.mention + ": " \
-                                                    + (str(round(duelResults["ship1"]["TTK"], 2)) \
-                                                        if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
-                                                    + bounty.criminal.name + ": " \
-                                                    + (str(round(duelResults["ship2"]["TTK"], 2)) \
-                                                        if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
-
-                        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. " \
-                                                + "The error has been logged.")
-                        duelResultsImg = None
+                    if requestedBBUser.classicModeEnabled:
+                        duelWon = True
                     else:
-                        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
-                        statsEmbed.set_image(url="attachment://duelResults.png")
-                        duelResultsBytes = BytesIO()
-                        duelResultsImg.save(duelResultsBytes, "PNG")
-                        duelResultsBytes.seek(0)
-                        duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
-                    
+                        duelWon = False
+                        duelResults = duelRequest.fightShips(requestedBBUser.activeShip, bounty.activeShip,
+                                                                cfg.duelVariancePercent)
+                        try:
+                            duelResultsImg = await duelRequest.buildDuelResultsImage(requestedBBUser,
+                                                                                        requestedBBUser.activeShip,
+                                                                                        bounty.criminal, bounty.activeShip,
+                                                                                        duelResults)
+                        except RuntimeError:
+                            statsEmbed = lib.discordUtil.makeEmbed(authorName="**Duel Stats**")
+                            statsEmbed.add_field(name=f"DPS ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["DPS"]["varied"], 2)) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["DPS"]["varied"], 2)))
+                            statsEmbed.add_field(name=f"Health ({cfg.duelVariancePercent * 100}% RNG)",
+                                                    value=message.author.mention + ": " \
+                                                        + str(round(duelResults["ship1"]["health"]["varied"])) + "\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + str(round(duelResults["ship2"]["health"]["varied"], 2)))
+                            statsEmbed.add_field(name="Time To Kill",
+                                                    value=message.author.mention + ": " \
+                                                        + (str(round(duelResults["ship1"]["TTK"], 2)) \
+                                                            if duelResults["ship1"]["TTK"] != -1 else "inf.") + "s\n" \
+                                                        + bounty.criminal.name + ": " \
+                                                        + (str(round(duelResults["ship2"]["TTK"], 2)) \
+                                                            if duelResults["ship2"]["TTK"] != -1 else "inf.") + "s")
 
-                    if duelResults["winningShip"] is not requestedBBUser.activeShip:
-                        toEscape.append(bounty)
-                        # bounty.escape()
-                        bountyLost = True
-                        await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
-                                                    file=None if duelResultsImg is None else duelResultsFile)
+                            statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image." \
+                                                    + " The error has been logged.")
+                            duelResultsImg = None
+                        else:
+                            statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
+                            statsEmbed.set_image(url="attachment://duelResults.png")
+                            duelResultsBytes = BytesIO()
+                            duelResultsImg.save(duelResultsBytes, "PNG")
+                            duelResultsBytes.seek(0)
+                            duelResultsFile = discord.File(duelResultsBytes, filename="duelResults.png")
+                        
 
-                    else:
+                        if duelResults["winningShip"] is not requestedBBUser.activeShip:
+                            toEscape.append(bounty)
+                            # bounty.escape()
+                            bountyLost = True
+                            await message.channel.send(bounty.criminal.name + " got away! ", embed=statsEmbed,
+                                                        file=None if duelResultsImg is None else duelResultsFile)
+                        else:
+                            duelWon = True
+
+                    if duelWon:
                         bountyWon = True
 
+                        basedUsers: Dict[int, basedUser.BasedUser] = \
+                            {i: botState.usersDB.getOrAddID(i) for i in set(bounty.checked.values())}
+                        classicModeUserIDs = set(u.id for u in basedUsers.values() if u.classicModeEnabled)
+                        nonClassicModeUserIDs = set(u.id for u in basedUsers.values() if u.id not in classicModeUserIDs)
+
                         # reward all contributing users
-                        rewards = bounty.calcRewards()
+                        rewards = bounty.calcRewards(classicModeUserIDs)
                         rewardsMeta = {i: RewardsMeta.NONE for i in rewards}
 
                         # userID : reward
                         distributeRewards: Dict[int, int] = {}
                         guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
 
-                        for userID in rewards:
-                            currentBBUser: basedUser.BasedUser = botState.usersDB.getUser(userID)
+                        for userID in nonClassicModeUserIDs:
+                            currentBBUser = basedUsers[userID]
                             currentLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             currentDiv = callingGuild.bountiesDB.divisionForLevel(currentLevel)
                             
@@ -165,7 +258,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         # share rewards lost due to prestiging
                         if distributeRewards:
                             totalToShare = sum(distributeRewards.values())
-                            receiverIDs = [i for i in rewards if i not in distributeRewards]
+                            receiverIDs = [i for i in rewards if i not in distributeRewards and i in nonClassicModeUserIDs]
                             each = int(totalToShare / len(receiverIDs))
                             for receiverID in receiverIDs:
                                 rewards[receiverID]["reward"] += each
@@ -178,9 +271,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             if RewardsMeta.USER_PRESTIGED & rewardsMeta[userID]:
                                 continue
 
-                            currentBBUser = botState.usersDB.getUser(userID)
+                            currentBBUser = basedUsers[userID]
                             currentBBUser.credits += rewards[userID]["reward"]
                             currentBBUser.lifetimeBountyCreditsWon += rewards[userID]["reward"]
+
+                            if currentBBUser.classicModeEnabled:
+                                continue
 
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
@@ -232,10 +328,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
 
                         # Announce the bounty has been completed
                         await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
-                        await message.channel.send(embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
+                        if statsEmbed is not None or duelResultsImg is not None:
+                            await message.channel.send(embed=statsEmbed,
+                                                        file=None if duelResultsImg is None else duelResultsFile)
 
                         # Raise guild's activity temperature for this bounty's tl
-                        numContributingUsers = len(set(rewards.keys()))
+                        numContributingUsers = len(basedUsers)
                         divTempDelta += numContributingUsers * cfg.activityTempPerPlayer
 
                         # add this bounty to the list of bounties to be removed
@@ -245,9 +343,10 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                 if checkResult in [CheckResult.INCORRECT, CheckResult.CORRECT]:
                     systemInBountyRoute = True
                     await callingGuild.updateBountyBoardChannel(bounty, bountyComplete=checkResult == CheckResult.CORRECT)
-                    # Check if any bounties are close to the requested system in their route, defined by cfg.closeBountyThreshold
-                    if checkResult == CheckResult.INCORRECT and \
-                            0 < bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem) < cfg.closeBountyThreshold:
+                    # Check if any bounties are close to the requested system in their route,
+                    # defined by cfg.closeBountyThreshold
+                    distanceToAnswer = bounty.route.index(bounty.answer) - bounty.route.index(requestedSystem)
+                    if checkResult == CheckResult.INCORRECT and 0 < distanceToAnswer < cfg.closeBountyThreshold:
                         # Print any close bounty names
                         sightedCriminalsStr += "\n**       **• Local security forces spotted **" \
                                                 + lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
@@ -316,7 +415,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     # Verify that this guild has bounties enabled
-    callingGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if callingGuild.bountiesDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
@@ -325,28 +424,31 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
 
     if not args:
         try:
-            callingUser = botState.usersDB.getUser(message.author.id)
+            callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
         except KeyError:
             division = callingGuild.bountiesDB.divisionForLevel(0)
         else:
-            userLevel = gameMaths.calculateUserBountyHuntingLevel(callingUser.bountyHuntingXP)
-            division = callingGuild.bountiesDB.divisionForLevel(userLevel)
+            if callingUser.classicModeEnabled:
+                division = callingGuild.bountiesDB.divisionForName(cfg.classic_divisionName)
+            else:
+                userLevel = gameMaths.calculateUserBountyHuntingLevel(callingUser.bountyHuntingXP)
+                division = callingGuild.bountiesDB.divisionForLevel(userLevel)
     else:
+        divKeyError = ":x: Unknown division. Give no arguments to see bounties in your division, or to see another division" \
+                    + ", give either a difficulty level (1-10), or a division name: " \
+                    + ", ".join(i.title() for i in cfg.bountyDivisionNames)[:-1] + " or " + cfg.bountyDivisionNames[-1]
+
         if lib.stringTyping.isInt(args):
             try:
                 division = callingGuild.bountiesDB.divisionForLevel(int(args))
             except KeyError:
-                await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames)[:-1] + " or " \
-                                    + cfg.bountyDivisionNames[-1])
+                await message.reply(divKeyError)
                 return
         else:
             try:
                 division = callingGuild.bountiesDB.divisionForName(args)
             except KeyError:
-                await message.reply(":x: Unknown division. You can either give a difficulty level (1-10), or a division name: " \
-                                    + ", ".join(i.title() for i in cfg.bountyDivisionNames[:-1]) + " or " \
-                                    + cfg.bountyDivisionNames[-1])
+                await message.reply(divKeyError)
                 return
 
     divName = nameForDivision(division).title()
@@ -357,11 +459,12 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
         return
     
     msgEmbed = discord.Embed(title=f"Active Bounties: {divName} Division",
-                                description=f"Difficulty levels {division.minLevel} - {division.maxLevel} ~ Times given in UTC",
+                                description=f"Difficulty levels {division.minLevel} - {division.maxLevel} ~ " \
+                                            + "Times given in UTC",
                                 colour=discord.Colour.random())
     msgEmbed.set_footer(icon_url=bbData.rocketIcon,
-                        text="Track down criminals and win credits using " + callingGuild.commandPrefix + "route " \
-                                + "and " + callingGuild.commandPrefix + "check!")
+                        text=f"Track down criminals and win credits using `{callingGuild.commandPrefix}route` " \
+                                + f"and {callingGuild.commandPrefix}check`!")
 
     # Collect and print summaries of all active bounties
     for tl in division.bounties:
@@ -404,8 +507,8 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
 
     # verify a criminal was specified
     if args == "":
-        await message.reply(mention_author=False, content=":x: Please provide the criminal name! E.g: `" + callingGuild.commandPrefix \
-                                    + "route Kehnor`")
+        await message.reply(mention_author=False, content=":x: Please provide the criminal name! " \
+                                    + f"E.g: `{callingGuild.commandPrefix}route Kehnor`")
         return
 
     requestedBountyName = args
@@ -429,7 +532,8 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
                         + callingGuild.commandPrefix + "route Trimatix#2244`"
         await message.reply(mention_author=False, content=outmsg)
 
-botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**route <criminal name>**",
+botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting",
+                        signatureStr="**route <criminal name>**",
                         shortHelp="Get the named criminal's current route.",
                         longHelp="Get the named criminal's current route.\n" \
                                     + "For a list of aliases for a given criminal, see `info criminal`.")
@@ -456,17 +560,17 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
     """
     argsSplit = args.split(" ")
     if len(argsSplit) == 0:
-        await message.reply(mention_author=False, content=":x: Please provide an action (`challenge`/`cancel`/`accept`/`reject or decline`), " \
-                                    + "a user, and the stakes (an amount of credits)!")
+        await message.reply(":x: Please provide an action (`challenge`/`cancel`/`accept`/`reject or decline`), " \
+                                    + "a user, and the stakes (an amount of credits)!", mention_author=False)
         return
     action = argsSplit[0]
     if action not in ["challenge", "cancel", "accept", "reject", "decline"]:
-        await message.reply(mention_author=False, content=":x: Invalid action! please choose from `challenge`, `cancel`, " \
-                                    + "`reject/decline` or `accept`.")
+        await message.reply(":x: Invalid action! please choose from `challenge`, `cancel`, " \
+                                    + "`reject/decline` or `accept`.", mention_author=False)
         return
     if action == "challenge":
         if len(argsSplit) < 3:
-            await message.reply(mention_author=False, content=":x: Please provide a user and the stakes (an amount of credits)!")
+            await message.reply(":x: Please provide a user and the stakes (an amount of credits)!", mention_author=False)
             return
     else:
         if len(argsSplit) < 2:
@@ -684,6 +788,9 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
         return
 
     callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if callingBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
     if gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP) < 10:
         await message.channel.send(":x: This command can only be used by level 10 bounty hunters!")
         return
