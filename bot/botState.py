@@ -1,9 +1,10 @@
 from .logging import Logger
 from aiohttp import ClientSession
-from datetime import timedelta
+from datetime import datetime, timedelta
 from github import Github
 from github.Repository import Repository
-from typing import cast
+from typing import Optional, cast
+from datetime import datetime
 
 class ShutDownState:
     restart = 0
@@ -39,3 +40,7 @@ currentRenders = []
 
 # timedelta representing the system's offset from UTC time
 utcOffset: timedelta = None
+
+
+# The time at which $cmd_drink_premium can be used next. None if no cooldown as been set
+premiumCooldownEnd: Optional[datetime] = None
