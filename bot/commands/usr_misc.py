@@ -1,5 +1,4 @@
 from typing import Tuple, Union
-from bot.lib import gameMaths
 import discord
 from datetime import datetime, timedelta
 from aiohttp import client_exceptions
@@ -13,6 +12,7 @@ from . import commandsDB as botCommands
 from . import util_help
 from .. import lib, botState
 from ..lib.stringTyping import commaSplitNum
+from ..lib import gameMaths
 from ..cfg import cfg, bbData, versionInfo
 from ..users import basedUser, basedGuild
 from ..reactionMenus import reactionMenu, reactionPollMenu
@@ -501,34 +501,42 @@ async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
     # add all users to the leaderboard embed with places and values
     externalUser = False
     first = True
+
+    valueIsInt = isinstance(sortedUsers[0][1], int)
+
     for place in range(min(len(sortedUsers), 10)):
-        # handling for global leaderboards and users not in the local guild
-        if globalBoard and message.guild.get_member(sortedUsers[place][0]) is None:
-            leaderboardEmbed.add_field(value="*" + str(place + 1) + ". " \
-                                            + str(botState.client.get_user(sortedUsers[place][0])),
-                                        name=("⭐ " if first else "") + str(sortedUsers[place][1]) + " " \
-                                            + (boardUnit if sortedUsers[place][1] == 1 else boardUnits), inline=False)
+        memberAttempt = message.guild.get_member(sortedUsers[place][0])
+
+        # handling for global leaderboards/users not in the local guild
+        if memberAttempt is None:
+            currentUser = botState.client.get_user(sortedUsers[place][0])
+            if currentUser is None:
+                currentUser = f"*<@{sortedUsers[place][0]}>"
+            else:
+                currentUser = f"*{currentUser}"
             externalUser = True
-            if first:
-                first = False
         else:
-            leaderboardEmbed.add_field(value=str(place + 1) + ". " + message.guild.get_member(sortedUsers[place][0]).mention,
-                                        name=("⭐ " if first else "") + str(sortedUsers[place][1]) + " " \
-                                            + (boardUnit if sortedUsers[place][1] == 1 else boardUnits), inline=False)
-            if first:
-                first = False
+            currentUser = memberAttempt.mention
+        
+        currentValue = commaSplitNum(sortedUsers[place][1]) if valueIsInt else str(sortedUsers[place][1])
+        currentUnits = boardUnit if sortedUsers[place][1] == 1 else boardUnits
+        leaderboardEmbed.add_field(name=f"{'⭐ ' if first else ''}{currentValue} {currentUnits}",
+                                    value=f"{place + 1}. {currentUser}",
+                                    inline=False)
+        if first:
+            first = False
+
     # If at least one external use is on the leaderboard, give a key
     if externalUser:
-        leaderboardEmbed.set_footer(
-            text="An `*` indicates a user that is from another server.")
+        leaderboardEmbed.set_footer(text="* A user that is from another server")
     # send the embed
     await message.reply(mention_author=False, embed=leaderboardEmbed)
 
 botCommands.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signatureStr="**leaderboard** *[global] [stat]*",
                         longHelp="Show the leaderboard for total player value. Give `g` or `global` for the global " \
-                            + "leaderboard, not just this server." + ("" if not cfg.leaderboardHelpDescriptions else "\n" \
-                            + "\n".join(f"> Give `{'`/`'.join(cfg.leaderboardNames[boardType])}` for the " \
-                                        + f"'{cfg.leaderboardHelpDescriptions[boardType]}' leaderboard." \
+                            + "leaderboard, not just this server." + ("" if not cfg.leaderboardHelpDescriptions else "\n\n" \
+                            + "\n".join(f"> Give `{'`/`'.join(cfg.leaderboardNames[boardType])}` for " \
+                                        + f"'{cfg.leaderboardHelpDescriptions[boardType]}'." \
                                         for boardType in range(len(cfg.leaderboardHelpDescriptions)))))
 
 

@@ -558,9 +558,9 @@ moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 numSnowballs = 6
 
 leaderboardNames: Tuple[Tuple[str, ...], ...] = (
-    ('b', 'bal', 'balance', 'credits'),
-    ('c', 'checks'),
-    ('w', 'wins'),
+    ('balance', 'bal', 'credits', 'b'),
+    ('checks', 'c'),
+    ('wins', 'w'),
     ('xp',)
 )
 
@@ -568,7 +568,7 @@ leaderboardTypeSettings: Tuple[Tuple[str, str, str, str, str], ...] = (
     ("credits", "Current Balance", "Credit", "Credits", "*Current player credits balance"),
     ("systemsChecked", "Systems Checked", "System", "Systems", f"*Total number of systems checked"),
     ("bountyWins", "Bounties Won", "Bounty", "Bounties", "*Total number of bounties won"),
-    ("lifetimeBountyHuntingXP", "Lifetime Bounty Hunter XP", "XP", "XP",
+    ("lifetimeBountyHuntingXP", "Lifetime Bounty Hunter XP", "xp", "xp",
         "*Total amount of bounty hunting xp earned")
 )
 
