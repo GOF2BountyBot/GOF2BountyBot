@@ -29,6 +29,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     argsSplit = args.split(" ")
 
     requestedUser = message.author
+    callingUserIsAdmin = not isDM and message.author.guild_permissions.administrator
     item = "all"
     page = 1
 
@@ -71,11 +72,15 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     if args != "":
         requestedUser, item, page, success = extractArgs()
         if not success:
-            if requestedUser is None:
+            if requestedUser is None and callingUserIsAdmin:
                 await message.reply(f":x: Unrecognised user!")
             else:
                 await message.reply(f":x: Invalid arguments, please see `{prefix}help hangar`.",
                                     mention_author=False)
+            return
+        
+        if requestedUser != message.author and not callingUserIsAdmin:
+            await message.reply(f":x: You must be an admin to view other players' hangars!")
             return
 
     if not botState.usersDB.idExists(requestedUser.id):
@@ -153,6 +158,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
         if page < 1:
             await message.reply(mention_author=False, content=":x: Invalid page number. Showing page one:")
             page = 1
+            firstPlace = 1
         else:
             maxPage = requestedBBUser.numInventoryPages(item, maxPerPage)
             if maxPage == 0:
@@ -164,6 +170,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                                             + ("has " if foundUser else "have ") + str(maxPage) \
                                             + " page(s) of items. Showing page " + str(maxPage) + ":")
                 page = maxPage
+                firstPlace = maxPerPage * (page - 1) + 1
 
         hangarEmbed = lib.discordUtil.makeEmbed(titleTxt="Hangar", desc=requestedUser.mention,
                                                 col=bbData.factionColours["neutral"],
