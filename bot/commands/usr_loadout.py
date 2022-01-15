@@ -64,8 +64,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
             requestedUser = userAttempt
             foundUser = True
         
-        finalIndex = foundItem+foundPage+foundUser
-        success = finalIndex == 0 or finalIndex + 1 != len(argsSplit)
+        success = foundUser or foundItem + foundPage + foundUser + 1 == len(argsSplit)
 
         return requestedUser if foundUser else None, item, page, success
 
