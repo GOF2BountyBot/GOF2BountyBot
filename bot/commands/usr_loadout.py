@@ -251,7 +251,7 @@ botCommands.register("hangar", cmd_hangar, 0, aliases=["hanger"], forceKeepArgsC
                     helpSection="loadout", signatureStr="**hangar** *[item-type]* *[page-number]*",
                     longHelp="Display the items stored in your hangar. Give an item type (ship/weapon/turret/module) to " \
                                 + "only list items of that type.")
-botCommands.register("hangar", cmd_hangar, 1, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
+botCommands.register("hangar", cmd_hangar, 2, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
                     signatureStr="**hangar** *[item-type]* *[page-number]* *[user]*", shortHelp="Administrators have permission to view " \
                                     + "the hangars of other users.", longHelp="Display the items stored in your hangar. " \
                                     + "Give an item type (ship/weapon/turret/module) to only list items of that type.\n" \
