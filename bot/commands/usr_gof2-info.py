@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import Set
 import discord
 import os
 import asyncio
@@ -763,7 +764,7 @@ async def cmd_info(message : discord.Message, args : str, isDM : bool):
     """
     if args == "":
         await message.reply(mention_author=False, content=":x: Please give an object type to look up! " \
-                                    + "(system/criminal/ship/weapon/module/turret/commodity)")
+                                    + f"({'/'.join(INFO_CMDS.keys())})")
         return
 
     argsSplit = args.split(" ")
@@ -1069,6 +1070,15 @@ async def cmd_showme_commodity(message : discord.Message, args : str, isDM : boo
 # botCommands.register("showme-commodity", cmd_showme_commodity)
 
 
+SHOWME_CMDS = {"criminal": cmd_showme_criminal,
+                "ship": cmd_showme_ship,
+                "weapon": cmd_showme_weapon,
+                "module": cmd_showme_module,
+                "turret": cmd_showme_turret,
+                # "commodity": cmd_showme_commodity
+                }
+
+
 async def cmd_showme(message : discord.Message, args : str, isDM : bool):
     """Return the URL of the image bountybot uses to represent the named game object, of a specified type.
     The named used to reference the object may be an alias.
@@ -1080,26 +1090,14 @@ async def cmd_showme(message : discord.Message, args : str, isDM : bool):
     """
     if args == "":
         await message.reply(mention_author=False, content=":x: Please give an object type to look up! " \
-                                    + "(system/criminal/ship/weapon/module/turret/commodity)")
+                                    + f"({'/'.join(SHOWME_CMDS)})")
         return
     argsSplit = args.split(" ")
-    if argsSplit[0] not in ["system", "criminal", "ship", "weapon", "module", "turret", "commodity"]:
-        await message.reply(mention_author=False, content=":x: Invalid object type! (system/criminal/ship/weapon/module/turret/commodity)")
+    if argsSplit[0] not in SHOWME_CMDS:
+        await message.reply(mention_author=False, content=f":x: Invalid object type! ({'/'.join(SHOWME_CMDS)})")
         return
-    if argsSplit[0] == "criminal":
-        await cmd_showme_criminal(message, args[9:], isDM)
-    elif argsSplit[0] == "ship":
-        await cmd_showme_ship(message, args[5:], isDM)
-    elif argsSplit[0] == "weapon":
-        await cmd_showme_weapon(message, args[7:], isDM)
-    elif argsSplit[0] == "module":
-        await cmd_showme_module(message, args[7:], isDM)
-    elif argsSplit[0] == "turret":
-        await cmd_showme_turret(message, args[7:], isDM)
-    elif argsSplit[0] == "commodity":
-        await cmd_showme_commodity(message, args[10:], isDM)
-    else:
-        await message.reply(mention_author=False, content=":x: Unknown object type! (criminal/ship/weapon/module/turret/commodity)")
+
+    await SHOWME_CMDS[argsSplit[0]](message, args[len(argsSplit[0]) + 1:], isDM)
 
 botCommands.register("showme", cmd_showme, 0, allowDM=True, aliases=["show", "render"], helpSection="gof2 info",
                         signatureStr="**showme <object-type> <name>** *[[full]+ [skinName]]*",
@@ -1108,7 +1106,21 @@ botCommands.register("showme", cmd_showme, 0, allowDM=True, aliases=["show", "re
                                     + "skin name, prefaced by a `+` symbol.\nAlternatively, give a `+` and no ship name, " \
                                     + "and attach your own 2048x2048 jpg image, and I will render it onto your ship! Give " \
                                     + "`full+` instead of `+` to disable autoskin and render exactly your provided image, " \
-                                    + "with no additional texturing.")
+                                    + f"with no additional texturing.\n\nValid object types: {'/'.join(SHOWME_CMDS)}")
+
+
+LIST_FACTION_OBJS = {"system": bbData.builtInSystemObjs, "criminal": bbData.builtInCriminalObjs}
+LIST_MANUFACTURER_OBJS = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
+                    "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
+LIST_TL_OBJS = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
+            "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
+LIST_DICT_OBJS = {"ship": bbData.builtInShipData}
+
+LIST_ALL_OBJ_TYPES: Set[str] = set()
+LIST_ALL_OBJ_TYPES.update(LIST_FACTION_OBJS)
+LIST_ALL_OBJ_TYPES.update(LIST_MANUFACTURER_OBJS)
+LIST_ALL_OBJ_TYPES.update(LIST_TL_OBJS)
+LIST_ALL_OBJ_TYPES.update(LIST_DICT_OBJS)
 
 
 async def cmd_list(message : discord.Message, args : str, isDM : bool):	
@@ -1125,7 +1137,6 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
     objType = ""
     itemLevel = -1
     manufacturer = ""
-    objTypes = ["system", "criminal", "ship", "weapon", "module", "turret", "commodity", "medal", "skin"]
 
     for arg in args.split(" "):
         if levelFound:
@@ -1147,7 +1158,7 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
                 return
             manufacturer = arg
 
-        elif arg.rstrip("s") in objTypes:
+        elif arg.rstrip("s") in LIST_ALL_OBJ_TYPES:
             if objType != "":
                 await message.channel.send(":x: Please only give one object type!")
                 return
@@ -1158,7 +1169,7 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
             return
 
     if objType == "":
-        await message.channel.send(":x: Please give an object type! (system/criminal/ship/weapon/module/turret/commodity)")
+        await message.channel.send(f":x: Please give an object type! ({'/'.join(LIST_ALL_OBJ_TYPES)})")
         return
 
     if levelFound:
@@ -1167,13 +1178,6 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
 
     if itemLevel != -1:
         print("LEVEL",itemLevel)
-
-    factionObjs = {"system": bbData.builtInSystemObjs, "criminal": bbData.builtInCriminalObjs}
-    manufacturerObjs = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
-                        "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
-    tlObjs = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
-                "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
-    dictObjs = {"ship": bbData.builtInShipData}
 
     if objType == "medal":
         if itemLevel != -1:
@@ -1193,35 +1197,35 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
     else:
         foundObjs = []
 
-        if itemLevel != -1 and objType not in tlObjs:
+        if itemLevel != -1 and objType not in LIST_TL_OBJS:
             await message.channel.send(":x: " + objType.title() + "s don't have tech levels!")
             return
 
-        if objType in factionObjs:
-            if objType in dictObjs:
-                for item in factionObjs[objType].values():
+        if objType in LIST_FACTION_OBJS:
+            if objType in LIST_DICT_OBJS:
+                for item in LIST_FACTION_OBJS[objType].values():
                     if (manufacturer == "" or (manufacturer != "" and item["faction"] == manufacturer)) and \
-                            (objType not in tlObjs or (objType in tlObjs and \
+                            (objType not in LIST_TL_OBJS or (objType in LIST_TL_OBJS and \
                                 (itemLevel == -1 or (itemLevel != -1 and item["techLevel"])) == itemLevel)):
                         foundObjs.append(item)
             else:
-                for item in factionObjs[objType].values():
+                for item in LIST_FACTION_OBJS[objType].values():
                     if (manufacturer == "" or (manufacturer != "" and item.faction == manufacturer)) and \
-                            (objType not in tlObjs or (objType in tlObjs and \
+                            (objType not in LIST_TL_OBJS or (objType in LIST_TL_OBJS and \
                                 (itemLevel == -1 or (itemLevel != -1 and item.techLevel == itemLevel)))):
                         foundObjs.append(item)
 
-        elif objType in manufacturerObjs:
-            if objType in dictObjs:    
-                for item in manufacturerObjs[objType].values():
+        elif objType in LIST_MANUFACTURER_OBJS:
+            if objType in LIST_DICT_OBJS:    
+                for item in LIST_MANUFACTURER_OBJS[objType].values():
                     if (manufacturer == "" or (manufacturer != "" and item["manufacturer"] == manufacturer)) and \
-                            (objType not in tlObjs or (objType in tlObjs and \
+                            (objType not in LIST_TL_OBJS or (objType in LIST_TL_OBJS and \
                                 (itemLevel == -1 or (itemLevel != -1 and item["techLevel"] == itemLevel)))):
                         foundObjs.append(item)
             else:
-                for item in manufacturerObjs[objType].values():
+                for item in LIST_MANUFACTURER_OBJS[objType].values():
                     if (manufacturer == "" or (manufacturer != "" and item.manufacturer == manufacturer)) and \
-                            (objType not in tlObjs or (objType in tlObjs and \
+                            (objType not in LIST_TL_OBJS or (objType in LIST_TL_OBJS and \
                                 (itemLevel == -1 or (itemLevel != -1 and item.techLevel == itemLevel)))):
                         foundObjs.append(item)
 
@@ -1233,7 +1237,7 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
         if True:
             resultsStr = ""
             for item in foundObjs:
-                if objType in dictObjs:
+                if objType in LIST_DICT_OBJS:
                     resultsStr += (item["emoji"] if "emoji" in item and item["emoji"] != " " else "•") \
                                     + " " + item["name"] + "\n"
                 else:
@@ -1260,7 +1264,10 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
 botCommands.register("list", cmd_list, 0, allowDM=True, helpSection="gof2 info",
                         signatureStr="**list** *[level <tech-level>]* *[manufacturer]* **<object-type>**",
                         shortHelp="List all objects in the game that match the given criteria. For example: " \
-                            + "`list vossk criminals` or `list level 3 terran ships`")
+                            + "`list vossk criminals` or `list level 3 terran ships`",
+                        longHelp="List all objects in the game that match the given criteria. For example: " \
+                            + "`list vossk criminals` or `list level 3 terran ships`\n\n"
+                            + f"Valid object types: {'/'.join(LIST_ALL_OBJ_TYPES)}")
 
 
 async def cmd_texture(message : discord.Message, args : str, isDM : bool):	
