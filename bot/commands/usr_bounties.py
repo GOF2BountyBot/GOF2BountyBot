@@ -568,15 +568,23 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
         await message.reply(":x: Invalid action! please choose from `challenge`, `cancel`, " \
                                     + "`reject/decline` or `accept`.", mention_author=False)
         return
+
     if action == "challenge":
         if len(argsSplit) < 3:
             await message.reply(":x: Please provide a user and the stakes (an amount of credits)!", mention_author=False)
             return
+        if not lib.stringTyping.isInt(argsSplit[-1]) or int(argsSplit[-1]) < 0:
+            await message.reply(":x: Invalid stakes! The duel stakes must be a number at least 0.")
+            return
+        stakes = int(argsSplit[-1])
+        requestedUser = lib.discordUtil.getMemberByRefOverDB(" ".join(argsSplit[1:-1]), dcGuild=message.guild)
+
     else:
         if len(argsSplit) < 2:
             await message.reply(mention_author=False, content=":x: Please provide a user!")
             return
-    requestedUser = lib.discordUtil.getMemberByRefOverDB(argsSplit[1], dcGuild=message.guild)
+        requestedUser = lib.discordUtil.getMemberByRefOverDB(argsSplit[1], dcGuild=message.guild)
+
     if requestedUser is None:
         await message.reply(mention_author=False, content=":x: User not found!")
         return

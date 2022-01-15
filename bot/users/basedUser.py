@@ -24,16 +24,16 @@ from ..reactionMenus import reactionMenu
 
 
 # Dictionary-serialized shipItem to give to new players
-defaultShipLoadoutDict = {"name": "Betty", "builtIn": True,
-                            "weapons": [{"name": "Micro Gun MK I", "builtIn": True}],
-                            "modules": [{"name": "Telta Quickscan", "builtIn": True},
-                                        {"name": "E2 Exoclad", "builtIn": True},
-                                        {"name": "IMT Extract 1.3", "builtIn": True}]}
+defaultShipLoadoutDict = {"name": "Betty", "type": "Ship", "builtIn": True,
+                            "weapons": [{"type": "PrimaryWeapon", "name": "Micro Gun MK I", "builtIn": True}],
+                            "modules": [{"type": "ScannerModule", "name": "Telta Quickscan", "builtIn": True},
+                                        {"type": "ArmourModule", "name": "E2 Exoclad", "builtIn": True},
+                                        {"type": "MiningDrillModule", "name": "IMT Extract 1.3", "builtIn": True}]}
 
 # Default attributes to give to new players
 defaultUserDict = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsWon": 0, "systemsChecked": 0, "bountyWins": 0,
                     "activeShip": defaultShipLoadoutDict, "bountyHuntingXP": gameMaths.bountyHuntingXPForLevel(1),
-                    "inactiveWeapons": [{"item": {"name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]}
+                    "inactiveWeapons": [{"item": {"type": "PrimaryWeapon", "name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]}
 
 # Reference value manually added, not pre-calculated from defaultUserDict. This is not used in the game's code,
 # but provides a reference for game design.
