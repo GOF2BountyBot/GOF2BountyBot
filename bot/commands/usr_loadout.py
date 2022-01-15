@@ -113,9 +113,11 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: " + ("The requested pilot" if foundUser else "You") + " only " \
                                         + ("has" if foundUser else "have") + " one page of items. Showing page one:")
             page = 1
+            firstPlace = 1
         elif page < 1:
             await message.reply(mention_author=False, content=":x: Invalid page number. Showing page one:")
             page = 1
+            firstPlace = 1
 
         hangarEmbed = lib.discordUtil.makeEmbed(titleTxt="Hangar", desc=requestedUser.mention,
                                                 col=bbData.factionColours["neutral"],
