@@ -868,7 +868,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     if attached:
         result = await util_autoskin.collectAutoskinArgs(message, args, cfg.skinRenderShowmeResolution[0],
                                                                         cfg.skinRenderShowmeResolution[1],
-                                                                        cfg.skinRenderShowmeSamples, full, True)
+                                                                        cfg.skinRenderShowmeSamples, True, full=full)
         if result is None:
             return
         shipName, rendererArgs = result
