@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, cast
+from typing import Dict, List, Tuple, Union, cast
 from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
 
 # All emojis used by the bot
@@ -556,3 +556,25 @@ moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 
 # The number of snowball icons that can be picked from for ThrowSnowballTool
 numSnowballs = 6
+
+leaderboardNames: Tuple[Tuple[str, ...], ...] = (
+    ('b', 'bal', 'balance', 'credits'),
+    ('c', 'checks'),
+    ('w', 'wins'),
+    ('xp',)
+)
+
+leaderboardTypeSettings: Tuple[Tuple[str, str, str, str, str], ...] = (
+    ("credits", "Current Balance", "Credit", "Credits", "*Current player credits balance"),
+    ("systemsChecked", "Systems Checked", "System", "Systems", f"*Total number of systems checked"),
+    ("bountyWins", "Bounties Won", "Bounty", "Bounties", "*Total number of bounties won"),
+    ("lifetimeBountyHuntingXP", "Lifetime Bounty Hunter XP", "XP", "XP",
+        "*Total amount of bounty hunting xp earned")
+)
+
+leaderboardHelpDescriptions: Tuple[str, ...] = (
+    "current credits balance",
+    "systems checked",
+    "bounties won",
+    "lifetime bounty hunter XP"
+)

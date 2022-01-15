@@ -538,6 +538,9 @@ class BasedUser(serializable.Serializable):
             return self.credits
         elif stat == "lifetimeBountyCreditsWon":
             return self.lifetimeBountyCreditsWon
+        elif stat == "lifetimeBountyHuntingXP":
+            return (0 if self.classicModeEnabled else self.bountyHuntingXP) \
+                    + self.prestiges * gameMaths.bountyHuntingXPForLevel(cfg.maxTechLevel)
         elif stat == "bountyCooldownEnd":
             return self.bountyCooldownEnd
         elif stat == "systemsChecked":
@@ -949,7 +952,8 @@ class BasedUser(serializable.Serializable):
                                                 inactiveTurrets=inactiveTurrets, inactiveTools=inactiveTools,
                                                 bountyHuntingXP=bountyHuntingXP, kaamo=kaamo, loma=loma,
                                                 ownedMenus=ownedMenus, lifetimeBountyCreditsWon=lifetimeBountyCreditsWon,
-                                                medals=medals, guildTransferCooldownEnd=guildTransferCooldownEnd))
+                                                medals=medals, guildTransferCooldownEnd=guildTransferCooldownEnd,
+                                                prestiges=userDict.get("prestiges", 0) or 0))
 
         newUser.inactiveTools.owningBUser = newUser
         return newUser
