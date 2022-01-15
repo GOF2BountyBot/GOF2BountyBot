@@ -35,11 +35,6 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     useDummyData = False
     prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
-    if len(argsSplit) > 3:
-        await message.reply(f":x: Too many arguments! Please see `{prefix}help hangar`.",
-                            mention_author=False)
-        return
-
     def extractArgs():
         requestedUser = message.author
         item = "all"
@@ -82,10 +77,6 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                 await message.reply(f":x: Invalid arguments, please see `{prefix}help hangar`.",
                                     mention_author=False)
             return
-
-    if requestedUser is None:
-        await message.reply(mention_author=False, content=":x: Unrecognised user!")
-        return
 
     if not botState.usersDB.idExists(requestedUser.id):
         useDummyData = True
@@ -249,11 +240,11 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                                         + "! Please enable DMs from users who are not friends.")
 
 botCommands.register("hangar", cmd_hangar, 0, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
-                    helpSection="loadout", signatureStr="**hangar** *[item-type]*",
+                    helpSection="loadout", signatureStr="**hangar** *[item-type]* *[page-number]*",
                     longHelp="Display the items stored in your hangar. Give an item type (ship/weapon/turret/module) to " \
                                 + "only list items of that type.")
 botCommands.register("hangar", cmd_hangar, 1, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
-                    signatureStr="**hangar** *[user]* *[item-type]*", shortHelp="Administrators have permission to view " \
+                    signatureStr="**hangar** *[item-type]* *[page-number]* *[user]*", shortHelp="Administrators have permission to view " \
                                     + "the hangars of other users.", longHelp="Display the items stored in your hangar. " \
                                     + "Give an item type (ship/weapon/turret/module) to only list items of that type.\n" \
                                     + "Administrators have permission to view the hangars of other users.")
