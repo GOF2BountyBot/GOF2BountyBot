@@ -1,4 +1,4 @@
-from bot.lib import gameMaths
+from typing import Tuple, Union
 import discord
 from datetime import datetime, timedelta
 from aiohttp import client_exceptions
@@ -12,6 +12,7 @@ from . import commandsDB as botCommands
 from . import util_help
 from .. import lib, botState
 from ..lib.stringTyping import commaSplitNum
+from ..lib import gameMaths
 from ..cfg import cfg, bbData, versionInfo
 from ..users import basedUser, basedGuild
 from ..reactionMenus import reactionMenu, reactionPollMenu
@@ -403,10 +404,11 @@ botCommands.register("stats", cmd_stats, 0, aliases=["profile"], forceKeepArgsCa
 async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
     """display leaderboards for different statistics
     if no arguments are given, display the local leaderboard for pilot value (value of loadout, hangar and balance, summed)
-    if -g is given, display the appropriate leaderbaord across all guilds
-    if -c is given, display the leaderboard for current balance
-    if -s is given, display the leaderboard for systems checked
-    if -w is given, display the leaderboard for bounties won
+    if 'g' or 'global' is given, display the appropriate leaderbaord across all guilds
+    if 'b' or 'bal' or 'balance or 'credits' is given, display the leaderboard for current balance
+    if 'c' or 'checks' is given, display the leaderboard for systems checked
+    if 'w' or 'wins' is given, display the leaderboard for bounties won
+    if 'xp' is given, display the leaderboard for bounty hunter xp
 
     :param discord.Message message: the discord message calling the command
     :param str args: string containing the arguments the user passed to the command
@@ -430,42 +432,55 @@ async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
     else:
         prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
+    globalArgs = ('global', 'g')
+    foundBoardType = False
+
+    def stripArg(possibleArgs) -> Tuple[str, bool]:
+        matched = False
+        longestMatch = ""
+        newStr = ""
+        for i in possibleArgs:
+            if args == i:
+                return "", True
+            elif args.startswith(i) and len(i) > len(longestMatch):
+                newStr = args[len(i):].strip()
+                matched = True
+                longestMatch = i
+            elif args.endswith(i) and len(i) > len(longestMatch):
+                newStr = args[:-len(i)].strip()
+                matched = True
+                longestMatch = i
+
+        if matched:
+            return newStr, True
+        return args, False
+
     # change leaderboard arguments based on the what is provided in args
-    if args != "":
-        args = args.lower()
-        if not args.startswith("-"):
-            await message.reply(mention_author=False, content=":x: Please prefix your arguments with a dash! E.g: `" + prefix + "leaderboard -gc`")
-            return
-        args = args[1:]
-        if ("g" not in args and len(args) > 2) or ("g" in args and len(args) > 3):
-            await message.reply(mention_author=False, content=":x: Too many arguments! Please only specify one leaderboard. E.g: `" + prefix \
-                                        + "leaderboard -gc`")
-            return
-        for arg in args:
-            if arg not in "gcsw":
-                await message.reply(mention_author=False, content=":x: Unknown argument: '**" + arg + "**'. Please refer to `" + prefix \
-                                            + "help leaderboard`")
+    while args != "":
+        args, isGlobal = stripArg(globalArgs)
+        anyMatch = isGlobal
+        if isGlobal:
+            if globalBoard:
+                await message.reply(":x: Please only specify global once.", mention_author=False)
                 return
-        if "c" in args:
-            stat = "credits"
-            boardTitle = "Current Balance"
-            boardUnit = "Credit"
-            boardUnits = "Credits"
-            boardDesc = "*Current player credits balance"
-        elif "s" in args:
-            stat = "systemsChecked"
-            boardTitle = "Systems Checked"
-            boardUnit = "System"
-            boardUnits = "Systems"
-            boardDesc = "*Total number of systems `" + prefix + "check`ed"
-        elif "w" in args:
-            stat = "bountyWins"
-            boardTitle = "Bounties Won"
-            boardUnit = "Bounty"
-            boardUnits = "Bounties"
-            boardDesc = "*Total number of bounties won"
-        if "g" in args:
             globalBoard = True
+
+        for boardType, boardNames in enumerate(cfg.leaderboardNames):
+            args, nameMatch = stripArg(boardNames)
+            if nameMatch:
+                if foundBoardType:
+                    await message.reply(":x: Too many arguments! Please only specify one leaderboard.", mention_author=False)
+                    return
+                foundBoardType = True
+                anyMatch = True
+                stat, boardTitle, boardUnit, boardUnits, boardDesc = cfg.leaderboardTypeSettings[boardType]
+
+        if not anyMatch:
+            await message.reply(f":x: Unknown argument: '**{args}**'. Please refer to `{prefix}help leaderboard`",
+                                mention_author=False)
+            return
+
+        if globalBoard:
             boardScope = "Global Leaderboard"
             boardDesc += " across all servers"
 
@@ -486,35 +501,43 @@ async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
     # add all users to the leaderboard embed with places and values
     externalUser = False
     first = True
+
+    valueIsInt = isinstance(sortedUsers[0][1], int)
+
     for place in range(min(len(sortedUsers), 10)):
-        # handling for global leaderboards and users not in the local guild
-        if globalBoard and message.guild.get_member(sortedUsers[place][0]) is None:
-            leaderboardEmbed.add_field(value="*" + str(place + 1) + ". " \
-                                            + str(botState.client.get_user(sortedUsers[place][0])),
-                                        name=("⭐ " if first else "") + str(sortedUsers[place][1]) + " " \
-                                            + (boardUnit if sortedUsers[place][1] == 1 else boardUnits), inline=False)
+        memberAttempt = message.guild.get_member(sortedUsers[place][0])
+
+        # handling for global leaderboards/users not in the local guild
+        if memberAttempt is None:
+            currentUser = botState.client.get_user(sortedUsers[place][0])
+            if currentUser is None:
+                currentUser = f"*<@{sortedUsers[place][0]}>"
+            else:
+                currentUser = f"*{currentUser}"
             externalUser = True
-            if first:
-                first = False
         else:
-            leaderboardEmbed.add_field(value=str(place + 1) + ". " + message.guild.get_member(sortedUsers[place][0]).mention,
-                                        name=("⭐ " if first else "") + str(sortedUsers[place][1]) + " " \
-                                            + (boardUnit if sortedUsers[place][1] == 1 else boardUnits), inline=False)
-            if first:
-                first = False
+            currentUser = memberAttempt.mention
+        
+        currentValue = commaSplitNum(sortedUsers[place][1]) if valueIsInt else str(sortedUsers[place][1])
+        currentUnits = boardUnit if sortedUsers[place][1] == 1 else boardUnits
+        leaderboardEmbed.add_field(name=f"{'⭐ ' if first else ''}{currentValue} {currentUnits}",
+                                    value=f"{place + 1}. {currentUser}",
+                                    inline=False)
+        if first:
+            first = False
+
     # If at least one external use is on the leaderboard, give a key
     if externalUser:
-        leaderboardEmbed.set_footer(
-            text="An `*` indicates a user that is from another server.")
+        leaderboardEmbed.set_footer(text="* A user that is from another server")
     # send the embed
     await message.reply(mention_author=False, embed=leaderboardEmbed)
 
-botCommands.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signatureStr="**leaderboard** *[-g|-c|-s|-w]*",
-                        longHelp="Show the leaderboard for total player value. Give `-g` for the global leaderboard, " \
-                            + "not just this server.\n> Give `-c` for the current credits balance leaderboard.\n" \
-                            + "> Give `-s` for the 'systems checked' leaderboard.\n" \
-                            + "> Give `-w` for the 'bounties won' leaderboard.\n" \
-                            + "E.g: `leaderboard -gs`")
+botCommands.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signatureStr="**leaderboard** *[global] [stat]*",
+                        longHelp="Show the leaderboard for total player value. Give `g` or `global` for the global " \
+                            + "leaderboard, not just this server." + ("" if not cfg.leaderboardHelpDescriptions else "\n\n" \
+                            + "\n".join(f"> Give `{'`/`'.join(cfg.leaderboardNames[boardType])}` for " \
+                                        + f"'{cfg.leaderboardHelpDescriptions[boardType]}'." \
+                                        for boardType in range(len(cfg.leaderboardHelpDescriptions)))))
 
 
 async def cmd_notify(message : discord.Message, args : str, isDM : bool):
