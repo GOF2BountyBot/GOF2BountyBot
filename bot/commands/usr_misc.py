@@ -192,8 +192,8 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
     # verify the user mention
     if requestedUser is None:
         await message.reply(mention_author=False,
-                            content=f":x: **Invalid user!** use `{prefix}stats` to display your own balance, or `" \
-                                    + f"{prefix}balance <user>` to display someone else's balance!\n" \
+                            content=f":x: Invalid user! use `{prefix}stats` to display your own balance, or `" \
+                                    + f"{prefix}balance <user>` to display someone else's balance.\n" \
                                     + "When referencing a player from another server, you must use their long ID number")
         return
 
