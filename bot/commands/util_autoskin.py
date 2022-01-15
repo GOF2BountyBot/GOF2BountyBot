@@ -222,6 +222,13 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                                                                                 numRegions=shipData["textureRegions"])
         pickedLayers = []
         menuOutput = await layersPickerMenu.doMenu()
+        # Menu expired
+        if not menuOutput:
+            for skinPath in skinPaths.values():
+                os.remove(skinPath)
+            botState.currentRenders.remove(itemName)
+            return None
+
         if cfg.defaultEmojis.spiral in menuOutput:
             pickedLayers = layerIndices
         elif cfg.defaultEmojis.cancel in menuOutput:
@@ -247,6 +254,13 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                                                                                             possibleRegions=remainingIndices,
                                                                                             desc=disableHelpMsg)
             menuOutput = await disabledLayersPickerMenu.doMenu()
+            # Menu expired
+            if not menuOutput:
+                for skinPath in skinPaths.values():
+                    os.remove(skinPath)
+                botState.currentRenders.remove(itemName)
+                return None
+                
             if cfg.defaultEmojis.spiral in menuOutput:
                 disabledLayers = remainingIndices
             elif cfg.defaultEmojis.cancel in menuOutput:
