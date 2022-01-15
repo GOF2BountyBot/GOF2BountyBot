@@ -991,7 +991,8 @@ async def dev_cmd_set_bounty_level(message : discord.Message, args : str, isDM :
         await message.reply(mention_author=False, content=":x: invalid user!!")
         return
 
-    await dev_cmd_set_bounty_xp(message, f"{requestedUser.mention} {argsSplit[1]}", isDM)
+    newXP = gameMaths.bountyHuntingXPForLevel(int(argsSplit[1]))
+    await dev_cmd_set_bounty_xp(message, f"{requestedUser.mention} {newXP}", isDM)
 
 botCommands.register("set-bounty-level", dev_cmd_set_bounty_level, 3, allowDM=True, helpSection="bounties", useDoc=True) 
 
