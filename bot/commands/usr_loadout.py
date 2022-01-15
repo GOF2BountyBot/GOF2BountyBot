@@ -1,10 +1,12 @@
+from typing import cast
 import discord
 
 from . import commandsDB as botCommands
 from .. import lib, botState
 from ..cfg import cfg, bbData
 from ..users import basedUser
-from ..gameObjects.items import shipItem
+from ..gameObjects.items import shipItem, gameItem
+from ..gameObjects.inventories import inventory
 
 
 botCommands.addHelpSection(0, "loadout")
@@ -30,61 +32,65 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     item = "all"
     page = 1
 
-    foundUser = False
-    foundItem = False
-    foundPage = False
-
     useDummyData = False
+    prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     if len(argsSplit) > 3:
-        await message.reply(mention_author=False, content=":x: Too many arguments! I can only take a target user, an item type " \
-                                    + "(ship/weapon/module), and a page number!")
+        await message.reply(f":x: Too many arguments! Please see `{prefix}help hangar`.",
+                            mention_author=False)
         return
 
+    def extractArgs():
+        requestedUser = message.author
+        item = "all"
+        page = 1
+        foundUser = False
+        foundItem = False
+        foundPage = False
+
+        arg = argsSplit[0]
+        if arg.rstrip("s") in cfg.validItemNames:
+            item = arg.rstrip("s")
+            foundItem = True
+            if len(argsSplit) == 1:
+                return requestedUser, item, page, True
+
+        arg = argsSplit[int(foundItem)]
+        if lib.stringTyping.isInt(arg):
+            page = int(arg)
+            foundPage = True
+            if len(argsSplit) < foundItem + foundPage + 1:
+                return requestedUser, item, page, True
+
+        arg = " ".join(argsSplit[foundItem+foundPage:])
+        userAttempt = lib.discordUtil.getMemberByRefOverDB(arg, dcGuild=message.guild)
+        if userAttempt is not None:
+            requestedUser = userAttempt
+            foundUser = True
+        
+        finalIndex = foundItem+foundPage+foundUser
+        success = finalIndex == 0 or finalIndex + 1 != len(argsSplit)
+
+        return requestedUser if foundUser else None, item, page, success
+
     if args != "":
-        argNum = 1
-        for arg in argsSplit:
-            if arg != "":
-                if lib.discordUtil.getMemberByRefOverDB(arg, dcGuild=message.guild) is not None:
-                    if foundUser:
-                        await message.reply(mention_author=False, content=":x: I can only take one user!")
-                        return
-                    else:
-                        requestedUser = lib.discordUtil.getMemberByRefOverDB(arg, dcGuild=message.guild)
-                        foundUser = True
-
-                elif arg.rstrip("s") in cfg.validItemNames:
-                    if foundItem:
-                        await message.reply(mention_author=False, content=":x: I can only take one item type (ship/weapon/module/turret)!")
-                        return
-                    else:
-                        item = arg.rstrip("s")
-                        foundItem = True
-
-                elif lib.stringTyping.isInt(arg):
-                    if foundPage:
-                        await message.reply(mention_author=False, content=":x: I can only take one page number!")
-                        return
-                    else:
-                        page = int(arg)
-                        foundPage = True
-                else:
-                    await message.reply(mention_author=False, content=":x: " + str(argNum) + lib.stringTyping.getNumExtension(argNum) \
-                                                + " argument invalid! I can only take a target user, an item type " \
-                                                + "(ship/weapon/module/turret), and a page number!")
-                    return
-                argNum += 1
+        requestedUser, item, page, success = extractArgs()
+        if not success:
+            if requestedUser is None:
+                await message.reply(f":x: Unrecognised user!")
+            else:
+                await message.reply(f":x: Invalid arguments, please see `{prefix}help hangar`.",
+                                    mention_author=False)
+            return
 
     if requestedUser is None:
         await message.reply(mention_author=False, content=":x: Unrecognised user!")
         return
 
     if not botState.usersDB.idExists(requestedUser.id):
-        if not foundUser:
-            botState.usersDB.addID(requestedUser.id)
-        else:
-            useDummyData = True
+        useDummyData = True
 
+    foundUser = requestedUser != message.author
     sendChannel = None
     sendDM = False
 
@@ -98,6 +104,13 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
             sendDM = True
     else:
         sendChannel = message.channel
+
+    if item == "all":
+        maxPerPage = cfg.maxItemsPerHangarPageAll
+    else:
+        maxPerPage = cfg.maxItemsPerHangarPageIndividual
+
+    firstPlace = maxPerPage * (page - 1) + 1
 
     if useDummyData:
         if page > 1:
@@ -114,17 +127,37 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                                                             + "s - page " + str(page),
                                                 thumb=requestedUser.avatar_url_as(size=64))
 
-        hangarEmbed.add_field(name="No Stored Items", value="‎", inline=False)
+        for itemType in ("ship", "weapon", "module", "turret", "tool"):
+            itemInactivesDict = basedUser.defaultUserDict.get(f"inactive{itemType.title()}s", False)
+            if not itemInactivesDict:
+                continue
+
+            itemInactives = inventory.Inventory()
+            for itemDict in itemInactivesDict:
+                itemInactives.addItem(gameItem.spawnItem(itemDict["item"]), itemDict.get("count", 1))
+            
+            numPages = int(itemInactives.numKeys / maxPerPage) + (0 if itemInactives.numKeys % maxPerPage == 0 else 1)
+            lastItemNumber = (firstPlace + maxPerPage) if page < numPages else itemInactives.numKeys
+
+            for itemNum in range(firstPlace, lastItemNumber + 1):
+                if itemNum == firstPlace:
+                    hangarEmbed.add_field(name="‎", value=f"__**Stored {itemType.title()}s**__", inline=False)
+
+                currentItem = cast(gameItem.GameItem, itemInactives[itemNum - 1].item)
+                currentItemCount = itemInactives[itemNum- 1].count
+                hangarEmbed.add_field(name=str(itemNum) + ". " \
+                                            + (currentItem.emoji.sendable + " " if currentItem.hasEmoji else "") \
+                                            + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
+                                            + currentItem.name,
+                                        value=currentItem.statsStringShort(), inline=False)
+
+        if not hangarEmbed.fields:
+            hangarEmbed.add_field(name="No Stored Items", value="‎", inline=False)
         await message.reply(mention_author=False, embed=hangarEmbed)
         return
 
     else:
         requestedBBUser = botState.usersDB.getUser(requestedUser.id)
-
-        if item == "all":
-            maxPerPage = cfg.maxItemsPerHangarPageAll
-        else:
-            maxPerPage = cfg.maxItemsPerHangarPageIndividual
 
         if page < 1:
             await message.reply(mention_author=False, content=":x: Invalid page number. Showing page one:")
@@ -147,7 +180,6 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                                                             + "s - page " + str(page) + "/" \
                                                             + str(requestedBBUser.numInventoryPages(item, maxPerPage)),
                                                 thumb=requestedUser.avatar_url_as(size=64))
-        firstPlace = maxPerPage * (page - 1) + 1
 
         if item in ["all", "ship"]:
             for shipNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("ship", page, maxPerPage) + 1):

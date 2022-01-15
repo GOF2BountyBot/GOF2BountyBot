@@ -557,16 +557,16 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Please give a target user and an amount!")
         return
 
-    if not lib.stringTyping.isInt(argsSplit[1]):
+    if not lib.stringTyping.isInt(argsSplit[-1]):
         await message.reply(mention_author=False, content=":x: Invalid amount!")
         return
 
-    requestedUser = lib.discordUtil.getMemberByRefOverDB(argsSplit[0], dcGuild=message.guild)
+    requestedUser = lib.discordUtil.getMemberByRefOverDB(" ".join(argsSplit[:-1]), dcGuild=message.guild)
     if requestedUser is None:
         await message.reply(mention_author=False, content=":x: Unknown user!")
         return
 
-    amount = int(argsSplit[1])
+    amount = int(argsSplit[-1])
     if amount < 1:
         await message.reply(mention_author=False, content=":x: You have to pay at least 1 credit!")
         return
