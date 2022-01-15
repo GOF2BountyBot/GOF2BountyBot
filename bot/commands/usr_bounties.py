@@ -583,7 +583,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
         if len(argsSplit) < 2:
             await message.reply(mention_author=False, content=":x: Please provide a user!")
             return
-        requestedUser = lib.discordUtil.getMemberByRefOverDB(argsSplit[1], dcGuild=message.guild)
+        requestedUser = lib.discordUtil.getMemberByRefOverDB(" ".join(argsSplit[1:]), dcGuild=message.guild)
 
     if requestedUser is None:
         await message.reply(mention_author=False, content=":x: User not found!")
@@ -610,7 +610,6 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
     callingGuild = botState.guildsDB.getGuild(message.guild.id)
 
     if action == "challenge":
-        stakes = int(argsSplit[2])
         if sourceBBUser.hasDuelChallengeFor(targetBBUser):
             await message.reply(mention_author=False, content=":x: You already have a duel challenge pending for " \
                                         + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
