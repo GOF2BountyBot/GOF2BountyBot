@@ -9,10 +9,11 @@ from discord import Message
 from .... import botState
 from ..gameItem import spawnableItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
+from ....baseClasses.hasRarity import HasRarity
 
 
 @spawnableItem
-class ShipSkinTool(toolItem.ToolItem):
+class ShipSkinTool(HasRarity, toolItem.ToolItem):
     """A tool that can be used to apply a skin to a ship.
     This item is named after the skin it applies.
     The manufacturer is set to the skin designer.
@@ -41,7 +42,7 @@ class ShipSkinTool(toolItem.ToolItem):
                             wiki=wiki if wiki else skin.wiki if skin.hasWiki else "",
                             manufacturer=skin.designer, icon=icon, emoji=emoji,
                             techLevel=techLevel if techLevel > -1 else skin.averageTL, builtIn=builtIn,
-                            autoUse=autoUse)
+                            autoUse=autoUse, rarityLevel=skin.rarityLevel)
         self.skin = skin
 
 
