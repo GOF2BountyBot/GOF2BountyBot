@@ -38,7 +38,7 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
         if emoji is None:
             emoji = cfg.defaultEmojis.shipSkinTool
         super().__init__(lib.stringTyping.shipSkinNameToToolName(skin.name.title()), [skin.name, "Skin: " + skin.name,
-                            "Ship Skin " + skin.name + "Skin " + skin.name], value=value,
+                            "Ship Skin " + skin.name, "Skin " + skin.name], value=value,
                             wiki=wiki if wiki else skin.wiki if skin.hasWiki else "",
                             manufacturer=skin.designer, icon=icon, emoji=emoji,
                             techLevel=techLevel if techLevel > -1 else skin.averageTL, builtIn=builtIn,
