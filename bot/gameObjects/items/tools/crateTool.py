@@ -231,7 +231,7 @@ class CrateTool(toolItem.ToolItem):
                 if truncateLevel:
                     itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible items" 
                                         
-            return f"*Use to open the crate and receive one of the following:\n\n{itemsByRarity}*" 
+            return f"*Use to open the crate and receive one of the following:\n{itemsByRarity}*" 
 
         if len(self.itemPool) > 30:
             return "Use to open the crate and receive one of the following:\n\n" \
@@ -382,7 +382,7 @@ class ShipSkinCrateTool(CrateTool):
                 if truncateLevel:
                     itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible skins" 
                                         
-            return f"*Use to open the crate and receive one of the following:\n\n{itemsByRarity}*" 
+            return f"*Use to open the crate and receive one of the following ship skins:\n{itemsByRarity}*" 
 
         if len(self.itemPool) > 30:
             return "Use to open the crate and receive one of the following ship skins:\n\n" \
