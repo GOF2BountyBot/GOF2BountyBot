@@ -727,7 +727,7 @@ class Ship(GameItem):
         stats = ""
         if self.isSkinned:
             rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[self.skin.rarityLevel]}').sendable
-            stats += f"> Skin: {rarityEmoji}{self.skin.name.title()}\n"
+            stats += f"> {rarityEmoji}`Ship Skin: {self.skin.name.title()}`\n"
         stats += "• *Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.armour else "") + "*\n"
         # stats += "Cargo hold: " + str(self.cargo) + ", "
@@ -765,7 +765,8 @@ class Ship(GameItem):
         """
         stats = ""
         if self.isSkinned:
-            stats += f"> Ship skin: {self.skin.title()}\n"
+            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[self.skin.rarityLevel]}').sendable
+            stats += f"> {rarityEmoji}`Ship Skin: {self.skin.name.title()}`\n"
         stats += "*Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.armour else "") + ", "
         stats += "Cargo hold: " + str(self.getCargo(shipUpgradesOnly=True)) + ("(+)" \
