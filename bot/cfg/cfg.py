@@ -55,7 +55,12 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
 
     "classicMode": UninitializedBasedEmoji("💽"),
 
-    "money": UninitializedBasedEmoji("💰")
+    "money": UninitializedBasedEmoji("💰"),
+
+    "rarity_common": UninitializedBasedEmoji("⚫"),
+    "rarity_uncommon": UninitializedBasedEmoji("🟤"),
+    "rarity_rare": UninitializedBasedEmoji("🟠"),
+    "rarity_epic": UninitializedBasedEmoji("🔴")
 })
 
 timeouts = {
@@ -504,6 +509,12 @@ maxModuleTypeEquips = {     "ArmourModule": 1,
 
 # valid types of crateItem that are in the game. Each will be associated with a zero-indexed (crateNum) list of crate objects
 crateTypes = ("levelUp", "special", "christmas")
+
+# Names of item rarities. Item rarity levels are integers that correspond to indices in this tuple.
+itemRarities = ("common", "uncommon", "rare", "epic")
+
+# Probability distribution of an event occurring involving an item of a given rarity. E.g crate drop rates. Must be integers.
+itemRaritiesDistribution = (450, 280, 150, 70)
 
 
 
