@@ -908,7 +908,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False, embed=itemEmbed)
         else:
             shipIcon = shipData.get("icon", False)
-            if shipIcon:
+            if not shipIcon:
                 await message.reply(mention_author=False,
                                     content=f":x: I don't have an icon for **{itemName}**!")
             else:
