@@ -713,8 +713,9 @@ async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
     for potentialName in bbData.builtInToolObjs.keys():
         if bbData.builtInToolObjs[potentialName].isCalled(toolName):
             requestedTool = bbData.builtInToolObjs[potentialName]
+            break
 
-    if toolName not in bbData.builtInToolObjs:
+    if requestedTool is None:
         if len(toolName) < 20:
             await message.channel.send(":x: The **" + toolName + "** tool is not in my database! :detective:")
         else:
