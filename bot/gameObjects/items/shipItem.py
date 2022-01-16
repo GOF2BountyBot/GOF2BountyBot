@@ -55,8 +55,8 @@ class Ship(GameItem):
     :var upgradesApplied: A list containing references to all shipUpgrades objects applied to this ship. May contain
                     duplicate references to save on memory.
     :vartype upgradesApplied: list[shipUpgrade]
-    :var skin: The name of the skin applied to this ship
-    :vartype skin: str
+    :var skin: The skin applied to this ship
+    :vartype skin: ShipSkin
     """
 
     def __init__(self, name : str, maxPrimaries : int, maxTurrets : int,
@@ -66,7 +66,7 @@ class Ship(GameItem):
                     modules : List[moduleItem.ModuleItem] = [], turrets : List[TurretWeapon] = [],
                     wiki : str = "", upgradesApplied : List[shipUpgrade.ShipUpgrade] = [], nickname : str = "",
                     icon : str = "", emoji : BasedEmoji = BasedEmoji.EMPTY, techLevel : int = -1,
-                    shopSpawnRate : float = 0, builtIn : bool = False, skin : str = ""):
+                    shopSpawnRate : float = 0, builtIn : bool = False, skin : "shipSkin.ShipSkin" = None):
         """
         :param str name: A name to uniquely identify this model of ship.
         :param str nickname: A custom name for this ship, assigned by the owning player
@@ -100,7 +100,7 @@ class Ship(GameItem):
                                 ship (Default False)
         :param float shopSpawnRate: A pre-calculated float indicating the highest spawn rate of this ship
                                     (i.e its spawn probability for a shop of the same techLevel) (Default 0)
-        :param str skin: The name of the skin applied to the ship
+        :param ShipSkin skin: The skin applied to the ship
         """
         super(Ship, self).__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon, emoji=emoji,
                                         techLevel=techLevel, builtIn=builtIn)
@@ -141,7 +141,7 @@ class Ship(GameItem):
         self.shopSpawnRate = shopSpawnRate
 
         self.skin = skin
-        self.isSkinned = skin != ""
+        self.isSkinned = skin is not None
 
 
     def getNumWeaponsEquipped(self) -> int:
@@ -714,7 +714,7 @@ class Ship(GameItem):
         if not skin.compatibleWithShip(self):
             return TypeError("The given skin is not compatible with this ship")
         self.icon = skin.shipRenders[self.name][0]
-        self.skin = skin.name
+        self.skin = skin
         self.isSkinned = True
 
 
@@ -726,7 +726,8 @@ class Ship(GameItem):
         """
         stats = ""
         if self.isSkinned:
-            stats += f"> Skin: {self.skin.title()}\n"
+            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[self.skin.rarityLevel]}').sendable
+            stats += f"> Skin: {rarityEmoji}{self.skin.name.title()}\n"
         stats += "• *Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.armour else "") + "*\n"
         # stats += "Cargo hold: " + str(self.cargo) + ", "
@@ -825,8 +826,8 @@ class Ship(GameItem):
         itemDict["turrets"] = turretsList
         itemDict["shipUpgrades"] = upgradesList
         itemDict["nickname"] = self.nickname
-        itemDict["skin"] = self.skin
         if self.isSkinned:
+            itemDict["skin"] = self.skin.toDict(**kwargs)
             itemDict["icon"] = self.icon
 
         if not self.builtIn:
@@ -868,11 +869,16 @@ class Ship(GameItem):
         ignoredData = ("model","compatibleSkins", "normSpec", \
                         "saveDue", "skinnable", "textureRegions", "path", "type",
                         "weapons", "modules", "turrets", "shipUpgrades", "emoji",
-                        "numSecondaries")
+                        "numSecondaries", "skin")
 
         if "numSecondaries" in shipDict:
             shipDict["maxSecondaries"] = shipDict["numSecondaries"]
             del shipDict["numSecondaries"]
+
+        if "skin" in shipDict:
+            skin = shipSkin.ShipSkin.fromDict(shipDict["skin"])
+        else:
+            skin = None
 
         if shipDict["builtIn"]:
             builtInDict = bbData.builtInShipData[shipDict["name"]]
@@ -896,7 +902,8 @@ class Ship(GameItem):
                                                 turrets=turrets if "turrets" in shipDict else builtInTurrets,
                                                 upgradesApplied=shipUpgrades if "shipUpgrades" in shipDict \
                                                                 else builtInShipUpgrades,
-                                                emoji=BasedEmoji.fromStr(emojiStr) if emojiStr else BasedEmoji.EMPTY))
+                                                emoji=BasedEmoji.fromStr(emojiStr) if emojiStr else BasedEmoji.EMPTY,
+                                                skin=skin))
             return newShip
 
         else:
@@ -904,4 +911,5 @@ class Ship(GameItem):
                                             weapons=weapons, modules=modules, turrets=turrets,
                                             upgradesApplied=shipUpgrades, builtIn=False,
                                             emoji=BasedEmoji.fromStr(shipDict["emoji"])
-                                                    if "emoji" in shipDict else BasedEmoji.EMPTY))
+                                                    if "emoji" in shipDict else BasedEmoji.EMPTY,
+                                            skin=skin))
