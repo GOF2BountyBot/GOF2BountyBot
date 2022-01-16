@@ -181,7 +181,7 @@ class CrateTool(toolItem.ToolItem):
                                                     cfg.toolUseConfirmTimeoutSeconds).doMenu()
 
         if cfg.defaultEmojis.accept in confirmation:
-            newItem = random.choice(self.itemPool)
+            newItem = self.pickItem()
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
             callingBUser.inactiveTools.removeItem(self)
 
