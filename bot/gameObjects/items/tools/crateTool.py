@@ -89,6 +89,7 @@ class CrateTool(toolItem.ToolItem):
         self.crateType = crateType
         self.typeNum = typeNum
 
+        self.useRarities = False
         for index, item in enumerate(self.itemPool):
             # Make sure all items have rarity
             if not isinstance(item, HasRarity):
