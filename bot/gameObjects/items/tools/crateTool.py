@@ -13,11 +13,17 @@ from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
+from ....baseClasses.hasRarity import HasRarity
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
 
 def singleTypeCrate(itemType: Type[gameItem.GameItem]):
+    """Registers this CrateTool type as restricted to a single item type in its itemPool.
+    This does not on its own enforce the restriction, you must do this in your constructor.
+    When a vanilla CrateTool is *deserialized*, if it only contains items of type itemType, your type-restricted CrateTool
+    type will be deserialized instead.
+    """
     def dec_register(cls: Type["CrateTool"]):
         if itemType in singleTypeCrates:
             raise KeyError("A singleTypeCrate is already registered with this type")
@@ -37,6 +43,9 @@ class CrateTool(toolItem.ToolItem):
     :vartype crateType: str
     :var typeNum: A sub-type of crateType, e.g where crateType is levelup, typeNum might be the player's new level
     :vartype typeNum: int
+    :var useRarities: True if all items in itemPool have a rarityLevel. Items will then be drawn according to
+                        cfg.itemRaritiesDistribution. If False, then items will be drawn uniformally.
+    :vartype useRarities: bool
     """
 
     def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
@@ -80,6 +89,55 @@ class CrateTool(toolItem.ToolItem):
         self.crateType = crateType
         self.typeNum = typeNum
 
+        self.useRarities = False
+        for index, item in enumerate(self.itemPool):
+            # Make sure all items have rarity
+            if not isinstance(item, HasRarity):
+                self.useRarities = False
+                break
+            # Make sure there are at least two rarity levels
+            if not self.useRarities \
+                    and index != len(self.itemPool) - 1 \
+                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel:
+                self.useRarities = True
+
+        if self.useRarities:
+            self._itemPoolByRarity = [
+                [i for i in self.itemPool if i.rarityLevel == rarityLevel]
+                for rarityLevel in range(len(cfg.itemRarities))
+            ]
+        else:
+            self._itemPoolByRarity = None
+
+
+    @property
+    def itemPoolByRarity(self) -> List[List[gameItem.GameItem]]:
+        """A read-only list, with lists containing the items in the crates item pool for each rarity level
+        defined in `cfg.itemRarities`. This property is only valid when `self.useRarities` is `True`.
+
+        :return: `self.itemPool` sorted into separate lists by their `rarityLevel`
+        :rtype: gameItem.GameItem
+        """
+        if not self.useRarities:
+            raise ValueError("itemPoolByRarity is not valid for this crate, as useRarities = False")
+        return self._itemPoolByRarity
+
+
+    def pickItem(self) -> gameItem.GameItem:
+        """Select an item from the crate, accounting for self.useRarities
+
+        :return: A randomly selected item from the item pool
+        :rtype: gameItem.GameItem
+        """
+        if not self.useRarities:
+            return random.choice(self.itemPool)
+
+        rarityLevel = gameMaths.pickRandomItemRarityLevel()
+        while not any(i.rarityLevel == rarityLevel for i in self.itemPool):
+            rarityLevel = gameMaths.pickRandomItemRarityLevel()
+
+        return random.choice(self.itemPoolByRarity[rarityLevel])
+
 
     async def use(self, *args, **kwargs):
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
@@ -94,7 +152,7 @@ class CrateTool(toolItem.ToolItem):
                             + type(kwargs["callingBUser"]).__name__)
 
         callingBUser = kwargs["callingBUser"]
-        newItem = random.choice(self.itemPool)
+        newItem = self.pickItem()
         callingBUser.getInventoryForItem(newItem).addItem(newItem)
         callingBUser.inactiveTools.removeItem(self)
 
@@ -123,7 +181,7 @@ class CrateTool(toolItem.ToolItem):
                                                     cfg.toolUseConfirmTimeoutSeconds).doMenu()
 
         if cfg.defaultEmojis.accept in confirmation:
-            newItem = random.choice(self.itemPool)
+            newItem = self.pickItem()
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
             callingBUser.inactiveTools.removeItem(self)
 
@@ -139,6 +197,13 @@ class CrateTool(toolItem.ToolItem):
         :return: A string summarising the statistics and functionality of this item
         :rtype: str
         """
+        if self.useRarities:
+            itemsByRarity = '\n'.join(f"{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+                                    + f"{len(self.itemPoolByRarity[rarityLevel])} {rarityName.title()}" \
+                                        for rarityLevel, rarityName in enumerate(cfg.itemRarities))
+                                        
+            return f"*{len(self.itemPool)} possible items:\n{itemsByRarity}*"
+
         if len(self.itemPool) > 9:
             return "*" + str(len(self.itemPool)) + " possible items*"
         else:
@@ -146,6 +211,28 @@ class CrateTool(toolItem.ToolItem):
 
 
     def statsStringLong(self) -> str:
+        if self.useRarities:
+            largePool = len(self.itemPool) > 30
+            itemsByRarity = ""
+            for rarityLevel, rarityName in enumerate(cfg.itemRarities):
+                itemsForLevel = self.itemPoolByRarity[rarityLevel]
+                numItemsInLevel = len(itemsForLevel)
+                if numItemsInLevel == 0:
+                    continue
+
+                truncateLevel = False
+                if largePool and numItemsInLevel > 5:
+                    truncateLevel = True
+                    itemsForLevel = self.itemPoolByRarity[rarityLevel][:5]
+
+                itemsByRarity += f"\n{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+                                    + f"{rarityName.title()}: " \
+                                    + ", ".join(i.name for i in itemsForLevel)
+                if truncateLevel:
+                    itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible items" 
+                                        
+            return f"*Use to open the crate and receive one of the following:\n{itemsByRarity}*" 
+
         if len(self.itemPool) > 30:
             return "Use to open the crate and receive one of the following:\n\n" \
                 + f"*{' • '.join(i.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible items*"
@@ -275,9 +362,32 @@ class ShipSkinCrateTool(CrateTool):
 
 
     def statsStringLong(self) -> str:
+        if self.useRarities:
+            largePool = len(self.itemPool) > 30
+            itemsByRarity = ""
+            for rarityLevel, rarityName in enumerate(cfg.itemRarities):
+                itemsForLevel = self.itemPoolByRarity[rarityLevel]
+                numItemsInLevel = len(itemsForLevel)
+                if numItemsInLevel == 0:
+                    continue
+
+                truncateLevel = False
+                if largePool and numItemsInLevel > 5:
+                    truncateLevel = True
+                    itemsForLevel = self.itemPoolByRarity[rarityLevel][:5]
+
+                itemsByRarity += f"\n{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+                                    + f"{rarityName.title()}: " \
+                                    + ", ".join(i.skin.name for i in itemsForLevel)
+                if truncateLevel:
+                    itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible skins" 
+                                        
+            return f"*Use to open the crate and receive one of the following ship skins:\n{itemsByRarity}*" 
+
         if len(self.itemPool) > 30:
-            return "Use to open the crate and receive one of the following skins:\n\n" \
+            return "Use to open the crate and receive one of the following ship skins:\n\n" \
                 + f"*{' • '.join(i.skin.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible skins*"
         else:
-            return "Use to open the crate and receive one of the following skins:\n\n" \
+            return "Use to open the crate and receive one of the following ship skins:\n\n" \
                 + "*" + " • ".join(i.skin.name for i in self.itemPool) + "*"
+

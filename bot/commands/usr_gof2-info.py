@@ -588,13 +588,18 @@ async def cmd_info_skin(message : discord.Message, args : str, isDM : bool):
         # build the stats embed
         statsEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(), desc="__Ship Skin File__",
                                                 titleTxt=requestedSkin.name.title(), thumb=cfg.defaultShipSkinToolIcon,
-                                                footerTxt=("Preview this skin with the " + "`" + prefix \
-                                                                + "showme` command.") \
+                                                footerTxt=("Preview this skin with the " + prefix \
+                                                                + "showme command.") \
                                                             if len(requestedSkin.compatibleShips) > 0 else "")
         statsEmbed.add_field(name="Designed by:", value=lib.discordUtil.userTagOrDiscrim(str(requestedSkin.designer),
                                 guild=message.guild))
-        if requestedSkin.averageTL != -1:
-            statsEmbed.add_field(name="Average tech level of compatible ships:", value=requestedSkin.averageTL)
+
+        rarityName = cfg.itemRarities[requestedSkin.rarityLevel]
+        rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable
+        statsEmbed.add_field(name="Rarity:", value=f"{rarityEmoji} {rarityName.title()}")
+
+        # if requestedSkin.averageTL != -1:
+        #     statsEmbed.add_field(name="Average tech level of compatible ships:", value=requestedSkin.averageTL)
         if requestedSkin.hasWiki:
             statsEmbed.add_field(name="‎", value="[Wiki](" + requestedSkin.wiki + ")", inline=False)
 
@@ -713,8 +718,9 @@ async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
     for potentialName in bbData.builtInToolObjs.keys():
         if bbData.builtInToolObjs[potentialName].isCalled(toolName):
             requestedTool = bbData.builtInToolObjs[potentialName]
+            break
 
-    if toolName not in bbData.builtInToolObjs:
+    if requestedTool is None:
         if len(toolName) < 20:
             await message.channel.send(":x: The **" + toolName + "** tool is not in my database! :detective:")
         else:
@@ -907,7 +913,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False, embed=itemEmbed)
         else:
             shipIcon = shipData.get("icon", False)
-            if shipIcon:
+            if not shipIcon:
                 await message.reply(mention_author=False,
                                     content=f":x: I don't have an icon for **{itemName}**!")
             else:

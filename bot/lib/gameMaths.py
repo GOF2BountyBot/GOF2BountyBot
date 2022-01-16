@@ -256,3 +256,25 @@ def pickRandomCriminalTL() -> int:
         if cumulativeCriminalTLChance[criminalTL] >= tlChance:
             return criminalTL
     return cfg.maxTechLevel
+
+
+itemRaritiesDistributionReverseCumulative = makeCumulative(list(cfg.itemRaritiesDistribution[::-1]))
+
+
+def pickRandomItemRarityLevel() -> int:
+    """Pick a random item rarity level, according to the weightings in cfg.itemRaritiesDistribution.
+
+    :return: An item rarity level. I.e, an index of cfg.itemRarities
+    :rtype: int
+    """
+    distributionScale = sum(cfg.itemRaritiesDistribution)
+    rarityChance = random.randint(1, distributionScale)
+    minRarity = len(cfg.itemRarities) - 1
+    try:
+        # Subtracting from minRarity because I'm iterating over the reverse of the rarities distribution,
+        # so indices will be reversed as well.
+        return next(minRarity - level \
+                    for level, weight in enumerate(itemRaritiesDistributionReverseCumulative) \
+                    if weight >= rarityChance)
+    except StopIteration:
+        return 0

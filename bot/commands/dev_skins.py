@@ -248,7 +248,7 @@ async def dev_cmd_unapplySkin(message : discord.Message, args : str, isDM : bool
         await message.reply(mention_author=False, content=":x: Your ship is not built in, so the original icon cannot be recovered.")
     else:
         activeShip.icon = bbData.builtInShipData[activeShip.name]["icon"]
-        activeShip.skin = ""
+        activeShip.skin = None
         activeShip.isSkinned = False
         await message.reply(mention_author=False, content="Done!")
 

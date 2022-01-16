@@ -5,6 +5,7 @@ from .. import lib
 from discord import File
 from typing import Dict, List
 from ..baseClasses import serializable
+from ..baseClasses.hasRarity import HasRarity
 from .items import shipItem
 
 
@@ -22,10 +23,10 @@ def _saveShip(ship):
     shipData["path"] = shipPath
 
 
-class ShipSkin(serializable.Serializable):
+class ShipSkin(HasRarity, serializable.Serializable):
     def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
                     path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
-                    allShips: bool = False):
+                    allShips: bool = False, rarityLevel: int = 0):
 
         self.allShips = allShips
         self.name = name
@@ -47,11 +48,13 @@ class ShipSkin(serializable.Serializable):
         for region in disabledRegions:
             if region < 1:
                 raise ValueError("Attempted to disable an invalid region number: " + str(region) + ", skin " + name)
+        
+        super().__init__(rarityLevel)
 
 
     def toDict(self, **kwargs) -> dict:
         data = {    "name": self.name, "textureRegions": self.textureRegions,
-                    "ships": self.shipRenders, "designer": self.designer}
+                    "ships": self.shipRenders, "designer": self.designer, "rarityLevel": self.rarityLevel}
         if self.hasWiki:
             data["wiki"] = self.wiki
         if self.disabledRegions:
