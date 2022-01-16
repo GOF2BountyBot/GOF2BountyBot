@@ -100,6 +100,27 @@ class CrateTool(toolItem.ToolItem):
                     and item.rarityLevel != self.itemPool[index + 1].rarityLevel:
                 self.useRarities = True
 
+        if self.useRarities:
+            self._itemPoolByRarity = [
+                [i for i in self.itemPool if i.rarityLevel == rarityLevel]
+                for rarityLevel in range(len(cfg.itemRarities))
+            ]
+        else:
+            self._itemPoolByRarity = None
+
+
+    @property
+    def itemPoolByRarity(self) -> List[List[gameItem.GameItem]]:
+        """A read-only list, with lists containing the items in the crates item pool for each rarity level
+        defined in `cfg.itemRarities`. This property is only valid when `self.useRarities` is `True`.
+
+        :return: `self.itemPool` sorted into separate lists by their `rarityLevel`
+        :rtype: gameItem.GameItem
+        """
+        if not self.useRarities:
+            raise ValueError("itemPoolByRarity is not valid for this crate, as useRarities = False")
+        return self._itemPoolByRarity
+
 
     def pickItem(self) -> gameItem.GameItem:
         """Select an item from the crate, accounting for self.useRarities
@@ -114,7 +135,7 @@ class CrateTool(toolItem.ToolItem):
         while not any(i.rarityLevel == rarityLevel for i in self.itemPool):
             rarityLevel = gameMaths.pickRandomItemRarityLevel()
 
-        return random.choice([i for i in self.itemPool if i.rarityLevel == rarityLevel])
+        return random.choice(self.itemPoolByRarity[rarityLevel])
 
 
     async def use(self, *args, **kwargs):
