@@ -198,7 +198,7 @@ class CrateTool(toolItem.ToolItem):
         :rtype: str
         """
         if self.useRarities:
-            itemsByRarity = '\n'.join(f"• {getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+            itemsByRarity = '\n'.join(f"{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
                                     + f"{len(self.itemPoolByRarity[rarityLevel])} {rarityName.title()}" \
                                         for rarityLevel, rarityName in enumerate(cfg.itemRarities))
                                         
@@ -225,7 +225,7 @@ class CrateTool(toolItem.ToolItem):
                     truncateLevel = True
                     itemsForLevel = self.itemPoolByRarity[rarityLevel][:5]
 
-                itemsByRarity += f"\n• {getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+                itemsByRarity += f"\n{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
                                     + f"{rarityName.title()}: " \
                                     + ", ".join(i.name for i in itemsForLevel)
                 if truncateLevel:
@@ -362,9 +362,32 @@ class ShipSkinCrateTool(CrateTool):
 
 
     def statsStringLong(self) -> str:
+        if self.useRarities:
+            largePool = len(self.itemPool) > 30
+            itemsByRarity = ""
+            for rarityLevel, rarityName in enumerate(cfg.itemRarities):
+                itemsForLevel = self.itemPoolByRarity[rarityLevel]
+                numItemsInLevel = len(itemsForLevel)
+                if numItemsInLevel == 0:
+                    continue
+
+                truncateLevel = False
+                if largePool and numItemsInLevel > 5:
+                    truncateLevel = True
+                    itemsForLevel = self.itemPoolByRarity[rarityLevel][:5]
+
+                itemsByRarity += f"\n{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
+                                    + f"{rarityName.title()}: " \
+                                    + ", ".join(i.skin.name for i in itemsForLevel)
+                if truncateLevel:
+                    itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible skins" 
+                                        
+            return f"*Use to open the crate and receive one of the following:\n\n{itemsByRarity}*" 
+
         if len(self.itemPool) > 30:
-            return "Use to open the crate and receive one of the following skins:\n\n" \
+            return "Use to open the crate and receive one of the following ship skins:\n\n" \
                 + f"*{' • '.join(i.skin.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible skins*"
         else:
-            return "Use to open the crate and receive one of the following skins:\n\n" \
+            return "Use to open the crate and receive one of the following ship skins:\n\n" \
                 + "*" + " • ".join(i.skin.name for i in self.itemPool) + "*"
+
