@@ -511,6 +511,7 @@ maxModuleTypeEquips = {     "ArmourModule": 1,
 crateTypes = ("levelUp", "special", "christmas")
 
 # Names of item rarities. Item rarity levels are integers that correspond to indices in this tuple.
+# Must be in ascending order of rarity.
 itemRarities = ("common", "uncommon", "rare", "epic")
 
 # Probability distribution of an event occurring involving an item of a given rarity. E.g crate drop rates. Must be integers.

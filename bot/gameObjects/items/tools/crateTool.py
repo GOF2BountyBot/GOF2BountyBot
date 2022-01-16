@@ -13,11 +13,17 @@ from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
+from ....baseClasses.hasRarity import HasRarity
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
 
 def singleTypeCrate(itemType: Type[gameItem.GameItem]):
+    """Registers this CrateTool type as restricted to a single item type in its itemPool.
+    This does not on its own enforce the restriction, you must do this in your constructor.
+    When a vanilla CrateTool is *deserialized*, if it only contains items of type itemType, your type-restricted CrateTool
+    type will be deserialized instead.
+    """
     def dec_register(cls: Type["CrateTool"]):
         if itemType in singleTypeCrates:
             raise KeyError("A singleTypeCrate is already registered with this type")
@@ -37,6 +43,9 @@ class CrateTool(toolItem.ToolItem):
     :vartype crateType: str
     :var typeNum: A sub-type of crateType, e.g where crateType is levelup, typeNum might be the player's new level
     :vartype typeNum: int
+    :var useRarities: True if all items in itemPool have a rarityLevel. Items will then be drawn according to
+                        cfg.itemRaritiesDistribution. If False, then items will be drawn uniformally.
+    :vartype useRarities: bool
     """
 
     def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
@@ -80,6 +89,33 @@ class CrateTool(toolItem.ToolItem):
         self.crateType = crateType
         self.typeNum = typeNum
 
+        for index, item in enumerate(self.itemPool):
+            # Make sure all items have rarity
+            if not isinstance(item, HasRarity):
+                self.useRarities = False
+                break
+            # Make sure there are at least two rarity levels
+            if not self.useRarities \
+                    and index != len(self.itemPool) - 1 \
+                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel:
+                self.useRarities = True
+
+
+    def pickItem(self) -> gameItem.GameItem:
+        """Select an item from the crate, accounting for self.useRarities
+
+        :return: A randomly selected item from the item pool
+        :rtype: gameItem.GameItem
+        """
+        if not self.useRarities:
+            return random.choice(self.itemPool)
+
+        rarityLevel = gameMaths.pickRandomItemRarityLevel()
+        while not any(i.rarityLevel == rarityLevel for i in self.itemPool):
+            rarityLevel = gameMaths.pickRandomItemRarityLevel()
+
+        return random.choice([i for i in self.itemPool if i.rarityLevel == rarityLevel])
+
 
     async def use(self, *args, **kwargs):
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
@@ -94,7 +130,7 @@ class CrateTool(toolItem.ToolItem):
                             + type(kwargs["callingBUser"]).__name__)
 
         callingBUser = kwargs["callingBUser"]
-        newItem = random.choice(self.itemPool)
+        newItem = self.pickItem()
         callingBUser.getInventoryForItem(newItem).addItem(newItem)
         callingBUser.inactiveTools.removeItem(self)
 
