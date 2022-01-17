@@ -177,26 +177,6 @@ async def dev_cmd_setbalance(message : discord.Message, args : str, isDM : bool)
 botCommands.register("setbalance", dev_cmd_setbalance, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_reset_transfer_cool(message : discord.Message, args : str, isDM : bool):
-    """developer command resetting a user's home guild transfer cooldown.
-
-    :param discord.Message message: the discord message calling the command
-    :param str args: either empty string or string containing a user mention or ID
-    :param bool isDM: Whether or not the command is being called from a DM channel
-    """
-    # reset the calling user's cooldown if no user is specified
-    if args == "":
-        botState.usersDB.getUser(message.author.id).guildTransferCooldownEnd = datetime.utcnow()
-    # otherwise get the specified user's discord object and reset their cooldown.
-    # [!] no validation is done.
-    else:
-        botState.usersDB.getUser(int(args.lstrip("<@!").rstrip(">"))).guildTransferCooldownEnd = datetime.utcnow()
-    await message.reply(mention_author=False, content="Done!")
-
-
-botCommands.register("reset-transfer-cool", dev_cmd_reset_transfer_cool, 3, allowDM=True, useDoc=True)
-
-
 async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str, isDM : bool):
     """developer command starting a giveaway of the keith stocking crate for 48 hours
     :param discord.Message message: the discord message calling the command
