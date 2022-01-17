@@ -515,7 +515,7 @@ crateTypes = ("levelUp", "special", "christmas")
 itemRarities = ("common", "uncommon", "rare", "epic")
 
 # Probability distribution of an event occurring involving an item of a given rarity. E.g crate drop rates. Must be integers.
-itemRaritiesDistribution = (450, 280, 150, 70)
+itemRaritiesDistribution = (45, 28, 15, 7)
 
 
 
