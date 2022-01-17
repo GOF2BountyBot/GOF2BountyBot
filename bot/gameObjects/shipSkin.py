@@ -26,21 +26,24 @@ def _saveShip(ship):
 class ShipSkin(HasRarity, serializable.Serializable):
     def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
                     path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
-                    allShips: bool = False, rarityLevel: int = 0):
+                    allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False):
 
+        self.builtIn = builtIn
         self.allShips = allShips
         self.name = name
         self.textureRegions = textureRegions
         self.compatibleShips = list(shipRenders.keys())
         self.shipRenders = shipRenders
         self.path = path
+
         if len(self.compatibleShips) > 0:
-            self.averageTL = 0
-            for ship in self.compatibleShips:
-                self.averageTL += bbData.builtInShipData[ship]["techLevel"]
+            self.averageTL = sum(bbData.builtInShipData[i]["techLevel"] \
+                                for i in self.compatibleShips \
+                                if i in bbData.builtInShipData)
             self.averageTL = int(self.averageTL / len(self.compatibleShips))
         else:
             self.averageTL = -1
+
         self.designer = designer
         self.wiki = wiki
         self.hasWiki = wiki != ""
@@ -52,20 +55,34 @@ class ShipSkin(HasRarity, serializable.Serializable):
         super().__init__(rarityLevel)
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = {    "name": self.name, "textureRegions": self.textureRegions,
+    def toDict(self, ignoreBuiltIn: bool = False, **kwargs) -> dict:
+        """Serialize this ship skin to dictionary.
+
+        :param bool ignoreBuiltIn: When True, the serializer will serialize fully, ignoring
+                                    potential field-savings from the builtIn field (Default False)
+        :return: A dictionary which can be deserialized into a copy of this ShipSkin object
+        :rtype: dict
+        """
+        if ignoreBuiltIn:
+            data = {"name": self.name, "textureRegions": self.textureRegions,
                     "ships": self.shipRenders, "designer": self.designer, "rarityLevel": self.rarityLevel}
-        if self.hasWiki:
-            data["wiki"] = self.wiki
-        if self.disabledRegions:
-            data["disabledRegions"] = self.disabledRegions
-        if self.allShips:
-            data["allShips"] = True
+        else:
+            data = {"name": self.name, "builtIn": self.builtIn}
+
+        if ignoreBuiltIn or not self.builtIn:
+            if self.hasWiki:
+                data["wiki"] = self.wiki
+            if self.disabledRegions:
+                data["disabledRegions"] = self.disabledRegions
+            if self.allShips:
+                data["allShips"] = True
+
         return data
 
 
     def _updateItemMETA(self, **kwargs):
-        lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(**kwargs), prettyPrint=True)
+        lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(ignoreBuiltIn=True, **kwargs),
+                                    prettyPrint=True)
 
     
     def compatibleWithShip(self, ship: "shipItem.Ship") -> bool:
@@ -73,12 +90,11 @@ class ShipSkin(HasRarity, serializable.Serializable):
 
         :param ship: The ship to check for compatibility
         :type ship: shipItem.Ship
-        :raises KeyError: If ship is a custom item
         :return: True if ship is skinnable and compatible with this skin, False otherwise
         :rtype: bool
         """
         if ship.name not in bbData.builtInShipData:
-            raise KeyError("Ship not found: '" + str(ship) + "'")
+            return ship.name in self.compatibleShips
 
         return bbData.builtInShipData[ship.name]["skinnable"] and (self.allShips or ship.name in self.compatibleShips)
 
@@ -169,6 +185,6 @@ class ShipSkin(HasRarity, serializable.Serializable):
 
     @classmethod
     def fromDict(cls, skinDict: dict, **kwargs):
-        if skinDict["name"] in bbData.builtInShipSkins:
+        if skinDict.get("builtIn", False):
             return bbData.builtInShipSkins[skinDict["name"]]
         return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict["ships"]))
