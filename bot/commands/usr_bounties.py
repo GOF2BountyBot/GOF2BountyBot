@@ -244,6 +244,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
 
                         for userID in nonClassicModeUserIDs:
+                            if userID == -1:
+                                continue
+
                             currentBBUser = basedUsers[userID]
                             currentLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             currentDiv = callingGuild.bountiesDB.divisionForLevel(currentLevel)
