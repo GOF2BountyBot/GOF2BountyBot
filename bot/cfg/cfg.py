@@ -149,7 +149,7 @@ includedCommandModules = (  "usr_misc", "usr_homeguilds", "usr_gof2-info", "usr_
                             "usr_kaamo", "usr_loma", "usr_github",
                             "admn_channels", "admn_misc",
                             "dev_misc", "dev_channels", "dev_bounties", "dev_items", "dev_skins", "dev_loma", "dev_kaamo",
-                                "dev_medals", "dev_github")
+                            "dev_medals", "dev_github", "dev_homeguilds")
 
 # Default prefix for commands
 defaultCommandPrefix = "$"
