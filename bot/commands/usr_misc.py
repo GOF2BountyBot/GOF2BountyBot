@@ -603,7 +603,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                     await message.channel.send(":white_check_mark: You have unsubscribed from new bounties notifications.")
             else:
                 if not requestedBBUser.hasHomeGuild or requestedBBUser.homeGuildID != message.guild.id:
-                    await message.channel.send(":x: You can only enable new bounty alerts in your home guild!\n" \
+                    await message.channel.send(":x: You can only enable new bounty alerts in your home server!\n" \
                                                 + "For more information, please see " \
                                                 + f"`{requestedBBGuild.commandPrefix}help home`" \
                                                 + f" and `{requestedBBGuild.commandPrefix}help transfer`.")

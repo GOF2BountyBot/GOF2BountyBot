@@ -254,9 +254,9 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
         requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
         await requestedBUser.transferGuild(message.guild)
-        await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
+        await message.reply(mention_author=False, content=":airplane_arriving: Your home server has been set.")
     elif requestedBUser.homeGuildID != message.guild.id:
-        await message.reply(mention_author=False, content=":x: This command can only be used from your home guild!")
+        await message.reply(mention_author=False, content=":x: This command can only be used from your home server!")
         return
 
     argsSplit = args.split(" ")
@@ -456,9 +456,9 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
         requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
         await requestedBUser.transferGuild(message.guild)
-        await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
+        await message.reply(mention_author=False, content=":airplane_arriving: Your home server has been set.")
     elif requestedBUser.homeGuildID != message.guild.id:
-        await message.reply(mention_author=False, content=":x: This command can only be used from your home guild!")
+        await message.reply(mention_author=False, content=":x: This command can only be used from your home server!")
         return
 
     argsSplit = args.split(" ")

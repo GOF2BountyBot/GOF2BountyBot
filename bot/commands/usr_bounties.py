@@ -110,12 +110,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         return
 
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
-    requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
     if not requestedBBUser.hasHomeGuild():
         await requestedBBUser.transferGuild(message.guild)
-        await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
+        await message.reply(mention_author=False, content=":airplane_arriving: Your home server has been set.")
     elif requestedBBUser.homeGuildID != message.guild.id:
-        await message.reply(mention_author=False, content=":x: This command can only be used from your home guild!")
+        await message.reply(mention_author=False, content=":x: This command can only be used from your home server!")
         return
 
     # verify a system was given
