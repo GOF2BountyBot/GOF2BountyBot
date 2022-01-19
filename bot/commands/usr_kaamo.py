@@ -154,6 +154,13 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
 
     if requestedBBUser.kaamo is None:
         requestedBBUser.kaamo = kaamoShop.KaamoShop()
+    elif requestedBBUser.kaamo.isFull():
+        if requestedBBUser.kaamo.shipsStock.totalItems > 0:
+            await message.reply(":x: The Kaamo Club has run out of storage space! Please remove some items to store more.\n" \
+                                + "If there are items equipped on your stored ships, they count too.")
+        else:
+            await message.reply(":x: The Kaamo Club has run out of storage space! Please remove some items to store more.")
+        return
 
     requestedItem = userItemInactives[itemNum - 1].item
 
