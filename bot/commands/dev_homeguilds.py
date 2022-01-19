@@ -22,7 +22,7 @@ async def dev_cmd_reset_transfer_cooldown(message : discord.Message, args : str,
             return
         requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
     else:
-        requestedUser = lib.discordUtil.getMemberFromRef(args)
+        requestedUser = lib.discordUtil.getMemberFromRef(args, message.guild)
         if requestedUser is None:
             await message.reply(":x: Unknown user!")
             return
@@ -40,4 +40,4 @@ async def dev_cmd_reset_transfer_cooldown(message : discord.Message, args : str,
 
 
 botCommands.register("reset-transfer-cooldown", dev_cmd_reset_transfer_cooldown, 3, aliases=["reset-transfer-cool"],
-                    allowDM=True, helpSection="home servers", signatureStr="**reset-transfer-cooldown**", useDoc=True)
+                    allowDM=False, helpSection="home servers", signatureStr="**reset-transfer-cooldown**", useDoc=True)
