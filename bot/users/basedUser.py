@@ -499,7 +499,11 @@ class BasedUser(serializable.Serializable):
             data["ownedMenus"] = {}
             for menuTypeID in self.ownedMenus:
                 if self.ownedMenus[menuTypeID]:
-                    data["ownedMenus"][menuTypeID] = self.ownedMenus[menuTypeID]
+                    data["ownedMenus"][menuTypeID] = []
+                    for menuID in self.ownedMenus[menuTypeID]:
+                        if menuID in botState.reactionMenusDB \
+                                and reactionMenu.isSaveableMenuInstance(botState.reactionMenusDB[menuID]):
+                            data["ownedMenus"][menuTypeID].append(menuID)
         
         if self.medals:
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
