@@ -96,8 +96,8 @@ class BasedUser(serializable.Serializable):
     :vartype loma: Union[LomaShop, None]
     :var prestiges: The number of times the user has prestiged
     :vartype prestiges: int
-    :var ownedMenus: Sets of references to all menus that user owns, by string type IDs.
-    :vartype ownedMenus: Dict[str, MutableSet[ReactionMenu]]
+    :var ownedMenus: Sets of IDs for all menus that user owns, by string type IDs.
+    :vartype ownedMenus: Dict[str, MutableSet[int]]
     :var medals: References to all medals awareded to this user
     :vartype medals: MutableSet[Medal]
     :var classicModeEnabled: Whether or not this user is set to use classic mode
@@ -116,7 +116,7 @@ class BasedUser(serializable.Serializable):
                     duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None,
+                    ownedMenus : Dict[str, MutableSet[int]] = {}, medals: MutableSet[Medal] = None,
                     classicModeEnabled: bool = False):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
@@ -158,8 +158,8 @@ class BasedUser(serializable.Serializable):
                         this is None until the user first uses it. (default None)
         :type loma: Union[LomaShop, None]
         :param int prestiges: The number of times the user has prestiged (default 0)
-        :param ownedMenus: Sets of references to all menus that user owns, by string type IDs. (default {})
-        :type ownedMenus: Dict[str, MutableSet[ReactionMenu]]
+        :param ownedMenus: Sets of IDs for all menus that user owns, by string type IDs. (default {})
+        :type ownedMenus: Dict[str, MutableSet[int]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
         :param bool classicModeEnabled: Whether this user has classic mode enabled
         """
@@ -499,7 +499,7 @@ class BasedUser(serializable.Serializable):
             data["ownedMenus"] = {}
             for menuTypeID in self.ownedMenus:
                 if self.ownedMenus[menuTypeID]:
-                    data["ownedMenus"][menuTypeID] = [menu.msg.id for menu in self.ownedMenus[menuTypeID]]
+                    data["ownedMenus"][menuTypeID] = self.ownedMenus[menuTypeID]
         
         if self.medals:
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
@@ -809,7 +809,7 @@ class BasedUser(serializable.Serializable):
         """
         if menuTypeID not in self.ownedMenus:
             self.ownedMenus[menuTypeID] = set()
-        self.ownedMenus[menuTypeID].add(menu)
+        self.ownedMenus[menuTypeID].add(menu.id)
 
     
     def removeAllOwnedMenusOfTypeID(self, menuTypeID: str) -> int:
@@ -837,9 +837,9 @@ class BasedUser(serializable.Serializable):
         """
         if menuTypeID not in self.ownedMenus:
             raise KeyError(f"No menus owned with type ID '{menuTypeID}'")
-        if menu not in self.ownedMenus[menuTypeID]:
+        if menu.id not in self.ownedMenus[menuTypeID]:
             raise ValueError(f"{type(menu).__name_} #{menu.id} not registered to this user as '{menuTypeID}'")
-        self.ownedMenus[menuTypeID].remove(menu)
+        self.ownedMenus[menuTypeID].remove(menu.id)
         if not self.ownedMenus[menuTypeID]:
             del self.ownedMenus[menuTypeID]
 
@@ -926,13 +926,7 @@ class BasedUser(serializable.Serializable):
             for menuType in userDict["ownedMenus"]:
                 ownedMenus[menuType] = []
                 for menuID in userDict["ownedMenus"][menuType]:
-                    if menuID in botState.reactionMenusDB:
-                        ownedMenus[menuType].append(botState.reactionMenusDB[menuID])
-                    else:
-                        botState.logger.log("basedUser", "fromDict",
-                                            "Ignoring unrecognised reactionmenu id: " + menuType \
-                                                + "#" + str(menuID) + " stored in user #" + str(id),
-                                            category="reactionMenus", eventType="unknMenuID")
+                    ownedMenus[menuType].append(menuID)
         
         medals = set()
         if "medals" in userDict and userDict["medals"]:
