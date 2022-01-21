@@ -508,7 +508,7 @@ async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : s
                                     icon=PAINTBRUSH_ICON, desc="For command: `$showme ship`",
                                     col=discord.Colour.random())
     e.add_field(name="Samples", value=str(cfg.skinRenderShowmeSamples))
-    e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeSamples[0]}\ny: {cfg.skinRenderShowmeSamples[1]}")
+    e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeResolution[0]}\ny: {cfg.skinRenderShowmeResolution[1]}")
     await message.reply(f"✅ Done!", mention_author=False)
 
 botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
