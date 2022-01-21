@@ -1144,6 +1144,10 @@ async def cmd_list(message : discord.Message, args : str, isDM : bool):
     itemLevel = -1
     manufacturer = ""
 
+    LIST_MANUFACTURER_OBJS["ship"] = bbData.builtInShipData
+    LIST_TL_OBJS["ship"] = bbData.builtInShipData
+    LIST_DICT_OBJS["ship"] = bbData.builtInShipData
+
     for arg in args.split(" "):
         if levelFound:
             if not lib.stringTyping.isInt(arg) or int(arg) < cfg.minTechLevel or int(arg) > cfg.maxTechLevel:
