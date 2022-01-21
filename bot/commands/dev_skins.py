@@ -9,6 +9,8 @@ from ..shipRenderer import shipRenderer
 import os
 CWD = os.getcwd()
 
+PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
+
 
 botCommands.addHelpSection(3, "skins")
 
@@ -450,3 +452,63 @@ async def dev_cmd_try_all_skins(message : discord.Message, args : str, isDM : bo
     await message.channel.send("ALL SKINS SENT")
 
 botCommands.register("try-all-skins", dev_cmd_try_all_skins, 3, helpSection="skins", useDoc=True)
+
+
+async def dev_cmd_set_autoskin_resolution(message : discord.Message, args : str, isDM : bool):
+    """Configure the resolution that cmd_showme_ship will render to.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: string containing the x resolution followed by the y resolution split by a space
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    argsSplit = args.split(" ")
+    if len(argsSplit) < 2 or "" in argsSplit:
+        await message.reply(":x: Please provide an x and y resolution split by a space", mention_author=False)
+        return
+
+    resX, resY = argsSplit
+    if not lib.stringTyping.isInt(resX):
+        await message.reply(f":x: '{resX}' is not an integer.", mention_author=False)
+        return
+    if not lib.stringTyping.isInt(resY):
+        await message.reply(f":x: '{resY}' is not an integer.", mention_author=False)
+        return
+
+    cfg.skinRenderShowmeResolution = [int(resX), int(resY)]
+    await message.reply(f"✅ Done!", mention_author=False)
+
+botCommands.register("set-showme-res", dev_cmd_set_autoskin_resolution, 3, helpSection="skins", useDoc=True)
+
+
+async def dev_cmd_set_autoskin_samples(message : discord.Message, args : str, isDM : bool):
+    """Configure the samples that cmd_showme_ship will render to.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: string containing the samples
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not lib.stringTyping.isInt(args):
+        await message.reply(f":x: '{args}' is not an integer.", mention_author=False)
+        return
+
+    cfg.skinRenderShowmeSamples = int(args)
+    await message.reply(f"✅ Done!", mention_author=False)
+
+botCommands.register("set-showme-samples", dev_cmd_set_autoskin_samples, 3, helpSection="skins", useDoc=True)
+
+
+async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : str, isDM : bool):
+    """Get the current configuration for rendering with cmd_showme_ship
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    e = lib.discordUtil.makeEmbed(authorName="Ship Renderer Configuration",
+                                    icon=PAINTBRUSH_ICON, desc="For command: `$showme ship`",
+                                    col=discord.Colour.random())
+    e.add_field(name="Samples", value=str(cfg.skinRenderShowmeSamples))
+    e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeSamples[0]}\ny: {cfg.skinRenderShowmeSamples[1]}")
+    await message.reply(f"✅ Done!", mention_author=False)
+
+botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
