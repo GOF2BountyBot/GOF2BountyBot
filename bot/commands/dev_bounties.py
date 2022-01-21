@@ -1517,3 +1517,52 @@ async def dev_cmd_force_respawn_bounty(message : discord.Message, args : str, is
 botCommands.register("respawn-bounty", dev_cmd_force_respawn_bounty, 3, forceKeepArgsCasing=True, allowDM=False,
                         helpSection="bounties", signatureStr="**respawn-bounty <criminal name>**",
                         shortHelp="Force an escaped bounty to respawn immediately")
+
+
+async def dev_cmd_restart_new_bounty_task(message : discord.Message, args : str, isDM : bool):
+    """developer command that restarts a 'new bounties' timedtask, or all of them for a server if specified
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: "all" or a single tech level/division name
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.reply(":x: Please specify a division (name, tl or all)")
+        return
+
+    allDivs = False
+    if args == "all":
+        allDivs = True
+    elif lib.stringTyping.isInt(args):
+        useTL = True
+        tl = int(args)
+        if tl < cfg.minTechLevel or tl > cfg.maxTechLevel:
+            await message.reply(f":x: Tech level must be between {cfg.minTechLevel} and {cfg.maxTechLevel}")
+            return
+    else:
+        useTL = False
+        if args not in cfg.bountyDivisionNames:
+            await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
+            return
+
+    callingBBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+
+    if allDivs:
+        for div in callingBBGuild.bountiesDB.divisions.values():
+            if div.newBountyTT is not None:
+                div.stopBountySpawner()
+            if not div.isFull() or not div.hasMinTLBounty():
+                div.tryStartBountySpawner()
+    else:
+        if useTL:
+            div = callingBBGuild.bountiesDB.divisionForLevel(tl)
+        else:
+            div = callingBBGuild.bountiesDB.divisionForName(args)
+        if div.newBountyTT is not None:
+            div.stopBountySpawner()
+        if not div.isFull() or not div.hasMinTLBounty():
+            div.tryStartBountySpawner()
+    await message.author.send(f"> {message.jump_url}\n✅ Done!")
+
+botCommands.register("restart-bounty-task", dev_cmd_restart_new_bounty_task, 3, allowDM=False,
+                        helpSection="bounties", useDoc=True)

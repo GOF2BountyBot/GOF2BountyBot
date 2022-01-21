@@ -194,3 +194,17 @@ async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str,
     await menu.updateMessage()
 
 botCommands.register("start-stocking-giveaway", dev_cmd_start_stocking_giveaway, 3, useDoc=True)
+
+
+async def dev_cmd_restart_task_checker(message : discord.Message, args : str, isDM : bool):
+    """developer command that restarts the global timedtask scheduler
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    botState.taskScheduler.stopTaskChecking()
+    botState.taskScheduler.startTaskChecking()
+    await message.author.send(f"> {message.jump_url}\n✅ Done!")
+
+botCommands.register("restart-task-scheduler", dev_cmd_restart_task_checker, 3, allowDM=True, useDoc=True)
