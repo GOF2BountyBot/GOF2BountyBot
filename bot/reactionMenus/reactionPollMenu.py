@@ -253,7 +253,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         menuColour = Colour.from_rgb(rmDict["col"][0], rmDict["col"][1], rmDict["col"][2]) \
                         if "col" in rmDict else Colour.blue()
 
-        return ReactionPollMenu(**cls._makeDefaults(rmDict, msg=msg, pollOptions=options, timeout=timeoutTT,
+        return ReactionPollMenu(**cls._makeDefaults(args=rmDict, ignores=("channel",), msg=msg, pollOptions=options, timeout=timeoutTT,
                                                     col=menuColour, owningBBUser=owner,
                                                     targetRole=msg.guild.get_role(rmDict["targetRole"]) \
                                                                     if "targetRole" in rmDict else None))
