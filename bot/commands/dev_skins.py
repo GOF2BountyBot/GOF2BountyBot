@@ -509,6 +509,6 @@ async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : s
                                     col=discord.Colour.random())
     e.add_field(name="Samples", value=str(cfg.skinRenderShowmeSamples))
     e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeResolution[0]}\ny: {cfg.skinRenderShowmeResolution[1]}")
-    await message.reply(f"✅ Done!", mention_author=False)
+    await message.reply(mention_author=False, embed=e)
 
 botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
