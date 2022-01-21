@@ -1,3 +1,4 @@
+from typing import Awaitable, Callable, cast
 import discord
 
 from . import commandsDB as botCommands
@@ -5,6 +6,9 @@ from ..cfg import cfg, bbData
 from ..gameObjects.items import shipItem
 from .. import lib, botState
 from ..shipRenderer import shipRenderer
+import importlib
+cmd_showme_ship = cast(Callable[[discord.Message, str, bool], Awaitable], importlib.import_module("bot.commands.usr_gof2-info").cmd_showme_ship)
+from datetime import datetime
 
 import os
 CWD = os.getcwd()
@@ -512,3 +516,18 @@ async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : s
     await message.reply(mention_author=False, embed=e)
 
 botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
+
+
+async def dev_cmd_timed_showme_ship(message : discord.Message, args : str, isDM : bool):
+    """Perform cmd_showme_ship, but also send the amount of time taken to execute
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: same as showme_ship but without "ship"
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    now = datetime.utcnow()
+    await cmd_showme_ship(message, args, isDM)
+    await message.reply(f"This command took: {lib.timeUtil.td_format_noYM(datetime.utcnow() - now)}", mention_author=False)
+    
+
+botCommands.register("timed-showme-ship", dev_cmd_timed_showme_ship, 3, helpSection="skins", useDoc=True)
