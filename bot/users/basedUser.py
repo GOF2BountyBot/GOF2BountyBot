@@ -925,7 +925,7 @@ class BasedUser(serializable.Serializable):
         if "ownedMenus" in userDict:
             for menuType in userDict["ownedMenus"]:
                 ownedMenus[menuType] = []
-                for menuID in userDict[menuType]:
+                for menuID in userDict["ownedMenus"][menuType]:
                     if menuID in botState.reactionMenusDB:
                         ownedMenus[menuType].append(botState.reactionMenusDB[menuID])
                     else:
