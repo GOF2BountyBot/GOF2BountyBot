@@ -320,19 +320,20 @@ class BountyDB(serializable.Serializable):
         return any(div.criminalObjExists(crim) for div in self.divisions.values())
 
 
-    def addBounty(self, bounty : bounty.Bounty, dbReload=False):
+    def addBounty(self, bounty : bounty.Bounty, dbReload=False, isRespawn=False):
         """Add a given bounty object to the database.
         Bounties cannot be added if the division for its level does not have space for more bounties.
         Bounties cannot be added if a bounty already exists for the same criminal in this DB.
 
         :param Bounty bounty: the bounty object to add to the database
+        :param bool isRespawn: Skips division fullness checks
         :raise OverflowError: if the division for this bounty's level is already at capacity
         :raise ValueError: if the criminal is already wanted in the database
         """
         div = self.divisionForLevel(bounty.techLevel)
 
         # Ensure the DB has space for the bounty
-        if not dbReload and div.isFull(includeEscaped=True) and \
+        if not isRespawn and not dbReload and div.isFull(includeEscaped=True) and \
                 ((bounty.techLevel == div.minLevel and div.hasMinTLBounty()) or (bounty.techLevel != div.minLevel)):
             raise OverflowError(f"Division for the bounty ({bounty.criminal.name}, level {bounty.techLevel}) is full")
         
@@ -344,7 +345,7 @@ class BountyDB(serializable.Serializable):
         #     raise ValueError("Attempted to add a bounty whose name already exists: " + bounty.criminal.name)
 
         # Add the bounty to the database
-        div._addBounty(bounty, dbReload=dbReload)
+        div._addBounty(bounty, dbReload=dbReload, isRespawn=isRespawn)
         
 
 

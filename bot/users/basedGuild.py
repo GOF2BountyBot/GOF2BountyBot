@@ -604,7 +604,7 @@ class BasedGuild(serializable.Serializable):
                                 eventType="BTYS_DISABLED")
             return
         # ensure a new bounty can be created
-        if self.bountiesDB.canMakeBounty():
+        if isRespawn or self.bountiesDB.canMakeBounty():
             newBounty: bounty.Bounty = newBountyData["newBounty"]
             config: bountyConfig.BountyConfig = newBountyData["newConfig"].copy() if "newConfig" in newBountyData else bountyConfig.BountyConfig()
 
@@ -641,7 +641,7 @@ class BasedGuild(serializable.Serializable):
                     newBounty.endTime = newConfig.endTime
 
             # activate and announce the bounty
-            self.bountiesDB.addBounty(newBounty)
+            self.bountiesDB.addBounty(newBounty, isRespawn=isRespawn)
             await self.announceNewBounty(newBounty, isRespawn=isRespawn)
         
         else:
