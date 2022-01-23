@@ -379,3 +379,16 @@ def copyStarMap() -> Image.Image:
             raise ValueError("No map image given in cfg")
 
     return MAP_IMAGE.copy()
+
+
+def circleBoundingBox(centre: Tuple[int, int], radius: int) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+    """Get the bounding box coordinates for a circle centred at `centre`, of radius `radius`.
+
+    :param centre: Coordinates for the centre of the circle
+    :type centre: Tuple[int, int]
+    :param int radius: The radius of the circle.
+    :return: Coordinates for the bounding box of the circle of the given radius and centre.
+    :rtype: Tuple[Tuple[int, int], Tuple[int, int]]
+    """
+    return ((centre[0] - radius, centre[1] - radius),
+            (centre[0] + radius, centre[1] + radius))

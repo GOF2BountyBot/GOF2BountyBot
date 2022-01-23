@@ -38,12 +38,7 @@ def renderRouteMap(routeNames: List[str]) -> Optional[Image.Image]:
 
     if len(routeNames) == 1:
         system = route[0]
-        topLeft = (system.coordinates[0] - cfg.bbcRouteImageSingleSystemRadius,
-                    system.coordinates[0] - cfg.bbcRouteImageSingleSystemRadius)
-        bottomRight = (system.coordinates[0] + cfg.bbcRouteImageSingleSystemRadius,
-                        system.coordinates[0] + cfg.bbcRouteImageSingleSystemRadius)
-
-        mapDraw.ellipse((topLeft, bottomRight),
+        mapDraw.ellipse(lib.graphics.circleBoundingBox(system.coordinates, cfg.bbcRouteImageSingleSystemRadius),
                         fill=None, outline=cfg.bbcRouteImageLineColour,
                         width=cfg.bbcRouteImageLineWidth)
     else:
@@ -52,6 +47,10 @@ def renderRouteMap(routeNames: List[str]) -> Optional[Image.Image]:
             mapDraw.line((system.coordinates, nextSystem.coordinates),
                             fill=cfg.bbcRouteImageLineColour,
                             width=cfg.bbcRouteImageLineWidth)
+
+        for system in route:
+            mapDraw.ellipse(lib.graphics.circleBoundingBox(system.coordinates, cfg.bbcRouteImageNodeRadius),
+                            fill=cfg.bbcRouteImageNodeColour, width=0)
 
     return mapImage
 

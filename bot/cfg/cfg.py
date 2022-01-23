@@ -440,6 +440,12 @@ bbcRouteImageLineColour = (255, 89, 89, 255)
 # In bountyboard channels, if bbcShowRouteImage is True, this is the line width used for path lines
 bbcRouteImageLineWidth = 3
 
+# In bountyboard channels, if bbcShowRouteImage is True, this is radius of each dot on systems in path lines
+bbcRouteImageNodeRadius = 4
+
+# In bountyboard channels, if bbcShowRouteImage is True, this is colour of each dot on systems in path lines
+bbcRouteImageNodeColour = (255, 150, 150, 255)
+
 # In bountyboard channels, if bbcShowRouteImage is True, this radius is used to circle single-system routes
 bbcRouteImageSingleSystemRadius = 5
 
