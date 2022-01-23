@@ -14,41 +14,6 @@ from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Unio
 from ....baseClasses import serializable
 
 
-def makeBountyEmbed(bounty : bounty.Bounty) -> Embed:
-    """Construct a discord.Embed for listing in a bountyBoardChannel
-
-    :param Bounty bounty: The bounty to describe in this embed
-    :return: A discord.Embed describing statistics about the passed bounty
-    :rtype: discord.Embed
-    """
-    embed = Embed(title=bounty.criminal.name,
-                    colour=bbData.factionColours[bounty.faction] if bounty.faction in bbData.factionColours else \
-                            bbData.factionColours["neutral"])
-    embed.set_footer(text=bounty.faction.title(),
-                        icon_url=bbData.factionIcons[bounty.faction] if bounty.faction in bbData.factionIcons else "")
-    embed.set_thumbnail(url=bounty.criminal.icon)
-    embed.add_field(name="**Reward Pool:**", value=lib.stringTyping.commaSplitNum(bounty.reward) + " Credits")
-    embed.add_field(name="**Difficulty:**", value=str(bounty.techLevel))
-    # embed = bounty.activeShip.fillLoadoutEmbed(embed, shipEmoji=True)
-    embed.add_field(name="**See the culprit's loadout with:**", value="`loadout criminal " + bounty.criminal.name + "`")
-    routeStr = ""
-    for system in bounty.route:
-        if bounty.systemChecked(system):
-            routeStr += "~~"
-            if 0 < bounty.route.index(bounty.answer) - bounty.route.index(system) < cfg.closeBountyThreshold:
-                routeStr += "**" + system + "**"
-            else:
-                routeStr += system
-            routeStr += "~~"
-        else:
-            routeStr += system
-        routeStr += ", "
-    embed.add_field(name="**Route:**", value=routeStr[:-2], inline=False)
-    embed.add_field(name="-", value="> ~~Already checked systems~~\n> **Criminal spotted here recently**")
-    embed.add_field(name="Bounty ends:", value=f"<t:{int(bounty.endTime)}:R>")
-    return embed
-
-
 stopwatchIcon = 'https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/stopwatch_23f1.png'
 noBountiesEmbed = Embed(description='> Please check back later, or use the `notify bounties` ' \
                         + 'command to be notified when they spawn!', colour=Colour.dark_orange())
@@ -119,6 +84,84 @@ class BountyBoardChannel(serializable.Serializable):
         self.escapedBountiesMessage = None
         # discord channel object
         self.channel = None
+
+
+    def makeBountyEmbed(self, bounty : bounty.Bounty) -> Embed:
+        """Construct a discord.Embed for listing in a bountyBoardChannel
+
+        :param Bounty bounty: The bounty to describe in this embed
+        :return: A discord.Embed describing statistics about the passed bounty
+        :rtype: discord.Embed
+        """
+        embed = Embed(title=bounty.criminal.name,
+                        colour=bbData.factionColours[bounty.faction] if bounty.faction in bbData.factionColours else \
+                                bbData.factionColours["neutral"])
+        embed.set_footer(text=f"{bounty.faction.title()}",
+                            icon_url=bbData.factionIcons[bounty.faction] if bounty.faction in bbData.factionIcons else "")
+
+        infoStr = f"**Difficulty:** {bounty.techLevel}\n" \
+                + f"**Reward Pool:** {lib.stringTyping.commaSplitNum(bounty.reward)} Credits\n" \
+                + f"**Bounty Ends:** <t:{int(bounty.endTime)}:R>"
+        embed.add_field(name="​", value=infoStr)
+
+        loadoutFieldValue = ""
+        if cfg.bbcShowLoadoutEmojis:
+            loadoutFieldName = "**Loadout:**"
+            weaponsStr = "".join(i.emoji.sendable for i in bounty.activeShip.weapons if i.hasEmoji)
+            modulesStr = "".join(i.emoji.sendable for i in bounty.activeShip.modules if i.hasEmoji)
+            turretsStr = "".join(i.emoji.sendable for i in bounty.activeShip.turrets if i.hasEmoji)
+            
+            statsShown = True
+            if cfg.bbcShowHpDps:
+                totalHp = bounty.activeShip.getArmour() + bounty.activeShip.getShield()
+                duelingStatsStr = f" {totalHp} HP // {bounty.activeShip.getDPS()} DPS"
+                statsShown = False
+
+            if bounty.activeShip.hasEmoji:
+                loadoutFieldValue += f"{bounty.activeShip.emoji.sendable}{'' if statsShown else duelingStatsStr}\n"
+                statsShown = True
+            else:
+                duelingStatsStr += "\n"
+
+            if weaponsStr:
+                loadoutFieldValue += f"{weaponsStr}{'' if statsShown else duelingStatsStr}\n"
+                statsShown = True
+            if modulesStr:
+                loadoutFieldValue += f"{modulesStr}{'' if statsShown else duelingStatsStr}\n"
+                statsShown = True
+            if turretsStr:
+                loadoutFieldValue += f"{turretsStr}{'' if statsShown else duelingStatsStr}\n"
+                statsShown = True
+        else:
+            loadoutFieldName = "**See the culprit's loadout with:**"
+            if cfg.bbcShowHpDps:
+                embed.add_field(name="**Dueling stats:**",
+                                value=f"Total health: {bounty.activeShip.getArmour() + bounty.activeShip.getShield()}\n" \
+                                    + f"Total DPS: {bounty.activeShip.getDPS()}")
+
+        prefix = self.division.owningDB.owningBasedGuild.commandPrefix
+        embed.add_field(name=loadoutFieldName, value=f"{loadoutFieldValue}`{prefix}loadout criminal {bounty.criminal.name}`")
+
+        embed.set_thumbnail(url=bounty.criminal.icon)
+        # embed.add_field(name="**Reward Pool:**", value=lib.stringTyping.commaSplitNum(bounty.reward) + " Credits")
+        # embed.add_field(name="**Difficulty:**", value=str(bounty.techLevel))
+
+        routeStr = ""
+        for system in bounty.route:
+            if bounty.systemChecked(system):
+                routeStr += "~~"
+                if 0 < bounty.route.index(bounty.answer) - bounty.route.index(system) < cfg.closeBountyThreshold:
+                    routeStr += "**" + system + "**"
+                else:
+                    routeStr += system
+                routeStr += "~~"
+            else:
+                routeStr += system
+            routeStr += ", "
+        embed.add_field(name="**Route:**", value=routeStr[:-2], inline=False)
+        embed.add_field(name="-", value="> ~~Already checked systems~~\n> **Criminal spotted here recently**")
+        # embed.add_field(name="Bounty ends:", value=f"<t:{int(bounty.endTime)}:R>")
+        return embed
 
 
     def jumpUrl(self, msgId: int) -> str:
@@ -289,7 +332,7 @@ class BountyBoardChannel(serializable.Serializable):
 
     async def _sendBountyMsg(self, b: bounty.Bounty):
         msg = await self.sendMessageWithRetry(f"bounty listing: {b.criminal.name} {self.guildAndChannelMeta()}",
-                                                embed=makeBountyEmbed(b))
+                                                embed=self.makeBountyEmbed(b))
         if msg is not None:
             self.bountyMessages[b.criminal] = msg
 
@@ -512,7 +555,7 @@ class BountyBoardChannel(serializable.Serializable):
 
         content = self.bountyMessages[bounty.criminal].content
         await self.editMessageWithRetry(self.bountyMessages[bounty.criminal], f"bounty: {bounty.criminal.name}",
-                                        content=content, embed=makeBountyEmbed(bounty))
+                                        content=content, embed=self.makeBountyEmbed(bounty))
 
 
     async def clear(self):

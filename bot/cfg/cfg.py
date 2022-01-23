@@ -422,6 +422,12 @@ activityTempPerPlayer = 1
 # The RGB colours to make by default for each bounty alert role
 bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
 
+# In bountyboard channels, show criminal loadouts as emojis
+bbcShowLoadoutEmojis = True
+
+# In bountyboard channels, show criminal total health points and dps
+bbcShowHpDps = True
+
 
 
 ##### CLASSIC MODE #####
