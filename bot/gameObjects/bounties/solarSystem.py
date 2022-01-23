@@ -52,7 +52,7 @@ class SolarSystem(aliasable.Aliasable):
         self.faction = faction
         self.neighbours = neighbours
         self.security = security
-        self.coordinates = coordinates
+        self.coordinates = tuple(coordinates)
         self.wiki = wiki
         self.hasWiki = wiki != ""
 

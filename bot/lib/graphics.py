@@ -13,6 +13,8 @@ DUEL_RESULTS_BACKGROUNDS: List[Image.Image] = []
 DUEL_RESULTS_OVERLAY: Image.Image = None
 DUEL_WINNER_OVERLAYS: Dict[str, Image.Image] = {}
 
+MAP_IMAGE: Image.Image = None
+
 
 def closeAll():
     """Close all active graphics. Should only be used for shutdown.
@@ -33,6 +35,9 @@ def closeAll():
     for im in DUEL_WINNER_OVERLAYS.values():
         if im is not None:
             im.close()
+
+    if MAP_IMAGE is not None:
+        MAP_IMAGE.close()
 
 
 # Automatically close all images when the module is unimported
@@ -355,3 +360,35 @@ def padImage(pil_img: Image.Image, top: int, right: int, bottom: int, left: int,
     result = Image.new(pil_img.mode, (pil_img.size[0] + right + left, pil_img.size[1] + top + bottom), colour)
     result.paste(pil_img, (left, top))
     return result
+
+
+def copyStarMap() -> Image.Image:
+    """Get a copy of the galactic map image.
+    The image is in "RGBA" mode. Image dimensions are not guaranteed.
+
+    :return: A copy of the galactic map image specified in `cfg.paths.mapImage`
+    :rtype: Image.Image
+    """
+    global MAP_IMAGE
+    if MAP_IMAGE is None:
+        if cfg.paths.mapImage:
+            MAP_IMAGE = Image.open(cfg.paths.mapImage)
+            if MAP_IMAGE.mode != "RGBA":
+                MAP_IMAGE = MAP_IMAGE.convert("RGBA")
+        else:
+            raise ValueError("No map image given in cfg")
+
+    return MAP_IMAGE.copy()
+
+
+def circleBoundingBox(centre: Tuple[int, int], radius: int) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+    """Get the bounding box coordinates for a circle centred at `centre`, of radius `radius`.
+
+    :param centre: Coordinates for the centre of the circle
+    :type centre: Tuple[int, int]
+    :param int radius: The radius of the circle.
+    :return: Coordinates for the bounding box of the circle of the given radius and centre.
+    :rtype: Tuple[Tuple[int, int], Tuple[int, int]]
+    """
+    return ((centre[0] - radius, centre[1] - radius),
+            (centre[0] + radius, centre[1] + radius))

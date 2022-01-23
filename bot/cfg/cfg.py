@@ -127,7 +127,10 @@ paths = {
     "tempRenders": "rendering-temp",
 
     # snowball images to use in ThrowSnowballTool
-    "snowballImages": "snowballs"
+    "snowballImages": "snowballs",
+
+    # map image used in bounty route renders
+    "mapImage": "starmap.png"
 }
 
 
@@ -421,6 +424,35 @@ activityTempPerPlayer = 1
 
 # The RGB colours to make by default for each bounty alert role
 bountyAlertRoleColoursByDivision = [(89, 39, 12), (157, 94, 11), (255, 174, 8)]
+
+# In bountyboard channels, show criminal loadouts as emojis
+bbcShowLoadoutEmojis = True
+
+# In bountyboard channels, show criminal total health points and dps
+bbcShowHpDps = True
+
+# In bountyboard channels, render the bounty route onto the starmap image
+bbcShowRouteImage = True
+
+# In bountyboard channels, if bbcShowRouteImage is True, this is the colour used for path lines. (R, G, B, A) tuple
+bbcRouteImageLineColour = (255, 89, 89, 255)
+
+# In bountyboard channels, if bbcShowRouteImage is True, this is the line width used for path lines
+bbcRouteImageLineWidth = 3
+
+# In bountyboard channels, if bbcShowRouteImage is True, this is radius of each dot on systems in path lines
+bbcRouteImageNodeRadius = 4
+
+# In bountyboard channels, if bbcShowRouteImage is True, this is colour of each dot on systems in path lines
+bbcRouteImageNodeColour = (255, 150, 150, 255)
+
+# In bountyboard channels, if bbcShowRouteImage is True, this radius is used to circle single-system routes
+bbcRouteImageSingleSystemRadius = 5
+
+# In bountyboard channels, if bbcShowRouteImage is True, this channel will be used to store route images
+# This is needed, because Message.edit cannot introduce new attachments.
+# The channel must be in `cfg.mediaServer`.
+bbcRouteImageChannel = 934909288495861931
 
 
 

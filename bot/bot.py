@@ -198,6 +198,7 @@ class BasedClient(ClientBaseClass):
         self.launchTime = datetime.utcnow()
         self.killer = GracefulKiller()
         self.skinStorageChannel = None
+        self.bountyRouteImagesChannel = None
 
 
     def saveAllDBs(self):
@@ -429,7 +430,10 @@ async def on_ready():
     TODO: Implement dynamic timedtask checking period
     """
     ##### CLIENT INITIALIZATION #####
-    botState.client.skinStorageChannel = botState.client.get_guild(cfg.mediaServer).get_channel(cfg.skinRendersChannel)
+    mediaServer = botState.client.get_guild(cfg.mediaServer)
+    botState.client.skinStorageChannel = mediaServer.get_channel(cfg.skinRendersChannel)
+    botState.client.bountyRouteImagesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
+
     botState.httpClient = aiohttp.ClientSession()
     if cfg.githubAccessToken and cfg.githubIssuesRepo:
         try:
