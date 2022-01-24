@@ -118,7 +118,7 @@ async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
             routeImg.save(routeImageBytes, "PNG")
             routeImageBytes.seek(0)
             routeFile = discord.File(routeImageBytes, filename="route.png")
-        await message.reply(f"Here's the shortest route from **{startSyst}** to **{endSyst}**:\n> {routeStr}:rocket:",
+        await message.reply(f"Here's the shortest route from **{startSyst}** to **{endSyst}**:\n> {routeStr} :rocket:",
                             mention_author=False, file=routeFile)
         if routeImg is not None:
             routeImg.close()
