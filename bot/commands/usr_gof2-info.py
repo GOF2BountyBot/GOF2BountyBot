@@ -17,6 +17,7 @@ from ..reactionMenus.pagedReactionMenu import PagedReactionMenu
 from ..shipRenderer import shipRenderer
 from ..users.basedGuild import BasedGuild
 from . import util_autoskin
+from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
 
 
 botCommands.addHelpSection(0, "gof2 info")
@@ -99,8 +100,9 @@ async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
 
     # build and print the route, reporting any errors in the route generation process
     routeStr = ""
-    for currentSyst in lib.pathfinding.makeRoute(startSyst, endSyst):
-        routeStr += currentSyst + ", "
+    route = lib.pathfinding.makeRoute(startSyst, endSyst)
+    routeStr = ", ".join(route)
+
     if routeStr.startswith("#"):
         await message.reply(mention_author=False, content=":x: ERR: Processing took too long! :stopwatch:")
     elif routeStr.startswith("!"):
@@ -108,8 +110,20 @@ async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
     elif startSyst == endSyst:
         await message.reply(mention_author=False, content=":thinking: You're already there, pilot!")
     else:
-        await message.reply(mention_author=False, content="Here's the shortest route from **" + startSyst + "** to **" + endSyst + "**:\n> " \
-                                    + routeStr[:-2] + " :rocket:")
+        routeImg = bountyBoardChannel.renderRouteMap(route)
+        if routeImg is None:
+            routeFile = None
+        else:
+            routeImageBytes = BytesIO()
+            routeImg.save(routeImageBytes, "PNG")
+            routeImageBytes.seek(0)
+            routeFile = discord.File(routeImageBytes, filename="route.png")
+        await message.reply(f"Here's the shortest route from **{startSyst}** to **{endSyst}**:\n> {routeStr}:rocket:",
+                            mention_author=False, file=routeFile)
+        if routeImg is not None:
+            routeImg.close()
+            routeImageBytes.close()
+            routeFile.close()
 
 botCommands.register("make-route", cmd_make_route, 0, allowDM=True, helpSection="gof2 info",
                         signatureStr="**make-route <startSystem>, <endSystem>**",
