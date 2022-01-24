@@ -262,13 +262,17 @@ class Bounty(serializable.Serializable):
 
         winningUserID = self.checked[self.answer]
         if classicModeUserIDs:
+            contributors = set(self.checked.values())
+
+            # Winner is classic mode
             if winningUserID in classicModeUserIDs:
                 winningUserSystems = [system for system in self.route if not self.systemChecked(system) \
                                         or self.checked[system] == winningUserID]
                 rewards[self.checked[self.answer]]["reward"] = len(winningUserSystems) * cfg.classic_creditsPerCheck
             
-            if len(set(self.checked.values())) > 1 and \
-                    any(True for i in self.checked.values() if i != winningUserID and i not in classicModeUserIDs):
+            # At least one non-classic mode contributor
+            if len(contributors) > 1 and \
+                    any(i not in (winningUserID, -1) and i not in classicModeUserIDs for i in contributors):
                 classicModeSystems = [system for system in self.route if self.checked[system] in classicModeUserIDs]
                 if winningUserID in classicModeUserIDs:
                     classicModeSystems += [system for system in self.route if not self.systemChecked(system)]
