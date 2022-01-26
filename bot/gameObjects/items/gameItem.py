@@ -1,14 +1,14 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Type, TypeVar, cast
+from typing import Dict, List, Type, TypeVar, cast
 
 from ...baseClasses import aliasable
 from abc import abstractmethod
 from ... import lib
 
 
-subClassNames = {}
-nameSubClasses = {}
+subClassNames: Dict[str, Type["GameItem"]] = {}
+nameSubClasses: Dict[Type["GameItem"], str] = {}
 
 
 class GameItem(aliasable.Aliasable):
@@ -132,7 +132,7 @@ class GameItem(aliasable.Aliasable):
         return data
 
 
-TClass = TypeVar("TClass")
+TClass = TypeVar("TClass", bound=GameItem)
 
 
 def spawnableItem(cls: TClass) -> TClass:
@@ -158,6 +158,10 @@ def spawnItem(data : dict) -> GameItem:
 
 def isSpawnableItemClass(cls):
     return issubclass(cls, GameItem) and cls in nameSubClasses
+
+
+def spawnableItemClassFromName(n: str) -> Type[GameItem]:
+    return subClassNames[n]
 
 
 def isSpawnableItemInstance(o):

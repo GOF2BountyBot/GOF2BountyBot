@@ -113,6 +113,16 @@ def pickRandomItemTL(shopTL : int) -> int:
         return cfg.maxTechLevel
 
 
+def possibleItemTLs(shopTL: int) -> List[int]:
+    """Get a list of all item tech levels that can spawn for a given shop tech level
+    
+    :param int shopTL: The level of the shop whose possible item levels to look up
+    :return: A list of item tech levels with non-zero spawn chances for shops of level shopTL
+    :rtype: List[int]
+    """
+    return [i for i in techLevelRange if itemTLSpawnChanceForShopTL[shopTL - 1][i - 1] != 0]
+
+
 def shipSkinValueForTL(averageTL : int) -> int:
     """Calculate how skins are valued with respect to their average compatible ship techlevel.
 
@@ -143,13 +153,10 @@ for shopTL in techLevelRange:
     # Sum probabilities to give cumulative scale
     cumulativeItemTLSpawnChanceForShopTL[shopTL - 1] = makeCumulative(tlSpawnRates)
 
-for shopTL in range(len(itemTLSpawnChanceForShopTL)):
-    print("\t• shop TL" + str(shopTL + 1) + ": itemTL", end="")
-    for itemTL in range(len((itemTLSpawnChanceForShopTL[shopTL]))):
-        if itemTLSpawnChanceForShopTL[shopTL][itemTL] != 0:
-            print(" " + str(itemTL + 1) + "=" \
-                        + str(truncItemSpawnResolution(itemTLSpawnChanceForShopTL[shopTL][itemTL] * 100)),
-                    end="% ")
+for shopTL in techLevelRange:
+    print(f"\t• shop TL {shopTL}: itemTL", end="")
+    for itemTL in possibleItemTLs(shopTL):
+        print(f" {itemTL}={truncItemSpawnResolution(itemTLSpawnChanceForShopTL[shopTL - 1][itemTL - 1] * 100)}", end="% ")
     print()
 
 

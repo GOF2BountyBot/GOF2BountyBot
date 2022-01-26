@@ -539,6 +539,15 @@ maxModuleTypeEquips = {     "ArmourModule": 1,
                             "TractorBeamModule": 1,
                             "TransfusionBeamModule": 1}
 
+# The minimum number of a given item type that shops will spawn per refresh, if items are available of the correct level
+# These MUST be spawnableItems - classes marked with the spawnableItem decorator.
+# This feature is not currently available for ships.
+minModuleTypeShopSpawns = { "ArmourModule": 1,
+                            "ShieldModule": 1
+                            }
+minWeaponTypeShopSpawns: Dict[str, int] = {}
+minTurretTypeShopSpawns: Dict[str, int] = {}
+
 # valid types of crateItem that are in the game. Each will be associated with a zero-indexed (crateNum) list of crate objects
 crateTypes = ("levelUp", "special", "christmas")
 

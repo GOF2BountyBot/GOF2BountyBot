@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Set, Type, cast
 if TYPE_CHECKING:
     from ..users import basedUser
 
@@ -583,28 +583,77 @@ class TechLeveledShop(GuildShop):
         :param int level: The new tech level of the shop. Give -1 to pick a level at random according to cfg.pickRandomShopTL()
         :raise ValueError: When given a tech level that is out of range
         """
+        # Clear out all existing stocks
         self.shipsStock.clear()
         self.weaponsStock.clear()
         self.modulesStock.clear()
         self.turretsStock.clear()
         self.toolsStock.clear()
 
+        # Pick a new tech level if not supplied with one
         if level == -1:
             self.currentTechLevel = self.pickNewTL()
         else:
+            # If given a tech level, make sure its valid
             if level not in range(cfg.minTechLevel, cfg.maxTechLevel + 1):
-                raise ValueError("Attempted to refresh a shop at tech level " + str(level) + ". must be within the range " \
-                                    + str(cfg.minTechLevel) + " to " + str(cfg.maxTechLevel))
+                raise ValueError(f"Attempted to refresh a shop at tech level {level}. Must be within the range " \
+                                + f"{cfg.minTechLevel} to {cfg.maxTechLevel}")
             self.currentTechLevel = level
 
-        for maxCount, stock, keys in (  (cfg.shopDefaultModulesNum, self.modulesStock, bbData.moduleObjsByTL),
-                                        (cfg.shopDefaultWeaponsNum, self.weaponsStock, bbData.weaponObjsByTL),
-                                        (cfg.shopDefaultTurretsNum, self.turretsStock, bbData.turretObjsByTL)):
+        # Item spawning minimums are given in cfg by their class names. Convert these into actual classes.
+        moduleTypeMins = {gameItem.spawnableItemClassFromName(k): v for k, v in cfg.minModuleTypeShopSpawns.items() if v}
+        weaponTypeMins = {gameItem.spawnableItemClassFromName(k): v for k, v in cfg.minWeaponTypeShopSpawns.items() if v}
+        turretTypeMins = {gameItem.spawnableItemClassFromName(k): v for k, v in cfg.minTurretTypeShopSpawns.items() if v}
+
+        # Iterate over all item types in the shop - weapons, modules and turrets. Ships are handled separately.
+        for typeMins, maxCount, stock, keys in \
+                (
+                    (moduleTypeMins, cfg.shopDefaultModulesNum, self.modulesStock, bbData.moduleObjsByTL),
+                    (weaponTypeMins, cfg.shopDefaultWeaponsNum, self.weaponsStock, bbData.weaponObjsByTL),
+                    (turretTypeMins, cfg.shopDefaultTurretsNum, self.turretsStock, bbData.turretObjsByTL)
+                ):
+
+            if typeMins:
+                # Iterate over all item types
+                for itemType, minCount in typeMins.items():
+                    # Find the items of the required type that could spawn at the shop's current level
+                    possibleItems: Dict[int, List[gameItem.GameItem]] = {tl: i for tl, i in {
+                        tl: [i for i in keys[tl - 1] if isinstance(i, itemType)]
+                            for tl in gameMaths.possibleItemTLs(self.currentTechLevel)
+                    }.items() if i}
+
+                    if possibleItems:
+                        # Add a random selection of minCount items from possibleItems
+                        for _ in range(minCount):
+                            # Pick the tech level of this new item
+                            itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
+                            tries = 5
+                            while itemTL not in possibleItems and tries > 0:
+                                # Make sure the picked techLevel corresponds to a level that has an item of the type we want
+                                itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
+                                # Limit this loop just in case there's an error elsewhere. Don't want to deadlock the bot
+                                tries -= 1
+                            
+                            # If the loop ran out of tries, just pick the lowest valid TL
+                            if itemTL not in possibleItems:
+                                itemTL = list(possibleItems)[0]
+                            
+                            # Pick an item at the selected tech level with equal likelihood
+                            stock.addItem(random.choice(possibleItems[itemTL]))
+                
+                # Take off the number of items spawned from the number of non-essential items to spawn
+                maxCount -= stock.totalItems
+            
+            # Try to spawn maxCount items. Might not get that many.
             for _ in range(maxCount):
+                # Pick the tech level of this new item
                 itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
+                # Pick an item at this tech level with equal likelihood. If there aren't any items at this level, then ignore.
                 if len(keys[itemTL - 1]) != 0:
                     stock.addItem(random.choice(keys[itemTL - 1]))
 
+        # Do the same as above for ships.
+        # This is handled separately because ships are added to the shop by their serialized data, not by existing instances.
         for _ in range(cfg.shopDefaultShipsNum):
             itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
             if len(bbData.shipKeysByTL[itemTL - 1]) != 0:
