@@ -798,11 +798,11 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False,
                                     content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
                 return
-            args = args.split("+")[0].rstrip()
+            args = args.split("+")[0].strip()
             attached = True
             full = args.lower().endswith("full")
             if full:
-                args = args.split("full")[0].rstrip()
+                args = args.split("full")[0].strip()
         else:
             args, skin = argsSplit
     else:
@@ -816,50 +816,51 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
             return
         shipName, rendererArgs = result
         await util_autoskin.doAutoSkin(message, rendererArgs, shipName)
-    else:
+    elif reskin:
         await message.reply(mention_author=False,
                                     content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
         return
-        # look up the ship object
-        try:
-            shipData = bbData.findShipDataByAlias(args)
-        except KeyError:
-            await message.reply(mention_author=False,
-                                content=f":x: **{truncateWithEllipse(args, 20, 15)}** is not in my database! :detective:")
+
+    # look up the ship object
+    try:
+        shipData = bbData.findShipDataByAlias(args)
+    except KeyError:
+        await message.reply(mention_author=False,
+                            content=f":x: **{truncateWithEllipse(args, 20, 15)}** is not in my database! :detective:")
+        return
+
+    itemName = shipData["name"]
+
+    if skin:
+        if not shipData["skinnable"]:
+            await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
             return
 
-        itemName = shipData["name"]
+        skin = skin.lstrip().lower()
+        if skin not in bbData.builtInShipSkins:
+            await message.reply(mention_author=False,
+                                content=f":x: The **{truncateWithEllipse(skin, 20, 15)}** skin is not in my database! " \
+                                        + ":detective:")
+        elif skin not in shipData["compatibleSkins"]:
+            await message.reply(mention_author=False,
+                                content=f":x: That skin is not compatible with the **{itemName}**!")
 
-        if skin:
-            if not shipData["skinnable"]:
-                await message.reply(mention_author=False, content=":x: That ship is not skinnable!")
-                return
-
-            skin = skin.lstrip().lower()
-            if skin not in bbData.builtInShipSkins:
-                await message.reply(mention_author=False,
-                                    content=f":x: The **{truncateWithEllipse(skin, 20, 15)}** skin is not in my database! " \
-                                            + ":detective:")
-            elif skin not in shipData["compatibleSkins"]:
-                await message.reply(mention_author=False,
-                                    content=f":x: That skin is not compatible with the **{itemName}**!")
-
-            else:
-                itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
-                                                        img=bbData.builtInShipSkins[skin].shipRenders[itemName][0],
-                                                        titleTxt=itemName,
-                                                        footerTxt="Custom skin: " + skin.capitalize())
-                await message.reply(mention_author=False, embed=itemEmbed)
         else:
-            shipIcon = shipData.get("icon", False)
-            if shipIcon:
-                await message.reply(mention_author=False,
-                                    content=f":x: I don't have an icon for **{itemName}**!")
-            else:
-                manufacturer = shipData.get('manufacturer', 'Custom').capitalize()
-                itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(), img=shipIcon, titleTxt=itemName,
-                                                        footerTxt=f"{manufacturer} ship")
-                await message.reply(mention_author=False, embed=itemEmbed)
+            itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
+                                                    img=bbData.builtInShipSkins[skin].shipRenders[itemName][0],
+                                                    titleTxt=itemName,
+                                                    footerTxt="Custom skin: " + skin.capitalize())
+            await message.reply(mention_author=False, embed=itemEmbed)
+    else:
+        shipIcon = shipData.get("icon", False)
+        if shipIcon:
+            await message.reply(mention_author=False,
+                                content=f":x: I don't have an icon for **{itemName}**!")
+        else:
+            manufacturer = shipData.get('manufacturer', 'Custom').capitalize()
+            itemEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(), img=shipIcon, titleTxt=itemName,
+                                                    footerTxt=f"{manufacturer} ship")
+            await message.reply(mention_author=False, embed=itemEmbed)
 
 # botCommands.register("showme-ship", cmd_showme_ship)
 
