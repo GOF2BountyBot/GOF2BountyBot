@@ -11,7 +11,7 @@ from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 
 
 async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
-    """Transfer the calling user's home guild to the guild where the message was sent.
+    """Transfer the calling user's home server to the guild where the message was sent.
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
@@ -44,7 +44,7 @@ async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
 
 
 async def cmd_home(message : discord.Message, args : str, isDM : bool):
-    """Display the name of the calling user's home guild, if they have one.
+    """Display the name of the calling user's home server, if they have one.
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored

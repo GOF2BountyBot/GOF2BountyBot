@@ -83,7 +83,7 @@ class BasedUser(serializable.Serializable):
     :vartype duelCreditsLosses: int
     :var userAlerts: A dictionary mapping userAlerts.UABase subtypes to instances of that subtype
     :vartype userAlerts: dict[type, userAlerts.UABase]
-    :var homeGuildID: The id of this user's 'home guild' - the only guild from which they may use several commands
+    :var homeGuildID: The id of this user's 'home server' - the only guild from which they may use several commands
                         e.g buy and check.
     :vartype homeGuildID: int
     :var guildTransferCooldownEnd: A timestamp after which this user is allowed to transfer their homeGuildID.
@@ -144,7 +144,7 @@ class BasedUser(serializable.Serializable):
                         userAlerts.userAlertsIDsTypes) to either (instances of that subtype or booleans
                         representing the alert state) (Default {})
         :type alerts: dict[type or str, userAlerts.UABase or bool]
-        :param Guild homeGuildID: The ID of this user's 'home guild' - the only guild from which they may use several
+        :param Guild homeGuildID: The ID of this user's 'home server' - the only guild from which they may use several
                                     commands e.g buy and check.
         :param datetime.datetime guildTransferCooldownEnd: A timestamp after which this user is allowed to transfer
                                                             their homeGuildID.
@@ -718,9 +718,9 @@ class BasedUser(serializable.Serializable):
 
 
     def hasHomeGuild(self) -> bool:
-        """Decide whether or not this user has a home guild set.
+        """Decide whether or not this user has a home server set.
 
-        :return: True if this user has a home guild, False otherwise
+        :return: True if this user has a home server, False otherwise
         :rtype: bool
         """
         return self.homeGuildID != -1
@@ -732,7 +732,7 @@ class BasedUser(serializable.Serializable):
 
         :param datetime.datetime now: The current time, if known. This optional parameter is included for increasing
                                         efficiency in the case where the current time has already been calculated.
-        :return: True if this user has no home guild, or their guild transfer cooldown has completed, false otherwise
+        :return: True if this user has no home server, or their guild transfer cooldown has completed, false otherwise
         :rtype: bool
         """
         if now is None:
@@ -829,9 +829,9 @@ class BasedUser(serializable.Serializable):
 
 
     def __str__(self) -> str:
-        """Get a short string summary of this BasedUser. Currently only contains the user ID and home guild ID.
+        """Get a short string summary of this BasedUser. Currently only contains the user ID and home server ID.
 
-        :return: A string summar of the user, containing the user ID and home guild ID.
+        :return: A string summar of the user, containing the user ID and home server ID.
         :rtype: str
         """
         return "<BasedUser #" + str(self.id) + ((" @" + str(self.homeGuildID)) if self.hasHomeGuildID() else "") + ">"

@@ -178,7 +178,7 @@ botCommands.register("setbalance", dev_cmd_setbalance, 3, allowDM=True, useDoc=T
 
 
 async def dev_cmd_reset_transfer_cool(message : discord.Message, args : str, isDM : bool):
-    """developer command resetting a user's home guild transfer cooldown.
+    """developer command resetting a user's home server transfer cooldown.
 
     :param discord.Message message: the discord message calling the command
     :param str args: either empty string or string containing a user mention or ID

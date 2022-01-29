@@ -36,13 +36,13 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
 
-    # verify this is the calling user's home guild. If no home guild is set, transfer here.
+    # verify this is the calling user's home server. If no home server is set, transfer here.
     requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
     if not requestedBBUser.hasHomeGuild():
         await requestedBBUser.transferGuild(message.guild)
-        await message.reply(mention_author=False, content=":airplane_arriving: Your home guild has been set.")
+        await message.reply(mention_author=False, content=":airplane_arriving: Your home server has been set.")
     elif requestedBBUser.homeGuildID != message.guild.id:
-        await message.reply(mention_author=False, content=":x: This command can only be used from your home guild!")
+        await message.reply(mention_author=False, content=":x: This command can only be used from your home server!")
         return
 
     # verify a system was given
