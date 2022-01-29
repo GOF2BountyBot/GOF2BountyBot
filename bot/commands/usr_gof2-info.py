@@ -798,13 +798,13 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False,
                                     content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
                 return
-            args = args.split("+")[0].strip()
+            args = argsSplit[0].strip()
             attached = True
             full = args.lower().endswith("full")
             if full:
                 args = args.split("full")[0].strip()
         else:
-            args, skin = argsSplit
+            args, skin = argsSplit[0].strip(), argsSplit[1].strip()
     else:
         skin = ""
 
