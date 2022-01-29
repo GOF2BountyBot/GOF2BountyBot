@@ -585,22 +585,25 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         sourceBBUser = botState.usersDB.addID(message.author.id)
 
     resultsMessage: discord.Message = None
-    async def sendOrEdit(resultsMessage: Optional[discord.Message], *args, **kwargs) -> discord.Message:
+    async def sendOrEdit(resultsMessage: Optional[discord.Message], **kwargs) -> discord.Message:
+        embed = kwargs.pop("embed", None)
+        mention_author = kwargs.pop("mention_author", False)
+        
         if resultsMessage is None:
-            return await message.reply(*args, **kwargs, mention_author=False)
-        await resultsMessage.edit(*args, **kwargs)
+            return await message.reply(embed=embed, mention_author=mention_author, **kwargs)
+        await resultsMessage.edit(embed=embed, mention_author=mention_author, **kwargs)
         return resultsMessage
 
-    if not sourceBBUser.hasHomeGuild() or not sourceBBUser.canTransferGuild():
-        if isDM:
+    if not sourceBBUser.hasHomeGuild():
+        if isDM or not sourceBBUser.canTransferGuild():
             await message.reply("You must have a home server set in order to use this command.\n" \
                                 + f"Please see `{cfg.defaultCommandPrefix}help home` and " \
                                 + f"`{cfg.defaultCommandPrefix}help transfer`.")
             return
         
         resultsMessage = await sendOrEdit(resultsMessage,
-                                            "You must have a home server set in order to use this command.\n" \
-                                            + f"Set your home server to '{message.guild.name}' now?")
+                                            content="You must have a home server set in order to use this command.\n" \
+                                                + f"Set your home server to '{message.guild.name}' now?")
         cooldownTime = timedelta(**cfg.homeGuildTransferCooldown)
         confirmation = await InlineConfirmationMenu(resultsMessage, message.author, cfg.toolUseConfirmTimeoutSeconds,
                                                     desc="The home server transfer cooldown is " \
@@ -608,7 +611,7 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         if cfg.defaultEmojis.accept in confirmation:
             await sourceBBUser.transferGuild(message.guild)
         else:
-            await sendOrEdit(resultsMessage, "🛑 Command cancelled.")
+            await sendOrEdit(resultsMessage, content="🛑 Command cancelled.")
             return
 
     homeGuild: discord.Guild = botState.client.get_guild(sourceBBUser.homeGuildID)
@@ -616,17 +619,18 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
     if botState.usersDB.idExists(requestedUser.id):
         targetBBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
         if not targetBBUser.hasHomeGuild() or targetBBUser.homeGuildID != sourceBBUser.homeGuildID:
-            await sendOrEdit(resultsMessage, f":x: You can only pay players whose home server is {homeGuild.name}!")
+            await sendOrEdit(resultsMessage, content=f":x: You can only pay players whose home server is {homeGuild.name}!")
             return
     else:
-        await sendOrEdit(resultsMessage, f":x: You can only pay players whose home server is {homeGuild.name}!")
+        await sendOrEdit(resultsMessage, content=f":x: You can only pay players whose home server is {homeGuild.name}!")
         return
     
     sourceBBUser.credits -= amount
     targetBBUser.credits += amount
 
-    await sendOrEdit(resultsMessage, f":moneybag: You paid {lib.discordUtil.userOrMemberName(requestedUser, message.guild)}"
-                                    + f" **{amount}** credits!")
+    await sendOrEdit(resultsMessage,
+                    content=f":moneybag: You paid {lib.discordUtil.userOrMemberName(requestedUser, message.guild)}"
+                            + f" **{amount}** credits!")
     
     if message.guild.get_member(requestedUser.id) is None:
         homeBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(homeGuild.id)
