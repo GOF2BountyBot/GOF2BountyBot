@@ -165,6 +165,7 @@ async def admin_cmd_remove_bounty_board_channels(message : discord.Message, args
     else:
         for div in guild.bountiesDB.divisions.values():
             div.removeBountyBoardChannel()
+        guild.hasBountyBoardChannels = False
         await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty board channels disabled!")
 
 botCommands.register("disable-bounty-board-channels", admin_cmd_remove_bounty_board_channels, 2, allowDM=False,
