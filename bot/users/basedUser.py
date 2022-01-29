@@ -813,7 +813,7 @@ class BasedUser(serializable.Serializable):
         """
         if menuTypeID not in self.ownedMenus:
             self.ownedMenus[menuTypeID] = set()
-        self.ownedMenus[menuTypeID].add(menu.id)
+        self.ownedMenus[menuTypeID].add(menu.msg.id)
 
     
     def removeAllOwnedMenusOfTypeID(self, menuTypeID: str) -> int:
@@ -841,9 +841,9 @@ class BasedUser(serializable.Serializable):
         """
         if menuTypeID not in self.ownedMenus:
             raise KeyError(f"No menus owned with type ID '{menuTypeID}'")
-        if menu.id not in self.ownedMenus[menuTypeID]:
-            raise ValueError(f"{type(menu).__name_} #{menu.id} not registered to this user as '{menuTypeID}'")
-        self.ownedMenus[menuTypeID].remove(menu.id)
+        if menu.msg.id not in self.ownedMenus[menuTypeID]:
+            raise ValueError(f"{type(menu).__name_} #{menu.msg.id} not registered to this user as '{menuTypeID}'")
+        self.ownedMenus[menuTypeID].remove(menu.msg.id)
         if not self.ownedMenus[menuTypeID]:
             del self.ownedMenus[menuTypeID]
 
