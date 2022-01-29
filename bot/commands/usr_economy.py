@@ -2,6 +2,7 @@ import re
 from typing import Optional
 from aiohttp.client import request
 import discord
+from datetime import datetime, timedelta
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -10,6 +11,7 @@ from ..lib import gameMaths
 from ..cfg import cfg
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import divisionNameForLevel
+from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 
 
 botCommands.addHelpSection(0, "economy")
@@ -573,31 +575,62 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
 
     if botState.usersDB.idExists(message.author.id):
         sourceBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+        if not sourceBBUser.credits >= amount:
+            await message.reply(mention_author=False, content=":x: You don't have that many credits!")
+            return
     else:
-        sourceBBUser: basedUser.BasedUser = botState.usersDB.addID(message.author.id)
+        if not basedUser.defaultUserDict.get("credits", 0) >= amount:
+            await message.reply(mention_author=False, content=":x: You don't have that many credits!")
+            return
+        sourceBBUser = botState.usersDB.addID(message.author.id)
 
-    if not sourceBBUser.credits >= amount:
-        await message.reply(mention_author=False, content=":x: You don't have that many credits!")
-        return
+    resultsMessage: discord.Message = None
+    async def sendOrEdit(resultsMessage: Optional[discord.Message], **kwargs) -> discord.Message:
+        embed = kwargs.pop("embed", None)
+        mention_author = kwargs.pop("mention_author", False)
+        
+        if resultsMessage is None:
+            return await message.reply(embed=embed, mention_author=mention_author, **kwargs)
+        await resultsMessage.edit(embed=embed, mention_author=mention_author, **kwargs)
+        return resultsMessage
 
-    if botState.usersDB.idExists(requestedUser.id):
-        targetBBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
-    else:
-        targetBBUser: basedUser.BasedUser = botState.usersDB.addID(requestedUser.id)
+    if not sourceBBUser.hasHomeGuild():
+        if isDM or not sourceBBUser.canTransferGuild():
+            await message.reply("You must have a home server set in order to use this command.\n" \
+                                + f"Please see `{cfg.defaultCommandPrefix}help home` and " \
+                                + f"`{cfg.defaultCommandPrefix}help transfer`.")
+            return
+        
+        resultsMessage = await sendOrEdit(resultsMessage,
+                                            content="You must have a home server set in order to use this command.\n" \
+                                                + f"Set your home server to '{message.guild.name}' now?")
+        cooldownTime = timedelta(**cfg.homeGuildTransferCooldown)
+        confirmation = await InlineConfirmationMenu(resultsMessage, message.author, cfg.toolUseConfirmTimeoutSeconds,
+                                                    desc="The home server transfer cooldown is " \
+                                                        + lib.timeUtil.td_format_noYM(cooldownTime) + ".").doMenu()
+        if cfg.defaultEmojis.accept in confirmation:
+            await sourceBBUser.transferGuild(message.guild)
+        else:
+            await sendOrEdit(resultsMessage, content="🛑 Command cancelled.")
+            return
 
     homeGuild: discord.Guild = botState.client.get_guild(sourceBBUser.homeGuildID)
 
-    if not targetBBUser.hasHomeGuild() or not sourceBBUser.hasHomeGuild() or \
-            targetBBUser.homeGuildID != sourceBBUser.homeGuildID:
-        await message.channel.send(":x: You can only pay players whose home server is " \
-                                    + homeGuild.name + "!")
+    if botState.usersDB.idExists(requestedUser.id):
+        targetBBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
+        if not targetBBUser.hasHomeGuild() or targetBBUser.homeGuildID != sourceBBUser.homeGuildID:
+            await sendOrEdit(resultsMessage, content=f":x: You can only pay players whose home server is {homeGuild.name}!")
+            return
+    else:
+        await sendOrEdit(resultsMessage, content=f":x: You can only pay players whose home server is {homeGuild.name}!")
         return
-
+    
     sourceBBUser.credits -= amount
     targetBBUser.credits += amount
 
-    await message.reply(mention_author=False, content=":moneybag: You paid " + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
-                                + " **" + str(amount) + "** credits!")
+    await sendOrEdit(resultsMessage,
+                    content=f":moneybag: You paid {lib.discordUtil.userOrMemberName(requestedUser, message.guild)}"
+                            + f" **{amount}** credits!")
     
     if message.guild.get_member(requestedUser.id) is None:
         homeBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(homeGuild.id)
@@ -617,7 +650,8 @@ botCommands.register("pay", cmd_pay, 0, forceKeepArgsCasing=True, allowDM=True, 
                         shortHelp="Pay the given user an amount of credits from your balance.",
                         longHelp="Pay the given user an amount of credits from your balance.\n" \
                                     + "If used from inside of a server, `user` can be a mention, ID, username, or username " \
-                                    + "with discriminator (#number). If used from DMs, `user` must be an ID or mention.")
+                                    + "with discriminator (#number). If used from DMs, `user` must be an ID or mention." \
+                                    + "\n🌎 You can only pay users who share your **home server**.")
 
 
 async def cmd_total_value(message : discord.Message, args : str, isDM : bool):
