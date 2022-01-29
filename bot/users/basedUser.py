@@ -842,7 +842,7 @@ class BasedUser(serializable.Serializable):
         if menuTypeID not in self.ownedMenus:
             raise KeyError(f"No menus owned with type ID '{menuTypeID}'")
         if menu.msg.id not in self.ownedMenus[menuTypeID]:
-            raise ValueError(f"{type(menu).__name_} #{menu.msg.id} not registered to this user as '{menuTypeID}'")
+            raise ValueError(f"{type(menu).__name__} #{menu.msg.id} not registered to this user as '{menuTypeID}'")
         self.ownedMenus[menuTypeID].remove(menu.msg.id)
         if not self.ownedMenus[menuTypeID]:
             del self.ownedMenus[menuTypeID]
