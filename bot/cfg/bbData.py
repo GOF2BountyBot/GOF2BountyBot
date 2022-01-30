@@ -115,6 +115,8 @@ builtInModuleObjs = {}
 builtInWeaponObjs = {}
 builtInUpgradeObjs = {}
 builtInTurretObjs = {}
+builtInSecondaryObjs = {}
+builtInCommodityObjs = {}
 medalObjs = {}
 
 # References to the above item objects, sorted by techLevel.
@@ -130,6 +132,8 @@ bountyNames = {}
 longestBountyNameLength = 0
 
 shipSkinToolsBySkin = {}
+shipUpgradeToolsByUpgrade = {}
+
 # Dict of crate type (str) : list of crates
 builtInCrateObjs = {}
 

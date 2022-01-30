@@ -1,5 +1,5 @@
 # TODO: Remake most of these with regex
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 
 def isInt(x) -> bool:
@@ -92,3 +92,51 @@ def formatMultiplier(stat : float) -> str:
     :return: A sign symbol, followed by stat, followed by a percentage sign.
     """
     return f"{'+' if stat >= 1 else '-'}{round(((stat - 1) if stat > 1 else (1 - stat)) * 100)}%"
+
+
+def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign='left', valuesAlign='left',
+                        keyMaxLenOverride: int = None, valueMaxLenOverride: int = None) -> str:
+    """With each `field` in `fields` as `key` and `value`, perform a `sep`.join on `fields`, with padding between each
+    `key` and `value`, such that each `value` begins in the same column.
+
+    :param fields: List of `key`, `value` tuples. `key` will be placed at column 0, and `value` will be indentation-matched.
+    :type fields: List[Tuple[str, str]]
+    :param sep: The character to place in between each `field` (Default "\n")
+    :type sep: str, optional
+    :param pad: The string to pad between `key`s and `value`s with (Default " ")
+    :type pad: str, optional
+    :param centreKeys: How to horizontally align `key`s, `left`, `right` or `centre` (Default `left`)
+    :type centreKeys: str, optional
+    :param centreValues: How to horizontally align `value`s, `left`, `right` or `centre` (Default `left`)
+    :type centreValues: str, optional
+    :param keyMaxLenOverride: Override for the maximum width of the `key`s column (Default inferred)
+    :type keyMaxLenOverride: int, optional
+    :param valueMaxLenOverride: Override for the maximum width of the `value`s column (Default inferred)
+    :type valueMaxLenOverride: int, optional
+    :return: [description]
+    :rtype: str
+    """
+    longestKeyLength = max(len(k) for k, _ in fields) if keyMaxLenOverride is None else keyMaxLenOverride
+    longestValueLength = (max(len(v) for _, v in fields) if valuesAlign != 'left' else None) \
+                            if valueMaxLenOverride is None else valueMaxLenOverride
+
+    def centreOrPad(value: str, alignment: str, maxLength: Optional[int], padRight: bool) -> str:
+        if alignment == 'left':
+            if padRight:
+                return f"{value}{pad * (maxLength - len(value))}"
+            return value
+        elif alignment == 'right':
+            return f"{pad * (maxLength - len(value))}{value}"
+        elif alignment == 'centre':
+            if len(value) == maxLength:
+                return value
+            total = maxLength - len(value)
+            left = total // 2
+            right = total - left
+            return f"{pad * left}{value}{pad * right}"
+        else:
+            raise ValueError(f"Invalid alignment: {alignment}")
+
+    return sep.join(centreOrPad(k, keysAlign, longestKeyLength, True)
+                    + centreOrPad(v, valuesAlign, longestValueLength, False)
+                    for k, v in fields)

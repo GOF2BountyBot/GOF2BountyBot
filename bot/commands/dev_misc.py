@@ -8,6 +8,7 @@ from ..users.basedUser import BasedUser
 from ..gameObjects.items.tools import crateTool
 from datetime import timedelta
 from ..reactionMenus import giveawayMenu
+from ..cfg import bbData
 
 from . import util_help
 
@@ -208,3 +209,34 @@ async def dev_cmd_restart_task_checker(message : discord.Message, args : str, is
     await message.author.send(f"> {message.jump_url}\n✅ Done!")
 
 botCommands.register("restart-task-scheduler", dev_cmd_restart_task_checker, 3, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool):
+    """developer command sending a DM containing info about the loaded game objects
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    embed = discord.Embed(title="Bot Status", colour=discord.Colour.random())
+
+    embed.add_field(name="Built-in GameObjects",
+                    value=lib.stringTyping.matchIndentation([
+                        ("`Ships", f" | {len(bbData.builtInShipData)} data/{len(bbData.shipKeysByTL)} sorted/{sum(len(i) for i in bbData.shipKeysByTL)} sorted (total)`"),
+                        ("`Modules", f" | {len(bbData.builtInModuleData)} data/{len(bbData.builtInModuleObjs)} objs/{len(bbData.moduleObjsByTL)} sorted/{sum(len(i) for i in bbData.moduleObjsByTL)} sorted (total)`"),
+                        ("`Weapons", f" | {len(bbData.builtInWeaponData)} data/{len(bbData.builtInWeaponObjs)} objs/{len(bbData.weaponObjsByTL)} sorted/{sum(len(i) for i in bbData.weaponObjsByTL)} sorted (total)`"),
+                        ("`Upgrades", f" | {len(bbData.builtInUpgradeData)} data/{len(bbData.builtInUpgradeObjs)} objs/{len(bbData.shipUpgradeToolsByUpgrade)} tools`"),
+                        ("`Criminals", f" | {len(bbData.builtInCriminalData)} data/{len(bbData.builtInCriminalObjs)} objs`"),
+                        ("`Systems", f" | {len(bbData.builtInSystemData)} data/{len(bbData.builtInSystemObjs)} objs`"),
+                        ("`Turrets", f" | {len(bbData.builtInTurretData)} data/{len(bbData.builtInTurretObjs)} objs/{len(bbData.turretObjsByTL)} sorted/{sum(len(i) for i in bbData.turretObjsByTL)} sorted (total)`"),
+                        ("`Commodities", f" | {len(bbData.builtInCommodityData)} data/{len(bbData.builtInCommodityObjs)} objs`"),
+                        ("`Tools", f" | {len(bbData.builtInToolData)} data/{len(bbData.builtInToolObjs)} objs`"),
+                        ("`Secondaries", f" | {len(bbData.builtInSecondariesData)} data/{len(bbData.builtInSecondaryObjs)} objs`"),
+                        ("`ShipSkins", f" | {len(bbData.builtInShipSkinsData)} data/{len(bbData.builtInShipSkins)} objs/{len(bbData.shipSkinToolsBySkin)} tools`"),
+                        ("`Medals", f" | {len(bbData.medalsData)} data/{len(bbData.medalObjs)} objs`"),
+                        ("`Crates", f" | {len(bbData.builtInCrateObjs)} types/{', '.join(f'{t}: {len(v)}' for t, v in bbData.builtInCrateObjs.items())}`")
+                    ]))
+    
+    await message.author.send(embed=embed)
+
+botCommands.register("item-status", dev_cmd_item_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
