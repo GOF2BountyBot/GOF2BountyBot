@@ -27,6 +27,7 @@ class UpdatesCheckFailed(Exception):
         super().__init__(reason, *args)
 
 
+# TODO: Make this a dataclass
 class UpdateCheckResults:
     """Data class representing the results of a bot version check.
 
@@ -85,6 +86,15 @@ async def getNewestTagOnRemote(httpClient: aiohttp.ClientSession, url: str) -> s
 BASED_VERSION = getBASEDVersion()["BASED_version"]
 
 
+def nextUpdateCheck() -> datetime:
+    """Get the datetime at which BASED updates should next be checked for
+
+    :return: A datetime representing the end of the BASED update check cooldown
+    :rtype: datetime
+    """
+    return datetime.utcfromtimestamp(getBASEDVersion()["next_update_check"])
+
+
 async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResults:
     """Check the BASED repository for new releases.
     Could be easily extended to check your own bot repository for updates as well.
@@ -95,10 +105,10 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdateCheck = datetime.utcfromtimestamp(getBASEDVersion()["next_update_check"])
+    nextUpdate = nextUpdateCheck()
 
     # Is it time to check yet?
-    if datetime.utcnow() >= nextUpdateCheck:
+    if datetime.utcnow() >= nextUpdate:
         # Get latest version
         latest = await getNewestTagOnRemote(httpClient, BASED_API_URL)
 

@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 from github import Github
 from github.Repository import Repository
 from typing import Optional, cast
+from enum import Enum
 
-class ShutDownState:
+class ShutDownState(Enum):
     restart = 0
     shutdown = 1
     update = 2
