@@ -5,15 +5,19 @@ import discord
 import traceback
 from datetime import datetime
 
+from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
+
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..users.basedUser import BasedUser
+from ..users import basedGuild
 from ..gameObjects.items.tools import crateTool
 from datetime import timedelta
 from ..reactionMenus import giveawayMenu
 from ..cfg import bbData, cfg, versionInfo
 from ..reactionMenus import reactionMenu
 from ..scheduling import timedTask
+from ..databases import bountyDB, bountyDivision
 
 from . import util_help
 
@@ -381,3 +385,121 @@ async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool
     await message.author.send(embed=embed)
 
 botCommands.register("item-status", dev_cmd_item_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : bool):
+    """developer command sending a DM containing info about the specified guild
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: nothing, or a guild id
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if args:
+        if isDM:
+            await message.author.send("Give an id, or call from a guild")
+            return
+        if not lib.stringTyping.isInt(args):
+            await message.author.send("Invalid id")
+            return
+        guildId = int(args)
+    else:
+        guildId = message.guild.id
+    
+    if botState.client.get_guild(guildId) is None:
+        await message.author.send("I am not a member of the guild")
+
+    if not botState.guildsDB.idExists(guildId):
+        await message.author.send("Guild not registered in the database")
+        return
+
+    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+
+    embed = discord.Embed(title="Guild Status", colour=discord.Colour.random())
+    
+    embed.add_field(name=str(guildId), value=f"{bGuild.dcGuild.name}")
+
+    embed.add_field(name="Channels",
+                    value=(f"announceChannel: {bGuild.announceChannel.mention} ({bGuild.announceChannel.id})\n" if bGuild.announceChannel is not None else f"announceChannel: None\n") \
+                    + (f"playChannel: {bGuild.playChannel.mention} ({bGuild.playChannel.id})\n" if bGuild.playChannel is not None else f"playChannel: None\n") \
+                    + (f"rendersChannel: {bGuild.rendersChannel.mention} ({bGuild.rendersChannel.id})" if bGuild.rendersChannel is not None else f"rendersChannel: None\n"))
+
+    if bGuild.shopsDisabled:
+        shopsStr = "Disabled"
+    else:
+        shopsStr = "\n".join(f"{divName}: Level {shop.currentTechLevel}" \
+                            + f"\n- Ships: {shop.shipsStock.totalItems}\n-  > " \
+                                + ", ".join(s.item.name for s in shop.shipsStock.items.values()) \
+                            + f"\n- Weapons: {shop.weaponsStock.totalItems}\n-  > " \
+                                + ", ".join(str(s.count) + "x " + s.item.name for s in shop.weaponsStock.items.values() if shop.weaponsStock.totalItems) \
+                            + f"\n- Modules: {shop.modulesStock.totalItems}\n-  > " \
+                                + ", ".join(str(s.count) + "x " + s.item.name for s in shop.modulesStock.items.values() if shop.modulesStock.totalItems) \
+                            + f"\n- Turrets: {shop.turretsStock.totalItems}\n-  > " \
+                                + ", ".join(str(s.count) + "x " + s.item.name for s in shop.turretsStock.items.values() if shop.turretsStock.totalItems) \
+                            + f"\n- Tools: {shop.toolsStock.totalItems}\n-  > " \
+                                + ", ".join(str(s.count) + "x " + s.item.name for s in shop.toolsStock.items.values() if shop.toolsStock.totalItems)
+                            for divName, shop in bGuild.divisionShops.items())
+
+    embed.add_field(name="Shops", value=shopsStr, inline=False)
+
+    if bGuild.bountiesDisabled:
+        bountiesStr = "Disabled"
+    else:
+        bountiesStr = "\n".join(f"{bountyDB.nameForDivision(div)}: " \
+                            + str(sum(len(i) for i in div.bounties.values()) \
+                                + sum(len(i) for i in div.escapedBounties.values())) \
+                                + " Bounties" \
+                            + f"\n- Active: {sum(len(i) for i in div.bounties.values())}\n-  > " \
+                                + ", ".join(", ".join(d.criminal.name for d in s.values()) for s in div.bounties.values() if any(s.values())) \
+                            + f"\n- Escaped: {sum(len(i) for i in div.escapedBounties.values())}\n-  > " \
+                                + ", ".join(", ".join(d.criminal.name for d in s.values()) for s in div.escapedBounties.values() if any(s.values())) \
+                            for div in bGuild.bountiesDB.divisions.values())
+
+    embed.add_field(name="Bounties", value=bountiesStr, inline=False)
+    
+    if bGuild.alertRoles:
+        alertRolesStr = "\n".join(f"{name}: <@&{roleId}> ({roleId})" if roleId != -1 else f"{name}: None" \
+                                    for name, roleId in bGuild.alertRoles.items())
+    else:
+        alertRolesStr = "None"
+
+    embed.add_field(name="Alert Roles",
+                    value=alertRolesStr)
+
+    if bGuild.bountiesDisabled:
+        bountyBoardChannelsStr = "Bounties disabled"
+    else:
+        if not bGuild.hasBountyBoardChannels:
+            bountyBoardChannelsStr = "BBCs disabled"
+        else:
+            bountyBoardChannelsStr = ""
+
+    if any(div.bountyBoardChannel for div in bGuild.bountiesDB.divisions.values()):
+        bountyBoardChannelsStr += "\n- " \
+            + "\n- ".join(f"{bountyDB.nameForDivision(div)}: {div.bountyBoardChannel.channel.mention} ({div.bountyBoardChannel.channel.id})"
+                        + (("\n-  > " + "\n-  > ".join(f"[{c.name}]({m.jump_url})" for c, m in div.bountyBoardChannel.bountyMessages.items())) \
+                            if div.bountyBoardChannel.bountyMessages else "") \
+                        for div in bGuild.bountiesDB.divisions.values() if div.bountyBoardChannel)
+    
+    embed.add_field(name="BountyBoardChannels", value=bountyBoardChannelsStr)
+
+    embed.add_field(name="Role Menus", value=str(bGuild.ownedRoleMenus))
+
+    if bGuild.bountiesDisabled:
+        bountyAlertRolesStr = "Bounties disabled"
+    else:
+        if not bGuild.hasBountyAlertRoles:
+            bountyAlertRolesStr = "BBCs disabled"
+        else:
+            bountyAlertRolesStr = ""
+
+    if any(div.alertRoleID != -1 for div in bGuild.bountiesDB.divisions.values()):
+        bountyAlertRolesStr += "\n" \
+            + "\n".join(f"{bountyDB.nameForDivision(div)}: <@&{div.alertRoleID}> ({div.alertRoleID})" if div.alertRoleID != -1 else \
+                f"{bountyDB.nameForDivision(div)}: None" for div in bGuild.bountiesDB.divisions.values())
+    
+    embed.add_field(name="Bounty Alert Roles", value=bountyAlertRolesStr)
+    
+    await message.author.send(embed=embed)
+
+botCommands.register("guild-status", dev_cmd_guild_status, 3, signatureStr="**guild-status** *[id]*",
+                    forceKeepArgsCasing=True, allowDM=True, useDoc=True)
