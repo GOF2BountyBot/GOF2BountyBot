@@ -106,7 +106,7 @@ class BasedUser(serializable.Serializable):
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
                     bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : int = -1,
-                    systemsChecked : int = 0, bountyWins : int = 0, activeShip : bool = None,
+                    systemsChecked : int = 0, bountyWins : int = 0, activeShip : shipItem.Ship = None,
                     inactiveShips : inventory.Inventory = None,
                     inactiveModules : inventory.Inventory = None,
                     inactiveWeapons : inventory.Inventory = None,

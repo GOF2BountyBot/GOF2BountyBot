@@ -18,6 +18,7 @@ from ..cfg import bbData, cfg, versionInfo
 from ..reactionMenus import reactionMenu
 from ..scheduling import timedTask
 from ..databases import bountyDB, bountyDivision
+from ..gameObjects.items import shipItem
 
 from . import util_help
 
@@ -353,7 +354,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
 
     await message.author.send(embed=embed)
 
-botCommands.register("bot-status", dev_cmd_bot_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+botCommands.register("bot-status", dev_cmd_bot_status, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool):
@@ -384,7 +385,7 @@ async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool
     
     await message.author.send(embed=embed)
 
-botCommands.register("item-status", dev_cmd_item_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+botCommands.register("item-status", dev_cmd_item_status, 3, allowDM=True, useDoc=True)
 
 
 async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : bool):
@@ -502,7 +503,7 @@ async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : boo
     await message.author.send(embed=embed)
 
 botCommands.register("guild-status", dev_cmd_guild_status, 3, signatureStr="**guild-status** *[id]*",
-                    forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+                    allowDM=True, useDoc=True)
 
 
 async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool):
@@ -521,48 +522,112 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
             return
         userId = int(args)
     else:
-        userId = message.user.id
+        userId = message.author.id
     
-    if botState.client.get_user(userId) is None:
+    if not (dcUser := botState.client.get_user(userId)):
         await message.author.send("I don't share any servers with that user")
 
     if not botState.usersDB.idExists(userId):
         await message.author.send("user not registered in the database")
         return
 
-    buser: BasedUser = botState.usersDB.getUser(userId)
+    bUser: BasedUser = botState.usersDB.getUser(userId)
 
     embed = discord.Embed(title="User Status", colour=discord.Colour.random())
 
-    id
-    credits
-    lifetimeBountyCreditsWon
-    bountyCooldownEnd
-    systemsChecked
-    bountyWins
-    activeShip
-    inactiveShips
-    inactiveModules
-    inactiveWeapons
-    inactiveTurrets
-    inactiveTools
-    duelRequests
-    duelWins
-    duelLosses
-    duelCreditsWins
-    duelCreditsLosses
-    userAlerts
-    homeGuildID
-    guildTransferCooldownEnd
-    kaamo
-    loma
-    prestiges
-    ownedMenus
-    medals
-    classicModeEnabled
-        async def transferGuild(self, newGuild : Guild):
+    embed.add_field(name=bUser.id, value=str(dcUser) if dcUser is not None else "Unknown")
+    embed.add_field(name="Credits",
+                    value=f"Current: {bUser.credits}\nlifetimeBountyCreditsWon: {bUser.lifetimeBountyCreditsWon}")
+    embed.add_field(name="$check Cooldown", 
+                    value=datetime.utcfromtimestamp(bUser.bountyCooldownEnd).strftime("%m/%d/%Y, %H:%M:%S"))
     
+    embed.add_field(name="Systems Checked", value=str(bUser.systemsChecked))
+    embed.add_field(name="Bounty Wins", value=str(bUser.bountyWins))
+
+    shipStr = f"{bUser.activeShip.name}\nNickname: {bUser.activeShip.nickname if bUser.activeShip.hasNickname else ''}\n" \
+            + f"Armour: {bUser.activeShip.armour}\n" \
+            + f"Cargo: {bUser.activeShip.cargo}\n" \
+            + f"Handling: {bUser.activeShip.handling}\n" \
+            + f"Max secondaries: {bUser.activeShip.maxSecondaries}\n" \
+            + f"Primaries: {len(bUser.activeShip.weapons)}/{bUser.activeShip.maxPrimaries}:\n" \
+                + ((f"- " + ", ".join(i.name for i in bUser.activeShip.weapons) + "\n") if bUser.activeShip.weapons else '') \
+            + f"Turrets: {len(bUser.activeShip.modules)}/{bUser.activeShip.maxTurrets}:\n" \
+                + ((f"- " + ", ".join(i.name for i in bUser.activeShip.modules) + "\n") if bUser.activeShip.modules else '') \
+            + f"Modules: {len(bUser.activeShip.turrets)}/{bUser.activeShip.maxModules}:\n" \
+                + ((f"- " + ", ".join(i.name for i in bUser.activeShip.turrets) + "\n") if bUser.activeShip.turrets else '') \
+            + f"Upgrades: " + ", ".join(i.name for i in bUser.activeShip.upgradesApplied) + "\n" \
+            + f"Skin: " + bUser.activeShip.skin.name if bUser.activeShip.skin is not None else 'None'
+
+    embed.add_field(name="Active Ship", value=shipStr)
     
+    embed.add_field(name="Ships", value=f"Total: {bUser.inactiveShips.totalItems}\n-  > " \
+                + ", ".join(s.item.name for s in bUser.inactiveShips.items.values()))
+    
+    embed.add_field(name="Weapons", value=f"Total: {bUser.inactiveWeapons.totalItems}\n-  > " \
+        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.inactiveWeapons.items.values() if bUser.inactiveWeapons.totalItems))
+    embed.add_field(name="Modules", value=f"Total: {bUser.inactiveModules.totalItems}\n-  > " \
+        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.inactiveModules.items.values() if bUser.inactiveModules.totalItems))
+    embed.add_field(name="Turrets", value=f"Total: {bUser.inactiveTurrets.totalItems}\n-  > " \
+        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.inactiveTurrets.items.values() if bUser.inactiveTurrets.totalItems))
+    embed.add_field(name="Tools", value=f"Total: {bUser.inactiveTools.totalItems}\n-  > " \
+        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.inactiveTools.items.values() if bUser.inactiveTools.totalItems))
+
+    embed.add_field(name="Duel Requests", value="\n".join(f"{target.id}: {request.stakes}" for target, request in bUser.duelRequests.items()) if bUser.duelRequests else "None")
+    embed.add_field(name="Duels", value=f"Wins: {bUser.duelWins}\nLosses: {bUser.duelLosses}\nCredits won: {bUser.duelCreditsWins}\nCredits lost: {bUser.duelCreditsLosses}")
+    
+    if bUser.hasHomeGuild() and (homeGuild := botState.guildsDB.getGuild(bUser.homeGuildID)):
+        if dcUser is None:
+            userAlertsStr = "States unknown, dcUser unavailable.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
+        else:
+            userAlertsStr = "\n".join(f"{t.__name__}: {a.getState(homeGuild.dcGuild, homeGuild, homeGuild.dcGuild.get_member(dcUser.id))}" for t, a in bUser.userAlerts.items())
+    else:
+        userAlertsStr = "States unknown, no homeguild.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
+
+
+    embed.add_field(name="User Alerts", value=userAlertsStr)
+    embed.add_field(name="Home Guild", value=f"{bUser.homeGuildID} - {botState.client.get_guild(bUser.homeGuildID)}")
+    embed.add_field(name="$transfer Cooldown", 
+                    value=bUser.guildTransferCooldownEnd.strftime("%m/%d/%Y, %H:%M:%S") if bUser.guildTransferCooldownEnd is not None else "None")
+
+    if bUser.kaamo is None:
+        kaamoStr = "None"
+    else:
+        kaamoStr = f"\n- Ships: {bUser.kaamo.shipsStock.totalItems}\n-  > " \
+                        + ", ".join(s.item.name for s in bUser.kaamo.shipsStock.items.values()) \
+                    + f"\n- Weapons: {bUser.kaamo.weaponsStock.totalItems}\n-  > " \
+                        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.kaamo.weaponsStock.items.values() if bUser.kaamo.weaponsStock.totalItems) \
+                    + f"\n- Modules: {bUser.kaamo.modulesStock.totalItems}\n-  > " \
+                        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.kaamo.modulesStock.items.values() if bUser.kaamo.modulesStock.totalItems) \
+                    + f"\n- Turrets: {bUser.kaamo.turretsStock.totalItems}\n-  > " \
+                        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.kaamo.turretsStock.items.values() if bUser.kaamo.turretsStock.totalItems) \
+                    + f"\n- Tools: {bUser.kaamo.toolsStock.totalItems}\n-  > " \
+                        + ", ".join(str(s.count) + "x " + s.item.name for s in bUser.kaamo.toolsStock.items.values() if bUser.kaamo.toolsStock.totalItems)
+
+    embed.add_field(name="Kaamo", value=kaamoStr, inline=False)
+
+
+    if bUser.loma is None:
+        lomaStr = "None"
+    else:
+        lomaStr = f"\n- Ships: {bUser.loma.shipsStock.totalItems}\n-  > " \
+                        + ", ".join((s.item.name + (f"*{s.discounts[0].mult}" if s.discounts else "")) for s in bUser.loma.shipsStock.items.values()) \
+                    + f"\n- Weapons: {bUser.loma.weaponsStock.totalItems}\n-  > " \
+                        + ", ".join((str(s.count) + "x " + s.item.name + (f"*{s.discounts[0].mult}" if s.discounts else "")) for s in bUser.loma.weaponsStock.items.values() if bUser.loma.weaponsStock.totalItems) \
+                    + f"\n- Modules: {bUser.loma.modulesStock.totalItems}\n-  > " \
+                        + ", ".join((str(s.count) + "x " + s.item.name + (f"*{s.discounts[0].mult}" if s.discounts else "")) for s in bUser.loma.modulesStock.items.values() if bUser.loma.modulesStock.totalItems) \
+                    + f"\n- Turrets: {bUser.loma.turretsStock.totalItems}\n-  > " \
+                        + ", ".join((str(s.count) + "x " + s.item.name + (f"*{s.discounts[0].mult}" if s.discounts else "")) for s in bUser.loma.turretsStock.items.values() if bUser.loma.turretsStock.totalItems) \
+                    + f"\n- Tools: {bUser.loma.toolsStock.totalItems}\n-  > " \
+                        + ", ".join((str(s.count) + "x " + s.item.name + (f"*{s.discounts[0].mult}" if s.discounts else "")) for s in bUser.loma.toolsStock.items.values() if bUser.loma.toolsStock.totalItems)
+
+    embed.add_field(name="Loma", value=lomaStr, inline=False)
+
+    embed.add_field(name="Prestiges", value=str(bUser.prestiges))
+    embed.add_field(name="Owned Menus", value="\n".join(f"{t}: {', '.join(str(i) for i in m)}" for t, m in bUser.ownedMenus.items()) if bUser.ownedMenus else "None")
+
+    embed.add_field(name="Medals", value=", ".join(i.name for i in bUser.medals) if bUser.medals else "None")
+    embed.add_field(name="Classic Mode", value="Enabled" if bUser.classicModeEnabled else "Disabled")
+
     await message.author.send(embed=embed)
 
-botCommands.register("item-status", dev_cmd_item_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+botCommands.register("user-status", dev_cmd_user_status, 3, allowDM=True, useDoc=True)
