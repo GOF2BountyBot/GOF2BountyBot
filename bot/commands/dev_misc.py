@@ -503,3 +503,66 @@ async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : boo
 
 botCommands.register("guild-status", dev_cmd_guild_status, 3, signatureStr="**guild-status** *[id]*",
                     forceKeepArgsCasing=True, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool):
+    """developer command sending a DM containing info about the specified user
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: nothing or a user id
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if args:
+        if isDM:
+            await message.author.send("Give an id, nothing for yourself")
+            return
+        if not lib.stringTyping.isInt(args):
+            await message.author.send("Invalid id")
+            return
+        userId = int(args)
+    else:
+        userId = message.user.id
+    
+    if botState.client.get_user(userId) is None:
+        await message.author.send("I don't share any servers with that user")
+
+    if not botState.usersDB.idExists(userId):
+        await message.author.send("user not registered in the database")
+        return
+
+    buser: BasedUser = botState.usersDB.getUser(userId)
+
+    embed = discord.Embed(title="User Status", colour=discord.Colour.random())
+
+    id
+    credits
+    lifetimeBountyCreditsWon
+    bountyCooldownEnd
+    systemsChecked
+    bountyWins
+    activeShip
+    inactiveShips
+    inactiveModules
+    inactiveWeapons
+    inactiveTurrets
+    inactiveTools
+    duelRequests
+    duelWins
+    duelLosses
+    duelCreditsWins
+    duelCreditsLosses
+    userAlerts
+    homeGuildID
+    guildTransferCooldownEnd
+    kaamo
+    loma
+    prestiges
+    ownedMenus
+    medals
+    classicModeEnabled
+        async def transferGuild(self, newGuild : Guild):
+    
+    
+    await message.author.send(embed=embed)
+
+botCommands.register("item-status", dev_cmd_item_status, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
