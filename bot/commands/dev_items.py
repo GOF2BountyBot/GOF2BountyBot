@@ -7,6 +7,7 @@ from ..cfg import cfg, bbData
 from ..gameObjects.items import gameItem
 from ..gameObjects.bounties.bounty import Bounty
 from ..databases.bountyDB import divisionNameForLevel
+from ..users import basedGuild
 
 
 botCommands.addHelpSection(3, "items")
@@ -297,47 +298,72 @@ botCommands.register("del-item-key", dev_cmd_del_item_key, 3, allowDM=True, help
 async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool):
     """Refresh the shop stock of the current guild. Does not reset the shop stock cooldown.
     To refresh all divisions, give no arguments.
-    To refresh a division to a specific level, just give the level.
+    To refresh a division to a specific level, give the name of the division followed by the level.
     To refresh just one division to a random level, just give the division name.
 
     :param discord.Message message: the discord message calling the command
-    :param str args: ignored
+    :param str args: nothing, a division name, or a division name and a level and optionally '-f'
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    divName = ""
-    level = -1
-    if args:
-        if lib.stringTyping.isInt(args):
-            if int(args) not in range(cfg.minTechLevel, cfg.maxTechLevel + 1):
-                await message.reply(mention_author=False,
-                                    content=f"Invalid tech level! Must be between {cfg.minTechLevel} and {cfg.maxTechLevel}.")
-            level = int(args)
-        elif args in cfg.bountyDivisionNames:
-            divName = args
-        else:
-            await message.reply("Unknown argument. Must either be a tech level or a " \
-                                    + f"division name: {'/'.join(cfg.bountyDivisionNames)}. " \
-                                    + "When refreshing a division to a specific level, don't specify the division.",
-                                mention_author=False)
+    if not args:
+        await message.reply("Give a division and optionally a tl, or 'all'.")
+        return
 
-    if not divName and level != -1:
-        divName = divisionNameForLevel(level)
-
-    guild = botState.guildsDB.getGuild(message.guild.id)
+    guild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
     if guild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This guild's shops are disabled.")
+        return
+
+    if args.endswith("-f"):
+        args = args[:-2].rstrip()
+        forceInvalidTL = True
     else:
-        if divName == "":
-            for shop in guild.divisionShops.values():
-                if shop.minLevel <= level <= shop.maxLevel:
-                    shop.refreshStock()
+        forceInvalidTL = False
+
+    if args == "all":
+        allShops = True
+        divName = ""
+        level = -1
+
+    else:
+        allShops = False
+
+        argsSplit = args.split(" ")
+        if len(argsSplit) == 1:
+            divName = args
+            level = -1
         else:
-            guild.divisionShops[divName].refreshStock(level)
-        
+            divName = " ".join(argsSplit[:-1])
+            tlStr = argsSplit[-1]
+            if not lib.stringTyping.isInt(tlStr):
+                await message.reply("Invalid tl: " + tlStr)
+                return
+            level = int(tlStr)
+            if level < cfg.minTechLevel or level > cfg.maxTechLevel:
+                        await message.reply(mention_author=False,
+                                            content=f"Invalid tech level! Must be between {cfg.minTechLevel} and {cfg.maxTechLevel}.")
+                        return
+
+        if not divName and level != -1:
+            divName = divisionNameForLevel(level)
+
+        if divName not in cfg.bountyDivisionNames:
+            await message.reply("Unknown division name: " + divName)
+            return
+    
+    if allShops:
+        for shop in guild.divisionShops.values():
+            shop.refreshStock()
+    else:
         if level == -1:
-            await guild.announceNewShopStock()
+            guild.divisionShops[divName].refreshStock()
         else:
-            await guild.announceNewShopStock(level)
+            if not forceInvalidTL and (level < guild.divisionShops[divName].minLevel or level > guild.divisionShops[divName].maxLevel):
+                await message.reply(f"Invalid level. This shop's tech level range is {guild.divisionShops[divName].minLevel} - {guild.divisionShops[divName].maxLevel}. To refresh a shop outside of its normal range, give `-f`.")
+                return
+            guild.divisionShops[divName].refreshStock(level)
+    
+    await guild.announceNewShopStock()
 
 botCommands.register("refreshshop", dev_cmd_refreshshop, 3, allowDM=False, helpSection="items", useDoc=True)
 
