@@ -295,7 +295,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
                 returnStr = "Still executing"
 
             sleepTaskStr = f"{'done' if botState.taskScheduler.sleepTask.done() else 'not done'}/" \
-                        + f"{'cancelled' if botState.taskScheduler.sleepTask.cancelled() else 'cancelled'}\n" \
+                        + f"{'cancelled' if botState.taskScheduler.sleepTask.cancelled() else 'not cancelled'}\n" \
                         + f"Exception: {exceptionStr}\nResult: {returnStr}"
 
         schedulerStr = f"Active: {botState.taskScheduler.active}\n" \
