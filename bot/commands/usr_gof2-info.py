@@ -803,6 +803,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
             full = args.lower().endswith("full")
             if full:
                 args = args.split("full")[0].strip()
+            skin = ""
         else:
             args, skin = argsSplit[0].strip(), argsSplit[1].strip()
     else:
