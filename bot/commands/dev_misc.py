@@ -5,13 +5,12 @@ import discord
 import traceback
 from datetime import datetime
 
-from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
-
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..users.basedUser import BasedUser
 from ..users import basedGuild
 from ..gameObjects.items.tools import crateTool
+from ..gameObjects.bounties import bounty
 from datetime import timedelta
 from ..reactionMenus import giveawayMenu
 from ..cfg import bbData, cfg, versionInfo
@@ -551,12 +550,12 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
             + f"Max secondaries: {bUser.activeShip.maxSecondaries}\n" \
             + f"Primaries: {len(bUser.activeShip.weapons)}/{bUser.activeShip.maxPrimaries}:\n" \
                 + ((f"- " + ", ".join(i.name for i in bUser.activeShip.weapons) + "\n") if bUser.activeShip.weapons else '') \
-            + f"Turrets: {len(bUser.activeShip.modules)}/{bUser.activeShip.maxTurrets}:\n" \
+            + f"Modules: {len(bUser.activeShip.modules)}/{bUser.activeShip.maxModules}:\n" \
                 + ((f"- " + ", ".join(i.name for i in bUser.activeShip.modules) + "\n") if bUser.activeShip.modules else '') \
-            + f"Modules: {len(bUser.activeShip.turrets)}/{bUser.activeShip.maxModules}:\n" \
+            + f"Turrets: {len(bUser.activeShip.turrets)}/{bUser.activeShip.maxTurrets}:\n" \
                 + ((f"- " + ", ".join(i.name for i in bUser.activeShip.turrets) + "\n") if bUser.activeShip.turrets else '') \
             + f"Upgrades: " + ", ".join(i.name for i in bUser.activeShip.upgradesApplied) + "\n" \
-            + f"Skin: " + bUser.activeShip.skin.name if bUser.activeShip.skin is not None else 'None'
+            + f"Skin: " + (bUser.activeShip.skin.name if bUser.activeShip.skin is not None else 'None')
 
     embed.add_field(name="Active Ship", value=shipStr)
     
@@ -631,3 +630,83 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
     await message.author.send(embed=embed)
 
 botCommands.register("user-status", dev_cmd_user_status, 3, allowDM=True, useDoc=True)
+
+
+async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bool):
+    """developer command sending a DM containing info about the specified bounty
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a criminal name
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    # look up the criminal object
+    criminalObj = None
+    for crim in bbData.builtInCriminalObjs.keys():
+        if bbData.builtInCriminalObjs[crim].isCalled(args):
+            criminalObj = bbData.builtInCriminalObjs[crim]
+
+    # report unrecognised criminal names
+    if criminalObj is None:
+        await message.reply("Unknown criminal")
+        return
+
+    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    if bGuild.bountiesDisabled:
+        await message.reply("Bounties disabled here")
+        return
+
+    try:
+        b = bGuild.bountiesDB.getBountyByCrim(criminalObj)
+    except KeyError:
+        try:
+            b = bGuild.bountiesDB.getEscapedBountyByCrim(criminalObj)
+        except KeyError:
+            await message.reply("Bounty is not wanted in this server")
+            return
+
+    embed = discord.Embed(title="Bounty Status", colour=discord.Colour.random())
+
+    embed.add_field(name="Criminal", value="\n".join([
+        f"Name: {b.criminal.name}",
+        f"Faction: {b.criminal.faction}",
+        f"Wiki: {b.criminal.wiki}",
+        f"Is Player: {b.criminal.isPlayer}",
+        f"Built-In: {b.criminal.builtIn}",
+    ]))
+
+    embed.add_field(name="Stats", value=f"Faction: {b.faction}\nTech level/Difficulty: {b.techLevel}\n" \
+                                        + f"Reward: {b.reward}\nReward per check: {b.rewardPerSys}")
+
+    embed.add_field(name="Times", value=f"Issued: {datetime.utcfromtimestamp(b.issueTime).strftime('%m/%d/%Y, %H:%M:%S')}\n" \
+                                    + f"ExpiryTT: {describeTT(b.expiryTT)}")
+    
+    embed.add_field(name="Route", value="\n".join(f"{s}: " + (f"{botState.client.get_user(u)} ({u})" if u != -1 else "unchecked") for s, u in b.checked.items()))
+    embed.add_field(name="Answer", value=b.answer)
+
+    botState.logger.log("dev_misc", "dev_cmd_bounty_status",
+                        f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
+                        + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
+                        category="bountiesDB", eventType="CHEAT")
+
+    if b.activeShip is None:
+        shipStr = "None"
+    else:
+        shipStr = f"{b.activeShip.name}\nNickname: {b.activeShip.nickname if b.activeShip.hasNickname else ''}\n" \
+                + f"Armour: {b.activeShip.armour}\n" \
+                + f"Cargo: {b.activeShip.cargo}\n" \
+                + f"Handling: {b.activeShip.handling}\n" \
+                + f"Max secondaries: {b.activeShip.maxSecondaries}\n" \
+                + f"Primaries: {len(b.activeShip.weapons)}/{b.activeShip.maxPrimaries}:\n" \
+                    + ((f"- " + ", ".join(i.name for i in b.activeShip.weapons) + "\n") if b.activeShip.weapons else '') \
+                + f"Modules: {len(b.activeShip.modules)}/{b.activeShip.maxModules}:\n" \
+                    + ((f"- " + ", ".join(i.name for i in b.activeShip.modules) + "\n") if b.activeShip.modules else '') \
+                + f"Turrets: {len(b.activeShip.turrets)}/{b.activeShip.maxTurrets}:\n" \
+                    + ((f"- " + ", ".join(i.name for i in b.activeShip.turrets) + "\n") if b.activeShip.turrets else '') \
+                + f"Upgrades: " + ", ".join(i.name for i in b.activeShip.upgradesApplied) + "\n" \
+                + f"Skin: " + (b.activeShip.skin.name if b.activeShip.skin is not None else 'None')
+
+    embed.add_field(name="Active Ship", value=f"Has ship: {b.hasShip}\n{shipStr}")
+    
+    await message.author.send(embed=embed)
+
+botCommands.register("bounty-status", dev_cmd_bounty_status, 3, signatureStr="**bounty-status <criminal name>**", useDoc=True)
