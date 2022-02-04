@@ -1,6 +1,6 @@
 import asyncio
 from logging import exception
-from typing import Dict, Type, cast
+from typing import Dict, Optional, Type, cast
 import discord
 import traceback
 from datetime import datetime
@@ -220,7 +220,8 @@ async def dev_cmd_restart_task_checker(message : discord.Message, args : str, is
 botCommands.register("restart-task-scheduler", dev_cmd_restart_task_checker, 3, allowDM=True, useDoc=True)
 
 
-def describeTT(tt: timedTask.TimedTask, issueTime: bool = True, expiryFunc: bool = True, nextExpiry: bool = True, expiryDelta: bool = True, autoReschedule: bool = True, sep="\n") -> str:
+def describeTT(tt: Optional[timedTask.TimedTask], issueTime: bool = True, expiryFunc: bool = True, nextExpiry: bool = True,
+                expiryDelta: bool = True, autoReschedule: bool = True, scheduled: bool = True, sep="\n") -> str:
     if tt is None:
         return "null TT"
 
@@ -236,6 +237,8 @@ def describeTT(tt: timedTask.TimedTask, issueTime: bool = True, expiryFunc: bool
     if expiryFunc:
         ttStrParts.append(f"Function: {'None' if tt.expiryFunction is None else str(tt.expiryFunction)}")
         ttStrParts.append(f"Args: {'None' if tt.expiryFunctionArgs is None else 'Not None'}")
+    if scheduled:
+        ttStrParts.append(f"Scheduled on taskScheduler: {tt in botState.taskScheduler.tasksHeap}")
 
     return(sep.join(ttStrParts))
 
@@ -447,14 +450,25 @@ async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : boo
         bountiesStr = "\n".join(f"{bountyDB.nameForDivision(div)}: " \
                             + str(sum(len(i) for i in div.bounties.values()) \
                                 + sum(len(i) for i in div.escapedBounties.values())) \
-                                + " Bounties" \
-                            + f"\n- Active: {sum(len(i) for i in div.bounties.values())}\n-  > " \
+                                + " Bounties\n" \
+                            + f"temperature: {div.temperature} ({'active' if div.isActive else 'not active'})\n"
+                            + f"latest bounty: {'None' if div.latestBounty is None else div.latestBounty.criminal.name}\n"
+                            + f"Active: {sum(len(i) for i in div.bounties.values())}\n-  > " \
                                 + ", ".join(", ".join(d.criminal.name for d in s.values()) for s in div.bounties.values() if any(s.values())) \
-                            + f"\n- Escaped: {sum(len(i) for i in div.escapedBounties.values())}\n-  > " \
+                            + f"\nEscaped: {sum(len(i) for i in div.escapedBounties.values())}\n-  > " \
                                 + ", ".join(", ".join(d.criminal.name for d in s.values()) for s in div.escapedBounties.values() if any(s.values())) \
                             for div in bGuild.bountiesDB.divisions.values())
 
     embed.add_field(name="Bounties", value=bountiesStr, inline=False)
+
+    if bGuild.bountiesDisabled:
+        newBountyTTsStr = "Disabled"
+    else:
+        newBountyTTsStr = "\n".join(f"{bountyDB.nameForDivision(div)}: \n- " \
+                            + describeTT(div.newBountyTT, sep="\n- ") \
+                            for div in bGuild.bountiesDB.divisions.values())
+
+    embed.add_field(name="New Bounty TTs", value=newBountyTTsStr, inline=False)
     
     if bGuild.alertRoles:
         alertRolesStr = "\n".join(f"{name}: <@&{roleId}> ({roleId})" if roleId != -1 else f"{name}: None" \
@@ -488,7 +502,7 @@ async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : boo
         bountyAlertRolesStr = "Bounties disabled"
     else:
         if not bGuild.hasBountyAlertRoles:
-            bountyAlertRolesStr = "BBCs disabled"
+            bountyAlertRolesStr = "Disabled"
         else:
             bountyAlertRolesStr = ""
 
