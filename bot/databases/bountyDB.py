@@ -11,6 +11,8 @@ from ..cfg import cfg
 from ..users import basedGuild
 from .. import botState, lib
 from .bountyDivision import BountyDivision
+from datetime import datetime
+from ..scheduling.timedTask import TimedTask
 
 
 def nameForDivision(div: BountyDivision) -> str:
@@ -508,5 +510,24 @@ class BountyDB(serializable.Serializable):
         if "alertRoleIDs" in bountyDBDict:
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():
                 newDB.divisionForLevel(int(minLevel)).alertRoleID = roleID
+
+        # bounty escaping requires bountyboardchannels to have been deserialized
+        # do it here instead of in bounty deserialize
+        for bountyDict in activeBountiesData:
+            if bountyDict.get("isEscaped", False):
+                if "respawnTime" not in bountyDict:
+                    raise ValueError("Not given respawnTime for escaped criminal " + bountyDict["criminal"]["name"])
+
+                crim = Criminal.fromDict(bountyDict["criminal"])
+                if "techLevel" in bountyDict:
+                    newBounty = newDB.getBountyByCrim(crim, bountyDict["techLevel"])
+                else:
+                    newBounty = newDB.getBountyByCrim(crim)
+
+                respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(bountyDict["issueTime"]),
+                                        expiryTime=datetime.utcfromtimestamp(bountyDict["respawnTime"]), 
+                                        expiryFunction=newBounty._respawn,
+                                        rescheduleOnExpiryFuncFailure=True)
+                newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
 
         return newDB

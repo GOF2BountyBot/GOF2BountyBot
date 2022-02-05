@@ -474,14 +474,5 @@ class Bounty(serializable.Serializable):
                                             
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
                             criminalObj=criminal.Criminal.fromDict(data["criminal"]))
-        
-        if data.get("isEscaped", False):
-            if "respawnTime" not in data:
-                raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
-            respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(data["issueTime"]),
-                                    expiryTime=datetime.utcfromtimestamp(data["respawnTime"]), 
-                                    expiryFunction=newBounty._respawn,
-                                    rescheduleOnExpiryFuncFailure=True)
-            newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
 
         return newBounty
