@@ -111,8 +111,6 @@ class BountyBoardChannel(serializable.Serializable):
         self.channelIDToBeLoaded = channelIDToBeLoaded
         self.noBountiesMsgToBeLoaded = noBountiesMsgToBeLoaded
         self.escapedBountiesMsgToBeLoaded = escapedBountiesMsgToBeLoaded
-        self.initialized = not (messagesToBeLoaded or channelIDToBeLoaded == -1 \
-                                or noBountiesMsgToBeLoaded or escapedBountiesMsgToBeLoaded) 
 
         self.bountyMessages: Dict[criminal.Criminal, Message] = {}
         # discord message object to be filled when no bounties exist
@@ -123,6 +121,8 @@ class BountyBoardChannel(serializable.Serializable):
         self.channel = None
         # A list of coroutines to await after init is complete
         self.postInitTasks: Optional[Set[Awaitable]] = None
+        
+        self.initialized = False
 
 
     async def makeBountyEmbed(self, bounty : bounty.Bounty) -> Embed:
