@@ -844,54 +844,64 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply("Unknown value for expired. Must be boolean.")
             return
 
-        if newValue == b.expired:
-            await message.reply("No change. Writing anyway.")
-        b.expired = newValue
+        if newExpired == b.expired:
+            await message.reply("No change.")
+            return
+        elif newExpired:
+            await b.expire()
+        else:
+            endDT = datetime.utcfromtimestamp(b.endTime)
+            if endDT < datetime.utcnow():
+                await message.reply("bounty expiry time is in the past. Set a new expiry time to unexpire bounty.")
+                return
+            b.expiryTT = timedTask.TimedTask(datetime.utcnow(), endDT, None, b.expire)
+            botState.taskScheduler.scheduleTask(b.expiryTT)
+    
 
-    elif fieldName == "route":
-        if newValue == b.route:
-            await message.reply("No change. Writing anyway.")
-        b.route = newValue
+    # elif fieldName == "route":
+    #     if newValue == b.route:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.route = newValue
 
-    elif fieldName == "reward":
-        if newValue == b.reward:
-            await message.reply("No change. Writing anyway.")
-        b.reward = newValue
+    # elif fieldName == "reward":
+    #     if newValue == b.reward:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.reward = newValue
 
-    elif fieldName == "rewardPerSys":
-        if newValue == b.rewardPerSys:
-            await message.reply("No change. Writing anyway.")
-        b.rewardPerSys = newValue
+    # elif fieldName == "rewardPerSys":
+    #     if newValue == b.rewardPerSys:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.rewardPerSys = newValue
 
-    elif fieldName == "checked":
-        if newValue == b.checked:
-            await message.reply("No change. Writing anyway.")
-        b.checked = newValue
+    # elif fieldName == "checked":
+    #     if newValue == b.checked:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.checked = newValue
 
-    elif fieldName == "answer":
-        if newValue == b.answer:
-            await message.reply("No change. Writing anyway.")
-        b.answer = newValue
+    # elif fieldName == "answer":
+    #     if newValue == b.answer:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.answer = newValue
 
-    elif fieldName == "techLevel":
-        if newValue == b.techLevel:
-            await message.reply("No change. Writing anyway.")
-        b.techLevel = newValue
+    # elif fieldName == "techLevel":
+    #     if newValue == b.techLevel:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.techLevel = newValue
 
-    elif fieldName == "respawnTT":
-        if newValue == b.respawnTT:
-            await message.reply("No change. Writing anyway.")
-        b.respawnTT = newValue
+    # elif fieldName == "respawnTT":
+    #     if newValue == b.respawnTT:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.respawnTT = newValue
 
-    elif fieldName == "division":
-        if newValue == b.division:
-            await message.reply("No change. Writing anyway.")
-        b.division = newValue
+    # elif fieldName == "division":
+    #     if newValue == b.division:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.division = newValue
 
-    elif fieldName == "expiryTT":
-        if newValue == b.expiryTT:
-            await message.reply("No change. Writing anyway.")
-        b.expiryTT = newValue
+    # elif fieldName == "expiryTT":
+    #     if newValue == b.expiryTT:
+    #         await message.reply("No change. Writing anyway.")
+    #     b.expiryTT = newValue
 
     await message.reply("Success!")
 
