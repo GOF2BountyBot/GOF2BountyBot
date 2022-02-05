@@ -724,3 +724,176 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
     await message.author.send(embed=embed)
 
 botCommands.register("bounty-status", dev_cmd_bounty_status, 3, signatureStr="**bounty-status <criminal name>**", useDoc=True)
+
+
+BOUNTY_EDIT_FIELDS = {
+    "activeShip",
+    "faction",
+    "issueTime",
+    "endTime",
+    "expired",
+    "route",
+    "reward",
+    "rewardPerSys",
+    "checked",
+    "answer",
+    "techLevel",
+    "respawnTT",
+    "division",
+    "expiryTT"
+}
+
+async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool):
+    """developer command editing a value on a bounty
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a criminal name `+`a field name `+`a new value
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    argsSplit = args.split("+")
+    if len(argsSplit) < 3:
+        await message.reply("Invalid args. Use the format: `edit-bounty <criminal> +<field> +<value>`")
+        return
+    
+    crimName, fieldName, newValue = map(str.strip, argsSplit)
+
+    if fieldName not in BOUNTY_EDIT_FIELDS:
+        await message.reply(f"Unknown field '{fieldName}'. This parameter is case sensitive. Possible values:\n{', '.join(BOUNTY_EDIT_FIELDS)}")
+        return
+
+    # look up the criminal object
+    criminalObj = None
+    for crim in bbData.builtInCriminalObjs.keys():
+        if bbData.builtInCriminalObjs[crim].isCalled(crimName):
+            criminalObj = bbData.builtInCriminalObjs[crim]
+
+    # report unrecognised criminal names
+    if criminalObj is None:
+        await message.reply(f"Unknown criminal '{crimName}`")
+        return
+
+    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    if bGuild.bountiesDisabled:
+        await message.reply("Bounties disabled here")
+        return
+
+    try:
+        b = bGuild.bountiesDB.getBountyByCrim(criminalObj)
+    except KeyError:
+        try:
+            b = bGuild.bountiesDB.getEscapedBountyByCrim(criminalObj)
+        except KeyError:
+            await message.reply("Bounty is not wanted in this server")
+            return
+
+    if fieldName == "activeShip":
+        if newValue.lower() in ["null", "none"]:
+            if b.hasShip:
+                b.unequipShip()
+        else:
+            try:
+                newShip = shipItem.Ship.fromDict(newValue)
+            except Exception as e:
+                await message.reply(f"{type(e).__name__} when deserializing new ship: {e}")
+                botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+                return
+
+            if b.hasShip:
+                b.unequipShip()
+            b.equipShip(newShip)
+
+    elif fieldName == "faction":
+        if newValue not in bbData.bountyFactions:
+            await message.reply(f"Unknown faction. This parameter is case sensitive. Possible values:\n{', '.join(bbData.bountyFactions)}")
+            return
+        
+        if newValue == b.faction:
+            await message.reply("No change. Writing anyway.")
+        b.faction = newValue
+
+    elif fieldName == "issueTime":
+        try:
+            newTime = datetime.utcfromtimestamp(float(newValue))
+        except Exception as e:
+            await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
+            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+            return
+
+        if newTime == b.issueTime:
+            await message.reply("No change. Writing anyway.")
+        b.issueTime = newTime
+
+    elif fieldName == "endTime":
+        try:
+            newTime = datetime.utcfromtimestamp(float(newValue))
+        except Exception as e:
+            await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
+            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+            return
+
+        if newTime == b.endTime:
+            await message.reply("No change. Writing anyway.")
+        b.endTime = newTime
+
+    elif fieldName == "expired":
+        if newValue.lower() == "false":
+            newExpired = False
+        elif newValue.lower() == "true":
+            newExpired = True
+        else:
+            await message.reply("Unknown value for expired. Must be boolean.")
+            return
+
+        if newValue == b.expired:
+            await message.reply("No change. Writing anyway.")
+        b.expired = newValue
+
+    elif fieldName == "route":
+        if newValue == b.route:
+            await message.reply("No change. Writing anyway.")
+        b.route = newValue
+
+    elif fieldName == "reward":
+        if newValue == b.reward:
+            await message.reply("No change. Writing anyway.")
+        b.reward = newValue
+
+    elif fieldName == "rewardPerSys":
+        if newValue == b.rewardPerSys:
+            await message.reply("No change. Writing anyway.")
+        b.rewardPerSys = newValue
+
+    elif fieldName == "checked":
+        if newValue == b.checked:
+            await message.reply("No change. Writing anyway.")
+        b.checked = newValue
+
+    elif fieldName == "answer":
+        if newValue == b.answer:
+            await message.reply("No change. Writing anyway.")
+        b.answer = newValue
+
+    elif fieldName == "techLevel":
+        if newValue == b.techLevel:
+            await message.reply("No change. Writing anyway.")
+        b.techLevel = newValue
+
+    elif fieldName == "respawnTT":
+        if newValue == b.respawnTT:
+            await message.reply("No change. Writing anyway.")
+        b.respawnTT = newValue
+
+    elif fieldName == "division":
+        if newValue == b.division:
+            await message.reply("No change. Writing anyway.")
+        b.division = newValue
+
+    elif fieldName == "expiryTT":
+        if newValue == b.expiryTT:
+            await message.reply("No change. Writing anyway.")
+        b.expiryTT = newValue
+
+    await message.reply("Success!")
+
+
+botCommands.register("edit-bounty", dev_cmd_edit_bounty, 3, signatureStr="**edit-bounty <criminal name> +<field> +<value>**", useDoc=True, forceKeepArgsCasing=True)
