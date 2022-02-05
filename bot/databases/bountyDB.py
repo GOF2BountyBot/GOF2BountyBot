@@ -512,32 +512,4 @@ class BountyDB(serializable.Serializable):
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():
                 newDB.divisionForLevel(int(minLevel)).alertRoleID = roleID
 
-        # bounty escaping and expiry requires bountyboardchannels to have been deserialized
-        # do it here instead of in bounty deserialize
-        for bountyDict in activeBountiesData:
-            crim = Criminal.fromDict(bountyDict["criminal"])
-            if "techLevel" in bountyDict:
-                newBounty = newDB.getBountyByCrim(crim, bountyDict["techLevel"])
-            else:
-                newBounty = newDB.getBountyByCrim(crim)
-                
-            if bountyDict.get("isEscaped", False):
-                if "respawnTime" not in bountyDict:
-                    raise ValueError("Not given respawnTime for escaped criminal " + bountyDict["criminal"]["name"])
-
-                respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(bountyDict["issueTime"]),
-                                        expiryTime=datetime.utcfromtimestamp(bountyDict["respawnTime"]), 
-                                        expiryFunction=newBounty._respawn,
-                                        rescheduleOnExpiryFuncFailure=True)
-                newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
-            
-            if newBounty.expiryTT is None:
-                endDT = datetime.utcfromtimestamp(newBounty.endTime)
-                if endDT < datetime.utcnow():
-                    newBounty.expiryTT = None
-                    lib.discordUtil.scheduleCoroWithLogging(newBounty.expire(dbReload=True))
-                else:
-                    newBounty.expiryTT = TimedTask(datetime.utcnow(), endDT, None, newBounty.expire)
-                    botState.taskScheduler.scheduleTask(newBounty.expiryTT)
-
         return newDB

@@ -424,7 +424,7 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
 
 def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
     """Function decorator wrapping a synchronous function into an asynchronous executor call.
-    This is a last-resort expensive operation, as a new process is spawned off for each call of the funciton.
+    This is a last-resort expensive operation, as a new process is spawned off for each call of the function.
     Where possible, use natively asynchronous code, e.g aiohttp instead of requests.
 
     Author:

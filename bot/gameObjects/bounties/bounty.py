@@ -431,15 +431,13 @@ class Bounty(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, makeExpiryTT: bool = True,
-                **kwargs) -> Bounty:
+    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, **kwargs) -> Bounty:
         """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.toDict
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
-        :param bool makeExpiryTT: Whether an expiryTT should be made. If False, expiryTT is left null.
         """
         if type(data) != dict:
             raise ValueError(str(data))
@@ -468,11 +466,31 @@ class Bounty(serializable.Serializable):
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
                             criminalObj=criminal.Criminal.fromDict(data["criminal"]))
 
-        if makeExpiryTT:
+        bbc = newBounty.division.bbc
+        uninitialized = bbc is not None and not bbc.initialized
+
+        if data.get("isEscaped", False):
+            if "respawnTime" not in data:
+                raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
+
+            respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=datetime.utcfromtimestamp(data["respawnTime"]), 
+                                    expiryFunction=newBounty._respawn,
+                                    rescheduleOnExpiryFuncFailure=True)
+
+            if uninitialized:
+                bbc.addPostInitTask(lib.discordUtil.asyncWrap(newBounty.escape)(respawnTT=respawnTT, dbReload=dbReload))
+            else:
+                newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
+
+        if newBounty.expiryTT is None:
             endDT = datetime.utcfromtimestamp(newBounty.endTime)
             if endDT < datetime.utcnow():
                 newBounty.expiryTT = None
-                lib.discordUtil.scheduleCoroWithLogging(newBounty.expire(dbReload=True))
+                if uninitialized:
+                    bbc.addPostInitTask(newBounty.expire(dbReload=dbReload))
+                else:
+                    lib.discordUtil.scheduleCoroWithLogging(newBounty.expire(dbReload=True))
             else:
                 newBounty.expiryTT = TimedTask(datetime.utcnow(), endDT, None, newBounty.expire)
                 botState.taskScheduler.scheduleTask(newBounty.expiryTT)
