@@ -466,7 +466,7 @@ class Bounty(serializable.Serializable):
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
                             criminalObj=criminal.Criminal.fromDict(data["criminal"]))
 
-        bbc = newBounty.division.bbc
+        bbc = newBounty.division.bountyBoardChannel
         uninitialized = bbc is not None and not bbc.initialized
 
         if data.get("isEscaped", False):
