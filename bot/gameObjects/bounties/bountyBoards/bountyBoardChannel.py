@@ -489,7 +489,8 @@ class BountyBoardChannel(serializable.Serializable):
         
         if self.postInitTasks is not None:
             t = lib.discordUtil.BasicScheduler()
-            map(t.add, self.postInitTasks)
+            for task in self.postInitTasks:
+                t.add(task)
             await t.wait()
             t.logExceptions(logCategory="bountyBoards")
             del self.postInitTasks
