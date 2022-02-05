@@ -95,8 +95,8 @@ class Bounty(serializable.Serializable):
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
-        :param TimedTask expiryTT: The timedtask responsible for expiring this bounty. If None, a new task will be created
-                                (Default None)
+        :param TimedTask expiryTT: The timedtask responsible for expiring this bounty. If None, no new task will be created.
+                                This is however handled by the Bounty or BountyDB deserializers (Default None)
         :raise ValueError: When dbReload is False but owningDB is not given
         """
         if not dbReload and division is None:
@@ -141,7 +141,6 @@ class Bounty(serializable.Serializable):
         self.faction = self.criminal.faction
         self.issueTime = config.issueTime
         self.endTime = config.endTime
-        endDT = datetime.utcfromtimestamp(self.endTime)
         self.expired = False
         self.route = config.route
         self.reward = config.reward
@@ -151,15 +150,7 @@ class Bounty(serializable.Serializable):
         self.techLevel = config.techLevel
         self.respawnTT: TimedTask = None
         self.division = division
-        if expiryTT is None:
-            if endDT < datetime.utcnow():
-                self.expiryTT = None
-                lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
-            else:
-                self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
-                botState.taskScheduler.scheduleTask(self.expiryTT)
-        else:
-            self.expiryTT = expiryTT
+        self.expiryTT = expiryTT
 
 
     def clearShip(self):
@@ -440,13 +431,15 @@ class Bounty(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, **kwargs) -> Bounty:
+    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, makeExpiryTT: bool = True,
+                **kwargs) -> Bounty:
         """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.toDict
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
+        :param bool makeExpiryTT: Whether an expiryTT should be made. If False, expiryTT is left null.
         """
         if type(data) != dict:
             raise ValueError(str(data))
@@ -474,5 +467,14 @@ class Bounty(serializable.Serializable):
                                             
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
                             criminalObj=criminal.Criminal.fromDict(data["criminal"]))
+
+        if makeExpiryTT:
+            endDT = datetime.utcfromtimestamp(newBounty.endTime)
+            if endDT < datetime.utcnow():
+                newBounty.expiryTT = None
+                lib.discordUtil.scheduleCoroWithLogging(newBounty.expire(dbReload=True))
+            else:
+                newBounty.expiryTT = TimedTask(datetime.utcnow(), endDT, None, newBounty.expire)
+                botState.taskScheduler.scheduleTask(newBounty.expiryTT)
 
         return newBounty
