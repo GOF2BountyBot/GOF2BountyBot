@@ -334,7 +334,10 @@ class Bounty(serializable.Serializable):
                                 (Default False)
         :raise ValueError: If the bounty is not currently active, e.g it has already expired
         """
-        await self.division.announceBountyExpiry(self, dbReload=dbReload)
+        if self.division.bountyBoardChannel is not None and not self.division.bountyBoardChannel.initialized:
+            self.division.bountyBoardChannel.addPostInitTask(self.division.announceBountyExpiry(self, dbReload=dbReload))
+        else:
+            await self.division.announceBountyExpiry(self, dbReload=dbReload)
         self._expire(dbReload=dbReload)
 
 
@@ -431,15 +434,13 @@ class Bounty(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, makeExpiryTT: bool = True,
-                **kwargs) -> Bounty:
+    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, **kwargs) -> Bounty:
         """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.toDict
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
-        :param bool makeExpiryTT: Whether an expiryTT should be made. If False, expiryTT is left null.
         """
         if type(data) != dict:
             raise ValueError(str(data))
@@ -468,7 +469,17 @@ class Bounty(serializable.Serializable):
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
                             criminalObj=criminal.Criminal.fromDict(data["criminal"]))
 
-        if makeExpiryTT:
+        if data.get("isEscaped", False):
+            if "respawnTime" not in data:
+                raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
+
+            respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=datetime.utcfromtimestamp(data["respawnTime"]), 
+                                    expiryFunction=newBounty._respawn,
+                                    rescheduleOnExpiryFuncFailure=True)
+            newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
+
+        if newBounty.expiryTT is None:
             endDT = datetime.utcfromtimestamp(newBounty.endTime)
             if endDT < datetime.utcnow():
                 newBounty.expiryTT = None

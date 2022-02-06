@@ -119,6 +119,10 @@ class BountyBoardChannel(serializable.Serializable):
         self.escapedBountiesMessage = None
         # discord channel object
         self.channel = None
+        # A list of coroutines to await after init is complete
+        self.postInitTasks: Optional[Set[Awaitable]] = None
+        
+        self.initialized = False
 
 
     async def makeBountyEmbed(self, bounty : bounty.Bounty) -> Embed:
@@ -480,6 +484,24 @@ class BountyBoardChannel(serializable.Serializable):
             if tasks:
                 await tasks.wait()
                 tasks.logExceptions("bountyBoards")
+
+        self.initialized = True
+        
+        if self.postInitTasks is not None:
+            t = lib.discordUtil.BasicScheduler()
+            for task in self.postInitTasks:
+                t.add(task)
+            await t.wait()
+            t.logExceptions(logCategory="bountyBoards")
+            del self.postInitTasks
+            self.postInitTasks = None
+
+    
+    def addPostInitTask(self, coro: Awaitable):
+        if self.postInitTasks is None:
+            self.postInitTasks = {coro}
+        else:
+            self.postInitTasks.add(coro)
 
 
     def hasMessageForCriminal(self, criminal : criminal.Criminal) -> bool:
