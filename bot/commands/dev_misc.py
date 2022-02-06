@@ -4,6 +4,7 @@ from typing import Dict, Optional, Type, cast
 import discord
 import traceback
 from datetime import datetime
+import json
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -18,6 +19,7 @@ from ..reactionMenus import reactionMenu
 from ..scheduling import timedTask
 from ..databases import bountyDB, bountyDivision
 from ..gameObjects.items import shipItem
+from ..gameObjects.bounties import solarSystem
 
 from . import util_help
 
@@ -738,21 +740,33 @@ BOUNTY_EDIT_FIELDS = {
     "checked",
     "answer",
     "techLevel",
-    "respawnTT",
-    "division",
-    "expiryTT"
+    "respawnTime"
 }
 
 async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool):
     """developer command editing a value on a bounty
 
     :param discord.Message message: the discord message calling the command
-    :param str args: a criminal name `+`a field name `+`a new value
+    :param str args: a guild id or 'here' a criminal name `+`a field name `+`a new value
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    argsSplit = args.split("+")
+    if args.endswith("-u"):
+        updateBBC = True
+        args = args[:-2]
+    else:
+        updateBBC = False
+    guildRef = args.split(" ")[0]
+    if guildRef == "here":
+        guildId = message.guild.id
+    elif not lib.stringTyping.isInt(guildRef):
+        await message.reply(f"Invalid guild id: {guildRef}")
+        return
+    else:
+        guildId = int(guildRef)
+    
+    argsSplit = args[len(guildRef) + 1:].split("+")
     if len(argsSplit) < 3:
-        await message.reply("Invalid args. Use the format: `edit-bounty <criminal> +<field> +<value>`")
+        await message.reply("Invalid args. Use the format: `edit-bounty <guild id or here> <criminal> +<field> +<value>`")
         return
     
     crimName, fieldName, newValue = map(str.strip, argsSplit)
@@ -772,7 +786,11 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         await message.reply(f"Unknown criminal '{crimName}`")
         return
 
-    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    try:
+        bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+    except KeyError:
+        await message.reply(f"Unknown guild: {guildRef}")
+        return
     if bGuild.bountiesDisabled:
         await message.reply("Bounties disabled here")
         return
@@ -787,20 +805,23 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             return
 
     if fieldName == "activeShip":
+        oldTL = b.techLevel
         if newValue.lower() in ["null", "none"]:
             if b.hasShip:
                 b.unequipShip()
         else:
             try:
-                newShip = shipItem.Ship.fromDict(newValue)
+                shipDict = json.loads(newValue)
+                newShip = shipItem.Ship.fromDict(shipDict)
             except Exception as e:
                 await message.reply(f"{type(e).__name__} when deserializing new ship: {e}")
-                botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+                botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
                 return
 
             if b.hasShip:
                 b.unequipShip()
             b.equipShip(newShip)
+        b.techLevel = oldTL
 
     elif fieldName == "faction":
         if newValue not in bbData.bountyFactions:
@@ -816,24 +837,35 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             newTime = datetime.utcfromtimestamp(float(newValue))
         except Exception as e:
             await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
-            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
             return
 
         if newTime == b.issueTime:
             await message.reply("No change. Writing anyway.")
-        b.issueTime = newTime
+        b.issueTime = newTime.timestamp()
 
     elif fieldName == "endTime":
         try:
             newTime = datetime.utcfromtimestamp(float(newValue))
         except Exception as e:
             await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
-            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e)
+            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
             return
 
         if newTime == b.endTime:
             await message.reply("No change. Writing anyway.")
-        b.endTime = newTime
+            
+        if b.expiryTT is not None:
+            b.expiryTT.forceExpire(callExpiryFunc=False)
+
+        if newTime < datetime.utcnow():
+            b.expiryTT = None
+            await b.expire(dbReload=True)
+        else:
+            b.expiryTT = timedTask.TimedTask(datetime.utcnow(), newTime, None, b.expire)
+            botState.taskScheduler.scheduleTask(b.expiryTT)
+
+        b.endTime = newTime.timestamp()
 
     elif fieldName == "expired":
         if newValue.lower() == "false":
@@ -858,52 +890,192 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             botState.taskScheduler.scheduleTask(b.expiryTT)
     
 
-    # elif fieldName == "route":
-    #     if newValue == b.route:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.route = newValue
+    elif fieldName == "route":
+        routeSplit = list(map(str.strip, newValue.split(" ")))
+        if len(routeSplit) == 0:
+            await message.reply("invalid route. Give as a comma-separated list of system names.")
+            return
 
-    # elif fieldName == "reward":
-    #     if newValue == b.reward:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.reward = newValue
+        parsedRoute = []
+        for s in routeSplit:
+            try:
+                syst: solarSystem.SolarSystem = next(i for i in bbData.builtInSystemObjs if i.isCalled(s))
+            except StopIteration:
+                await message.reply(f"Unknown system: '{s}'")
+                return
+            parsedRoute.append(syst.name)
 
-    # elif fieldName == "rewardPerSys":
-    #     if newValue == b.rewardPerSys:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.rewardPerSys = newValue
+        if parsedRoute == b.route:
+            await message.reply("No change.")
+            return
 
-    # elif fieldName == "checked":
-    #     if newValue == b.checked:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.checked = newValue
+        b.route = parsedRoute
+        b.checked = {s: b.checked.get(s, -1) for s in parsedRoute}
 
-    # elif fieldName == "answer":
-    #     if newValue == b.answer:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.answer = newValue
+    elif fieldName == "reward":
+        if not lib.stringTyping.isInt(newValue) or int(newValue) < 0:
+            await message.reply(f"Invalid reward: {newValue}")
+            return
+        newReward = int(newValue)
+        if newReward == b.reward:
+            await message.reply("No change. Writing anyway.")
+            
+        b.rewardPerSys = newReward // len(b.route)
+        b.reward = newReward
 
-    # elif fieldName == "techLevel":
-    #     if newValue == b.techLevel:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.techLevel = newValue
+    elif fieldName == "rewardPerSys":
+        if not lib.stringTyping.isInt(newValue) or int(newValue) < 0:
+            await message.reply(f"Invalid reward per sys: {newValue}")
+            return
+        newReward = int(newValue)
+        if newReward == b.reward:
+            await message.reply("No change. Writing anyway.")
+            
+        b.rewardPerSys = newReward
+        b.rewardPerSys = newReward * len(b.route)
 
-    # elif fieldName == "respawnTT":
-    #     if newValue == b.respawnTT:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.respawnTT = newValue
+    elif fieldName == "checked":
+        checkedSplit = newValue.split("\n")
+        if len(checkedSplit) == 0:
+            await message.reply("invalid checked. Give as a newline-separated list of system names: user ids.")
+            return
 
-    # elif fieldName == "division":
-    #     if newValue == b.division:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.division = newValue
+        parsedChecked: Dict[str, int] = {}
+        for pair in checkedSplit:
+            pairSplit = list(map(str.strip, pair.split(":")))
+            if len(pairSplit) != 2:
+                await message.reply(f"Invalid mapping: '{pair}'. Must be <system>: <user id>")
+                return
+            s, u = pairSplit
+            if not lib.stringTyping.isInt(u) or int(u) == 0 or int(u) < -1:
+                await message.reply(f"invalid user ID: {u}")
+                return
+            try:
+                syst = next(i for i in bbData.builtInSystemObjs if i.isCalled(s))
+            except StopIteration:
+                await message.reply(f"Unknown system: '{s}'")
+                return
+            parsedChecked[syst.name] = int(u)
 
-    # elif fieldName == "expiryTT":
-    #     if newValue == b.expiryTT:
-    #         await message.reply("No change. Writing anyway.")
-    #     b.expiryTT = newValue
+        if parsedChecked == b.checked:
+            await message.reply("No change.")
+            return
+
+        b.checked = parsedChecked
+        b.route = list(parsedChecked.keys())
+
+    elif fieldName == "answer":
+        try:
+            syst = next(i for i in bbData.builtInSystemObjs if i.isCalled(newValue))
+        except StopIteration:
+            await message.reply(f"Unknown system: '{newValue}'")
+            return
+
+        if newValue == b.answer:
+            await message.reply("No change.")
+            return
+        b.answer = syst.name
+
+    elif fieldName == "techLevel":
+        if not lib.stringTyping.isInt(newValue) or int(newValue) < 0 or int(newValue) > cfg.maxTechLevel:
+            await message.reply(f"invalid TL: {newValue}")
+            return
+
+        if int(newValue) == b.techLevel:
+            await message.reply("No change. Writing anyway.")
+        b.techLevel = int(newValue)
+
+    elif fieldName == "respawnTime":
+        try:
+            newTime = datetime.utcfromtimestamp(float(newValue))
+        except Exception as e:
+            await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
+            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+            return
+
+        if b.respawnTT is not None and newTime == b.respawnTT.expiryTime:
+            await message.reply("No change. Writing anyway.")
+        
+        if b.respawnTT is not None:
+            b.respawnTT.forceExpire(callExpiryFunc=False)
+
+        respawnTT = timedTask.TimedTask(expiryDelta=timedelta(minutes=len(b.route)), 
+                                        expiryFunction=b._respawn,
+                                        rescheduleOnExpiryFuncFailure=True)
+
+        b.respawnTT = respawnTT
+        if not b.isEscaped():
+            if b.criminal in b.division.bounties[b.techLevel]:
+                b.division.owningDB.removeBountyObj(b)
+            b.division.owningDB.addEscapedBounty(b, ignoreFull=True)
+
+        botState.taskScheduler.scheduleTask(b.respawnTT)
+        b.endTime = newTime.timestamp()
 
     await message.reply("Success!")
+    if updateBBC:
+        await b.division.bountyBoardChannel.updateBountyMessage(b)
 
 
-botCommands.register("edit-bounty", dev_cmd_edit_bounty, 3, signatureStr="**edit-bounty <criminal name> +<field> +<value>**", useDoc=True, forceKeepArgsCasing=True)
+botCommands.register("edit-bounty", dev_cmd_edit_bounty, 3, signatureStr="**edit-bounty <guild id or here> <criminal name> +<field> +<value>**", useDoc=True, forceKeepArgsCasing=True)
+
+
+async def dev_cmd_force_update_listing(message : discord.Message, args : str, isDM : bool):
+    """developer command forcing a BBC listing update on a bounty
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a guild id or 'here' followed by a criminal name
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    argsSplit = args.split(" ")
+    if len(argsSplit) < 2:
+        await message.reply("Invalid args. Give guild id or 'here' and a criminal name")
+        return
+
+    guildRef = argsSplit[0]
+    criminalRef = " ".join(argsSplit[1:])
+
+    if guildRef == "here":
+        guildId = message.guild.id
+    elif not lib.stringTyping.isInt(guildRef):
+        await message.reply(f"Invalid guild id: {guildRef}")
+        return
+    else:
+        guildId = int(guildRef)
+
+    # look up the criminal object
+    criminalObj = None
+    for crim in bbData.builtInCriminalObjs.keys():
+        if bbData.builtInCriminalObjs[crim].isCalled(criminalRef):
+            criminalObj = bbData.builtInCriminalObjs[crim]
+
+    # report unrecognised criminal names
+    if criminalObj is None:
+        await message.reply(f"Unknown criminal '{criminalRef}`")
+        return
+
+    try:
+        bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+    except KeyError:
+        await message.reply(f"Unknown guild: {guildRef}")
+        return
+    if bGuild.bountiesDisabled:
+        await message.reply("Bounties disabled here")
+        return
+    if not bGuild.hasBountyBoardChannels:
+        await message.reply("Guild has bounty board channels disabled")
+        return
+
+    try:
+        b = bGuild.bountiesDB.getBountyByCrim(criminalObj)
+    except KeyError:
+        try:
+            b = bGuild.bountiesDB.getEscapedBountyByCrim(criminalObj)
+        except KeyError:
+            await message.reply("Bounty is not wanted in this server")
+            return
+
+    await b.division.bountyBoardChannel.updateBountyMessage(b)
+    await message.reply("success!")
+
+botCommands.register("force-update-listing", dev_cmd_force_update_listing, 3, signatureStr="**force-update-listing <guild id or here> <criminal name>**", useDoc=True, forceKeepArgsCasing=True)
