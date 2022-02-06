@@ -447,7 +447,7 @@ bbcRouteImageNodeRadius = 4
 bbcRouteImageNodeColour = (255, 150, 150, 255)
 
 # In bountyboard channels, if bbcShowRouteImage is True, this radius is used to circle single-system routes
-bbcRouteImageSingleSystemRadius = 5
+bbcRouteImageSingleSystemRadius = 20
 
 # In bountyboard channels, if bbcShowRouteImage is True, this channel will be used to store route images
 # This is needed, because Message.edit cannot introduce new attachments.

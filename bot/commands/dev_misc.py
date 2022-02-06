@@ -5,6 +5,7 @@ import discord
 import traceback
 from datetime import datetime
 import json
+import random
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -688,13 +689,15 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
         f"Wiki: {b.criminal.wiki}",
         f"Is Player: {b.criminal.isPlayer}",
         f"Built-In: {b.criminal.builtIn}",
+        f"Is escaped: {b.isEscaped()}"
     ]))
 
     embed.add_field(name="Stats", value=f"Faction: {b.faction}\nTech level/Difficulty: {b.techLevel}\n" \
                                         + f"Reward: {b.reward}\nReward per check: {b.rewardPerSys}")
 
     embed.add_field(name="Times", value=f"Issued: {datetime.utcfromtimestamp(b.issueTime).strftime('%m/%d/%Y, %H:%M:%S')}\n" \
-                                    + f"ExpiryTT: {describeTT(b.expiryTT)}")
+                                    + f"ExpiryTT: {describeTT(b.expiryTT)}\n" \
+                                    + f"RespawnTT: {describeTT(b.respawnTT)}")
     
     embed.add_field(name="Route", value="\n".join(f"{s}: " + (f"{botState.client.get_user(u)} ({u})" if u != -1 else "unchecked") for s, u in b.checked.items()))
     embed.add_field(name="Answer", value=b.answer)
@@ -891,7 +894,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
     
 
     elif fieldName == "route":
-        routeSplit = list(map(str.strip, newValue.split(" ")))
+        routeSplit = list(map(str.strip, newValue.split(",")))
         if len(routeSplit) == 0:
             await message.reply("invalid route. Give as a comma-separated list of system names.")
             return
@@ -899,7 +902,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         parsedRoute = []
         for s in routeSplit:
             try:
-                syst: solarSystem.SolarSystem = next(i for i in bbData.builtInSystemObjs if i.isCalled(s))
+                syst: solarSystem.SolarSystem = next(i for i in bbData.builtInSystemObjs.values() if i.isCalled(s))
             except StopIteration:
                 await message.reply(f"Unknown system: '{s}'")
                 return
@@ -908,6 +911,10 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         if parsedRoute == b.route:
             await message.reply("No change.")
             return
+
+        if b.answer not in parsedRoute:
+            b.answer = random.choice(parsedRoute)
+            await message.reply("Answer randomized")
 
         b.route = parsedRoute
         b.checked = {s: b.checked.get(s, -1) for s in parsedRoute}
@@ -961,12 +968,16 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply("No change.")
             return
 
+        if b.answer not in parsedChecked:
+            b.answer = random.choice(parsedChecked.keys())
+            await message.reply("Answer randomized")
+
         b.checked = parsedChecked
         b.route = list(parsedChecked.keys())
 
     elif fieldName == "answer":
         try:
-            syst = next(i for i in bbData.builtInSystemObjs if i.isCalled(newValue))
+            syst = next(i for i in bbData.builtInSystemObjs.values() if i.isCalled(newValue))
         except StopIteration:
             await message.reply(f"Unknown system: '{newValue}'")
             return
@@ -981,9 +992,40 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply(f"invalid TL: {newValue}")
             return
 
-        if int(newValue) == b.techLevel:
+        newLevel = int(newValue)
+
+        if newLevel == b.techLevel:
             await message.reply("No change. Writing anyway.")
-        b.techLevel = int(newValue)
+
+        if newLevel < b.division.minLevel or newLevel > b.division.maxLevel:
+            try:
+                newDiv = b.division.owningDB.divisionForLevel(newLevel)
+            except KeyError:
+                await message.reply("tech level is out of division range, but can't find a new division")
+                b.techLevel = newLevel
+            else:
+                if b.division.bountyBoardChannel is not None and b.division.bountyBoardChannel.hasMessageForBounty(b):
+                    await b.division.bountyBoardChannel.removeBounty(b)
+                
+                if b.isEscaped():
+                    b.division.removeEscapedBountyObj(b)
+                    b.techLevel = newLevel
+                    newDiv._addEscapedBounty(b)
+                else:
+                    b.division.removeBountyObj(b)
+                    if b.division.isEmpty(includeEscaped=False) and b.division.bountyBoardChannel.noBountiesMessage is None:
+                        b.division.bountyBoardChannel.noBountiesMessage = await b.division.bountyBoardChannel._sendNoBountiesMessage()
+                    if newDiv.bountyBoardChannel is not None and newDiv.isEmpty(includeEscaped=False) and newDiv.bountyBoardChannel.noBountiesMessage is not None:
+                        await newDiv.bountyBoardChannel.noBountiesMessage.delete()
+                        newDiv.bountyBoardChannel.noBountiesMessage = None
+                    b.techLevel = newLevel
+                    newDiv._addBounty(b, dbReload=True)
+                    
+                b.division = newDiv
+                await message.reply("moved division")
+        else:
+            b.techLevel = newLevel
+
 
     elif fieldName == "respawnTime":
         try:
@@ -997,24 +1039,33 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply("No change. Writing anyway.")
         
         if b.respawnTT is not None:
-            b.respawnTT.forceExpire(callExpiryFunc=False)
+            await b.respawnTT.forceExpire(callExpiryFunc=False)
 
         respawnTT = timedTask.TimedTask(expiryDelta=timedelta(minutes=len(b.route)), 
                                         expiryFunction=b._respawn,
                                         rescheduleOnExpiryFuncFailure=True)
 
-        b.respawnTT = respawnTT
         if not b.isEscaped():
-            if b.criminal in b.division.bounties[b.techLevel]:
-                b.division.owningDB.removeBountyObj(b)
-            b.division.owningDB.addEscapedBounty(b, ignoreFull=True)
+            b.escape()
+            if b.division.bountyBoardChannel is not None:
+                await bGuild.updateBountyBoardChannel(b, bountyComplete=True)
+                await b.division.bountyBoardChannel.updateEscapedBountiesMessage()
 
+        b.respawnTT = respawnTT
         botState.taskScheduler.scheduleTask(b.respawnTT)
         b.endTime = newTime.timestamp()
 
     await message.reply("Success!")
-    if updateBBC:
-        await b.division.bountyBoardChannel.updateBountyMessage(b)
+    if updateBBC and b.division.bountyBoardChannel is not None:
+        if b.isEscaped():
+            await b.division.bountyBoardChannel.updateEscapedBountiesMessage()
+            if b.division.bountyBoardChannel.hasMessageForBounty(b):
+                await b.division.bountyBoardChannel.removeBounty(b)
+        else:
+            if b.division.bountyBoardChannel.hasMessageForBounty(b):
+                await b.division.bountyBoardChannel.updateBountyMessage(b)
+            else:
+                await b.division.bountyBoardChannel._sendBountyMsg(b)
 
 
 botCommands.register("edit-bounty", dev_cmd_edit_bounty, 3, signatureStr="**edit-bounty <guild id or here> <criminal name> +<field> +<value>**", useDoc=True, forceKeepArgsCasing=True)
@@ -1075,7 +1126,10 @@ async def dev_cmd_force_update_listing(message : discord.Message, args : str, is
             await message.reply("Bounty is not wanted in this server")
             return
 
-    await b.division.bountyBoardChannel.updateBountyMessage(b)
+    if b.division.bountyBoardChannel.hasMessageForBounty(b):
+        await b.division.bountyBoardChannel.updateBountyMessage(b)
+    else:
+        await b.division.bountyBoardChannel._sendBountyMsg(b)
     await message.reply("success!")
 
 botCommands.register("force-update-listing", dev_cmd_force_update_listing, 3, signatureStr="**force-update-listing <guild id or here> <criminal name>**", useDoc=True, forceKeepArgsCasing=True)
