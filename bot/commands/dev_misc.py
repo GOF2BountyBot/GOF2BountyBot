@@ -982,10 +982,17 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply(f"Unknown system: '{newValue}'")
             return
 
-        if newValue == b.answer:
+        if syst.name == b.answer:
             await message.reply("No change.")
             return
+        elif syst.name not in b.route:
+            await message.reply("that system is not in the bounty's route. cancelled.")
+            return
         b.answer = syst.name
+        botState.logger.log("dev_misc", "dev_cmd_edit_bounty",
+                        f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
+                        + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
+                        category="bountiesDB", eventType="CHEAT")
 
     elif fieldName == "techLevel":
         if not lib.stringTyping.isInt(newValue) or int(newValue) < 0 or int(newValue) > cfg.maxTechLevel:
