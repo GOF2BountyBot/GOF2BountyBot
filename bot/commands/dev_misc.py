@@ -230,9 +230,9 @@ def describeTT(tt: Optional[timedTask.TimedTask], issueTime: bool = True, expiry
 
     ttStrParts = []
     if issueTime:
-        ttStrParts.append(f"Issue time: {'null' if tt.issueTime is None else tt.issueTime.strftime('%m/%d/%Y, %H:%M:%S')}")
+        ttStrParts.append(f"Issue time: {'null' if tt.issueTime is None else tt.issueTime.strftime('%d/%m/%Y, %H:%M:%S')}")
     if nextExpiry:
-        ttStrParts.append(f"Next expiry: {'null' if tt.expiryTime is None else tt.expiryTime.strftime('%m/%d/%Y, %H:%M:%S')}")
+        ttStrParts.append(f"Next expiry: {'null' if tt.expiryTime is None else tt.expiryTime.strftime('%d/%m/%Y, %H:%M:%S')}")
     if expiryDelta:
         ttStrParts.append(f"Expiry delta: {'null' if tt.expiryDelta is None else lib.timeUtil.td_format_noYM(tt.expiryDelta)}")
     if autoReschedule:
@@ -256,7 +256,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
     embed = discord.Embed(title="Bot Status", colour=discord.Colour.random())
 
     newestBASED = await versionInfo.getNewestTagOnRemote(botState.httpClient, versionInfo.BASED_API_URL)
-    nextUpdate = versionInfo.nextUpdateCheck().strftime("%m/%d/%Y, %H:%M:%S") if cfg.BASED_checkForUpdates else "disabled"
+    nextUpdate = versionInfo.nextUpdateCheck().strftime("%d/%m/%Y, %H:%M:%S") if cfg.BASED_checkForUpdates else "disabled"
 
     embed.add_field(name="Client",
                     value=f"{botState.client.user} ({botState.client.user.id})")
@@ -355,7 +355,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
                 
     embed.add_field(name="$premium Cooldown End",
                     value='Null TT' if botState.premiumCooldownEnd is None else \
-                            botState.premiumCooldownEnd.strftime("%m/%d/%Y, %H:%M:%S"))
+                            botState.premiumCooldownEnd.strftime("%d/%m/%Y, %H:%M:%S"))
 
     await message.author.send(embed=embed)
 
@@ -555,7 +555,7 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
     embed.add_field(name="Credits",
                     value=f"Current: {bUser.credits}\nlifetimeBountyCreditsWon: {bUser.lifetimeBountyCreditsWon}")
     embed.add_field(name="$check Cooldown", 
-                    value=datetime.utcfromtimestamp(bUser.bountyCooldownEnd).strftime("%m/%d/%Y, %H:%M:%S"))
+                    value=datetime.utcfromtimestamp(bUser.bountyCooldownEnd).strftime("%d/%m/%Y, %H:%M:%S"))
     
     embed.add_field(name="Systems Checked", value=str(bUser.systemsChecked))
     embed.add_field(name="Bounty Wins", value=str(bUser.bountyWins))
@@ -603,7 +603,7 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
     embed.add_field(name="User Alerts", value=userAlertsStr)
     embed.add_field(name="Home Guild", value=f"{bUser.homeGuildID} - {botState.client.get_guild(bUser.homeGuildID)}")
     embed.add_field(name="$transfer Cooldown", 
-                    value=bUser.guildTransferCooldownEnd.strftime("%m/%d/%Y, %H:%M:%S") if bUser.guildTransferCooldownEnd is not None else "None")
+                    value=bUser.guildTransferCooldownEnd.strftime("%d/%m/%Y, %H:%M:%S") if bUser.guildTransferCooldownEnd is not None else "None")
 
     if bUser.kaamo is None:
         kaamoStr = "None"
@@ -695,7 +695,7 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
     embed.add_field(name="Stats", value=f"Faction: {b.faction}\nTech level/Difficulty: {b.techLevel}\n" \
                                         + f"Reward: {b.reward}\nReward per check: {b.rewardPerSys}")
 
-    embed.add_field(name="Times", value=f"Issued: {datetime.utcfromtimestamp(b.issueTime).strftime('%m/%d/%Y, %H:%M:%S')}\n" \
+    embed.add_field(name="Times", value=f"Issued: {datetime.utcfromtimestamp(b.issueTime).strftime('%d/%m/%Y, %H:%M:%S')}\n" \
                                     + f"ExpiryTT: {describeTT(b.expiryTT)}\n" \
                                     + f"RespawnTT: {describeTT(b.respawnTT)}")
     
