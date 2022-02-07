@@ -380,10 +380,13 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                                         + "**, you now have **" + commaSplitNum(requestedBBUser.credits) + " Credits!**")
 
         # If no bounty was won, print an error message
-        elif not bountyLost:
-            await message.reply(mention_author=False, content=":telescope: **" + message.author.display_name \
-                                        + "**, you did not find any criminals in **" + requestedSystem.title() \
-                                        + "**!\n" + sightedCriminalsStr)
+        else:
+            if not bountyLost:
+                await message.reply(mention_author=False, content=":telescope: **" + message.author.display_name \
+                                            + "**, you did not find any criminals in **" + requestedSystem.title() \
+                                            + "**!\n" + sightedCriminalsStr)
+            elif sightedCriminalsStr:
+                await message.reply(mention_author=False, content=sightedCriminalsStr)
 
         # Only put the calling user on checking cooldown and increment systemsChecked stat if the system checked
         # is on an active bounty's route.
