@@ -150,7 +150,19 @@ class Bounty(serializable.Serializable):
         self.techLevel = config.techLevel
         self.respawnTT: TimedTask = None
         self.division = division
-        self.expiryTT = expiryTT
+        if expiryTT is None:
+            if self.endTime == -1:
+                self.expiryTT = None
+            else:
+                endDT = datetime.utcfromtimestamp(self.endTime)
+                if endDT < datetime.utcnow():
+                    self.expiryTT = None
+                    lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
+                else:
+                    self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
+                    botState.taskScheduler.scheduleTask(self.expiryTT)
+        else:
+            self.expiryTT = expiryTT
 
 
     def clearShip(self):
@@ -410,7 +422,7 @@ class Bounty(serializable.Serializable):
         :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
         :rtype: BountyConfig
         """
-        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer,
+        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer, endTime=self.endTime,
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 
@@ -478,14 +490,5 @@ class Bounty(serializable.Serializable):
                                     expiryFunction=newBounty._respawn,
                                     rescheduleOnExpiryFuncFailure=True)
             newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
-
-        if newBounty.expiryTT is None:
-            endDT = datetime.utcfromtimestamp(newBounty.endTime)
-            if endDT < datetime.utcnow():
-                newBounty.expiryTT = None
-                lib.discordUtil.scheduleCoroWithLogging(newBounty.expire(dbReload=True))
-            else:
-                newBounty.expiryTT = TimedTask(datetime.utcnow(), endDT, None, newBounty.expire)
-                botState.taskScheduler.scheduleTask(newBounty.expiryTT)
 
         return newBounty
