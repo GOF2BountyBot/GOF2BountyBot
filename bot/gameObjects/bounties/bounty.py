@@ -422,7 +422,7 @@ class Bounty(serializable.Serializable):
         :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
         :rtype: BountyConfig
         """
-        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer,
+        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer, endTime=self.endTime,
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 
