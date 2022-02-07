@@ -114,6 +114,8 @@ class BasedEmoji(serializable.Serializable):
         :return: A dictionary containing all information needed to reconstruct this emoji.
         :rtype: dict
         """
+        if self is BasedEmoji.EMPTY:
+            return {"empty": True}
         if self.isUnicode:
             return {"unicode": self.unicode}
         return {"id": self.id}
@@ -171,6 +173,8 @@ class BasedEmoji(serializable.Serializable):
         if "id" in emojiDict:
             return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
         else:
+            if emojiDict.get("empty", False):
+                return BasedEmoji.EMPTY
             return BasedEmoji(unicode=emojiDict["unicode"], rejectInvalid=rejectInvalid)
 
 
