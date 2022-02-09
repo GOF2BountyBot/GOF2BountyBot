@@ -257,6 +257,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             if bounty.division == guildMaxDiv and currentDiv != guildMaxDiv:
                                 rewardsMeta[userID] = RewardsMeta.USER_PRESTIGED | rewardsMeta[userID]
                                 distributeRewards[userID] = rewards[userID]["reward"]
+                            
+                            # Make sure that xp does not go over the maximum
+                            if currentLevel == cfg.maxTechLevel - 1:
+                                maxLevelXp = gameMaths.bountyHuntingXPForLevel(cfg.maxTechLevel)
+                                if rewards[userID]["xp"] + currentBBUser.bountyHuntingXP > maxLevelXp:
+                                    rewards[userID]["xp"] = maxLevelXp - currentBBUser.bountyHuntingXP
 
                         # share rewards lost due to prestiging
                         if distributeRewards:
@@ -285,7 +291,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             if oldLevel == cfg.maxTechLevel:
                                 continue
 
-                            currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            currentBBUser.bountyHuntingXP = rewards[userID]["xp"]
                             oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
                             currentDCUser = message.guild.get_member(currentBBUser.id)
 
