@@ -539,6 +539,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
                             + "- +`<TL>` +`<faction>`\n" \
                             + "- +`<TL>' +`<faction>` +`<name>` +`<route>` +`<start>` " \
                                 + "+`<end>` +`<answer>` +`<reward>` +`<endtime>` +`<icon>`")
+        return
 
     # if all args were given, generate a completely custom bounty
     # 10 args plus account for empty string at the start of the split = split of 11 elements
@@ -554,6 +555,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
             newTL = -1
         elif not lib.stringTyping.isInt(newTL) or int(newTL) < cfg.minTechLevel or int(newTL) > cfg.maxTechLevel:
             await message.reply(f":x: Invalid tech level, must be a number between {cfg.minTechLevel} and {cfg.maxTechLevel}: {newTL}")
+            return
         else:
             newTL = int(newTL)
 
