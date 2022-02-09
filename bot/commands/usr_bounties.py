@@ -290,9 +290,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
                                 continue
-
-                            currentBBUser.bountyHuntingXP = rewards[userID]["xp"]
+                            
                             oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
+                            currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
                             currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
