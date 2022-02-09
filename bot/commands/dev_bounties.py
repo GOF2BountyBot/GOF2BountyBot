@@ -535,7 +535,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         config = bountyConfig.BountyConfig(techLevel=newTL, faction=argsSplit[2])
     elif len(argsSplit) != 11:
         await message.reply("Incorrect number of arguments. Formats:\n" \
-                            + "- +`<TL>``\n" \
+                            + "- +`<TL>`\n" \
                             + "- +`<TL>` +`<faction>`\n" \
                             + "- +`<TL>' +`<faction>` +`<name>` +`<route>` +`<start>` " \
                                 + "+`<end>` +`<answer>` +`<reward>` +`<endtime>` +`<icon>`")
@@ -767,7 +767,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
 
     elif len(argsSplit) != 9:
         await message.reply("Incorrect number of arguments. Formats:\n" \
-                            + "- +`<player>``\n" \
+                            + "- +`<player>`\n" \
                             + "- +`<player>` +`<faction>`\n" \
                             + "- +`<player>` +`<faction>` +`<route>` +`<start>` " \
                                 + "+`<end>` +`<answer>` +`<reward>` +`<endtime>` +`<icon>`")
