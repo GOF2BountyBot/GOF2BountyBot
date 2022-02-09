@@ -11,6 +11,7 @@ from ..gameObjects.bounties.bountyConfig import BountyConfig
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from ..cfg import cfg, bbData
 from .. import botState, lib
+from ..lib import gameMaths
 from ..scheduling.timedTask import TimedTask, DynamicRescheduleTask
 from traceback import format_stack
 
@@ -628,6 +629,17 @@ class BountyDivision(Serializable):
             raise KeyError("Escaped bounty not found: " + bounty.criminal.name)
         if wasFull or not self.hasMinTLBounty():
             self.tryStartBountySpawner()
+
+
+    def xpToDivUp(self) -> int:
+        """Decides the amount of xp a user must have in order to leave this division.
+
+        :return: the amount of xp a user must have in order to leave this division
+        :rtype: int
+        """
+        if self.maxLevel >= cfg.maxTechLevel:
+            return gameMaths.bountyHuntingXPForLevel(self.maxLevel)
+        return gameMaths.bountyHuntingXPForLevel(self.maxLevel + 1)
 
 
     def toDict(self, **kwargs) -> dict:
