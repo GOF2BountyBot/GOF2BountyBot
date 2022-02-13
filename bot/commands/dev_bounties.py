@@ -1568,3 +1568,106 @@ async def dev_cmd_restart_new_bounty_task(message : discord.Message, args : str,
 
 botCommands.register("restart-bounty-task", dev_cmd_restart_new_bounty_task, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
+
+
+async def dev_cmd_user_can_divup_or_prestige(message : discord.Message, args : str, isDM : bool):
+    """Decide whether a user can div-up/prestige
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a user ID
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.reply(":x: Not enough arguments! Please give the user ID.")
+        return
+
+    if not lib.stringTyping.isInt(args):
+        await message.reply(":x: That's not a user ID.")
+        return
+
+    userID = int(args)
+
+    if not botState.usersDB.idExists(userID):
+        await message.reply(":x: Unknown user ID.")
+        return
+
+    u = botState.usersDB.getUser(userID)
+    await message.reply(f"{u.canDivUp()} ({u.bountyHuntingXpSurplus}xp surplus)")
+
+botCommands.register("can-div-up", dev_cmd_user_can_divup_or_prestige, 3, aliases=["can-prestige"], allowDM=False,
+                        helpSection="bounties", signatureStr="**can-div-up <user id>**",
+                        shortHelp="Decide whether a user can div-up/prestige")
+
+
+async def dev_cmd_set_user_divup_surplus(message : discord.Message, args : str, isDM : bool):
+    """Enable a user's ability to div-up or prestige by setting their xp surplus
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a user id followed by an amount of xp
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    argsSplit = args.split(" ")
+    if len(argsSplit)< 2:
+        await message.reply(":x: Not enough arguments! Please give the user ID and xp surplus.")
+        return
+
+    if not lib.stringTyping.isInt(argsSplit[0]):
+        await message.reply(":x: That's not a user ID.")
+        return
+    if not lib.stringTyping.isInt(argsSplit[1]):
+        await message.reply(":x: That's not an integer amount of xp.")
+        return
+
+    userID = int(args[0])
+
+    if not botState.usersDB.idExists(userID):
+        await message.reply(":x: Unknown user ID.")
+        return
+
+    newSurplus = int(args[1])
+    u = botState.usersDB.getUser(userID)
+    canDivup = u.canDivUp()
+
+    u.bountyHuntingXpSurplus = newSurplus
+    if newSurplus == -1:
+        await message.reply("✅ set successfully!" + "User can no longer div-up" if canDivup else "No change.")
+    else:
+        await message.reply("✅ set successfully!" + "User can now div-up" if not canDivup else "User was already able to div-up.")
+
+botCommands.register("set-xp-surplus", dev_cmd_set_user_divup_surplus, 3, allowDM=False,
+                        helpSection="bounties", signatureStr="**set-xp-surplus <user id> <xp surplus>**",
+                        shortHelp="Set the amount of xp a user will be awarded AFTER using div-up.\n" \
+                                + "Set to at least 0 to enable div-up. Set to -1 to disable div-up.\n" \
+                                + "Also enables prestiging, but no xp is awarded after.")
+
+
+async def dev_cmd_disable_user_can_divup_or_prestige(message : discord.Message, args : str, isDM : bool):
+    """Disable a user's ability to div-up/prestige
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: a user ID
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not args:
+        await message.reply(":x: Not enough arguments! Please give the user ID.")
+        return
+
+    if not lib.stringTyping.isInt(args):
+        await message.reply(":x: That's not a user ID.")
+        return
+
+    userID = int(args)
+
+    if not botState.usersDB.idExists(userID):
+        await message.reply(":x: Unknown user ID.")
+        return
+
+    u = botState.usersDB.getUser(userID)
+    canDivup = u.canDivUp()
+    u.bountyHuntingXpSurplus = -1
+    
+    await message.reply("✅ set successfully!" + "User can no longer div-up" if canDivup else "No change.")
+
+botCommands.register("disable-div-up", dev_cmd_disable_user_can_divup_or_prestige, 3, aliases=["disable-prestige"],
+                        allowDM=False, helpSection="bounties", signatureStr="**can-div-up <user id>**",
+                        shortHelp="Remove a user's ability div-up/prestige.")
