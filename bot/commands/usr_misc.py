@@ -209,7 +209,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
     # If the requested user is not in the database, don't bother adding them just print zeroes
     if not botState.usersDB.idExists(requestedUser.id):
         hunterLvl = 1
-        bountyXP = gameMaths.bountyHuntingXPForLevel(1)
+        bountyXP = effectiveBountyXP = gameMaths.bountyHuntingXPForLevel(1)
         nextXP = gameMaths.bountyHuntingXPForLevel(2)
         levelProgress = 0
         statsEmbed.add_field(name="Credits balance:", value=0, inline=True)
@@ -240,6 +240,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                 statsEmbed.description += f"\n{classicEmoji.sendable} Classic mode enabled *(see `{prefix}help classic`)*"
         else:
             bountyXP = userObj.bountyHuntingXP
+            effectiveBountyXP = bountyXP + max(userObj.bountyHuntingXpSurplus, 0)
             hunterLvl = gameMaths.calculateUserBountyHuntingLevel(userObj.bountyHuntingXP)
             xpForLevel = gameMaths.bountyHuntingXPForLevel(hunterLvl)
             if hunterLvl == cfg.maxTechLevel:
@@ -259,10 +260,14 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
         if not isClassic:
             statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
+            canDivUp = userObj.canDivUp()
             if hunterLvl == cfg.maxTechLevel:
-                statsEmbed.add_field(name="XP until next level:", value="*[Max Level]*")
+                divUpEmoji = cfg.defaultEmojis.prestigeUnlocked.sendable if canDivUp else ""
+                statsEmbed.add_field(name="XP until next level:", value=divUpEmoji + "*[Max Level]*")
             else:
-                statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - userObj.bountyHuntingXP))
+                prestigeEmoji = cfg.defaultEmojis.divUpUnlocked.sendable if canDivUp else ""
+                statsEmbed.add_field(name="XP until next level:",
+                                    value=prestigeEmoji + commaSplitNum(nextXP - userObj.bountyHuntingXP))
         statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
         statsEmbed.add_field(name="Total systems checked:", value=commaSplitNum(userObj.systemsChecked), inline=True)
         statsEmbed.add_field(name="Total bounties won:", value=commaSplitNum(userObj.bountyWins), inline=True)
@@ -370,7 +375,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                     textDraw.text((xPad, yPad), f"Level {hunterLvl} {divisionNameForLevel(hunterLvl).title()}",
                                     cfg.userProfileLevelColour, font=font)
                     # Build current XP string
-                    currentXPStr = commaSplitNum(bountyXP) + "/"
+                    currentXPStr = commaSplitNum(effectiveBountyXP) + "/"
                     # Calculate size of current XP string
                     currentXPStrSize = font.getsize(currentXPStr)
                     # Build next XP string

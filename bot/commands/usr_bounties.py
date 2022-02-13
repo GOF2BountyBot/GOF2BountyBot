@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -272,6 +272,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             for receiverID in receiverIDs:
                                 rewards[receiverID]["reward"] += each
 
+                        divUpUnlocked: List[int] = []
+                        prestigeUnlocked: List[int] = []
+
                         levelUpMsg = ""
                         for userID in rewards:
                             # If the bounty is in the highest division, but the user has since moved to a new division
@@ -292,7 +295,23 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                                 continue
                             
                             oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
-                            currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            
+                            if oldLevel == oldDiv.maxLevel:
+                                if not currentBBUser.canDivUp():
+                                    divUpXp = oldDiv.xpToDivUp()
+                                    newUserXp = currentBBUser.bountyHuntingXP + rewards[userID]["xp"]
+                                    if divUpXp < newUserXp:
+                                        currentBBUser.bountyHuntingXP = divUpXp - 1
+                                        currentBBUser.bountyHuntingXpSurplus = newUserXp - currentBBUser.bountyHuntingXP
+                                        if oldLevel == cfg.maxTechLevel - 1:
+                                            prestigeUnlocked.append(userID)
+                                        else:
+                                            divUpUnlocked.append(userID)
+                                    else:
+                                        currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            else:
+                                currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                                
                             currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
@@ -336,7 +355,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             await message.channel.send(levelUpMsg)
 
                         # Announce the bounty has been completed
-                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
+                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta, divUpUnlocked, prestigeUnlocked)
                         if statsEmbed is not None or duelResultsImg is not None:
                             await message.channel.send(embed=statsEmbed,
                                                         file=None if duelResultsImg is None else duelResultsFile)
@@ -885,6 +904,8 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
                 if oldRole is not None or newRole is not None:
                     await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                         actionOverride="prestiged")
+
+        callingBBUser.bountyHuntingXpSurplus = -1
 
         await message.channel.send(":astronaut: **" + lib.discordUtil.userOrMemberName(message.author, message.guild) \
                                     + " prestiged!** :tada:\n • You got a **" + newCrate.name + "!**")
