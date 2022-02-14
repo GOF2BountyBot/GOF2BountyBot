@@ -948,7 +948,7 @@ async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
         levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
         callingBBUser.inactiveTools.addItem(levelUpCrate)
 
-        await confirmMsg.reply("\n:arrow_double_up: **New Division Reached!** :sparkles:\n" \
+        await confirmMsg.reply(":arrow_double_up: **New Division Reached!** :sparkles:\n" \
                             + f"{message.author.mention} hit **Bounty Hunter Level {newLevel}**, and reached the " \
                             + f"**{newDivName.title()} Division!** :partying_face:\n" \
                             + f"You got a **{levelUpCrate.name}**.")
@@ -985,3 +985,89 @@ botCommands.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", sign
                                 + "some better gear first!\nIf you decide that you are not strong enough after you div-up, " \
                                 + "you can drop back down a division with the `div-down` command, though you'll have to " \
                                 + "work your way back up again.")
+
+
+async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
+    """Descend a division.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not botState.usersDB.idExists(message.author.id):
+        await message.reply(":x: You are already in the lowest division!", mention_author=False)
+        return
+
+    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if callingBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
+
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+
+    if not callingBBUser.hasHomeGuild():
+        await message.reply(f":x: You must have a **home server** to use this command (see `{commandPrefix}transfer`).",
+                            mention_author=False)
+        return
+    
+    homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+    userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
+    oldDiv = homeGuild.bountiesDB.divisionForLevel(userLevel)
+
+    if oldDiv == homeGuild.bountiesDB.divisionForLevel(cfg.minTechLevel):
+        await message.reply(":x: You are already in the lowest division!", mention_author=False)
+        return
+
+    newLevel = oldDiv.minLevel - 1
+    newDiv = homeGuild.bountiesDB.divisionForLevel(newLevel)
+    newXP = gameMaths.bountyHuntingXPForLevel(newDiv.maxLevel)
+
+    confirmMsg = await message.reply(f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
+                                    + f"division?\nYour new level will be {newLevel} - you will need to earn " \
+                                    + f"{commaSplitNum(oldDiv.xpToDivUp() - newXP)} xp to return to the " \
+                                    + f"{nameForDivision(oldDiv).title()} division.", mention_author=False)
+    confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
+                                                                            cfg.prestigeConfirmTimeoutSeconds).doMenu()
+
+    if cfg.defaultEmojis.accept in confirmResult:
+        oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
+
+        callingBBUser.bountyHuntingXP = newXP
+        callingBBUser.bountyHuntingXpSurplus = -1
+
+        levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
+        callingBBUser.inactiveTools.addItem(levelUpCrate)
+
+        await confirmMsg.edit(f"⏬ {message.author.mention} descended to **Bounty Hunter Level {newLevel}**, " \
+                            + f"reaching the **{newDivName.title()} Division.")
+    
+        if homeGuild.hasBountyAlertRoles:
+            oldRole = message.guild.get_role(oldDiv.alertRoleID)
+            newRole = None
+            if oldRole is None:
+                await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
+                                            + " division bounty alerts role, did it get deleted?")
+                                            
+            elif oldRole in message.author.roles:
+                newRole = message.guild.get_role(newDiv.alertRoleID)
+                if newRole is None:
+                    await message.channel.send(":woozy_face: I can't find the " \
+                                            + f"{newDivName.title()} division's bounty alerts " \
+                                            + "role, did it get deleted?")
+            
+            if oldRole is not None or newRole is not None:
+                await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
+                                                actionOverride="descended")
+    else:
+        await confirmMsg.edit("🛑 Div-down cancelled.")
+
+
+botCommands.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
+                        aliases=["divdown", "division-down", "divisiondown"],
+                        shortHelp="Drop to the top of the next lowest division of bounties, to work your way back up again." \
+                                + " This command is useful if you cannot fight bounties in your division.",
+                        longHelp="After moving to a new division, you may find that the lowest level of bounties are too" \
+                                + " strong to fight with your current gear. This command will drop your bounty hunter level" \
+                                + " to the highest level of the next lowest division, allowing you to save up some credits" \
+                                + " on easier bounties and build up your gear.\nYou will need to work your way back up to " \
+                                + "your current division again before you can return!")
