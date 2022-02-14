@@ -323,6 +323,11 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                                             + currentDCUser.mention \
                                             + f" reached **Bounty Hunter Level {newLevel}!** :partying_face:\n" \
                                             + f"You got a **{levelUpCrate.name}**."
+                                
+                                if newLevel == cfg.maxTechLevel:
+                                    levelUpMsg += f"\nYou have now unlocked prestiging! " \
+                                                + f"Use `{callingGuild.commandPrefix}prestige` to gain special rewards and " \
+                                                + "start a new run!"
 
                         if levelUpMsg != "":
                             await message.channel.send(levelUpMsg)
@@ -918,17 +923,17 @@ async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
                             mention_author=False)
         return
 
+    userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
+    if userLevel == cfg.maxTechLevel:
+        await message.reply(f":x: You have reached the highest division! (see `{commandPrefix}prestige`)",
+                            mention_author=False)
+        return
+
     if not callingBBUser.canDivUp():
         await message.reply(":x: You don't have enough XP to go to the next division!", mention_author=False)
         return
     
     homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
-    userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
-    
-    if userLevel == cfg.maxTechLevel:
-        await message.reply(f":x: You have reached the highest division! (see `{commandPrefix}prestige`)",
-                            mention_author=False)
-        return
 
     newLevel = userLevel + 1
     newDiv = homeGuild.bountiesDB.divisionForLevel(newLevel)
