@@ -1618,7 +1618,7 @@ async def dev_cmd_set_user_divup_surplus(message : discord.Message, args : str, 
         await message.reply(":x: That's not an integer amount of xp.")
         return
 
-    userID = int(args[0])
+    userID = int(argsSplit[0])
 
     if not botState.usersDB.idExists(userID):
         await message.reply(":x: Unknown user ID.")
