@@ -1039,7 +1039,7 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
         callingBBUser.inactiveTools.addItem(levelUpCrate)
 
         await confirmMsg.edit(content=f"⏬ {message.author.mention} descended to **Bounty Hunter Level {newLevel}**, " \
-                                    + f"reaching the **{newDivName.title()} Division.")
+                                    + f"reaching the **{newDivName.title()} Division.**")
     
         if homeGuild.hasBountyAlertRoles:
             oldRole = message.guild.get_role(oldDiv.alertRoleID)
