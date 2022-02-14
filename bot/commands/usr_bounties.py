@@ -970,7 +970,7 @@ async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
             if oldRole is not None or newRole is not None:
                 await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole)
     else:
-        await confirmMsg.edit("🛑 Div-up cancelled.")
+        await confirmMsg.edit(content="🛑 Div-up cancelled.")
 
 
 botCommands.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", signatureStr="**div-up**",
@@ -1023,7 +1023,7 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
     newXP = gameMaths.bountyHuntingXPForLevel(newDiv.maxLevel)
 
     confirmMsg = await message.reply(f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
-                                    + f"division?\nYour new level will be {newLevel} - you will need to earn " \
+                                    + f" division?\nAfter moving to level {newLevel}, you will need to earn " \
                                     + f"{commaSplitNum(oldDiv.xpToDivUp() - newXP)} xp to return to the " \
                                     + f"{nameForDivision(oldDiv).title()} division.", mention_author=False)
     confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
@@ -1059,11 +1059,12 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
                 await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                 actionOverride="descended")
     else:
-        await confirmMsg.edit("🛑 Div-down cancelled.")
+        await confirmMsg.edit(content="🛑 Div-down cancelled.")
 
 
 botCommands.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
-                        aliases=["divdown", "division-down", "divisiondown"],
+                        aliases=["divdown", "division-down", "divisiondown",
+                                "drop-div", "dropdiv", "drop-division", "dropdivision"],
                         shortHelp="Drop to the top of the next lowest division of bounties, to work your way back up again." \
                                 + " This command is useful if you cannot fight bounties in your division.",
                         longHelp="After moving to a new division, you may find that the lowest level of bounties are too" \

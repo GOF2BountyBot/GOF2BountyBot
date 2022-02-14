@@ -262,12 +262,17 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
             statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
             canDivUp = userObj.canDivUp()
             if hunterLvl == cfg.maxTechLevel:
-                divUpEmoji = cfg.defaultEmojis.prestigeUnlocked.sendable if canDivUp else ""
-                statsEmbed.add_field(name="XP until next level:", value=divUpEmoji + "*[Max Level]*")
+                prestigeEmoji = f"{cfg.defaultEmojis.prestigeUnlocked.sendable} " if canDivUp else ""
+                statsEmbed.add_field(name="XP until next level:", value=prestigeEmoji + "*[Max Level]*")
             else:
-                prestigeEmoji = cfg.defaultEmojis.divUpUnlocked.sendable if canDivUp else ""
-                statsEmbed.add_field(name="XP until next level:",
-                                    value=prestigeEmoji + commaSplitNum(nextXP - userObj.bountyHuntingXP))
+                if canDivUp:
+                    divUpEmoji = cfg.defaultEmojis.divUpUnlocked.sendable
+                    statsEmbed.add_field(name="XP until next level:",
+                                    value=f"0\n{divUpEmoji} Ready to `{prefix}div-up`!")
+                else:
+                    statsEmbed.add_field(name="XP until next level:",
+                                    value=commaSplitNum(nextXP - userObj.bountyHuntingXP))
+                
         statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
         statsEmbed.add_field(name="Total systems checked:", value=commaSplitNum(userObj.systemsChecked), inline=True)
         statsEmbed.add_field(name="Total bounties won:", value=commaSplitNum(userObj.bountyWins), inline=True)
