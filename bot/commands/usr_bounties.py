@@ -1024,7 +1024,7 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
 
     confirmMsg = await message.reply(f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
                                     + f" division?\nAfter moving to level {newLevel}, you will need to earn " \
-                                    + f"{commaSplitNum(oldDiv.xpToDivUp() - newXP)} xp to return to the " \
+                                    + f"{commaSplitNum(newDiv.xpToDivUp() - newXP)} xp to return to the " \
                                     + f"{nameForDivision(oldDiv).title()} division.", mention_author=False)
     confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
                                                                             cfg.prestigeConfirmTimeoutSeconds).doMenu()
@@ -1039,7 +1039,7 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
         callingBBUser.inactiveTools.addItem(levelUpCrate)
 
         await confirmMsg.edit(content=f"⏬ {message.author.mention} descended to **Bounty Hunter Level {newLevel}**, " \
-                                    + f"reaching the **{newDivName.title()} Division.**")
+                                    + f"reaching the **{newDivName.title()} Division.**", embed=None)
     
         if homeGuild.hasBountyAlertRoles:
             oldRole = message.guild.get_role(oldDiv.alertRoleID)
@@ -1059,7 +1059,7 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
                 await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                 actionOverride="descended")
     else:
-        await confirmMsg.edit(content="🛑 Div-down cancelled.")
+        await confirmMsg.edit(content="🛑 Div-down cancelled.", embed=None)
 
 
 botCommands.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
