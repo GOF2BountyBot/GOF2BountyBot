@@ -29,7 +29,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     argsSplit = args.split(" ")
 
     requestedUser = message.author
-    callingUserIsAdmin = not isDM and message.author.guild_permissions.administrator
+    callingUserIsAdmin = not isDM and (message.author.guild_permissions.administrator or message.author.id in cfg.developers)
     item = "all"
     page = 1
 
@@ -64,7 +64,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
             requestedUser = userAttempt
             foundUser = True
         
-        success = foundUser or foundItem + foundPage + foundUser + 1 == len(argsSplit)
+        success = foundUser or foundItem + foundPage + 1 == len(argsSplit)
 
         return requestedUser if foundUser else None, item, page, success
 
@@ -75,6 +75,10 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
                 await message.reply(f":x: Unrecognised user!")
             else:
                 await message.reply(f":x: Invalid arguments, please see `{prefix}help hangar`.",
+                                    mention_author=False)
+            return
+        elif requestedUser is None:
+            await message.reply(f":x: Invalid arguments, please see `{prefix}help hangar`.",
                                     mention_author=False)
             return
         
@@ -310,7 +314,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                         col=bbData.factionColours[criminalObj.faction] \
                                                             if criminalObj.faction in bbData.factionColours \
                                                             else bbData.factionColours["neutral"],
-                                                        thumb=criminalObj.icon)
+                                                        img=criminalObj.icon)
             loadoutEmbed = activeShip.fillLoadoutEmbed(loadoutEmbed, shipEmoji=True)
 
             await message.channel.send(embed=loadoutEmbed)
@@ -331,7 +335,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                     col=bbData.factionColours[activeShip.manufacturer] \
                                                         if activeShip.manufacturer in bbData.factionColours \
                                                         else bbData.factionColours["neutral"],
-                                                    thumb=activeShip.icon if activeShip.hasIcon \
+                                                    img=activeShip.icon if activeShip.hasIcon \
                                                         else requestedUser.avatar_url_as(size=64))
 
         await message.reply(mention_author=False, embed=activeShip.fillLoadoutEmbed(loadoutEmbed))
@@ -344,7 +348,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                     col=bbData.factionColours[activeShip.manufacturer] if \
                                                         activeShip.manufacturer in bbData.factionColours else \
                                                         bbData.factionColours["neutral"],
-                                                    thumb=activeShip.icon if activeShip.hasIcon else \
+                                                    img=activeShip.icon if activeShip.hasIcon else \
                                                         requestedUser.avatar_url_as(size=64))
 
         if activeShip is None:
