@@ -102,6 +102,8 @@ class BasedUser(serializable.Serializable):
     :vartype medals: MutableSet[Medal]
     :var classicModeEnabled: Whether or not this user is set to use classic mode
     :vartype classicModeEnabled: bool
+    :var bountyHuntingXpSurplus: Extra experience to be awarded to the user when they choose to div-up
+    :vartype bountyHuntingXpSurplus: int
     """
 
     def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
@@ -117,7 +119,7 @@ class BasedUser(serializable.Serializable):
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
                     ownedMenus : Dict[str, MutableSet[int]] = {}, medals: MutableSet[Medal] = None,
-                    classicModeEnabled: bool = False):
+                    classicModeEnabled: bool = False, bountyHuntingXpSurplus: int = -1):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         :param int credits: The amount of credits (currency) this user has (Default 0)
@@ -161,7 +163,8 @@ class BasedUser(serializable.Serializable):
         :param ownedMenus: Sets of IDs for all menus that user owns, by string type IDs. (default {})
         :type ownedMenus: Dict[str, MutableSet[int]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
-        :param bool classicModeEnabled: Whether this user has classic mode enabled
+        :param bool classicModeEnabled: Whether this user has classic mode enabled (Default False)
+        :param int bountyHuntingXpSurplus: Extra experience to be awarded to the user when they choose to div-up (Default -1)
         """
         if type(userID) == float:
             userID = int(userID)
@@ -271,6 +274,7 @@ class BasedUser(serializable.Serializable):
         self.loma = loma
         self.ownedMenus = ownedMenus
         self.medals = medals if medals is not None else set()
+        self.bountyHuntingXpSurplus = bountyHuntingXpSurplus
 
 
     def resetUser(self):
@@ -293,6 +297,7 @@ class BasedUser(serializable.Serializable):
         self.duelCreditsWins = 0
         self.duelCreditsLosses = 0
         self.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(1)
+        self.bountyHuntingXpSurplus = -1
         self.homeGuildID = -1
         self.guildTransferCooldownEnd = datetime.utcnow()
         self.kaamo = None
@@ -512,6 +517,9 @@ class BasedUser(serializable.Serializable):
 
         if self.classicModeEnabled:
             data["classicModeEnabled"] = True
+
+        if self.bountyHuntingXpSurplus != -1:
+            data["bountyHuntingXpSurplus"] = self.bountyHuntingXpSurplus
 
         return data
 
@@ -870,13 +878,20 @@ class BasedUser(serializable.Serializable):
         self.classicModeEnabled = False
 
 
+    def canDivUp(self) -> bool:
+        """Decide whether this user has enough XP to leave their current division.
+        Returns false if the user has classic mode enabled, or has no home guild.
+        """
+        return not self.classicModeEnabled and self.hasHomeGuild() and self.bountyHuntingXpSurplus != -1
+
+
     def __str__(self) -> str:
         """Get a short string summary of this BasedUser. Currently only contains the user ID and home guild ID.
 
         :return: A string summar of the user, containing the user ID and home guild ID.
         :rtype: str
         """
-        return "<BasedUser #" + str(self.id) + ((" @" + str(self.homeGuildID)) if self.hasHomeGuildID() else "") + ">"
+        return "<BasedUser #" + str(self.id) + ((" @" + str(self.homeGuildID)) if self.hasHomeGuild() else "") + ">"
 
 
     @classmethod
