@@ -314,7 +314,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                         col=bbData.factionColours[criminalObj.faction] \
                                                             if criminalObj.faction in bbData.factionColours \
                                                             else bbData.factionColours["neutral"],
-                                                        img=criminalObj.icon)
+                                                        thumb=criminalObj.icon)
             loadoutEmbed = activeShip.fillLoadoutEmbed(loadoutEmbed, shipEmoji=True)
 
             await message.channel.send(embed=loadoutEmbed)
@@ -335,7 +335,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                     col=bbData.factionColours[activeShip.manufacturer] \
                                                         if activeShip.manufacturer in bbData.factionColours \
                                                         else bbData.factionColours["neutral"],
-                                                    img=activeShip.icon if activeShip.hasIcon \
+                                                    thumb=activeShip.icon if activeShip.hasIcon \
                                                         else requestedUser.avatar_url_as(size=64))
 
         await message.reply(mention_author=False, embed=activeShip.fillLoadoutEmbed(loadoutEmbed))
@@ -348,7 +348,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
                                                     col=bbData.factionColours[activeShip.manufacturer] if \
                                                         activeShip.manufacturer in bbData.factionColours else \
                                                         bbData.factionColours["neutral"],
-                                                    img=activeShip.icon if activeShip.hasIcon else \
+                                                    thumb=activeShip.icon if activeShip.hasIcon else \
                                                         requestedUser.avatar_url_as(size=64))
 
         if activeShip is None:
