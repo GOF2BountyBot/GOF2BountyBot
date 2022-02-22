@@ -1,6 +1,7 @@
 from ...baseClasses import serializable
 from ..itemDiscount import ItemDiscount
 from typing import List
+from ...cfg import cfg
 
 
 class InventoryListing(serializable.Serializable):
@@ -119,4 +120,31 @@ class DiscountableItemListing(InventoryListing):
         data = super().toDict(**kwargs)
         if self.discounts:
             data["discounts"] = [discount.toDict(**kwargs) for discount in self.discounts]
+        return data
+
+
+class KaamoItemListing(InventoryListing):
+    """An InventoryListing that also stores a boolean indicating whether the owning user has
+    prestiged whilst the item has been in the owning inventory.
+    If `userPrestiged` is True, then this listing's serializer will return a `userPrestiged` field indeiciating as such.
+
+    :var userPrestiged: Whether or not the owning user has prestiged whilst the item has been in its owning inventory
+    :type userPrestiged: bool
+    """
+    def __init__(self, item, count: int = 0, userPrestiged: bool = False):
+        """
+        :param item: The item to store
+        :param int quantity: The amount of item to store (Default 0)
+        :param bool userPrestiged: Whether or not the owning user has prestiged whilst the item has been in its
+                                    owning inventory (Default False)
+        """
+        super().__init__(item, count=count)
+        self.userPrestiged = False
+
+
+    def toDict(self, **kwargs) -> dict:
+        data = super().toDict(**kwargs)
+        del data["discounts"]
+        if self.userPrestiged:
+            data["userPrestiged"] = self.userPrestiged
         return data

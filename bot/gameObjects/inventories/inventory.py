@@ -317,3 +317,14 @@ class DiscountableTypeRestrictedInventory(TypeRestrictedInventory):
         discount = listing.popDiscount().mult if listing.discounts else 1
         self.removeItem(item)
         return item, discount
+
+
+class KaamoTypeRestrictedInventory(TypeRestrictedInventory):
+    """A TypeRestrictedInventory that also stores a boolean against each item indicating whether the owning user has
+    prestiged whilst the item has been in the inventory.
+    """
+    listingType = inventoryListing.KaamoItemListing
+
+
+    def getListing(self, item: Any) -> inventoryListing.KaamoItemListing:
+        return super().getListing(item)
