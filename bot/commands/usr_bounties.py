@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import discord
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -257,6 +257,12 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             if bounty.division == guildMaxDiv and currentDiv != guildMaxDiv:
                                 rewardsMeta[userID] = RewardsMeta.USER_PRESTIGED | rewardsMeta[userID]
                                 distributeRewards[userID] = rewards[userID]["reward"]
+                            
+                            # Make sure that xp does not go over the maximum
+                            if currentLevel == cfg.maxTechLevel - 1:
+                                maxLevelXp = gameMaths.bountyHuntingXPForLevel(cfg.maxTechLevel)
+                                if rewards[userID]["xp"] + currentBBUser.bountyHuntingXP > maxLevelXp:
+                                    rewards[userID]["xp"] = maxLevelXp - currentBBUser.bountyHuntingXP
 
                         # share rewards lost due to prestiging
                         if distributeRewards:
@@ -265,6 +271,9 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             each = int(totalToShare / len(receiverIDs))
                             for receiverID in receiverIDs:
                                 rewards[receiverID]["reward"] += each
+
+                        divUpUnlocked: List[int] = []
+                        prestigeUnlocked: List[int] = []
 
                         levelUpMsg = ""
                         for userID in rewards:
@@ -284,9 +293,25 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                             oldLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
                             if oldLevel == cfg.maxTechLevel:
                                 continue
-
-                            currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            
                             oldDiv = callingGuild.bountiesDB.divisionForLevel(oldLevel)
+                            
+                            if oldLevel == oldDiv.maxLevel:
+                                if not currentBBUser.canDivUp():
+                                    divUpXp = oldDiv.xpToDivUp()
+                                    newUserXp = currentBBUser.bountyHuntingXP + rewards[userID]["xp"]
+                                    if divUpXp < newUserXp:
+                                        currentBBUser.bountyHuntingXP = divUpXp - 1
+                                        currentBBUser.bountyHuntingXpSurplus = newUserXp - currentBBUser.bountyHuntingXP
+                                        if oldLevel == cfg.maxTechLevel - 1:
+                                            prestigeUnlocked.append(userID)
+                                        else:
+                                            divUpUnlocked.append(userID)
+                                    else:
+                                        currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                            else:
+                                currentBBUser.bountyHuntingXP += rewards[userID]["xp"]
+                                
                             currentDCUser = message.guild.get_member(currentBBUser.id)
 
                             newLevel = gameMaths.calculateUserBountyHuntingLevel(currentBBUser.bountyHuntingXP)
@@ -294,43 +319,21 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                                 levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
                                 currentBBUser.inactiveTools.addItem(levelUpCrate)
                                 
-                                newDiv = callingGuild.bountiesDB.divisionForLevel(newLevel)
-                                if oldDiv is newDiv:
-                                    levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
-                                                + currentDCUser.mention \
-                                                + f" reached **Bounty Hunter Level {newLevel}!** :partying_face:\n" \
-                                                + f"You got a **{levelUpCrate.name}**."
+                                levelUpMsg += "\n:arrow_up: **Level Up!**\n" \
+                                            + currentDCUser.mention \
+                                            + f" reached **Bounty Hunter Level {newLevel}!** :partying_face:\n" \
+                                            + f"You got a **{levelUpCrate.name}**."
                                 
-                                else:
-                                    oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
-                                    levelUpMsg += "\n:arrow_double_up: **New Division Reached!** :sparkles:\n" \
-                                                + currentDCUser.mention \
-                                                + f" hit **Bounty Hunter Level {newLevel}**, and reached the " \
-                                                + f"**{newDivName.title()} Division!** :partying_face:\n" \
-                                                + f"You got a **{levelUpCrate.name}**."
-                                
-                                    if callingGuild.hasBountyAlertRoles:
-                                        oldRole = message.guild.get_role(oldDiv.alertRoleID)
-                                        newRole = None
-                                        if oldRole is None:
-                                            await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
-                                                                        + " division bounty alerts role, did it get deleted?")
-                                                                        
-                                        elif oldRole in message.author.roles:
-                                            newRole = message.guild.get_role(newDiv.alertRoleID)
-                                            if newRole is None:
-                                                await message.channel.send(":woozy_face: I can't find the " \
-                                                                        + f"{newDivName.title()} division's bounty alerts " \
-                                                                        + "role, did it get deleted?")
-                                        
-                                        if oldRole is not None or newRole is not None:
-                                            await callingGuild.levelUpSwapRoles(currentDCUser, message.channel, oldRole, newRole)
+                                if newLevel == cfg.maxTechLevel:
+                                    levelUpMsg += f"\nYou have now unlocked prestiging! " \
+                                                + f"Use `{callingGuild.commandPrefix}prestige` to gain special rewards and " \
+                                                + "start a new run!"
 
                         if levelUpMsg != "":
                             await message.channel.send(levelUpMsg)
 
                         # Announce the bounty has been completed
-                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta)
+                        await callingGuild.announceBountyWon(bounty, rewards, message.author, rewardsMeta, divUpUnlocked, prestigeUnlocked)
                         if statsEmbed is not None or duelResultsImg is not None:
                             await message.channel.send(embed=statsEmbed,
                                                         file=None if duelResultsImg is None else duelResultsFile)
@@ -880,6 +883,8 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
                     await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                         actionOverride="prestiged")
 
+        callingBBUser.bountyHuntingXpSurplus = -1
+
         await message.channel.send(":astronaut: **" + lib.discordUtil.userOrMemberName(message.author, message.guild) \
                                     + " prestiged!** :tada:\n • You got a **" + newCrate.name + "!**")
     else:
@@ -893,3 +898,182 @@ botCommands.register("prestige", cmd_prestige, 0, helpSection="bounty hunting", 
                             + "loma. You will be awarded with a ship upgrade available in Loma!\n\n" \
                             + "You can save items from being removed by first storing them in `Kaamo`. Items stored in " \
                             + "`Kaamo` will be made accessible again once you reach level 10!")
+
+
+async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
+    """Ascend to the next division.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not botState.usersDB.idExists(message.author.id):
+        await message.reply(":x: You don't have enough XP to go to the next division!", mention_author=False)
+        return
+
+    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if callingBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
+
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+
+    if not callingBBUser.hasHomeGuild():
+        await message.reply(f":x: You must have a **home server** to use this command (see `{commandPrefix}transfer`).",
+                            mention_author=False)
+        return
+
+    userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
+    if userLevel == cfg.maxTechLevel:
+        await message.reply(f":x: You have reached the highest division! (see `{commandPrefix}prestige`)",
+                            mention_author=False)
+        return
+
+    if not callingBBUser.canDivUp():
+        await message.reply(":x: You don't have enough XP to go to the next division!", mention_author=False)
+        return
+    
+    homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+
+    newLevel = userLevel + 1
+    newDiv = homeGuild.bountiesDB.divisionForLevel(newLevel)
+    confirmMsg = await message.reply(f"Ascend to the {nameForDivision(newDiv).title()} division? " \
+                                    + "Make sure you can defeat bounties there first!",
+                                    mention_author=False)
+    confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
+                                                                            cfg.prestigeConfirmTimeoutSeconds).doMenu()
+
+    if cfg.defaultEmojis.accept in confirmResult:
+        oldDiv = homeGuild.bountiesDB.divisionForLevel(userLevel)
+        oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
+
+        callingBBUser.bountyHuntingXP += callingBBUser.bountyHuntingXpSurplus
+        callingBBUser.bountyHuntingXpSurplus = -1
+
+        levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
+        callingBBUser.inactiveTools.addItem(levelUpCrate)
+
+        await confirmMsg.reply(":arrow_double_up: **New Division Reached!** :sparkles:\n" \
+                            + f"{message.author.mention} hit **Bounty Hunter Level {newLevel}**, and reached the " \
+                            + f"**{newDivName.title()} Division!** :partying_face:\n" \
+                            + f"You got a **{levelUpCrate.name}**.")
+    
+        if homeGuild.hasBountyAlertRoles:
+            oldRole = message.guild.get_role(oldDiv.alertRoleID)
+            newRole = None
+            if oldRole is None:
+                await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
+                                            + " division bounty alerts role, did it get deleted?")
+                                            
+            elif oldRole in message.author.roles:
+                newRole = message.guild.get_role(newDiv.alertRoleID)
+                if newRole is None:
+                    await message.channel.send(":woozy_face: I can't find the " \
+                                            + f"{newDivName.title()} division's bounty alerts " \
+                                            + "role, did it get deleted?")
+            
+            if oldRole is not None or newRole is not None:
+                await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole)
+    else:
+        await confirmMsg.edit(content="🛑 Div-up cancelled.")
+
+
+botCommands.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", signatureStr="**div-up**",
+                        aliases=["divup", "division-up", "divisionup"],
+                        shortHelp="Level up into the next division of bounties. Higher level bounties are stronger, but" \
+                                + " give bigger rewards.",
+                        longHelp="Once you complete the highest level in your division, you can level up into the next " \
+                                + "division, unlocking higher level bounties. You will no longer be " \
+                                + "able to fight bounties in your current division.\nHigher level bounties are stronger, " \
+                                + "but give bigger rewards.\n\nBefore you div-up, have a look at bounties in the division " \
+                                + "that you are entering - it may be worth staying in your current division to save up for " \
+                                + "some better gear first!\nIf you decide that you are not strong enough after you div-up, " \
+                                + "you can drop back down a division with the `div-down` command, though you'll have to " \
+                                + "work your way back up again.")
+
+
+async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
+    """Descend a division.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if not botState.usersDB.idExists(message.author.id):
+        await message.reply(":x: You are already in the lowest division!", mention_author=False)
+        return
+
+    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if callingBBUser.classicModeEnabled:
+        await message.reply(":x: This command is not available in classic mode!", mention_author=False)
+        return
+
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+
+    if not callingBBUser.hasHomeGuild():
+        await message.reply(f":x: You must have a **home server** to use this command (see `{commandPrefix}transfer`).",
+                            mention_author=False)
+        return
+    
+    homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+    userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
+    oldDiv = homeGuild.bountiesDB.divisionForLevel(userLevel)
+
+    if oldDiv == homeGuild.bountiesDB.divisionForLevel(cfg.minTechLevel):
+        await message.reply(":x: You are already in the lowest division!", mention_author=False)
+        return
+
+    newLevel = oldDiv.minLevel - 1
+    newDiv = homeGuild.bountiesDB.divisionForLevel(newLevel)
+    newXP = gameMaths.bountyHuntingXPForLevel(newDiv.maxLevel)
+
+    confirmMsg = await message.reply(f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
+                                    + f" division?\nAfter moving to level {newLevel}, you will need to earn " \
+                                    + f"{commaSplitNum(newDiv.xpToDivUp() - newXP)} xp to return to the " \
+                                    + f"{nameForDivision(oldDiv).title()} division.", mention_author=False)
+    confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author,
+                                                                            cfg.prestigeConfirmTimeoutSeconds).doMenu()
+
+    if cfg.defaultEmojis.accept in confirmResult:
+        oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
+
+        callingBBUser.bountyHuntingXP = newXP
+        callingBBUser.bountyHuntingXpSurplus = -1
+
+        levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
+        callingBBUser.inactiveTools.addItem(levelUpCrate)
+
+        await confirmMsg.edit(content=f"⏬ {message.author.mention} descended to **Bounty Hunter Level {newLevel}**, " \
+                                    + f"reaching the **{newDivName.title()} Division.**", embed=None)
+    
+        if homeGuild.hasBountyAlertRoles:
+            oldRole = message.guild.get_role(oldDiv.alertRoleID)
+            newRole = None
+            if oldRole is None:
+                await message.channel.send(f":woozy_face: I can't find the {oldDivName.title()}" \
+                                            + " division bounty alerts role, did it get deleted?")
+                                            
+            elif oldRole in message.author.roles:
+                newRole = message.guild.get_role(newDiv.alertRoleID)
+                if newRole is None:
+                    await message.channel.send(":woozy_face: I can't find the " \
+                                            + f"{newDivName.title()} division's bounty alerts " \
+                                            + "role, did it get deleted?")
+            
+            if oldRole is not None or newRole is not None:
+                await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
+                                                actionOverride="descended")
+    else:
+        await confirmMsg.edit(content="🛑 Div-down cancelled.", embed=None)
+
+
+botCommands.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
+                        aliases=["divdown", "division-down", "divisiondown",
+                                "drop-div", "dropdiv", "drop-division", "dropdivision"],
+                        shortHelp="Drop to the top of the next lowest division of bounties, to work your way back up again." \
+                                + " This command is useful if you cannot fight bounties in your division.",
+                        longHelp="After moving to a new division, you may find that the lowest level of bounties are too" \
+                                + " strong to fight with your current gear. This command will drop your bounty hunter level" \
+                                + " to the highest level of the next lowest division, allowing you to save up some credits" \
+                                + " on easier bounties and build up your gear.\nYou will need to work your way back up to " \
+                                + "your current division again before you can return!")

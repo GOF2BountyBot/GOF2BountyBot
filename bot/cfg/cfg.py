@@ -60,7 +60,10 @@ defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
     "rarity_common": UninitializedBasedEmoji("⚫"),
     "rarity_uncommon": UninitializedBasedEmoji("🟤"),
     "rarity_rare": UninitializedBasedEmoji("🟠"),
-    "rarity_epic": UninitializedBasedEmoji("🔴")
+    "rarity_epic": UninitializedBasedEmoji("🔴"),
+
+    "divUpUnlocked": UninitializedBasedEmoji("🔼"),
+    "prestigeUnlocked": UninitializedBasedEmoji("⏫")
 })
 
 timeouts = {

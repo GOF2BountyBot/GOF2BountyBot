@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
 from discord import TextChannel
-from typing import Any, List, Dict, Union, cast
+from typing import Any, List, Dict, Tuple, Union, cast
 import asyncio
 from aiohttp import client_exceptions
 import random
@@ -650,7 +650,8 @@ class BasedGuild(serializable.Serializable):
 
 
     async def announceBountyWon(self, bounty : bounty.Bounty, rewards : Dict[int, Dict[str, Union[int, bool]]],
-                                winningUser : Member, rewardsMeta: Dict[int, bounty.RewardsMeta]):
+                                winningUser : Member, rewardsMeta: Dict[int, bounty.RewardsMeta],
+                                divUpUnlockedUserIDs: List[int], prestigeUnlockedUserIDs: List[int]):
         """Announce the completion of a bounty
         Messages will be sent to the playChannel if one is set
 
@@ -659,6 +660,10 @@ class BasedGuild(serializable.Serializable):
         :param discord.Member winningUser: the guild member that won the bounty
         :param rewardsMeta: mapping from user ID to binary flags for special rewards handling (bounty.RewardsMeta)
         :type rewardsMeta: Dict[int, int]
+        :param divUpUnlockedUserIDs: IDs for each user that unlocked the next division with this bounty.
+        :type divUpUnlockedUserIDs: List[int]
+        :param prestigeUnlockedUserIDs: IDs for each user that unlocked prestiging with this bounty.
+        :type prestigeUnlockedUserIDs: List[int]
         """
         if self.dcGuild is not None:
             if self.hasPlayChannel():
@@ -682,10 +687,33 @@ class BasedGuild(serializable.Serializable):
                         rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
                         place += 1
 
+                if divUpUnlockedUserIDs:
+                    if len(divUpUnlockedUserIDs) > 1:
+                        divUpUnlockedStr = ", ".join(f"<@{i}>" for i in divUpUnlockedUserIDs[:-1]) + f" and <@{divUpUnlockedUserIDs[-1]}>"
+                    else:
+                        divUpUnlockedStr = f"<@{divUpUnlockedUserIDs[0]}>"
+                    
+                    divUpUnlockedStr += f" unlocked the next division! use the `{self.commandPrefix}div-up` command to " \
+                                        + "move up, and take on tougher bounties!\n"
+                else:
+                    divUpUnlockedStr = ""
+
+                if prestigeUnlockedUserIDs:
+                    if len(prestigeUnlockedUserIDs) > 1:
+                        prestigeUnlockedStr = ", ".join(f"<@{i}>" for i in prestigeUnlockedUserIDs[:-1]) + f" and <@{prestigeUnlockedUserIDs[-1]}>"
+                    else:
+                        prestigeUnlockedStr = f"<@{prestigeUnlockedUserIDs[0]}>"
+                    
+                    prestigeUnlockedStr += f" unlocked prestiging! use the `{self.commandPrefix}prestige` command to " \
+                                        + "gain special rewards and start a new run!"
+                else:
+                    prestigeUnlockedStr = ""
+
                 # Send the announcement to the guild's playChannel
                 await self.getPlayChannel().send(":trophy: **You win!**\n**" + winningUser.display_name \
                                                     + "** located and EMP'd **" + bounty.criminal.name \
-                                                    + "**, who has been arrested by local security forces. :chains:",
+                                                    + "**, who has been arrested by local security forces. :chains:\n\n" \
+                                                    + divUpUnlockedStr + prestigeUnlockedStr,
                                                     embed=rewardsEmbed)
 
         else:
