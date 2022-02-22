@@ -328,3 +328,10 @@ class KaamoTypeRestrictedInventory(TypeRestrictedInventory):
 
     def getListing(self, item: Any) -> inventoryListing.KaamoItemListing:
         return super().getListing(item)
+
+    
+    def userPrestiged(self):
+        """Mark all unmarked items in stock as user prestiged, so they will cost money to take out in the future.
+        """
+        for listing in self.items.values():
+            listing.userPrestiged = True

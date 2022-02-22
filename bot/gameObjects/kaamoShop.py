@@ -36,6 +36,11 @@ class KaamoShop(guildShop.GuildShop):
         :param toolsStock: The shop's current stock of tools (Default empty Inventory)
         :type toolsStock: inventory.KaamoTypeRestrictedInventory
         """
+        shipsStock = shipsStock or inventory.KaamoTypeRestrictedInventory(shipItem.Ship)
+        weaponsStock = weaponsStock or inventory.KaamoTypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = modulesStock or inventory.KaamoTypeRestrictedInventory(moduleItem.ModuleItem)
+        turretsStock = turretsStock or inventory.KaamoTypeRestrictedInventory(turretWeapon.TurretWeapon)
+        toolsStock = toolsStock or inventory.KaamoTypeRestrictedInventory(toolItem.ToolItem)
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
@@ -43,6 +48,16 @@ class KaamoShop(guildShop.GuildShop):
                             + self.toolsStock.totalItems
         for ship in self.shipsStock.items:
             self.totalItems += 1 + len(ship.weapons) + len(ship.modules) + len(ship.turrets)
+
+
+    def userPrestiged(self):
+        """Mark all unmarked items in stock as user prestiged, so they will cost money to take out in the future.
+        """
+        self.weaponsStock.userPrestiged()
+        self.modulesStock.userPrestiged()
+        self.turretsStock.userPrestiged()
+        self.toolsStock.userPrestiged()
+
 
 
     def isFull(self) -> bool:

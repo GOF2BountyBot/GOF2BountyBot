@@ -854,6 +854,9 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
             callingBBUser.loma.turretsStock.clear()
             callingBBUser.loma.toolsStock.clear()
 
+        if callingBBUser.kaamo is not None:
+            callingBBUser.kaamo.userPrestiged()
+
         callingBBUser.prestiges += 1
         newCrate = crateTool.CrateTool.fromDict({"type": "bbCrate", "crateType": "special", "typeNum": 0, "builtIn": True})
         callingBBUser.inactiveTools.addItem(newCrate)
