@@ -5,6 +5,7 @@ from bot.users import basedUser
 from . import commandsDB as bbCommands
 from .. import botState, lib
 from ..lib import gameMaths
+from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg
 from ..gameObjects import kaamoShop
 from ..users import basedUser
@@ -20,15 +21,12 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     if not botState.usersDB.idExists(message.author.id):
-        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
+        await message.channel.send(f":x: There are no items stored in your Kaamo Club!")
         return
 
     requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
     if requestedBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
-        return
-    if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) < cfg.maxTechLevel:
-        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
     commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
@@ -73,7 +71,14 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
             await message.channel.send(":x: Invalid item number! Must be at least 1.")
             return
 
-        requestedItem = shopItemStock[itemNum - 1].item
+        requestedListing = shopItemStock[itemNum - 1]
+        itemPrestiged = requestedListing.userPrestiged
+        requestedItem = requestedListing.item
+
+        if not requestedBBUser.kaamo._userCanAffordListingObj(requestedBBUser, requestedListing):
+            await message.reply(f":x: You can't afford that item! ({requestedItem.getValue() * cfg.postPrestigeKaamoDiscountMult})",
+                                mention_author=False)
+            return
 
         if item in ["ship", "weapon", "module", "turret", "tool"]:
             if item == "ship":
@@ -87,7 +92,10 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
             elif item == "tool":
                 requestedBBUser.kaamo.userBuyToolObj(requestedBBUser, requestedItem)
 
-            await message.channel.send(":outbox_tray: The **" + requestedItem.name + "** was moved to your hangar.")
+            outMsg = ":outbox_tray: The **" + requestedItem.name + "** was moved to your hangar."
+            if itemPrestiged:
+                outMsg += f"\nYour balance is now: **{commaSplitNum(requestedBBUser.credits)}**"
+            await message.reply(outMsg, mention_author=False)
         else:
             raise NotImplementedError("Valid but unsupported item name: " + item)
 
@@ -97,8 +105,8 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
 
 bbCommands.register("kaamo get", cmd_kaamo_get, 0, helpSection="kaamo club", allowDM=True,
                     signatureStr="**kaamo get <item-type> <item-number>**",
-                    shortHelp="Transfer items from the Kaamo Club to your hangar. This command can only be used by " \
-                                + f"level {cfg.maxTechLevel} bounty hunters.")
+                    shortHelp="Transfer items from the Kaamo Club to your hangar. See `help kaamo` for how item pricing" \
+                            + "works")
 
 
 async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
@@ -107,18 +115,10 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
-        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
-        return
-
-    requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
     if requestedBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
-    if gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP) < cfg.maxTechLevel:
-        await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
-        return
-
     commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
@@ -178,8 +178,8 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
 
 bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club", allowDM=True,
                     signatureStr="**kaamo store <item-type> <item-number>**",
-                    shortHelp="Transfer items from your hangar to the Kaamo Club. This command can only be used by " \
-                                + f"level {cfg.maxTechLevel} bounty hunters.")
+                    shortHelp="Transfer items from your hangar to the Kaamo Club. See `help kaamo` for how item pricing" \
+                            + "works")
 
 
 async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
@@ -276,14 +276,23 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
                                                     + currentStock.keys[itemNum-1].name + "'",
                                                 value="Do not attempt to get. Could cause issues.", inline=True)
                             continue
+                        
+                        currentListing = currentStock.items[currentItem]
+                        currentItemCount = currentListing.count
+                        currentItemPrestiged = currentListing.userPrestiged
+                        itemValueRaw = lib.stringTyping.commaSplitNum(currentItem.value)
+                        
+                        if currentItemPrestiged:
+                            newValue = lib.stringTyping.commaSplitNum(int(currentItem.value * cfg.postPrestigeKaamoDiscountMult))
+                            itemValueStr = f"~~{itemValueRaw}~~ {newValue} Credits\n*This item is from a previous run*"
+                        else:
+                            itemValueStr = f"~~{itemValueRaw}~~ 0 Credits\n*This item is from your current run*"
 
-                        currentItemCount = currentStock.items[currentItem].count
                         shopEmbed.add_field(name=str(itemNum) + ". " \
                                                 + (currentItem.emoji.sendable + " " if currentItem.hasEmoji else "") \
                                                 + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
                                                 + "**" + currentItem.name + "**",
-                                            value=lib.stringTyping.commaSplitNum(currentItem.value) + " Credits\n" \
-                                                + currentItem.statsStringShort(), inline=True)
+                                            value=f"{itemValueStr}\n{currentItem.statsStringShort()}", inline=True)
 
     try:
         await sendChannel.send(embed=shopEmbed)
@@ -295,11 +304,13 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
 bbCommands.register("kaamo", cmd_kaamo, 0, allowDM=True, helpSection="kaamo club", signatureStr="**kaamo** *[item-type]*",
-                    shortHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-                        + f"{cfg.kaamoMaxCapacity} items, including items on ships.",
-                    longHelp="List all items in your Kaamo Club storage. Kaamo has a max capacity of " \
-                        + f"{cfg.kaamoMaxCapacity} items, including items on ships. Give an item type " \
-                        + "(ship/weapon/turret/module/tool) to only list items of that type.\n\n" \
-                        + f"⚠ Please be aware that `{cfg.defaultCommandPrefix}kaamo store` and `" \
-                        + f"{cfg.defaultCommandPrefix}kaamo get` can only be used by level " \
-                        + f"{cfg.maxTechLevel} bounty hunters.")
+                    shortHelp="List all items in your Kaamo Club storage. Kaamo is for storing items that you want to keep" \
+                            + "when you prestige. Retreiving items is free until you prestige. Kaamo has a max capacity of " \
+                            + f"{cfg.kaamoMaxCapacity} items, including items on ships.",
+                    longHelp="The Kaamo Club is your own private item storage. " \
+                        + f"It can hold up to {cfg.kaamoMaxCapacity} items (includes items equipped on ships), " \
+                        + "and does **not** get cleared when you prestige.\nAfter storing an item, you can " \
+                        + "retreive it again in the same run for free with `kaamo get`. After you prestige however, "
+                        + f"you must pay the item's value plus {(1-cfg.postPrestigeKaamoDiscountMult)*100}% to retreive it." \
+                        + "\n\nThis command lists all items in your Kaamo Club storage. Give an item type " \
+                        + "(ship/weapon/turret/module/tool) to only list items of that type.")
