@@ -1,3 +1,4 @@
+import json
 import discord
 from datetime import datetime, timedelta
 import asyncio
@@ -487,11 +488,11 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
     given as 'auto' to be either inferred or randomly generated
     as such, '$make-bounty +<guild>' is an alias for:
     '$make-bounty +<guild> +auto +auto +auto +auto +auto +auto +auto +auto +auto +auto'
-    Args are: guild, difficulty, faction, name, route, start sys, end sys, answer sys, reward pool (-loadout), end time, icon
+    Args are: guild, difficulty, faction, name, route, start sys, end sys, answer sys, reward pool (-loadout), end time, icon, activeShip
 
     :param discord.Message message: the discord message calling the command
     :param str args: can be empty, can be '+<guild> +<TL>', or can be '+<guild> +<TL> +<faction> +<name> +<route> +<start>
-                        +<end> +<answer> +<reward> +<endtime> +<icon>'
+                        +<end> +<answer> +<reward> +<endtime> +<icon> +<activeShip>'
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     guildStr = args.split("+")[0].strip()
@@ -533,12 +534,12 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
     elif len(argsSplit) == 3:
         newTL = int(argsSplit[1].rstrip(" "))
         config = bountyConfig.BountyConfig(techLevel=newTL, faction=argsSplit[2])
-    elif len(argsSplit) != 11:
+    elif len(argsSplit) < 11:
         await message.reply("Incorrect number of arguments. Formats:\n" \
-                            + "- +`<TL>``\n" \
-                            + "- +`<TL>` +`<faction>`\n" \
-                            + "- +`<TL>' +`<faction>` +`<name>` +`<route>` +`<start>` " \
-                                + "+`<end>` +`<answer>` +`<reward>` +`<endtime>` +`<icon>`")
+                            + "- `<guild>` +`<TL>``\n" \
+                            + "- `<guild>` +`<TL>` +`<level>`\n" \
+                            + "- `<guild>` +`<TL>` +`<faction>` +`<name>` +`<route>` +`<start>`" \
+                            + "+`<end>` +`<answer>` +`<reward>` +`<endtime>` +`<icon>` +`<activeShip>`")
 
     # if all args were given, generate a completely custom bounty
     # 10 args plus account for empty string at the start of the split = split of 11 elements
@@ -629,18 +630,37 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         if newIcon == "auto":
             newIcon = "" if not builtIn else builtInCrimObj.icon
 
+        if len(argsSplit) == 12 and argsSplit[-1] != "auto":
+            try:
+                newShipDict = json.loads(argsSplit[-1])
+            except Exception as e:
+                await message.reply(f"{type(e).__name__} exception occurred when reading ship dict: {e}")
+                botState.logger.log("dev_bounties", "dev_cmd_make_bounty", "", exception=e)
+                return
+            
+            try:
+                newShip = shipItem.Ship.fromDict(newShipDict)
+            except Exception as e:
+                await message.reply(f"{type(e).__name__} exception occurred when deserializing ship: {e}")
+                botState.logger.log("dev_bounties", "dev_cmd_make_bounty", "", exception=e)
+                return
+        else:
+            newShip = None
+
         # special bounty generation for builtIn criminals
         if builtIn:
             config = bountyConfig.BountyConfig(faction=newFaction, route=newRoute,
                                                 start=newStart, end=newEnd, answer=newAnswer,
                                                 reward=newReward, endTime=newEndTime,
-                                                isPlayer=False, icon=newIcon, name=builtInCrimObj.name, techLevel=newTL)
+                                                isPlayer=False, icon=newIcon, name=builtInCrimObj.name, techLevel=newTL,
+                                                activeShip=newShip)
         # normal bounty generation for custom criminals
         else:
             config = bountyConfig.BountyConfig(faction=newFaction, name=newName, route=newRoute,
                                                 start=newStart, end=newEnd, answer=newAnswer,
                                                 reward=newReward, endTime=newEndTime,
-                                                isPlayer=False, icon=newIcon, techLevel=newTL)
+                                                isPlayer=False, icon=newIcon, techLevel=newTL,
+                                                activeShip=newShip)
 
     if allGuilds:
         currentGuild: basedGuild.BasedGuild = None
