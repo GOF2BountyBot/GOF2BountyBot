@@ -144,7 +144,8 @@ class KaamoItemListing(InventoryListing):
 
     def toDict(self, **kwargs) -> dict:
         data = super().toDict(**kwargs)
-        del data["discounts"]
+        if "discounts" in data:
+            del data["discounts"]
         if self.userPrestiged:
             data["userPrestiged"] = self.userPrestiged
         return data
