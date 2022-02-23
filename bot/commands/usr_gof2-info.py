@@ -817,6 +817,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
             return
         shipName, rendererArgs = result
         await util_autoskin.doAutoSkin(message, rendererArgs, shipName)
+        return
     elif reskin:
         await message.reply(mention_author=False,
                                     content=":x: Please attach an image to use as your base texture, or do not send a `+` to see the original icon.")
