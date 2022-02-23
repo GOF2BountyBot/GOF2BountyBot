@@ -241,7 +241,7 @@ class GuildShop(serializable.Serializable):
         if self.userCanAffordItemObj(user, requestedWeapon):
             self.weaponsStock.removeItem(requestedWeapon)
             user.credits -= requestedWeapon.getValue()
-            user.inactiveModules.addItem(requestedWeapon)
+            user.inactiveWeapons.addItem(requestedWeapon)
         else:
             raise RuntimeError("user " + str(user.id) + " attempted to buy weapon " + requestedWeapon.name \
                                 + " but can't afford it: " + str(user.credits) + " < " + str(requestedWeapon.getValue()))
@@ -304,7 +304,7 @@ class GuildShop(serializable.Serializable):
         if self.userCanAffordItemObj(user, requestedModule):
             self.modulesStock.removeItem(requestedModule)
             user.credits -= requestedModule.getValue()
-            user.inactiveShips.addItem(requestedModule)
+            user.inactiveModules.addItem(requestedModule)
         else:
             raise RuntimeError("user " + str(user.id) + " attempted to buy module " + requestedModule.name \
                                 + " but can't afford it: " + str(user.credits) + " < " + str(requestedModule.getValue()))
