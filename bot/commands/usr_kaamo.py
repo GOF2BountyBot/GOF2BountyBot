@@ -309,8 +309,9 @@ bbCommands.register("kaamo", cmd_kaamo, 0, allowDM=True, helpSection="kaamo club
                             + f"{cfg.kaamoMaxCapacity} items, including items on ships.",
                     longHelp="The Kaamo Club is your own private item storage. " \
                         + f"It can hold up to {cfg.kaamoMaxCapacity} items (includes items equipped on ships), " \
-                        + "and does **not** get cleared when you prestige.\nAfter storing an item, you can " \
-                        + "retreive it again in the same run for free with `kaamo get`. After you prestige however, "
-                        + f"you must pay the item's value plus {(1-cfg.postPrestigeKaamoDiscountMult)*100}% to retreive it." \
-                        + "\n\nThis command lists all items in your Kaamo Club storage. Give an item type " \
+                        + "and does **not** get cleared when you prestige.\nAfter storing an item with `kaamo store`, you " \
+                        + "can retreive it again in the same run for free with `kaamo get`. After you prestige however, " \
+                        + f"you must pay the item's value plus {int((cfg.postPrestigeKaamoDiscountMult*100)-100)}% " \
+                        + "to retreive it.\n\n" \
+                        + "This command lists all items in your Kaamo Club storage. Give an item type " \
                         + "(ship/weapon/turret/module/tool) to only list items of that type.")
