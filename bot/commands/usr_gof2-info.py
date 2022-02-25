@@ -1281,7 +1281,7 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         result = await util_autoskin.collectAutoskinArgs(message, args, -1, -1, -1)
         if result is None:
             return
-        _, rendererArgs = result
+        parsedShipName, rendererArgs = result
         
         # TODO: ALLOW RENDERING STRAIGHT TO AEI WITH AEIEDITOR BY CATLABS
         formatEmojis = (
@@ -1348,6 +1348,9 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
 
         for skinPath in rendererArgs.textures.values():
             os.remove(skinPath)
+    
+        if parsedShipName in botState.currentRenders:
+            botState.currentRenders.remove(parsedShipName)
 
 
 botCommands.register("texture", cmd_texture, 0, aliases=["tex"], helpSection="gof2 info", signatureStr="**texture <ship-name>**",
