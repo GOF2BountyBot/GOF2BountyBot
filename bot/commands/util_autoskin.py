@@ -334,6 +334,8 @@ async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.Autosk
     renderIdentifier = f"{renderIdentifierPrefix}{'-' if renderIdentifierPrefix else ''}" \
                         + f"u{message.author.id}g{guildStr}c{message.channel.id}m{message.id}sh{shipName}"
 
+    tasks = lib.discordUtil.BasicScheduler()
+
     await lib.discordUtil.startLongProcess(waitMsg)
     try:
         await shipRenderer.renderShip(**rendererArgs)
@@ -342,8 +344,9 @@ async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.Autosk
                             mention_author=True)
         botState.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
     else:
+        rendersChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)
+        
         with open(renderPath, "rb") as f:
-            rendersChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)
             imageEmbedMsg = await rendersChannel.send(renderIdentifier, file=discord.File(f))
             renderEmbed = lib.discordUtil.makeEmbed(col=discord.Colour.random(),
                                                     img=imageEmbedMsg.attachments[0].url,
@@ -351,8 +354,15 @@ async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.Autosk
                                                     icon=robotIcon,
                                                     footerTxt=f"Custom skinned {shipName.capitalize()}")
             await message.reply(embed=renderEmbed, mention_author=True)
+        
+        for layerNum, texPath in rendererArgs.textures.items():
+            with open(texPath, "rb") as f:
+                tasks.add(rendersChannel.send(renderIdentifier + f" layer {layerNum}", file=discord.File(f)))
 
     botState.currentRenders.remove(shipName)
+
+    await tasks.wait()
+    tasks.logExceptions()
 
     try:
         os.remove(renderPath)
