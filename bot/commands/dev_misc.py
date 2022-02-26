@@ -236,14 +236,14 @@ async def dev_cmd_purge_user_dms(message : discord.Message, args : str, isDM : b
             return
         if u.dm_channel is None:
             confirmMsg = await message.reply(f":x: DM channel not found for {u.name}#{u.discriminator} ({u.id}), create one?")
-            confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author, 60)
+            confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author, 60).doMenu()
             if cfg.defaultEmojis.accept not in confirmResult:
                 await confirmMsg.edit(content="DM purge cancelled.")
                 return
             u.create_dm()
 
         confirmMsg = await message.reply(f"You are about to purge my DMs with {u.name}#{u.discriminator} ({u.id}).")
-        confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author, 60)
+        confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author, 60).doMenu()
         if cfg.defaultEmojis.accept not in confirmResult:
             await confirmMsg.edit(content="DM purge cancelled.")
             return
