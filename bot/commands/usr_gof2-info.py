@@ -789,6 +789,10 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     attached = False
 
     if reskin:
+        if isDM:
+            await message.reply(":x: For content moderation purposes, autoskin cannot be used from DMs.")
+            return
+
         argsSplit = args.split("+")
         if len(argsSplit) > 2:
             await message.reply(mention_author=False, content=":x: Please only provide one skin, with one `+`!")
