@@ -1225,7 +1225,8 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """	
     if isDM:
-        prefix: str = cfg.defaultCommandPrefix
+        await message.reply(":x: For content moderation purposes, autoskin cannot be used from DMs.")
+        return
     else:
         prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
 
