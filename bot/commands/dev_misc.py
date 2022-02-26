@@ -1,3 +1,4 @@
+from typing import cast
 import discord
 import traceback
 from datetime import datetime
@@ -262,11 +263,14 @@ async def dev_cmd_purge_user_dms(message : discord.Message, args : str, isDM : b
                 except (discord.HTTPException, discord.NotFound):
                     pass
                 updateCountdown = 20
-            try:
-                await m.delete()
-            except (discord.HTTPException, discord.NotFound):
-                pass
-            totalDeleted += 1
+            
+            m = cast(discord.Message, m)
+            if m.author == dmChannnel.me:
+                try:
+                    await m.delete()
+                except (discord.HTTPException, discord.NotFound):
+                    pass
+                totalDeleted += 1
 
         await updateMsg.edit(content=datetime.utcnow().strftime(
                         f"%d/%m/%Y-%H:%M Finished, deleted {totalDeleted} messages."))
