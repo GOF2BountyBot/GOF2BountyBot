@@ -230,7 +230,7 @@ async def dev_cmd_purge_user_dms(message : discord.Message, args : str, isDM : b
         await message.reply(":x: Target user is required.")
         return
     else:
-        u: discord.User = botState.client.get_user(int(args.lstrip("<@!").rstrip(">"))) or await botState.client.fetch_user(int(args.lstrip("<@!").rstrip(">")))
+        u: discord.User = await botState.client.fetch_user(int(args.lstrip("<@!").rstrip(">")))
         if u is None:
             await message.reply(":x: Unknown user.")
             return
