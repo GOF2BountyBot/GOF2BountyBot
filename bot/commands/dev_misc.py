@@ -8,6 +8,8 @@ from ..users.basedUser import BasedUser
 from ..reactionMenus import giveawayMenu
 from ..gameObjects.items.tools import crateTool
 from datetime import timedelta
+from ..cfg import cfg
+from ..reactionMenus import confirmationReactionMenu
 
 from . import util_help
 
@@ -215,3 +217,56 @@ async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str,
 
 
 botCommands.register("start-stocking-giveaway", dev_cmd_start_stocking_giveaway, 3, useDoc=True)
+
+
+async def dev_cmd_purge_user_dms(message : discord.Message, args : str, isDM : bool):
+    """developer command purging all DM messages with the referenced user
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: string containing a user mention or ID
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    if args == "":
+        await message.reply(":x: Target user is required.")
+        return
+    else:
+        u: discord.User = botState.client.get_user(int(args.lstrip("<@!").rstrip(">"))) or await botState.client.fetch_user(int(args.lstrip("<@!").rstrip(">")))
+        if u is None:
+            await message.reply(":x: Unknown user.")
+            return
+        if u.dm_channel is None:
+            await message.reply(":x: DM channel not found for user.")
+            return
+
+        confirmMsg = await message.reply(f"You are about to purge my DMs with {u.name}#{u.discriminator} ({u.id}).")
+        confirmResult = await confirmationReactionMenu.InlineConfirmationMenu(confirmMsg, message.author, 60)
+        if cfg.defaultEmojis.accept not in confirmResult:
+            await confirmMsg.edit(content="DM purge cancelled.")
+            return
+
+        dmChannnel: discord.DMChannel = u.dm_channel
+        updateCountdown = 20
+        totalDeleted = 0
+        updateMsg: discord.Message = await message.reply(datetime.utcnow().strftime(
+                        f"{cfg.defaultEmojis.longProcess.sendable} %d/%m/%Y-%H:%M deleted {totalDeleted} messages so far..."))
+
+        async for m in dmChannnel.history(limit=None):
+            if updateCountdown == 0:
+                try:
+                    await updateMsg.edit(content=datetime.utcnow().strftime(
+                        f"{cfg.defaultEmojis.longProcess.sendable} %d/%m/%Y-%H:%M deleted {totalDeleted} messages so far..."))
+                except (discord.HTTPException, discord.NotFound):
+                    pass
+                updateCountdown = 20
+            try:
+                await m.delete()
+            except (discord.HTTPException, discord.NotFound):
+                pass
+            totalDeleted += 1
+
+        await updateMsg.edit(content=datetime.utcnow().strftime(
+                        f"%d/%m/%Y-%H:%M Finished, deleted {totalDeleted} messages."))
+        await message.reply(mention_author=False, content=f"Done, deleted {totalDeleted} messages.")
+
+
+botCommands.register("purge-dms", dev_cmd_purge_user_dms, 3, allowDM=True, useDoc=True)
