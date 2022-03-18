@@ -1,6 +1,7 @@
+from typing import cast
 from bot.lib import gameMaths
 import discord
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from aiohttp import client_exceptions
 import operator
 import traceback
@@ -719,3 +720,90 @@ async def cmd_drink_premium(message : discord.Message, args : str, isDM : bool):
 
 botCommands.register("premium", cmd_drink_premium, 0, allowDM=True, signatureStr="**premium**",
                         shortHelp="Order something extra-special from the bar. Supply is very limited on these goodies!")
+
+async def cmd_set_timezone(message, args, isDM):
+    bUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
+    timezonesMsg = await message.reply("What's the time right now?")
+    def check(m: discord.Message) -> bool:
+        return m.channel == message.channel and m.author == message.author and lib.timeUtil.stringIsTime(m.content)
+    
+    try:
+        userTimeMsg: discord.Message = await cast(discord.Client, botState.client).wait_for("message", timeout=120, check=check)
+    except TimeoutError:
+        await timezonesMsg.edit(":x: Out of time, please try this command again.")
+        return
+
+    try:
+        userTime = lib.timeUtil.parseTime(userTimeMsg.content)
+    except ValueError:
+        await timezonesMsg.edit(userTimeMsg.content + " is not a time! Please try this command again.")
+        return
+    now = datetime.utcnow()
+    toleranceMin = timedelta(minutes=-5)
+    toleranceMax = timedelta(minutes=5)
+    timeFound = False
+    for tzID, tzOffset in lib.timeUtil.UTC_OFFSETS.items():
+        if toleranceMin <= userTime - (now + tzOffset) <= toleranceMax:
+            bUser.timeOffset = tzID
+            timeFound = True
+            break
+    if not timeFound:
+        await timezonesMsg.edit(content="Sorry, your time does not match any of my known timezones, please try again. Did you type it right?")
+        return
+    userTimeGuess = datetime.utcnow() + lib.timeUtil.UTC_OFFSETS[bUser.timeOffset]
+    await timezonesMsg.edit(content=f"Timezone recognised as UTC{lib.timeUtil.formatTDHM(lib.timeUtil.UTC_OFFSETS[bUser.timeOffset])}.\nIf the time is not currently {userTimeGuess.strftime('%H:%M')}, then please try this command again.")
+
+botCommands.register("settz", cmd_set_timezone, 0, allowDM=True, signatureStr="**settz**", shortHelp="Set the timezone to use with the `time` command.") 
+
+
+
+async def cmd_make_timestamp(message: discord.Message, args: str, isDM: bool):
+    """Generate a user-relative discord timestamp.
+
+    :param discord.Message message: the discord message calling the command
+    :param str args: ignored
+    :param bool isDM: Whether or not the command is being called from a DM channel
+    """
+    bUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
+    if bUser.timeOffset is None:
+        timezonesMsg = await message.reply("I need to know what timezone you're in.\nYou will only need to do this once, I will remember your answer.\n\nWhat's the time right now?")
+        def check(m: discord.Message) -> bool:
+            return m.channel == message.channel and m.author == message.author and lib.timeUtil.stringIsTime(m.content)
+        
+        try:
+            userTimeMsg: discord.Message = await cast(discord.Client, botState.client).wait_for("message", timeout=120, check=check)
+        except TimeoutError:
+            await timezonesMsg.edit(":x: Out of time, please try this command again.")
+            return
+
+        try:
+            userTime = lib.timeUtil.parseTime(userTimeMsg.content)
+        except ValueError:
+            await timezonesMsg.edit(userTimeMsg.content + " is not a time! Please try this command again.")
+            return
+        now = datetime.utcnow()
+        toleranceMin = timedelta(minutes=-5)
+        toleranceMax = timedelta(minutes=5)
+        for tzID, tzOffset in lib.timeUtil.UTC_OFFSETS.items():
+            if toleranceMin <= userTime - (now + tzOffset) <= toleranceMax:
+                bUser.timeOffset = tzID
+                break
+        if bUser.timeOffset is None:
+            await timezonesMsg.edit(content="Sorry, your time does not match any of my known timezones, please try again. Did you type it right?")
+            return
+        userTimeGuess = datetime.now(tz=timezone(lib.timeUtil.UTC_OFFSETS[bUser.timeOffset]))
+        await timezonesMsg.edit(content=f"Timezone recognised as UTC{lib.timeUtil.formatTDHM(lib.timeUtil.UTC_OFFSETS[bUser.timeOffset])}.\nIf the time is not currently {userTimeGuess.strftime('%H:%M')}, then please correct your timezone setting with the `settz` command.")
+
+    if not lib.timeUtil.stringIsTime(args):
+        await message.reply(f"{args} is not a time!")
+        return
+    try:
+        t = lib.timeUtil.parseTime(args)
+    except ValueError:
+        await message.reply(f"{args} is not a time!")
+        return
+    t = datetime(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second, microsecond=t.microsecond, tzinfo=timezone(lib.timeUtil.UTC_OFFSETS[bUser.timeOffset]))
+    await message.reply(f"<t:{int(t.timestamp())}:t> `<t:{int(t.timestamp())}:t>`", mention_author=False)
+    
+
+botCommands.register("time", cmd_make_timestamp, 0, allowDM=True, signatureStr="**time [time]**", shortHelp="Create a discord timestamp. Time can be 12 hour (e.g 1:30 pm) or 24 hour (e.g 13:30). You can change your timezone with the `settz` command.") 

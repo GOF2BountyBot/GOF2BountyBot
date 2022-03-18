@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Union, TYPE_CHECKING, Dict, List, MutableSet
+from typing import Optional, Union, TYPE_CHECKING, Dict, List, MutableSet
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
@@ -114,7 +114,7 @@ class BasedUser(serializable.Serializable):
                     duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
                     kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None):
+                    ownedMenus : Dict[str, MutableSet[reactionMenu.ReactionMenu]] = {}, medals: MutableSet[Medal] = None, timeOffset: Optional[str] = None):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
         :param int credits: The amount of credits (currency) this user has (Default 0)
@@ -160,6 +160,7 @@ class BasedUser(serializable.Serializable):
         :type ownedMenus: Dict[str, MutableSet[ReactionMenu]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
         """
+        self.timeOffset = timeOffset
         if type(userID) == float:
             userID = int(userID)
         elif type(userID) != int:
@@ -495,6 +496,8 @@ class BasedUser(serializable.Serializable):
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
                 self.medals.remove(m)
             data["medals"] = [m.name.lower() for m in self.medals]
+            
+        if self.timeOffset is not None: data["timeOffset"] = self.timeOffset
 
         return data
 
