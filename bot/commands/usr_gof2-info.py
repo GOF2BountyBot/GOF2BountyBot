@@ -10,6 +10,7 @@ from . import commandsDB as botCommands
 from ..cfg import bbData, cfg
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
+from ..lib import AEPi
 from ..gameObjects.items import shipItem, gameItem
 from ..reactionMenus import reactionMenu
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
@@ -1287,19 +1288,18 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         if result is None:
             return
         parsedShipName, rendererArgs = result
-        
-        # TODO: ALLOW RENDERING STRAIGHT TO AEI WITH AEIEDITOR BY CATLABS
+
         formatEmojis = (
-            lib.emojis.BasedEmoji(unicode="🇯"),
             lib.emojis.BasedEmoji(unicode="🇵"),
-            lib.emojis.BasedEmoji(unicode="🌀")
+            lib.emojis.BasedEmoji(unicode="🖥"),
+            lib.emojis.BasedEmoji(unicode="🤖")
         ) #lib.emojis.BasedEmoji(unicode="🇦"), lib.emojis.BasedEmoji(unicode="🌀"))
 
         formatOptions = {
-            formatEmojis[0]: reactionMenu.DummyReactionMenuOption("JPG", formatEmojis[0]),
+            formatEmojis[0]: reactionMenu.DummyReactionMenuOption("PNG", formatEmojis[0]),
             # formatEmojis[1]: reactionMenu.DummyReactionMenuOption("AEI", formatEmojis[1]),
-            formatEmojis[1]: reactionMenu.DummyReactionMenuOption("PNG", formatEmojis[1]),
-            formatEmojis[2]: reactionMenu.DummyReactionMenuOption("Both", formatEmojis[2])
+            formatEmojis[1]: reactionMenu.DummyReactionMenuOption("AEI (PC)", formatEmojis[1]),
+            formatEmojis[2]: reactionMenu.DummyReactionMenuOption("AEI (Android)", formatEmojis[2])
         }
         formatsMenu = reactionMenu.SingleUserReactionMenu(await message.channel.send("** **"), message.author,
                                                             60, formatOptions, # desc="AEI images can be dropped straight into your game.",
@@ -1309,8 +1309,6 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         imgFormats = await formatsMenu.doMenu()
         if imgFormats == []:
             return
-        if formatEmojis[2] in imgFormats:
-            imgFormats = (formatEmojis[0], formatEmojis[1])
 
         if "model" in shipData:
             fName = ".".join(shipData["model"].split(".")[:-1])
@@ -1324,7 +1322,7 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
         # if formatEmojis[1] in imgFormats:
         # TODO: generate and send AEI here
 
-        if formatEmojis[1] in imgFormats:
+        if formatEmojis[0] in imgFormats:
             im = Image.open(texPath)
             imBytes = BytesIO()
             im.save(imBytes, "PNG")
@@ -1336,15 +1334,27 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
             imBytes.close()
             im.close()
 
-        if formatEmojis[0] in imgFormats:
-            with open(texPath, "rb") as f:
-                jpgFile = discord.File(f, filename=fName + ".jpg")
-                if formatEmojis[1] in imgFormats:
-                    await message.reply("__JPG__", file=jpgFile, mention_author=False)
-                else:
-                    await message.reply("Autoskin complete!\n__JPG__", file=jpgFile,
-                                        mention_author=True)
-                jpgFile.close()
+        if formatEmojis[1] in imgFormats:
+            im = Image.open(texPath)
+            aei = AEPi.makeAEI(im, AEPi.Platform.PC)
+
+            aeiFile = discord.File(aei, filename=fName + ".aei")
+            await message.reply("Autoskin complete!",
+                                file=aeiFile, mention_author=True)
+            aeiFile.close()
+            aei.close()
+            im.close()
+
+        if formatEmojis[2] in imgFormats:
+            im = Image.open(texPath)
+            aei = AEPi.makeAEI(im, AEPi.Platform.android)
+
+            aeiFile = discord.File(aei, filename=fName + ".aei")
+            await message.reply("Autoskin complete!",
+                                file=aeiFile, mention_author=True)
+            aeiFile.close()
+            aei.close()
+            im.close()
 
         try:
             os.remove(texPath)
