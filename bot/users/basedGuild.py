@@ -1,11 +1,12 @@
 from __future__ import annotations
 from datetime import datetime
-from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
+from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role
 from discord import TextChannel
-from typing import Any, List, Dict, Tuple, Union, cast
-import asyncio
+from typing import Any, List, Dict, Union, cast
 from aiohttp import client_exceptions
 import random
+
+from carica import ISerializable # type: ignore[import]
 
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
@@ -14,7 +15,6 @@ from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel
 from ..userAlerts import userAlerts
 from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
-from ..baseClasses import serializable
 from ..databases import bountyDivision
 
 
@@ -77,7 +77,7 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     return e
 
 
-class BasedGuild(serializable.Serializable):
+class BasedGuild(ISerializable):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -832,7 +832,7 @@ class BasedGuild(serializable.Serializable):
                                     eventType="PLCH_NONE")
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
@@ -859,9 +859,9 @@ class BasedGuild(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, guildDict: dict, dbReload=False, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: dict, dbReload=False, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
-        in the provided guildDict - the opposite of BasedGuild.toDict
+        in the provided guildDict - the opposite of BasedGuild.serialize
 
         :param int guildID: The discord ID of the guild
         :param dict guildDict: A dictionary containing all information required to build the BasedGuild object

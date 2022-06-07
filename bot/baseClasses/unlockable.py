@@ -1,9 +1,7 @@
-from .serializable import Serializable
+from carica import ISerializable
 
-class Unlockable(Serializable):
+class Unlockable(ISerializable):
     """Something which is owned by users, but is not an item. Cannot be spawned or traded,
     more like a user attribute.
     """
-
-    def __init__(self):
-        super().__init__()
+    pass

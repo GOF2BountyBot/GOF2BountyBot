@@ -6,30 +6,38 @@ from github.Repository import Repository
 from typing import Optional, cast
 from enum import Enum
 
+from typing import TYPE_CHECKING, cast
+if TYPE_CHECKING:
+    from .databases import userDB, guildDB, reactionMenuDB
+    from .scheduling import timedTask, timedTaskHeap
+    from . import logging
+    from .client import BasedClient
+
 class ShutDownState(Enum):
     restart = 0
     shutdown = 1
     update = 2
 
-client = None # type: ignore[var-annotated]
+
+client = cast("BasedClient", None)
 shutdown = ShutDownState.restart
 httpClient: ClientSession = None
 githubClient = cast(Github, None)
 githubRepo = cast(Repository, None)
 
-usersDB = None
-guildsDB = None
-reactionMenusDB = None
+usersDB = cast("userDB.UserDB", None)
+guildsDB = cast("guildDB.GuildDB", None)
+reactionMenusDB = cast("reactionMenuDB.ReactionMenuDB", None)
 
-shopRefreshTT = None
+shopRefreshTT = cast("timedTask.TimedTask", None)
 
-taskScheduler = None
-logger: Logger = None
+taskScheduler = cast("timedTaskHeap.TimedTaskHeap", None)
+logger = cast("logging.Logger", None)
 
-dbSaveTT = None
-updatesCheckTT = None
+dbSaveTT = cast("timedTask.TimedTask", None)
+updatesCheckTT = cast("timedTask.TimedTask", None)
 
-temperatureDecayTT = None
+temperatureDecayTT = cast("timedTask.TimedTask", None)
 
 # Scheduling overrides
 newBountyFixedDeltaChanged = False

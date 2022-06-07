@@ -1,9 +1,9 @@
-from ...baseClasses import serializable
+from carica import ISerializable
 from ...cfg import bbData
 from ... import lib
 import os
 
-class XPBarFill(serializable.Serializable):
+class XPBarFill(ISerializable):
     def __init__(self, name: str, path: str, designer: str, wiki: str = ""):
         self.name = name
         self.path = path

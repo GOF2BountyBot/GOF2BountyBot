@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List, Set, Type, cast
 if TYPE_CHECKING:
     from ..users import basedUser
+from carica import ISerializable
 
 from ..cfg import bbData, cfg
 from .items.shipItem import Ship
@@ -15,10 +16,9 @@ from .inventories.inventory import Inventory, TypeRestrictedInventory
 import random
 from .. import botState
 from ..lib import gameMaths
-from ..baseClasses import serializable
 
 
-class GuildShop(serializable.Serializable):
+class GuildShop(ISerializable):
     """A shop containing a selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
 

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 from . import stringTyping, emojis, exceptions
 from .. import botState
+import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User
 from discord import DMChannel, GroupChannel, TextChannel
 from ..cfg import cfg
@@ -17,6 +18,9 @@ from ..userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
+
+from ..logging import LogCategory
+from carica import ISerializable # type: ignore[import]
 
 
 class AnyCoroutine(Protocol):
@@ -424,7 +428,7 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Embed]]:
 
 def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
     """Function decorator wrapping a synchronous function into an asynchronous executor call.
-    This is a last-resort expensive operation, as a new process is spawned off for each call of the function.
+    This is a last-resort expensive operation, as a new process is spawned off for each call of the funciton.
     Where possible, use natively asynchronous code, e.g aiohttp instead of requests.
 
     Author:
@@ -443,7 +447,7 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
     return run
 
 
-async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str, className: str, meta: str,
+async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: LogCategory, className: str, meta: str,
                                     *fArgs, **fKwargs) -> Optional[Message]:
     """Perform an asynchronous operation with a fixed retry, as defined in cfg.
 
@@ -468,7 +472,7 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
 
     def logError(e: Exception):
         eName = type(e).__name__
-        botState.logger.log(className, camelFName,
+        botState.client.logger.log(className, camelFName,
                             f"{eName} thrown on {opName}. Meta: " + meta,
                             category=logCategory, eventType=eName)
 
@@ -478,7 +482,7 @@ async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: str
         for tryNum in range(cfg.httpErrRetries):
             try:
                 msg = await f(*fArgs, **fKwargs)
-                botState.logger.log(className, camelFName,
+                botState.client.logger.log(className, camelFName,
                                     f"{opName} successful, but only after " \
                                         + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
                                     category=logCategory, eventType="RETRY-SUCCESS")
@@ -519,9 +523,38 @@ def extractFuncName(f: Union[Awaitable, Callable]) -> Tuple[str, str]:
         return "main", name
 
 
+def logException(task: asyncio.Task, exception: Exception, logCategory: str = None, className: str = None,
+                    funcName: str = None, noPrintEvent: bool = False, noPrint: bool = False):
+    """Convenience method to log an exception that occurred on `task`, using `botState.client.logger`.
+    This method is intended to be called by `logExceptionsOnTask`. 
+    All parameters other than `task` and `exception` are optional. If not given, they will be inferred from `task`.
+
+    :param logCategory: The category to log into (Default None)
+    :type logCategory: Optional[str]
+    :param className: Override for the class name to log exceptions as. When excluded, this is inferred (Default None)
+    :type className: Optional[str]
+    :param funcName: Override for the function name to log exceptions as. When excluded, this is inferred (Default None)
+    :type funcName: Optional[str]
+    :param noPrintEvent: Give True to skip printing the event string (will still be logged to file) (Default False)
+    :type noPrintEvent: Optional[bool]
+    :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
+    :type noPrint: Optional[bool]
+    """
+    if logCategory is None:
+        logCategory = "misc"
+
+    if className is None or funcName is None:
+        extractedClass, extractedFunc = extractFuncName(task.get_coro())
+        className = extractedClass if className is None else className
+        funcName = extractedFunc if funcName is None else funcName
+
+    botState.client.logger.log(className, funcName, str(exception), category=logCategory, exception=exception,
+                                noPrint=noPrint, noPrintEvent=noPrintEvent)
+
+
 def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False):
-    """See if any exceptions occurred in `task`. If they did, then log them using `botState.logger`.
+    """See if any exceptions occurred in `task`. If they did, then log them using `botState.client.logger`.
     If `task` has not finished execution, this is treated as an exception and is logged.
     If `task` has no exceptions set, do nothing.
     All parameters other than `task` are optional. If not given, they will be inferred from `task`.
@@ -537,17 +570,9 @@ def logExceptionsOnTask(task: asyncio.Task, logCategory: str = None, className: 
     :param noPrint: Give True to skip printing the exception entirely (will still be logged to file) (Default False)
     :type noPrint: Optional[bool]
     """
-    if e := task.exception():
-        if logCategory is None:
-            logCategory = "misc"
-
-        if className is None or funcName is None:
-            extractedClass, extractedFunc = extractFuncName(task.get_coro())
-            className = extractedClass if className is None else className
-            funcName = extractedFunc if funcName is None else funcName
-
-        botState.logger.log(className, funcName, str(e), category=logCategory, exception=e, noPrint=noPrint,
-                            noPrintEvent=noPrintEvent)
+    if e := cast(Optional[Exception], task.exception()):
+        logException(task, e, logCategory=logCategory, className=className, funcName=funcName,
+                        noPrintEvent=noPrintEvent, noPrint=noPrint)
 
 
 class BasicScheduler:
@@ -555,6 +580,10 @@ class BasicScheduler:
     """
     def __init__(self) -> None:
         self.tasks: Set[asyncio.Task] = set()
+
+
+    def any(self) -> bool:
+        return bool(self.tasks)
 
 
     def add(self, coro: Awaitable) -> asyncio.Task:
@@ -581,7 +610,7 @@ class BasicScheduler:
 
     def logExceptions(self, logCategory: str = None, className: str = None, funcName: str = None, noPrintEvent: bool = False,
                         noPrint: bool = False):
-        """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.logger`.
+        """See if any exceptions occurred in the registered tasks. If they did, then log them using `botState.client.logger`.
 
         :param logCategory: The category to log into (Default None)
         :type logCategory: Optional[str]
@@ -681,7 +710,7 @@ class BasicScheduler:
 
 async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> Any:
-    """Await `coro`, and then log any exceptions that occurred using `botState.logger`.
+    """Await `coro`, and then log any exceptions that occurred using `botState.client.logger`.
     All parameters other than `coro` are optional. If not given, they will be inferred from `coro`.
 
     :param coro: The coroutine whose exceptions to log
@@ -709,7 +738,7 @@ async def awaitCoroAndLogExceptions(coro: Awaitable, logCategory: str = None, cl
 def scheduleCoroWithLogging(coro: Awaitable, logCategory: str = None, className: str = None, funcName: str = None,
                         noPrintEvent: bool = False, noPrint: bool = False) -> asyncio.Task:
     """Schedule a coroutine execution onto the event loop, and log any exceptions that occur during
-    execution with `botState.logger`.
+    execution with `botState.client.logger`.
     Very useful for synchronously scheduling a coroutine for execution without *completely* missing any exceptions.
     Pass a normal parenthesized call to a coroutine, but without awaiting it.
     The task that is contructed is returned, but you don't need to do anything with this for execution to complete.
@@ -751,4 +780,26 @@ def truncateWithEllipse(s: str, maxLength: int, truncatedLength: int, ellipse: s
     :rtype: str
     """
     return s if len(s) <= maxLength else s[:truncatedLength] + ellipse
+
+
+class SerializableDiscordObject(ISerializable, discord.Object):
+    """A version of discord.Object with basic serializing, to support adding in configs.
+    """
     
+    def serialize(self, **kwargs) -> int:
+        return self.id
+
+    
+    @classmethod
+    def deserialize(cls, data: int, **kwargs) -> SerializableDiscordObject:
+        return SerializableDiscordObject(data)
+
+
+EMPTY_IMAGE = "https://cdn.discordapp.com/attachments/700683544103747594/979495873190969424/empty.png"
+ZWSP = "​"
+
+
+def embedEmpty(embed: Embed) -> bool:
+    return not any((embed.fields, embed.title, embed.author.name if embed.author else None,
+                    embed.author.icon_url if embed.author else None, embed.description,
+                    embed.footer.text if embed.footer else None, embed.footer.icon_url if embed.footer else None))  

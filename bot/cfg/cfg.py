@@ -1,168 +1,180 @@
-from typing import Dict, List, Tuple, Union, cast
-from ..lib.emojis import BasedEmoji, UninitializedBasedEmoji
+from ..lib.emojis import UninitializedBasedEmoji
+from ..lib.discordUtil import SerializableDiscordObject
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
+from typing import Dict, Tuple
 
 # All emojis used by the bot
-defaultEmojis = cast(Dict[str, Union[BasedEmoji, List[BasedEmoji]]], {
+defaultEmojis = EmojisConfig(
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
-    "unrecognisedEmoji": UninitializedBasedEmoji("⁉"),
-    # When a message prompts a process that will take a long time (e.g rendering), this will be added to the message reactions
-    # It will be removed when the long process is finished.
-    "longProcess": UninitializedBasedEmoji("⏳"),
+    unrecognisedEmoji = UninitializedBasedEmoji("⁉"),
+    longProcess = UninitializedBasedEmoji("⏳"),
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    "dmSent": UninitializedBasedEmoji("📬"),
-    "cancel": UninitializedBasedEmoji("❌"),
-    "submit": UninitializedBasedEmoji("✅"),
-    "spiral": UninitializedBasedEmoji("🌀"),
-    "error": UninitializedBasedEmoji("❓"),
-    "accept": UninitializedBasedEmoji("👍"),
-    "reject": UninitializedBasedEmoji("👎"),
-    "next": UninitializedBasedEmoji('⏩'),
-    "previous": UninitializedBasedEmoji('⏪'),
-    "numbers": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    dmSent = UninitializedBasedEmoji("📬"),
+    cancel = UninitializedBasedEmoji("🇽"),
+    submit = UninitializedBasedEmoji("✅"),
+    spiral = UninitializedBasedEmoji("🌀"),
+    error = UninitializedBasedEmoji("❓"),
+    accept = UninitializedBasedEmoji("👍"),
+    reject = UninitializedBasedEmoji("👎"),
+    next = UninitializedBasedEmoji('⏩'),
+    previous = UninitializedBasedEmoji('⏪'),
+    numbers = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                 UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                 UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                 UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
     # The default emojis to list in a reaction menu
-    "menuOptions": [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    menuOptions = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
                     UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
 
     # Default emoji to assign to shipSkinTool items
-    "shipSkinTool": UninitializedBasedEmoji("🎨"),
+    shipSkinTool = UninitializedBasedEmoji("🎨"),
 
     # Default emoji to assign to bbCrates containing shipSkinTools
-    "skinCrate": UninitializedBasedEmoji("🧰"),
+    skinCrate = UninitializedBasedEmoji("🧰"),
 
     # Default emoji to assign to all other crates
-    "defaultCrate": UninitializedBasedEmoji("📦"),
+    defaultCrate = UninitializedBasedEmoji("📦"),
     
     # Emoji sent with new bounty listings
-    "newBounty": UninitializedBasedEmoji("⛓"),
+    newBounty = UninitializedBasedEmoji("⛓"),
 
-    "bountyRespawn": UninitializedBasedEmoji("⛓"),
+    bountyRespawn = UninitializedBasedEmoji("⛓"),
 
-    "newIssue": UninitializedBasedEmoji("📥"),
-    "issueClosed": UninitializedBasedEmoji("✅"),
-    "bug": UninitializedBasedEmoji("🕷"),
-    "feature": UninitializedBasedEmoji("✨"),
-    "gameBalance": UninitializedBasedEmoji("⚖"),
-    "optimisation": UninitializedBasedEmoji("🚀"),
+    newIssue = UninitializedBasedEmoji("📥"),
+    issueClosed = UninitializedBasedEmoji("✅"),
+    bug = UninitializedBasedEmoji("🕷"),
+    feature = UninitializedBasedEmoji("✨"),
+    gameBalance = UninitializedBasedEmoji("⚖"),
+    optimisation = UninitializedBasedEmoji("🚀"),
 
-    "cropImage": UninitializedBasedEmoji("✂"),
-    "stretchImage": UninitializedBasedEmoji("↔"),
+    cropImage = UninitializedBasedEmoji("✂"),
+    stretchImage = UninitializedBasedEmoji("↔"),
 
-    "classicMode": UninitializedBasedEmoji("💽"),
+    classicMode = UninitializedBasedEmoji("💽"),
 
-    "money": UninitializedBasedEmoji("💰"),
+    money = UninitializedBasedEmoji("💰"),
 
-    "rarity_common": UninitializedBasedEmoji("⚫"),
-    "rarity_uncommon": UninitializedBasedEmoji("🟤"),
-    "rarity_rare": UninitializedBasedEmoji("🟠"),
-    "rarity_epic": UninitializedBasedEmoji("🔴"),
+    rarity_common = UninitializedBasedEmoji("⚫"),
+    rarity_uncommon = UninitializedBasedEmoji("🟤"),
+    rarity_rare = UninitializedBasedEmoji("🟠"),
+    rarity_epic = UninitializedBasedEmoji("🔴"),
 
-    "divUpUnlocked": UninitializedBasedEmoji("🔼"),
-    "prestigeUnlocked": UninitializedBasedEmoji("⏫")
-})
+    divUpUnlocked = UninitializedBasedEmoji("🔼"),
+    prestigeUnlocked = UninitializedBasedEmoji("⏫")
+)
 
-timeouts = {
-    "helpMenu": {"minutes": 3},
-    "BASED_updateCheckFrequency": {"days": 1},
+timeouts = TimeoutsConfig(
+    helpMenu = SerializableTimedelta(minutes=3),
+    BASED_updateCheckFrequency = SerializableTimedelta(days=1),
     # The time to wait inbetween database autosaves.
-    "dataSaveFrequency": {"hours": 1},
+    dataSaveFrequency = SerializableTimedelta(hours=1),
 
     # Amount of time before a duel request expires
-    "duelRequest": {"days": 1},
+    duelRequest = SerializableTimedelta(days=1),
 
     # Amount of time to wait between refreshing stock of all shops
-    "shopRefresh": {"days": 0, "hours": 6, "minutes": 0, "seconds": 0},
+    shopRefresh = SerializableTimedelta(hours=6),
 
     # time to put users on cooldown between using !bb check
-    "checkCooldown": {"minutes": 3},
+    checkCooldown = SerializableTimedelta(minutes=3),
 
     # Default amount of time reaction menus should be active for
-    "roleMenuExpiry": {"days": 1},
-    "duelChallengeMenuExpiry": {"hours": 2},
-    "pollMenuExpiry": {"minutes": 5},
+    roleMenuExpiry = SerializableTimedelta(days=1),
+    duelChallengeMenuExpiry = SerializableTimedelta(hours=2),
+    pollMenuExpiry = SerializableTimedelta(minutes=5),
 
     # The time between decrements to the guild activity temperatures of each tech level
-    "guildActivityDecay": {"hours": 1},
+    guildActivityDecay = SerializableTimedelta(hours=1),
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    "newBountyDelayRandomMin": {"minutes": 5},
-    "newBountyDelayRandomMax": {"minutes": 7},
+    newBountyDelayRandomMin = SerializableTimedelta(minutes=5),
+    newBountyDelayRandomMax = SerializableTimedelta(minutes=7),
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    "githubIssueSubmitDelay": {"minutes": 5},
+    githubIssueSubmitDelay = SerializableTimedelta(minutes=5),
 
     # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
-    "selectImageSizeHandling": {"minutes": 1},
+    selectImageSizeHandling = SerializableTimedelta(minutes=1),
 
-    "toggleClassicMode": {"minutes": 2}
-}
+    toggleClassicMode = SerializableTimedelta(minutes=2)
+)
 
-paths = {
+paths = PathsConfig(
     # path to JSON files for database saves
-    "usersDB": "saveData" + "/" + "users.json",
-    "guildsDB": "saveData" + "/" + "guilds.json",
-    "reactionMenusDB": "saveData" + "/" + "reactionMenus.json",
+    usersDB = SerializablePath("saveData", "users.json"),
+    guildsDB = SerializablePath("saveData", "guilds.json"),
+    reactionMenusDB = SerializablePath("saveData", "reactionMenus.json"),
 
     # path to folder to save log txts to
-    "logsFolder": "saveData" + "/" + "logs",
+    logsFolder = SerializablePath("saveData", "logs"),
 
     # folders containing game objects to load into the game
-    "CriminalMETAFolder": "game objects" + "/" + "criminals",
-    "shipSkinMETAFolder": "game objects" + "/" + "ship skins",
-    "bbShipUpgradesMETAFolder": "game objects" + "/" + "ship upgrades",
-    "SolarSystemMETAFolder": "game objects" + "/" + "solar systems",
-    "bbCommodityMETAFolder": "game objects" + "/" + "items" + "/" + "commodities",
-    "bbModuleMETAFolder": "game objects" + "/" + "items" + "/" + "modules",
-    "bbSecondaryMETAFolder": "game objects" + "/" + "items" + "/" + "secondaries",
-    "bbShipMETAFolder": "game objects" + "/" + "items" + "/" + "ships",
-    "bbWeaponMETAFolder": "game objects" + "/" + "items" + "/" + "weapons",
-    "bbTurretMETAFolder": "game objects" + "/" + "items" + "/" + "turrets",
-    "bbToolMETAFolder": "game objects" + "/" + "items" + "/" + "tools",
-    "bbMedalsMETAFolder": "game objects" + "/" + "user profile" + "/" + "medals",
+    CriminalMETAFolder = SerializablePath("game objects", "criminals"),
+    shipSkinMETAFolder = SerializablePath("game objects", "ship skins"),
+    bbShipUpgradesMETAFolder = SerializablePath("game objects", "ship upgrades"),
+    SolarSystemMETAFolder = SerializablePath("game objects", "solar systems"),
+    bbCommodityMETAFolder = SerializablePath("game objects", "items", "commodities"),
+    bbModuleMETAFolder = SerializablePath("game objects", "items", "modules"),
+    bbSecondaryMETAFolder = SerializablePath("game objects", "items", "secondaries"),
+    bbShipMETAFolder = SerializablePath("game objects", "items", "ships"),
+    bbWeaponMETAFolder = SerializablePath("game objects", "items", "weapons"),
+    bbTurretMETAFolder = SerializablePath("game objects", "items", "turrets"),
+    bbToolMETAFolder = SerializablePath("game objects", "items", "tools"),
+    bbMedalsMETAFolder = SerializablePath("game objects", "user profile", "medals"),
     
     # Temporary folder for autoskin renders
-    "tempRenders": "rendering-temp",
+    tempRenders = SerializablePath("rendering-temp"),
 
     # snowball images to use in ThrowSnowballTool
-    "snowballImages": "snowballs",
+    snowballImages = SerializablePath("snowballs"),
 
     # map image used in bounty route renders
-    "mapImage": "starmap.png"
-}
-
+    mapImage = SerializablePath("starmap.png")
+)
 
 
 ##### COMMANDS #####
 
+basicAccessLevels = BasicAccessLevelNames(
+    user = "user",
+    serverAdmin = "admin",
+    developer = "developer"
+)
+
+# Names of user access levels to be used in help menus.
+# Also determines the number of access levels available, e.g when registering commands
+userAccessLevels = [basicAccessLevels.user, "mod", basicAccessLevels.serverAdmin, basicAccessLevels.developer]
+
 # Message to print alongside cmd_help menus
-helpIntro = "Here are my commands!"
+helpIntro = "Give a command name in `/help` for more detail."
+
+# Name of the help section for un-categorized commands
+defaultHelpSection = "Miscellaneous"
 
 # Maximum number of commands each cmd_help menu may contain
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-# includedCommandModules = ("usr_misc",
-#                           "admn_misc",
-#                           "dev_misc")
+includedCommandModules = ()
 
-includedCommandModules = (  "usr_misc", "usr_homeguilds", "usr_gof2-info", "usr_bounties", "usr_loadout", "usr_economy",
-                            "usr_kaamo", "usr_loma", "usr_github",
-                            "admn_channels", "admn_misc",
-                            "dev_misc", "dev_channels", "dev_bounties", "dev_items", "dev_skins", "dev_loma", "dev_kaamo",
-                            "dev_medals", "dev_github", "dev_homeguilds")
+def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
+    return ".".join((basePackage, cogName))
+
+includedCogs = (
+    cogPath("BASEDVersionCog"),
+    cogPath("CommonStaticComponentsCog"),
+    cogPath("AdminMiscCog"),
+    cogPath("HelpCog"),
+    cogPath("DevMiscCog"),
+    cogPath("UserMiscCog")
+)
 
 # Default prefix for commands
 defaultCommandPrefix = "$"
-
-
-
-##### REACTION MENUS #####
 
 # Text to edit into expired menu messages
 expiredMenuMsg = "😴 This menu has now expired."
@@ -181,12 +193,8 @@ prestigeConfirmTimeoutSeconds = 60
 
 ##### SCHEDULING #####
 
-# Use "fixed" to check for task expiry every timedTaskLatenessThresholdSeconds (polling-based scheduler)
-# Use "dynamic" to check for task expiry exactly at the time of task expiry (interrupts-based scheduler)
-timedTaskCheckingType = "dynamic"
-# Number of seconds by with the expiry of a timedtask may acceptably be late.
-# Regardless of timedTaskCheckingType, this is used for the termination signal checking period.
-timedTaskLatenessThresholdSeconds = 10
+# The termination signal checking period.
+shutdownCheckPeriodSeconds = 10
 
 # Whether or not to check for updates to BASED
 BASED_checkForUpdates = True
@@ -574,6 +582,9 @@ medalIconsChannel = 859747151746826310
 
 ##### MISC #####
 
+# IDs of 'development' servers, where commands will be synced to immediately, and dev commands will be enabled.
+developmentGuilds = [SerializableDiscordObject(1)]
+
 # Exactly one of botToken or botToken_envVarName must be given.
 # botToken contains a string of your bot token
 # botToken_envVarName contains the name of an environment variable to get your bot token from
@@ -585,10 +596,6 @@ httpErrRetries = 3
 
 # The number of seconds to wait between API call retries upon HTTP exception catching
 httpErrRetryDelaySeconds = 1
-
-# The categories to sort and save logs into
-loggingCategories = [   "usersDB", "guildsDB", "bountiesDB", "shop", "escapedBounties", "bountyConfig", "duels", "hangar",
-                        "bountyBoards", "newBounties", "reactionMenus", "userAlerts"]
 
 # The maximum recursion depth of directory-walking when loading gameObjects from their JSON representation
 gameObjectCfgMaxRecursion = 6
@@ -634,3 +641,8 @@ leaderboardHelpDescriptions: Tuple[str, ...] = (
     "bounties won",
     "lifetime bounty hunter XP"
 )
+
+def validateConfig():
+    for basicAccessLevel in basicAccessLevels._fieldItems().values():
+        if basicAccessLevel not in userAccessLevels:
+            raise ValueError(f"basic access level '{basicAccessLevel}' is missing from userAccessLevels")

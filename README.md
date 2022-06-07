@@ -57,8 +57,11 @@ An ambitious discord bot written in python, recreating some of the features of G
 The 'main' file is `bot.bot`, which defines regular behaviour with `discord.Client.event`s.
 Command definitions are located in the various modules of the `commands` package.
 
-## cfg
-This package configures the game's behaviour with BASED's automatic TOML config file generation, and a custom gameConfigurator script that parses a set of JSON game object descriptions.
+As of v2.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
+
+Any config variables added to the module as part of your application will automatically be read into the module from toml. For more information, including how to store and receive custom classes in config, see the [Carica repository](https://github.com/Trimatix/Carica).
+
+There is only one required config variable: Your bot's token. You can eliminate the need for a config file entirely by providing your bot token as a default config value (found in `cfg/cfg.py`).
 
 ## gameObjects
 Contains definitions for all *game objects* - representing items useable by the players (items, inventories) and playing functionality of the game itself (shops, bounties, duels).

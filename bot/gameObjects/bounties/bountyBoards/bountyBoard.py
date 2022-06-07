@@ -1,10 +1,10 @@
 # CURRENTLY UNUSED FILE
 from __future__ import annotations
 from ....databases import bountyDB
-from ....baseClasses import serializable
+from carica import ISerializable
 
 
-class BountyBoard(serializable.Serializable):
+class BountyBoard(ISerializable):
     """A single message that acts as a duplicate of the output of $bounties,
     except it is continuously updated with new and completed bounties.
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import Dict, TYPE_CHECKING, Tuple
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
+from carica import ISerializable
 
-from ..baseClasses.serializable import Serializable
 from ..baseClasses.aliasableDict import AliasableDict
 from ..gameObjects.bounties.bounty import Bounty
 from ..gameObjects.bounties.criminal import Criminal
@@ -25,7 +25,7 @@ def divisionNameLevels() -> Dict[str, Tuple[int, int]]:
     return {k: cfg.bountyDivisionLevels[i] for i, k in enumerate(cfg.bountyDivisionNames)}
 
 
-class BountyDivision(Serializable):
+class BountyDivision(ISerializable):
     """A database of Bounties for a range of tech levels.
     The maximum capacity and spawning rates of bounties are based on the "temperature" of the division - an estimate for the
     level of player activity.

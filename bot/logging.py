@@ -2,12 +2,31 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Tuple, List
+from typing import Dict, List, Optional, Tuple
 from .lib.exceptions import formatExceptionTrace
+import discord
+from enum import Enum
 
 
-LOG_TIME_FORMAT = "(%d/%m%Y-%H:%M)"
+LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
+class LogCategory(Enum):
+    misc = "misc"
+    usersDB = "usersDB"
+    guildsDB = "guildsDB"
+    bountiesDB = "bountiesDB"
 
+    reactionMenus = "reactionMenus"
+    staticComponents = "staticComponents"
+
+    escapedBounties = "escapedBounties"
+    bountyConfig = "bountyConfig"
+    bountyBoards = "bountyBoards"
+    newBounties = "newBounties"
+    duels = "duels"
+
+    shop = "shop"
+    hangar = "hangar"
+    userAlerts = "userAlerts"
 
 class Logger:
     """A general event logging object.
@@ -34,7 +53,7 @@ class Logger:
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs = {cat: {} for cat in self.categories}
+        self.logs: Dict[str, Dict[datetime, str]] = {category.name: {} for category in LogCategory}
 
 
     def isEmpty(self) -> bool:
@@ -49,7 +68,7 @@ class Logger:
         return True
 
 
-    def peekHeadTimeAndCategory(self) -> Tuple[datetime, str]:
+    def peekHeadTimeAndCategory(self) -> Tuple[Optional[datetime], str]:
         """Get the log time of the earliest-logged event currently stored in the logger, as well as the category of the event.
         If the logger is currently empty, None is returned as the log time, and "" as the category.
 
@@ -103,11 +122,11 @@ class Logger:
 
         logsSaved = ""
         files = {}
-        nowStr = datetime.utcnow().strftime(LOG_TIME_FORMAT)
+        nowStr = discord.utils.utcnow().strftime(LOG_TIME_FORMAT)
 
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = cfg.paths.logsFolder + ("" if cfg.paths.logsFolder.endswith("/") else "/") + category + ".txt"
+                currentFName = cfg.paths.logsFolder + (category + ".txt")
                 logsSaved += category + ".txt, "
 
                 if category not in files:
@@ -146,8 +165,8 @@ class Logger:
         self.clearLogs()
 
 
-    def log(self, classStr: str, funcStr: str, event: str, category: str = "misc", eventType: str = None,
-                trace: str = "", exception: BaseException = None, noPrintEvent: bool = False, noPrint: bool = False):
+    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: str = None,
+                trace: str = "", exception: Exception = None, noPrintEvent: bool = False, noPrint: bool = False):
         """Log an event, queueing the log to be saved to a file.
 
         :param str classStr: The class in which the event occurred
@@ -158,7 +177,7 @@ class Logger:
         :param str eventType: The type of event, analagous to an exception type name. (Default 'MISC_ERR')
         :param str trace: If the logged event is an exception, you may wish to provide a stack trace
                             here with traceback.format_exc(). (Default "")
-        :param BaseException exception: Automatically generate event, trace and eventType from this exception.
+        :param Exception exception: Automatically generate event, trace and eventType from this exception.
                                     If any of the above are given, they are used instead. (Default None)
         :param bool noPrintEvent: Give True to print this log to console without the event string. Useful in cases where
                             the event string is very long. (Default False)
@@ -169,7 +188,7 @@ class Logger:
             self.log("Log", "log",
                         "ATTEMPTED TO LOG TO AN UNKNOWN CATEGORY '" \
                             + str(category) + "' -> Redirected to misc.", eventType="UNKWN_CTGR",
-                        category="misc")
+                        category=LogCategory.misc)
 
         if exception is not None:
             if event == "":
@@ -182,16 +201,16 @@ class Logger:
         if eventType is None:
             eventType = "MISC_ERR"
 
-        now = datetime.utcnow()
+        now = discord.utils.utcnow()
         if noPrintEvent:
             eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
-            self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category.value][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
             eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)
-            self.logs[category][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category.value][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"

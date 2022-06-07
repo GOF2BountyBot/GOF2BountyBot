@@ -56,3 +56,29 @@ def tomorrow(today : datetime = None) -> datetime:
     if today is None:
         today = datetime.utcnow()
     return today.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+
+    
+def td_secondsMinutesHours(td: timedelta):
+    """Computes the number of hours minutes and minutes for the given timedelta.
+
+    :param td: The timedelta to collapse
+    :type td: timedelta
+    :return: The number of hours, minutes and seconds in a tuple
+    :rtype: List[Tuple[str, int]]
+    """
+    seconds = int(td.total_seconds())
+    periods = [
+        ('hours', 60 * 60),
+        ('minutes', 60),
+        ('seconds', 1)
+    ]
+    results = {
+        'hours': 0,
+        'minutes': 0,
+        'seconds': 0
+    }
+    for period_name, period_seconds in periods:
+        if seconds >= period_seconds:
+            results[period_name], seconds = divmod(seconds, period_seconds)
+        
+    return results

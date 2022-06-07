@@ -1,9 +1,9 @@
-from ...baseClasses import serializable
+from carica import ISerializable
 from ..itemDiscount import ItemDiscount
 from typing import List
 
 
-class InventoryListing(serializable.Serializable):
+class InventoryListing(ISerializable):
     """A listing representing an object and a quantity of that object stored.
     To ensure serializability, inventorylistings can only store serializable objects.
 
@@ -20,7 +20,7 @@ class InventoryListing(serializable.Serializable):
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
         """
-        if not isinstance(item, serializable.Serializable):
+        if not isinstance(item, ISerializable):
             raise TypeError("InventoryListing can only store serializables to ensure serializability. Given: " \
                             + type(item).__name__)
         self.item = item

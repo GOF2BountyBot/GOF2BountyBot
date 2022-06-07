@@ -1,8 +1,8 @@
-from ...baseClasses.serializable import Serializable
+from carica import ISerializable
 from ...lib.emojis import BasedEmoji
 
 
-class Medal(Serializable):
+class Medal(ISerializable):
     """A non-functional cosmetic appearing at the top of a user's profile.
     Medals are used to commend users for special achievements which cannot be achieved through
     normal play. E.g contributing to development.

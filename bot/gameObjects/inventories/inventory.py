@@ -1,10 +1,10 @@
 from __future__ import annotations
 from . import inventoryListing
-from ...baseClasses import serializable
+from carica import ISerializable
 from typing import Dict, Any, List, Tuple
 
 
-class Inventory(serializable.Serializable):
+class Inventory(ISerializable):
     """A database of InventoryListings.
     Aside from the use of InventoryListing for the purpose of item quantities, this class is type unaware.
 

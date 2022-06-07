@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from ..cfg import bbData
 from .items import shipItem
-from ..baseClasses import serializable
+from carica import ISerializable
 from .. import lib
 
 
-class ShipUpgrade(serializable.Serializable):
+class ShipUpgrade(ISerializable):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.

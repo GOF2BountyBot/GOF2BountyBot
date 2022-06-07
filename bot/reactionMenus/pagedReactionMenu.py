@@ -1,6 +1,6 @@
 from ..users import basedUser
 from .import reactionMenu
-from discord import Message, Member, Role, Embed
+from discord import Message, Member, Role, Embed # type: ignore[import]
 from .. import lib, botState
 from typing import Dict
 from ..scheduling import timedTask
@@ -8,7 +8,7 @@ from ..cfg import cfg
 
 
 async def menuJumpToPage(data: dict):
-    await botState.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
+    await botState.client.reactionMenusDB[data["menuID"]].jumpToPage(data["pageNum"])
 
 
 class PagedReactionMenu(reactionMenu.ReactionMenu):

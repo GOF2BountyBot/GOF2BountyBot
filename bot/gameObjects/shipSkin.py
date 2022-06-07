@@ -4,7 +4,7 @@ from ..shipRenderer import shipRenderer
 from .. import lib
 from discord import File
 from typing import Dict, List
-from ..baseClasses import serializable
+from carica import ISerializable
 from ..baseClasses.hasRarity import HasRarity
 from .items import shipItem
 
@@ -23,7 +23,7 @@ def _saveShip(ship):
     shipData["path"] = shipPath
 
 
-class ShipSkin(HasRarity, serializable.Serializable):
+class ShipSkin(HasRarity, ISerializable):
     def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
                     path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
                     allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False):

@@ -4,6 +4,7 @@ from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, 
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
+from carica import ISerializable
 
 if TYPE_CHECKING:
     from ....databases.bountyDivision import BountyDivision
@@ -13,7 +14,6 @@ from .. import criminal, bounty
 from .... import botState
 import asyncio
 from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union, cast
-from ....baseClasses import serializable
 from .. import solarSystem
 
 
@@ -66,7 +66,7 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
                                                         "BBC", meta, *args, **kwargs)
 
 
-class BountyBoardChannel(serializable.Serializable):
+class BountyBoardChannel(ISerializable):
     """A channel which stores a continuously updating listing message for every active bounty.
 
     Initialisation atts: These attributes are used only when loading in the BBC from dictionary-serialised format.

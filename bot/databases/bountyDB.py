@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Dict
 import asyncio
+from carica import ISerializable
 
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
-from ..baseClasses import serializable
 from ..cfg import cfg
 from ..users import basedGuild
 from .. import botState, lib
@@ -44,7 +44,7 @@ def divisionNameForLevel(tl: int) -> str:
         raise KeyError(f"No division found for bounties of TL {tl}")
 
 
-class BountyDB(serializable.Serializable):
+class BountyDB(ISerializable):
     """A database of Bounty.
     Bounty criminal names must be unique within the database.
     Faction names are case sensitive.

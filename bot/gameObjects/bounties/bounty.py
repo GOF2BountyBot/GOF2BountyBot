@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from .bountyConfig import BountyConfig
 from ...cfg import bbData, cfg
 from . import criminal
-from ...baseClasses import serializable
+from carica import ISerializable
 from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
@@ -53,7 +53,7 @@ class RewardsMeta(Enum):
             return self.value | other
 
 
-class Bounty(serializable.Serializable):
+class Bounty(ISerializable):
     """A bounty listing for a criminal, to be hunted down by players.
 
     :var criminal: The criminal who is being hunted
@@ -375,7 +375,7 @@ class Bounty(serializable.Serializable):
                 self.division.owningDB.removeBountyObj(self)
         
         if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
-            self.expiryTT.syncForceExpireNoFuncNoReschedule()
+            self.expiryTT.forceExpire(callExpiryFunc=False)
             self.expiryTT = None
 
 

@@ -1,12 +1,14 @@
 # Typing imports
 from __future__ import annotations
 from typing import List
-from . import serializable
+from carica import ISerializable
+from 
+from .simpleHash import SimpleHashMixin
 
 from abc import abstractmethod
 
 
-class Aliasable(serializable.Serializable):
+class Aliasable(ISerializable, SimpleHashMixin):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
     A great example and common use case is in BountyBot's Criminal class. Criminals are NPCs that each have a unique name.
     These names usually consist of a forename and sirname, for example 'Ganfor Kant'. Providing 'Ganfor' and 'Kant' as aliases
@@ -17,8 +19,6 @@ class Aliasable(serializable.Serializable):
     :var aliases: A list of alternative identifiers for the object
     :vartype aliases: list[str]
     """
-    __hash__ = serializable.Serializable.__hash__
-
     def __init__(self, name : str, aliases : List[str], forceAllowEmpty : bool = False):
         """
         :param str name: The main identifier for the object
