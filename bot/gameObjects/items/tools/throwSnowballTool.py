@@ -122,20 +122,20 @@ class ThrowSnowballTool(toolItem.ToolItem):
         return f"*{self.value} credits*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this tool into dictionary format.
         This step of implementation adds a 'type' string indicating the name of this tool's subclass.
         :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem toDict implementation, with an added 'type' field
+        :return: The default gameItem serialize implementation, with an added 'type' field
         :rtype: dict
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         data["autoUse"] = self.autoUse
         return data
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> "ThrowSnowballTool":
+    def deserialize(cls, data: dict, **kwargs) -> "ThrowSnowballTool":
         """Deserialize a CreditsTool from dictionary format.
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool

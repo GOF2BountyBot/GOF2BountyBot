@@ -46,14 +46,14 @@ class RepairBeamModule(moduleItem.ModuleItem):
                 + ", Count: " + lib.stringTyping.formatAdditive(self.count) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
-        toDict method as a starting point, and adds extra attributes implemented by this specific module.
+        serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(RepairBeamModule, self).toDict(**kwargs)
+        itemDict = super(RepairBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
             itemDict["effect"] = self.effect
             itemDict["count"] = self.count
@@ -61,9 +61,9 @@ class RepairBeamModule(moduleItem.ModuleItem):
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict : dict, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict

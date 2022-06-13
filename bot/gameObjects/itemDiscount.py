@@ -1,8 +1,10 @@
 from __future__ import annotations
-from carica import ISerializable
+from ..baseClasses.serializable import Serializable
+from ..baseClasses.simpleHash import simpleHash
 
-
-class ItemDiscount(ISerializable):
+'https://stackoverflow.com/a/53519136'
+@simpleHash
+class ItemDiscount(Serializable):
     """A temporary modification to an item's value, potentially increasing or decreasing it,
     accompanied by a short description of the discount.
     ItemDiscount comparison operators directly compare multiplier attributes. This allows for sorting a list
@@ -58,13 +60,13 @@ class ItemDiscount(ISerializable):
         return self.mult <= o.mult
 
 
-    def toDict(self, **kwargs):
-        data = super().toDict(**kwargs)
+    def serialize(self, **kwargs):
+        data = super().serialize(**kwargs)
         data["mult"] = self.mult
         data["desc"] = self.desc
         return data
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> ItemDiscount:
+    def deserialize(cls, data: dict, **kwargs) -> ItemDiscount:
         return ItemDiscount(data["mult"], data["desc"])

@@ -33,21 +33,21 @@ class CompressorModule(moduleItem.ModuleItem):
                                                 builtIn=builtIn)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this module into dictionary format, to be saved to file.
-        No extra attributes implemented by this class, so just eses the base moduleItem toDict method.
+        No extra attributes implemented by this class, so just eses the base moduleItem serialize method.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(CompressorModule, self).toDict(**kwargs)
+        itemDict = super(CompressorModule, self).serialize(**kwargs)
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict : dict, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict

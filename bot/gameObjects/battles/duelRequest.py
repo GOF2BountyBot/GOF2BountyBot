@@ -233,7 +233,7 @@ async def fightDuel(sourceUser : User, targetUser : User, duelReq : DuelRequest,
         if acceptMsg.guild.get_member(targetUser.id) is None:
             targetDCGuild = lib.discordUtil.findBasedUserDCGuild(targetBasedUser)
             if targetDCGuild is not None:
-                targetBasedGuild = botState.guildsDB.getGuild(targetDCGuild.id)
+                targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
                 if targetBasedGuild.hasPlayChannel():
                     await targetBasedGuild.getPlayChannel().send(":crossed_swords: **Stalemate!** " \
                                                                     + targetDCGuild.get_member(targetUser.id).mention \
@@ -269,7 +269,7 @@ async def fightDuel(sourceUser : User, targetUser : User, duelReq : DuelRequest,
                                             file=None if duelResultsImg is None else duelResultsFile)
             winnerDCGuild = lib.discordUtil.findBasedUserDCGuild(winningBasedUser)
             if winnerDCGuild is not None:
-                winnerBasedGuild = botState.guildsDB.getGuild(winnerDCGuild.id)
+                winnerBasedGuild = botState.client.guildsDB.getGuild(winnerDCGuild.id)
                 if winnerBasedGuild.hasPlayChannel():
                     await winnerBasedGuild.getPlayChannel().send(":crossed_swords: **Fight!** " \
                                                                     + winnerDCGuild.get_member(winningBasedUser.id).mention \
@@ -286,7 +286,7 @@ async def fightDuel(sourceUser : User, targetUser : User, duelReq : DuelRequest,
                                                     file=None if duelResultsImg is None else duelResultsFile)
                 loserDCGuild = lib.discordUtil.findBasedUserDCGuild(losingBasedUser)
                 if loserDCGuild is not None:
-                    loserBasedGuild = botState.guildsDB.getGuild(loserDCGuild.id)
+                    loserBasedGuild = botState.client.guildsDB.getGuild(loserDCGuild.id)
                     if loserBasedGuild.hasPlayChannel():
                         await loserBasedGuild.getPlayChannel().send(":crossed_swords: **Fight!** " \
                                                                     + str(botState.client.get_user(winningBasedUser.id)) \
@@ -329,7 +329,7 @@ async def rejectDuel(duelReq : DuelRequest, rejectMsg : Message, challenger : Us
     if rejectMsg.guild.get_member(duelReq.sourceBasedUser.id) is None:
         targetDCGuild = lib.discordUtil.findBasedUserDCGuild(duelReq.sourceBasedUser.id)
         if targetDCGuild is not None:
-            targetBasedGuild = botState.guildsDB.getGuild(targetDCGuild.id)
+            targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
             if targetBasedGuild.hasPlayChannel():
                 await targetBasedGuild.getPlayChannel().send(":-1: <@" + str(duelReq.sourceBasedUser.id) + ">, **" \
                                                                 + str(recipient) + "** has rejected your duel request!")
@@ -363,8 +363,8 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
     canvas = Image.new("RGBA", cfg.duelResultsImageDims, (0, 0, 0, 0))
     
     # Load font
-    nameFont = ImageFont.truetype(cfg.duelResultsFont, cfg.duelResultsNameFontSize)
-    statsFont = ImageFont.truetype(cfg.duelResultsFont, cfg.duelResultsStatsFontSize)
+    nameFont = ImageFont.truetype(cfg.paths.duelResultsFont, cfg.duelResultsNameFontSize)
+    statsFont = ImageFont.truetype(cfg.paths.duelResultsFont, cfg.duelResultsStatsFontSize)
 
     for player, ship, iconPos, statsPos, shipPos, shipKey in ((player1, ship1, cfg.duelResultsP1Pos,
                                                         cfg.duelResultsP1StatsPos, cfg.duelResultsP1ShipPos, "ship1"),
@@ -384,23 +384,23 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
             try:
                 await (dcUser.avatar_url_as(size=profileSize)).save(icon, seek_begin=True)
             except (DiscordException, HTTPException, NotFound) as e:
-                botState.logger.log("duelRequest", "buildDuelResultsImage",
+                botState.client.logger.log("duelRequest", "buildDuelResultsImage",
                                     f"Failed to fetch profile image for user {player}: {e}", exception=e)
                 raise RuntimeError(f"Failed to fetch profile image for user {player}")
 
             name = str(dcUser)
         else:
-            async with botState.httpClient.get(player.icon) as resp:
+            async with botState.client.httpClient.get(player.icon) as resp:
                 try:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError as e:
-                    botState.logger.log("duelRequest", "buildDuelResultsImage",
+                    botState.client.logger.log("duelRequest", "buildDuelResultsImage",
                                     f"Failed to fetch profile image for criminal {player}: {e}", exception=e)
                     raise RuntimeError(f"Failed to fetch profile image for criminal {player}")
                 if not resp.content_type.startswith("image"):
                     errStr = f"Criminal '{player.name}' icon url does not point to an image, " \
                             + f"it points to a {resp.content_type}"
-                    botState.logger.log("duelRequest", "buildDuelResultsImage", errStr)
+                    botState.client.logger.log("duelRequest", "buildDuelResultsImage", errStr)
                     raise RuntimeError(errStr)
 
                 icon = BytesIO(await resp.read())
@@ -416,17 +416,17 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
         canvas = Image.composite(icon, canvas, icon)
 
         if ship.hasIcon:
-            async with botState.httpClient.get(ship.icon) as resp:
+            async with botState.client.httpClient.get(ship.icon) as resp:
                 try:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError as e:
-                    botState.logger.log("duelRequest", "buildDuelResultsImage",
+                    botState.client.logger.log("duelRequest", "buildDuelResultsImage",
                                     f"Failed to fetch ship icon for ship {ship.name}: {e}", exception=e)
                     raise RuntimeError(f"Failed to fetch ship icon for ship {ship.name}")
                 if not resp.content_type.startswith("image"):
                     errStr = f"Ship '{ship.name}' icon url does not point to an image, " \
                             + f"it points to a {resp.content_type}"
-                    botState.logger.log("duelRequest", "buildDuelResultsImage", errStr)
+                    botState.client.logger.log("duelRequest", "buildDuelResultsImage", errStr)
                     raise RuntimeError(errStr)
 
                 shipIcon = lib.graphics.paddedScale(Image.open(BytesIO(await resp.read())),
@@ -478,7 +478,7 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
     if cfg.duelResultsShadowOpacity:
         canvas = lib.graphics.dropShadow(canvas, cfg.duelResultsShadowOpacity, cfg.duelResultsShadowOffset, cfg.duelResultsBlurIterations)
 
-    if cfg.duelResultsOverlay:
+    if cfg.paths.duelResultsOverlay:
         overlay = lib.graphics.copyDuelResultsOverlay()
         canvas = Image.composite(overlay, canvas, overlay)
 
@@ -491,6 +491,6 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
         
     canvas = Image.composite(winnerOverlay, canvas, winnerOverlay)
 
-    if cfg.duelResultsBackgrounds:
+    if cfg.paths.duelResultsBackgrounds:
         canvas = Image.composite(canvas, lib.graphics.copyRandomDuelResultsBackground(), canvas)
     return canvas

@@ -323,14 +323,14 @@ class BountyConfig:
             raise KeyError("Bounty constructor: Invalid answer requested '" + self.answer + "'")
         
         if self.techLevel == 0:
-            self.activeShip = shipItem.Ship.fromDict(cfg.level0CrimLoadout)
+            self.activeShip = shipItem.Ship.deserialize(cfg.level0CrimLoadout)
         elif self.activeShip is None:
             if self.isPlayer:
                 raise ValueError("Attempted to generate a player bounty without providing the activeShip")
 
             # tech leve 0 = guaranteed lowest difficulty loadout
             if self.techLevel == 0:
-                self.activeShip = shipItem.Ship.fromDict(cfg.level0CrimLoadout)
+                self.activeShip = shipItem.Ship.deserialize(cfg.level0CrimLoadout)
             # Otherwise, generate one based on difficulty
             else:
                 itemTL = self.techLevel - 1
@@ -359,7 +359,7 @@ class BountyConfig:
                         shipHasPrimary = "maxPrimaries" in bbData.builtInShipData[shipKey] \
                                             and bbData.builtInShipData[shipKey]["maxPrimaries"] > 0
                                             
-                self.activeShip = shipItem.Ship.fromDict(bbData.builtInShipData[shipKey])
+                self.activeShip = shipItem.Ship.deserialize(bbData.builtInShipData[shipKey])
 
                 if shipWithPrimaryExists:
                     # Attempt to find damage-dealing weapons first
@@ -376,7 +376,7 @@ class BountyConfig:
                                                 tlDBHasType, db=bbData.weaponObjsByTL, itemType=primaryWeapon.PrimaryWeapon)
 
                         if weaponTL == -1:
-                            botState.logger.log("BountyConfig", "generate",
+                            botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing weapons",
                                                 eventType="NO_ITEMS", category="bountyConfig")
 
@@ -415,7 +415,7 @@ class BountyConfig:
                                                 activeShip=self.activeShip)
                         
                         if moduleTL == -1:
-                            botState.logger.log("BountyConfig", "generate",
+                            botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing equippable " + moduleType.__name__ + "s",
                                                 eventType="NO_ITEMS", category="bountyConfig")
                             break
@@ -443,7 +443,7 @@ class BountyConfig:
                                                 tlDBHasType, db=bbData.turretObjsByTL, itemType=turretWeapon.TurretWeapon)
 
                         if turretTL == -1:
-                            botState.logger.log("BountyConfig", "generate",
+                            botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing turrets",
                                                 eventType="NO_ITEMS", category="bountyConfig")
 

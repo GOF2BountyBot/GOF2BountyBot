@@ -6,7 +6,7 @@ from typing import Any, List, Dict, Union, cast
 from aiohttp import client_exceptions
 import random
 
-from carica import ISerializable # type: ignore[import]
+from ..baseClasses.serializable import Serializable
 
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
@@ -77,7 +77,7 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     return e
 
 
-class BasedGuild(ISerializable):
+class BasedGuild(Serializable):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -279,7 +279,7 @@ class BasedGuild(ISerializable):
             except HTTPException as e:
                 await channel.send(":woozy_face: Something went wrong when removing your old division role!\n" \
                                     + "The error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
@@ -287,7 +287,7 @@ class BasedGuild(ISerializable):
             except client_exceptions.ClientOSError as e:
                 await channel.send(":thinking: Whoops! A connection error occurred when removing your old division role, " \
                                     + "the error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
@@ -301,7 +301,7 @@ class BasedGuild(ISerializable):
             except HTTPException as e:
                 await channel.send(":woozy_face: Something went wrong when granting your new division role!\n" \
                                     + "The error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
@@ -309,7 +309,7 @@ class BasedGuild(ISerializable):
             except client_exceptions.ClientOSError:
                 await channel.send(":thinking: Whoops! A connection error occurred when granting your new division role, " \
                                     + "the error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
@@ -495,15 +495,15 @@ class BasedGuild(ISerializable):
             try:
                 await bounty.division.bountyBoardChannel.getMessageForBounty(bounty).delete()
             except HTTPException:
-                botState.logger.log("Main", "rmBBCMsg",
+                botState.client.logger.log("Main", "rmBBCMsg",
                                     "HTTPException thrown when removing bounty listing message for criminal: " \
                                     + bounty.criminal.name, category='bountyBoards', eventType="RM_LISTING-HTTPERR")
             except Forbidden:
-                botState.logger.log("Main", "rmBBCMsg",
+                botState.client.logger.log("Main", "rmBBCMsg",
                                     "Forbidden exception thrown when removing bounty listing message for criminal: " \
                                     + bounty.criminal.name, category='bountyBoards', eventType="RM_LISTING-FORBIDDENERR")
             except NotFound:
-                botState.logger.log("Main", "rmBBCMsg",
+                botState.client.logger.log("Main", "rmBBCMsg",
                                     "Bounty listing message no longer exists, BBC entry removed: " + bounty.criminal.name,
                                     category='bountyBoards', eventType="RM_LISTING-NOT_FOUND")
             await bounty.division.bountyBoardChannel.removeBounty(bounty)
@@ -566,7 +566,7 @@ class BasedGuild(ISerializable):
                 return bountyListing
 
             except Forbidden:
-                botState.logger.log("BasedGuild", "anncBnty",
+                botState.client.logger.log("BasedGuild", "anncBnty",
                                     "Failed to post BBCh listing to guild " + botState.client.get_guild(self.id).name + "#" \
                                     + str(self.id) + " in channel " + newBounty.division.bountyBoardChannel.channel.name + "#" \
                                     + str(newBounty.division.bountyBoardChannel.channel.id), category="bountyBoards",
@@ -585,7 +585,7 @@ class BasedGuild(ISerializable):
                     else:
                         await currentChannel.send(msg, embed=bountyEmbed)
                 except Forbidden:
-                    botState.logger.log("BasedGuild", "anncBnty",
+                    botState.client.logger.log("BasedGuild", "anncBnty",
                                         "Failed to post announce-channel bounty listing to guild " \
                                         + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel " \
                                         + currentChannel.name + "#" + str(currentChannel.id), eventType="ANNCCH_SND_FRBDN")
@@ -598,7 +598,7 @@ class BasedGuild(ISerializable):
         and announce it if this guild has an appropriate channel selected.
         """
         if self.bountiesDisabled:
-            botState.logger.log("basedGuild", "spwnAndAnncBty",
+            botState.client.logger.log("basedGuild", "spwnAndAnncBty",
                                 "Attempted to spawn a bounty into a guild where bounties are disabled: " \
                                     + (self.dcGuild.name if self.dcGuild is not None else "") + "#" + str(self.id),
                                 eventType="BTYS_DISABLED")
@@ -717,7 +717,7 @@ class BasedGuild(ISerializable):
                                                     embed=rewardsEmbed)
 
         else:
-            botState.logger.log("Main", "AnncBtyWn",
+            botState.client.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty won to guild " \
                                 + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
@@ -733,7 +733,7 @@ class BasedGuild(ISerializable):
             if self.hasPlayChannel():
                 await self.getPlayChannel().send(embed=makeBountyExpiredEmbed(b))
         else:
-            botState.logger.log("Main", "AnncBtyWn",
+            botState.client.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty expiry to guild " \
                                 + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
@@ -826,7 +826,7 @@ class BasedGuild(ISerializable):
                     await playCh.send(":arrows_counterclockwise: " + msg,
                                         embed=msgEmbed)
             except Forbidden:
-                botState.logger.log("Main", "anncNwShp",
+                botState.client.logger.log("Main", "anncNwShp",
                                     "Failed to post shop stock announcement to " + self.dcGuild.name + "#" + str(self.id) \
                                     + " in channel " + playCh.name + "#" + str(playCh.id), category="shop",
                                     eventType="PLCH_NONE")
@@ -850,10 +850,10 @@ class BasedGuild(ISerializable):
             data["commandPrefix"] = self.commandPrefix
 
         if not self.bountiesDisabled:
-            data["bountiesDB"] = self.bountiesDB.toDict(**kwargs)
+            data["bountiesDB"] = self.bountiesDB.serialize(**kwargs)
 
         if not self.shopsDisabled:
-            data["divisionShops"] = {k: v.toDict(**kwargs) for k, v in self.divisionShops.items()}
+            data["divisionShops"] = {k: v.serialize(**kwargs) for k, v in self.divisionShops.items()}
 
         return data
 
@@ -894,7 +894,7 @@ class BasedGuild(ISerializable):
         else:
             # For legacy savedata, just generate new shops
             if "divisionShops" in guildDict:
-                divisionShops = {k: guildShop.TechLeveledShop.fromDict(v) for k, v in guildDict["divisionShops"].items()}
+                divisionShops = {k: guildShop.TechLeveledShop.deserialize(v) for k, v in guildDict["divisionShops"].items()}
             else:
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
                                     for divName, levels in bountyDivision.divisionNameLevels().items()}
@@ -907,7 +907,7 @@ class BasedGuild(ISerializable):
 
         if not bountiesDisabled:
             if "bountiesDB" in guildDict:
-                bountiesDB = BountyDB.fromDict(guildDict["bountiesDB"], dbReload=dbReload, owningBasedGuild=newGuild)
+                bountiesDB = BountyDB.deserialize(guildDict["bountiesDB"], dbReload=dbReload, owningBasedGuild=newGuild)
             else:
                 bountiesDB = BountyDB(newGuild)
             newGuild.bountiesDB = bountiesDB

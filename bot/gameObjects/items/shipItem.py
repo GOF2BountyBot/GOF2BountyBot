@@ -807,7 +807,7 @@ class Ship(GameItem):
         return baseEmbed
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this shipItem into dictionary format, for saving to file. Includes all equiped items and upgrades
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -815,12 +815,12 @@ class Ship(GameItem):
                     several statistics are omitted to save space.
         :rtype: dict
         """
-        itemDict = super(Ship, self).toDict(**kwargs)
+        itemDict = super(Ship, self).serialize(**kwargs)
 
-        weaponsList = [weapon.toDict(**kwargs) for weapon in self.weapons]
-        modulesList = [module.toDict(**kwargs) for module in self.modules]
-        turretsList = [turret.toDict(**kwargs) for turret in self.turrets]
-        upgradesList = [upgrade.toDict(**kwargs) for upgrade in self.upgradesApplied]
+        weaponsList = [weapon.serialize(**kwargs) for weapon in self.weapons]
+        modulesList = [module.serialize(**kwargs) for module in self.modules]
+        turretsList = [turret.serialize(**kwargs) for turret in self.turrets]
+        upgradesList = [upgrade.serialize(**kwargs) for upgrade in self.upgradesApplied]
 
         itemDict["weapons"] = weaponsList
         itemDict["modules"] = modulesList
@@ -828,7 +828,7 @@ class Ship(GameItem):
         itemDict["shipUpgrades"] = upgradesList
         itemDict["nickname"] = self.nickname
         if self.isSkinned:
-            itemDict["skin"] = self.skin.toDict(**kwargs)
+            itemDict["skin"] = self.skin.serialize(**kwargs)
             itemDict["icon"] = self.icon
 
         if not self.builtIn:
@@ -853,20 +853,20 @@ class Ship(GameItem):
 
 
     @classmethod
-    def fromDict(cls, shipDict : dict, **kwargs) -> Ship:
+    def deserialize(cls, shipDict : dict, **kwargs) -> Ship:
         """Factory function constructing a new shipItem object from the given dictionary representation -
-        the opposite of shipItem.toDict
-        As with most other item fromDict functions, all missing information for builtIn ships is replaced
+        the opposite of shipItem.serialize
+        As with most other item deserialize functions, all missing information for builtIn ships is replaced
         by data from the corresponding bbData entry.
 
         :param dict shipDict: A dictionary containing all information required to construct the requested ship
         :return: A new shipItem object as described in shipDict
         :rtype: shipItem
         """
-        weapons = [PrimaryWeapon.fromDict(d) for d in shipDict.get("weapons", [])]
-        modules = [moduleItemFactory.fromDict(d) for d in shipDict.get("modules", [])]
-        turrets = [TurretWeapon.fromDict(d) for d in shipDict.get("turrets", [])]
-        shipUpgrades = [shipUpgrade.ShipUpgrade.fromDict(d) for d in shipDict.get("shipUpgrades", [])]
+        weapons = [PrimaryWeapon.deserialize(d) for d in shipDict.get("weapons", [])]
+        modules = [moduleItemFactory.deserialize(d) for d in shipDict.get("modules", [])]
+        turrets = [TurretWeapon.deserialize(d) for d in shipDict.get("turrets", [])]
+        shipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in shipDict.get("shipUpgrades", [])]
         ignoredData = ("model","compatibleSkins", "normSpec", \
                         "saveDue", "skinnable", "textureRegions", "path", "type",
                         "weapons", "modules", "turrets", "shipUpgrades", "emoji",
@@ -877,17 +877,17 @@ class Ship(GameItem):
             del shipDict["numSecondaries"]
 
         if "skin" in shipDict:
-            skin = shipSkin.ShipSkin.fromDict(shipDict["skin"])
+            skin = shipSkin.ShipSkin.deserialize(shipDict["skin"])
         else:
             skin = None
 
         if shipDict["builtIn"]:
             builtInDict = bbData.builtInShipData[shipDict["name"]]
 
-            builtInWeapons = [PrimaryWeapon.fromDict(d) for d in builtInDict.get("weapons", [])]
-            builtInModules = [moduleItemFactory.fromDict(d) for d in builtInDict.get("modules", [])]
-            builtInTurrets = [TurretWeapon.fromDict(d) for d in builtInDict.get("turrets", [])]
-            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.fromDict(d) for d in builtInDict.get("shipUpgrades", [])]
+            builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])]
+            builtInModules = [moduleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])]
+            builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])]
+            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])]
 
             shipArgs = builtInDict.copy()
             shipArgs.update(shipDict)

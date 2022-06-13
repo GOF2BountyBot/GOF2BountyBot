@@ -3,13 +3,13 @@ from . import crateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
 
-itemConstructors = {"Ship": shipItem.Ship.fromDict,
-                        "PrimaryWeapon": primaryWeapon.PrimaryWeapon.fromDict,
-                        "ModuleItem": moduleItemFactory.fromDict,
-                        "TurretWeapon": turretWeapon.TurretWeapon.fromDict}
+itemConstructors = {"Ship": shipItem.Ship.deserialize,
+                        "PrimaryWeapon": primaryWeapon.PrimaryWeapon.deserialize,
+                        "ModuleItem": moduleItemFactory.deserialize,
+                        "TurretWeapon": turretWeapon.TurretWeapon.deserialize}
 
 
-def fromDict(toolDict : dict) -> toolItem.ToolItem:
+def deserialize(toolDict : dict) -> toolItem.ToolItem:
     """Construct a toolItem from its dictionary-serialized representation.
     This method decodes which tool constructor is appropriate based on the 'type' attribute of the given dictionary.
 
@@ -26,9 +26,9 @@ def fromDict(toolDict : dict) -> toolItem.ToolItem:
     return toolTypeConstructors[toolDict["type"]](toolDict)
 
 
-toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.fromDict,
-                        "CrateTool": crateTool.CrateTool.fromDict,
-                        "ToolItem": fromDict,
-                        "ShipSkinCrateTool": crateTool.ShipSkinCrateTool.fromDict,
-                        "ThrowSnowballTool": throwSnowballTool.ThrowSnowballTool.fromDict}
+toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.deserialize,
+                        "CrateTool": crateTool.CrateTool.deserialize,
+                        "ToolItem": deserialize,
+                        "ShipSkinCrateTool": crateTool.ShipSkinCrateTool.deserialize,
+                        "ThrowSnowballTool": throwSnowballTool.ThrowSnowballTool.deserialize}
 itemConstructors.update(toolTypeConstructors)

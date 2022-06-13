@@ -99,7 +99,7 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
                                         botState.client.get_user(self.duelChallenge.targetBasedUser.id))
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """⚠ ReactionDuelChallengeMenus are not currently saveable. Do not use this method.
         Dummy method, once implemented this method will serialize this reactionMenu to dictionary format.
 
@@ -108,11 +108,11 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
         :rtype: dict
         :raise NotImplementedError: Always.
         """
-        raise NotImplementedError("Attempted to call toDict on a non-saveable reaction menu")
-        baseDict = super(ReactionDuelChallengeMenu, self).toDict(**kwargs)
+        raise NotImplementedError("Attempted to call serialize on a non-saveable reaction menu")
+        baseDict = super(ReactionDuelChallengeMenu, self).serialize(**kwargs)
         return baseDict
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> ReactionDuelChallengeMenu:
-        raise NotImplementedError("Attempted to call fromDict on a non-saveable reaction menu")
+    def deserialize(cls, data: dict, **kwargs) -> ReactionDuelChallengeMenu:
+        raise NotImplementedError("Attempted to call deserialize on a non-saveable reaction menu")

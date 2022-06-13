@@ -85,10 +85,10 @@ async def deserialize(dbDict: dict) -> ReactionMenuDB:
                                 category=LogCategory.reactionMenus, eventType="dictUnsaveable")
 
         if reactionMenu.isSaveableMenuTypeName(menuData["type"]):
-            newDB[int(msgID)] = reactionMenu.saveableMenuClassFromName(menuData["type"]).fromDict(menuData, msg=msg)
+            newDB[int(msgID)] = reactionMenu.saveableMenuClassFromName(menuData["type"]).deserialize(menuData, msg=msg)
         else:
-            botState.logger.log("reactionMenuDB", "fromDict",
-                                "Attempted to fromDict a non-saveable menu type, ignoring and removing. " \
+            botState.client.logger.log("reactionMenuDB", "deserialize",
+                                "Attempted to deserialize a non-saveable menu type, ignoring and removing. " \
                                     + "msg #" + str(msgID) + ", type " + menuData["type"],
                                 category="reactionMenus", eventType="dictUnsaveable")
 

@@ -14,7 +14,7 @@ async def dev_cmd_has_announce(message : discord.Message, args : str, isDM : boo
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild = botState.guildsDB.getGuild(message.guild.id)
+    guild = botState.client.guildsDB.getGuild(message.guild.id)
     await message.reply(mention_author=False, content=":x: Unknown guild!" if guild is None else guild.hasAnnounceChannel())
 
 botCommands.register("has-announce", dev_cmd_has_announce, 3, allowDM=False, helpSection="channels", useDoc=True)
@@ -27,7 +27,7 @@ async def dev_cmd_get_announce(message : discord.Message, args : str, isDM : boo
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    await message.reply(mention_author=False, content="<#" + str(botState.guildsDB.getGuild(message.guild.id).getAnnounceChannel().id) + ">")
+    await message.reply(mention_author=False, content="<#" + str(botState.client.guildsDB.getGuild(message.guild.id).getAnnounceChannel().id) + ">")
 
 botCommands.register("get-announce", dev_cmd_get_announce, 3, allowDM=False, helpSection="channels", useDoc=True)
 
@@ -39,7 +39,7 @@ async def dev_cmd_has_play(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild = botState.guildsDB.getGuild(message.guild.id)
+    guild = botState.client.guildsDB.getGuild(message.guild.id)
     await message.reply(mention_author=False, content=":x: Unknown guild!" if guild is None else guild.hasPlayChannel())
 
 botCommands.register("has-play", dev_cmd_has_play, 3, allowDM=False, helpSection="channels", useDoc=True)
@@ -52,6 +52,6 @@ async def dev_cmd_get_play(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    await message.reply(mention_author=False, content="<#" + str(botState.guildsDB.getGuild(message.guild.id).getPlayChannel().id) + ">")
+    await message.reply(mention_author=False, content="<#" + str(botState.client.guildsDB.getGuild(message.guild.id).getPlayChannel().id) + ">")
 
 botCommands.register("get-play", dev_cmd_get_play, 3, allowDM=False, helpSection="channels", useDoc=True)

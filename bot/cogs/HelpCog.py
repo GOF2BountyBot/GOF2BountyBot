@@ -28,17 +28,17 @@ def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild
 
 
 def formatSignatureParams(command: app_commands.Command) -> str:
-        return " ".join(f'**<{param.display_name}>**' if param.required else \
-                        f'*[{param.display_name}]*' for param in command._params.values())
+    return " ".join(f'**<{param.display_name}>**' if param.required else \
+                    f'*[{param.display_name}]*' for param in command._params.values())
 
 
 def formatChannelType(c: ChannelType) -> str:
-        return str(c).replace("_", " ")
+    return str(c).replace("_", " ")
 
 
-def formatSignature(command: app_commands.Command) -> str:
-        params = formatSignatureParams(command)
-        return f"**{command.qualified_name}**{f' {params}' if params else ''}"
+def formatSignature(command: Union[app_commands.Command, app_commands.Group]) -> str:
+    params = '' if isinstance(command, app_commands.Group) else formatSignatureParams(command)
+    return f"**{command.qualified_name}**{f' {params}' if params else ''}"
 
 
 def paramDescription(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
@@ -65,7 +65,7 @@ def formatDescriptionParams(command: app_commands.Command, meta: basedCommand.Ba
     return "\n".join(formatParamRequirements(param, meta) for param in command._params.values() if paramDescribable(param, meta))
 
 
-def commandDescription(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
+def commandDescription(command: Union[app_commands.Command, app_commands.Group], meta: basedCommand.BasedCommandMeta) -> str:
     if not meta.formattedDesc:
         d = command.description or \
         (command.callback.__doc__ if isinstance(command, app_commands.Command) else command.__doc__)
@@ -73,8 +73,8 @@ def commandDescription(command: app_commands.Command, meta: basedCommand.BasedCo
     return meta.formattedDesc 
 
 
-def commandDescriptionAndParameters(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
-    params = formatDescriptionParams(command, meta)
+def commandDescriptionAndParameters(command: Union[app_commands.Command, app_commands.Group], meta: basedCommand.BasedCommandMeta) -> str:
+    params = formatDescriptionParams(command, meta) if isinstance(command, app_commands.Command) else ''
     return commandDescription(command, meta) + (f"\n\n{params}" if params else "")
 
 
@@ -103,12 +103,12 @@ class HelpCog(basedApp.BasedCog):
         super().__init__(*args, **kwargs)
 
 
-    def _commandsForAccessLevel(self, level: Type[accessLevels._AccessLevelBase] = MISSING, guild: Optional[Object] = None, type=AppCommandType.chat_input, exactLevel=True):
+    def _commandsForAccessLevel(self, level: Optional[Type[accessLevels._AccessLevelBase]] = MISSING, guild: Optional[Union[Object, Guild]] = None, type=AppCommandType.chat_input, exactLevel=True):
         return list(self.bot.tree.walk_commands(guild=guild, type=type)) if level is None else \
             [c for c in self.bot.tree.walk_commands(guild=guild, type=type) if ((basedCommand.accessLevel(c) is level) if exactLevel else (commandChecks.accessLevelSufficient(level, basedCommand.accessLevel(c))))]
 
 
-    def getCommands(self, interaction: Interaction, level: Optional[Type[basedCommand.AccessLevel]] = None, exactLevel=True) -> List[Union[app_commands.Command, app_commands.AppCommandGroup]]:
+    def getCommands(self, interaction: Interaction, level: Optional[Type[basedCommand._AccessLevelBase]] = None, exactLevel=True) -> List[Union[app_commands.Command, app_commands.AppCommandGroup]]:
         foundCommands = self._commandsForAccessLevel(level, exactLevel=exactLevel)
         if interaction.guild is not None:
             foundCommands.extend(self._commandsForAccessLevel(level, guild=interaction.guild, exactLevel=exactLevel))
@@ -130,11 +130,19 @@ class HelpCog(basedApp.BasedCog):
             return
 
         cmd = get_nested_command(self.bot, command, guild=interaction.guild)
-        if cmd is None or not await commandChecks.userHasAccess(interaction, basedCommand.accessLevel(cmd)):
+
+        # TODO: Currently BasedCommand does not support command groups
+        if cmd is None or isinstance(cmd, app_commands.Group):
+            accessRequired = accessLevels.defaultAccessLevel()
+            meta = basedCommand.BasedCommandMeta()
+        else:
+            accessRequired = basedCommand.accessLevel(cmd)
+            meta = basedCommand.commandMeta(cmd)
+
+        if cmd is None or not await commandChecks.userHasAccess(interaction, accessRequired):
             await interaction.response.send_message(f'{cfg.defaultEmojis.cancel} Unknown command: `{command}`.', ephemeral=True)
             return
 
-        meta = basedCommand.commandMeta(cmd)
         embed = Embed(title=formatSignature(cmd), description=commandDescriptionAndParameters(cmd, meta), colour=Colour.blue())
 
         await interaction.response.send_message(embed=embed, ephemeral=True)

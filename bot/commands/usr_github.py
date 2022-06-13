@@ -35,7 +35,7 @@ def searchIssues(searchTerm: str) -> List[Issue]:
     results: List[Issue] = []
     currentPage = 0
 
-    allIssues = botState.githubClient.search_issues(f"is:issue repo:{cfg.githubIssuesRepo} {searchTerm}")
+    allIssues = botState.client.githubClient.search_issues(f"is:issue repo:{cfg.githubIssuesRepo} {searchTerm}")
     currentIssues: List[Issue] = allIssues.get_page(currentPage)
 
     while currentIssues:
@@ -55,7 +55,7 @@ def getIssueByNumber(issueNumber: int) -> Union[Issue, None]:
     :rtype: Union[Issue, None]
     """
     try:
-        return botState.githubRepo.get_issue(issueNumber)
+        return botState.client.githubRepo.get_issue(issueNumber)
     except UnknownObjectException:
         return None
 
@@ -67,9 +67,9 @@ def getIssueByNumber(issueNumber: int) -> Union[Issue, None]:
 #     issueData: Dict[str, str] = {}
 #     for templateName in cfg.githubIssueTemplates:
 #         try:
-#             content = botState.githubRepo.get_contents(f".github/ISSUE_TEMPLATE/{templateName}.md").decoded_content.decode()
+#             content = botState.client.githubRepo.get_contents(f".github/ISSUE_TEMPLATE/{templateName}.md").decoded_content.decode()
 #         except Exception as e:
-#             botState.logger.log("usr_github", "getIssueTemplates", "", exception=e)
+#             botState.client.logger.log("usr_github", "getIssueTemplates", "", exception=e)
 #         else:
 #             formattedName = next(ISSUE_TEMPLATE_NAME_SEARCH.finditer(content))
 
@@ -100,7 +100,7 @@ async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
 
     resultsEmbed = discord.Embed(title="GitHub Issues Search", description=desc,
                                     colour=discord.colour.Colour.random())
-    prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    prefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     resultsEmbed.set_footer(text=f"GitHub repository linked in {prefix}source")
     resultsEmbed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
     if issues:
@@ -156,7 +156,7 @@ async def cmd_issue_get(message : discord.Message, args : str, isDM : bool):
                                             + (f"> `{labelsStr}`\n" if labelsStr else "")
                                             + f"\n{issue.body}",
                                 colour=discord.colour.Colour.random())
-    prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    prefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     resultsEmbed.set_footer(text=f"GitHub repository linked in `{prefix}source`")
     resultsEmbed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
 
@@ -176,18 +176,18 @@ botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, al
 #     :param str args: ignored
 #     :param bool isDM: Whether or not the command is being called from a DM channel
 #     """
-#     if botState.usersDB.idExists(message.author.id):
-#         bUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+#     if botState.client.usersDB.idExists(message.author.id):
+#         bUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
 #         now = datetime.utcnow()
 #         if bUser.githubIssueSubmitDelayEnd is not None and bUser.githubIssueSubmitDelayEnd > now:
 #             await message.reply(f"⏱ Please wait {lib.timeUtil.td_format_noYM(bUser.githubIssueSubmitDelayEnd - now)}" \
 #                                 + " before submitting another issue.")
 #             return
 #     else:
-#         bUser: basedUser.BasedUser = botState.usersDB.addID(message.author.id)
+#         bUser: basedUser.BasedUser = botState.client.usersDB.addID(message.author.id)
 
 #     await lib.discordUtil.startLongProcess(message)
-#     # templates = botState.githubRepo.
+#     # templates = botState.client.githubRepo.
 
 #     if issue is None:
 #         await message.reply(":x: Unknown issue number!")
@@ -201,7 +201,7 @@ botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, al
 #                                             + (f"> `{labelsStr}`\n" if labelsStr else "")
 #                                             + f"\n{issue.body}",
 #                                 colour=discord.colour.Colour.random())
-#     prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+#     prefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 #     resultsEmbed.set_footer(text=f"GitHub repository linked in `{prefix}source`")
 #     resultsEmbed.set_thumbnail(url=botState.client.user.avatar_url_as(size=64))
 
@@ -222,13 +222,13 @@ async def cmd_issue(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing subcommand name followed by arguments
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    prefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     if args == "":
         await message.reply(mention_author=False,
                             content=f":x: Please give a subcommand! See `{prefix}help issue` for possible commands.")
         return
 
-    if botState.githubRepo is None or botState.githubClient is None:
+    if botState.client.githubRepo is None or botState.client.githubClient is None:
         await message.reply("GitHub commands are currently disabled. " \
                             + "Please manage issues through the GitHub website directly.")
 

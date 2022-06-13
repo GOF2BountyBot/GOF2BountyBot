@@ -7,8 +7,8 @@ import os
 from ..users import basedGuild
 from . import bountyDB
 from .. import botState
-from carica import ISerializable # type: ignore[import]
 from .. import lib
+from ..baseClasses.serializable import Serializable
 from ..logging import LogCategory
 
 
@@ -16,7 +16,7 @@ _minGuildsToParallelize = os.cpu_count()
 _minGuildsToParallelize = (_minGuildsToParallelize + (_minGuildsToParallelize % 2)) // 2
 
 
-class GuildDB(ISerializable):
+class GuildDB(Serializable):
     """A database of BasedGuilds.
 
     :var guilds: Dictionary of guild.id to guild, where guild is a BasedGuild
@@ -165,7 +165,7 @@ class GuildDB(ISerializable):
             for g in self.getGuilds():
                 print("decaying guild #" + str(g.id))
                 self._decayGuildTemps(g)
-        botState.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
+        botState.client.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
                             category="bountiesDB", eventType="TEMPS_DECAY")
 
 
@@ -209,10 +209,10 @@ class GuildDB(ISerializable):
             # Instance new BasedGuilds for each ID, with the provided data
             # JSON stores properties as strings, so ids must be converted to int first.
             try:
-                newDB.addBasedGuild(basedGuild.BasedGuild.fromDict(guildDBDict[guildID], guildID=int(guildID), dbReload=dbReload))
+                newDB.addBasedGuild(basedGuild.BasedGuild.deserialize(guildDBDict[guildID], guildID=int(guildID), dbReload=dbReload))
             # Ignore guilds that don't have a corresponding dcGuild
             except lib.exceptions.NoneDCGuildObj:
-                botState.logger.log("GuildDB", "fromDict",
+                botState.client.logger.log("GuildDB", "deserialize",
                                     "no corresponding discord guild found for ID " + guildID + ", guild removed from database",
                                     category=LogCategory.guildsDB, eventType="NULL_GLD")
         return newDB

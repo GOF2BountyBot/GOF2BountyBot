@@ -6,6 +6,7 @@ Written by Trimatix
 """
 import bpy
 import os
+from os.path import join
 from math import radians
 from pathlib import Path
 
@@ -21,7 +22,7 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 CAM_CLIP = 5000
 # Working directory for the script. This is used for temporarily saving intermediate textures
 # e.g between mask applications (TODO: Save the completed texture to a cache directory [the bbShipSkin dir])
-RENDER_TEMP_DIR = script_path + os.sep + "temp"
+RENDER_TEMP_DIR = join(script_path, "temp")
 # Path to the script's render variables file.
 # Line 1:   Path to the model to render
 # Line 2:   If rendering a single texture, the path to that texture.
@@ -33,7 +34,7 @@ RENDER_TEMP_DIR = script_path + os.sep + "temp"
 # Line 4:   The path to the tertiary texture region image if using one;
 #           This will be composited with respect to the tertiary_mask.jpg found in the same directory as the model.
 #           This mask MUST exist in order for a passed tertiary texture region image to be used.
-RENDER_ARGS_PATH = script_path + os.sep + "render_vars"
+RENDER_ARGS_PATH = join(script_path, "render_vars")
 
 
 if not os.path.isdir(RENDER_TEMP_DIR):
@@ -141,8 +142,7 @@ bpy.context.scene.cycles.samples = args.numSamples
 # Set the renderer (eevee renders some strange perspective stuff...?)
 ctx.scene.render.engine = 'CYCLES'
 # Set the render output file
-# ctx.scene.render.filepath = RENDER_OUTPUT_DIR + ("" if RENDER_OUTPUT_DIR.endswith(os.sep) else os.sep) \
-#                             + args.model_filename_noext
+# ctx.scene.render.filepath = join(RENDER_OUTPUT_DIR, args.model_filename_noext)
 ctx.scene.render.filepath = args.output_file_path
 
 # Move the camera so that the model fills the frame

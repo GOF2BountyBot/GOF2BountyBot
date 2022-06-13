@@ -1,8 +1,8 @@
 from inspect import iscoroutinefunction
 import inspect
-from discord import ButtonStyle, Embed, Component
+from discord import ButtonStyle, Embed
 from discord import Message, Interaction
-from discord.ui import View, Button
+from discord.ui import View, Button, Item
 
 from typing import Any, Awaitable, List, Optional, TypeVar, Union, Callable, Protocol
 from enum import Enum, EnumMeta, _EnumDict
@@ -21,7 +21,7 @@ class StaticComponentCallbackType(Protocol):
     def __call__(self, interaction: Interaction, *args) -> Awaitable: ...
 
 
-TComponent = TypeVar("TComponent", bound=Component)
+TComponent = TypeVar("TComponent", bound=Item)
 
 
 def validateParam(paramName: str, val: str):

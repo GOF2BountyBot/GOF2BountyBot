@@ -3,10 +3,11 @@ from .. import lib
 from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
 from .. import client
 
-from discord.ext import commands, tasks # type: ignore[import]
+from discord.ext import commands # type: ignore[import]
+from discord.ext import tasks # type: ignore[attr-defined]
 
 
-class BASED_VersionCog(commands.Cog):
+class BASED_VersionCog(commands.Cog): # type: ignore[name-defined]
     def __init__(self, bot: client.BasedClient, *args, **kwargs):
         self.bot = bot
         super().__init__(*args, **kwargs)

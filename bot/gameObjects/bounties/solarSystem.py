@@ -89,8 +89,8 @@ class SolarSystem(aliasable.Aliasable):
         return bool(self.neighbours)
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = super().toDict(**kwargs)
+    def serialize(self, **kwargs) -> dict:
+        data = super().serialize(**kwargs)
         data["faction"] = self.faction
         data["neighbours"] = self.neighbours
         data["security"] = self.security
@@ -105,7 +105,7 @@ class SolarSystem(aliasable.Aliasable):
 
 
     @classmethod
-    def fromDict(cls, sysDict : dict, **kwargs) -> SolarSystem:
+    def deserialize(cls, sysDict : dict, **kwargs) -> SolarSystem:
         """Factory function constructing a new System object from the information in the given dictionary.
 
         :param dict sysDict: A dictionary containing all information needed to construct the required System.

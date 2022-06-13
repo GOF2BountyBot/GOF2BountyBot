@@ -20,7 +20,7 @@ from functools import wraps, partial
 import asyncio
 
 from ..logging import LogCategory
-from carica import ISerializable # type: ignore[import]
+from ..baseClasses.serializable import Serializable
 
 
 class AnyCoroutine(Protocol):
@@ -57,7 +57,7 @@ def userOrMemberName(dcUser : User, dcGuild : Guild) -> str:
     :raise ValueError: When given a None dcUser
     """
     if dcUser is None:
-        botState.logger.log("Main", "usrMmbrNme",
+        botState.client.logger.log("Main", "usrMmbrNme",
                             "None dcUser given", eventType="USR_NONE")
         raise ValueError("Null dcUser given")
 
@@ -124,7 +124,7 @@ def userTagOrDiscrim(userID : str, guild : Guild = None) -> str:
         return userObj.name + "#" + userObj.discriminator
         
     # Return the given mention as a fall back - might replace this with '#UNKNOWNUSER#' at some point.
-    botState.logger.log("Main", "uTgOrDscrm", "Unknown user requested." + (("Guild:" + guild.name + "#" + str(str(guild.id)))
+    botState.client.logger.log("Main", "uTgOrDscrm", "Unknown user requested." + (("Guild:" + guild.name + "#" + str(str(guild.id)))
                         if guild is not None else "Global/NoGuild") + ". uID:" + str(userID), eventType="UKNWN_USR")
     return userID
 
@@ -192,8 +192,8 @@ def getMemberByRefOverDB(uRef : str, dcGuild : Guild = None) -> User:
     else:
         userAttempt = None
     if userAttempt is None and stringTyping.isInt(uRef):
-        if botState.usersDB.idExists(int(uRef)):
-            userGuild = findBUserDCGuild(botState.usersDB.getUser(int(uRef)))
+        if botState.client.usersDB.idExists(int(uRef)):
+            userGuild = findBUserDCGuild(botState.client.usersDB.getUser(int(uRef)))
             if userGuild is not None:
                 return userGuild.get_member(int(uRef))
     return userAttempt
@@ -228,11 +228,11 @@ def typeAlertedUserMentionOrName(alertType : Type[userAlerts.UABase], dcUser : U
         if dcGuild is None:
             raise KeyError("user does not share an guilds with the bot")
     if basedGuild is None:
-        basedGuild = botState.guildsDB.getGuild(dcGuild.id)
+        basedGuild = botState.client.guildsDB.getGuild(dcGuild.id)
     elif dcGuild is None:
         dcGuild = botState.client.get_guild(basedGuild.id)
     if basedUser is None:
-        basedGuild = botState.usersDB.getOrAddID(dcUser.id)
+        basedGuild = botState.client.usersDB.getOrAddID(dcUser.id)
 
     guildMember = dcGuild.get_member(dcUser.id)
     if guildMember is None:
@@ -782,7 +782,7 @@ def truncateWithEllipse(s: str, maxLength: int, truncatedLength: int, ellipse: s
     return s if len(s) <= maxLength else s[:truncatedLength] + ellipse
 
 
-class SerializableDiscordObject(ISerializable, discord.Object):
+class SerializableDiscordObject(Serializable, discord.Object):
     """A version of discord.Object with basic serializing, to support adding in configs.
     """
     

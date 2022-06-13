@@ -1,4 +1,4 @@
-class SimpleHashMixin:
+class SimpleHashMixin():
     """A class mixin that adds a minimal hash implementation.
     """
     def __init__(self, *args, **kwargs) -> None:
@@ -17,4 +17,5 @@ class SimpleHashMixin:
 def simpleHash(cls: type) -> type:
     """Assign the SimpleHashMixin hash implementation to a class using a decorator instead of inheritence.
     """
-    cls.__hash__ = SimpleHashMixin.__hash__
+    cls.__hash__ = SimpleHashMixin.__hash__ # type: ignore
+    return cls

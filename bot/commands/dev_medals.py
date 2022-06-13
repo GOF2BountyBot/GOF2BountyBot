@@ -1,6 +1,7 @@
 import discord
 import aiohttp
 import os
+from os.path import join
 import shutil
 
 from . import commandsDB as botCommands
@@ -95,7 +96,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
             emojiServer: discord.Guild = botState.client.get_guild(cfg.emojisServer) or \
                                         await botState.client.fetch_guild(cfg.emojisServer)
             if emojiServer is None:
-                botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.emojisServer",
+                botState.client.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.emojisServer",
                                     eventType="UKWN_GLD")
                 await message.reply(":x: Failed to connect to the emojisServer")
                 return
@@ -106,7 +107,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                     await emojiServer.fetch_channels()
                 medalIconsChannel = emojiServer.get_channel(cfg.medalIconsChannel)
                 if medalIconsChannel is None:
-                    botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.medalIconsChannel",
+                    botState.client.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.medalIconsChannel",
                                         eventType="UKWN_CHN")
                     await message.reply(":x: Failed to connect to the medalIconsChannel")
                     return
@@ -115,7 +116,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                     iconMsg: discord.Message = await medalIconsChannel.send(f"Medal: {medalName}", file=iconFile)
                 except (discord.Forbidden, discord.HTTPException) as e:
                     await message.reply(f":x: Saving the icon to the emojiServer failed: {e}")
-                    botState.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
+                    botState.client.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
                     return
                 else:
                     kwargs["icon"] = iconMsg.attachments[0].url
@@ -127,7 +128,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                                                                                     reason="dev_cmd_create_medal")
                 except (discord.Forbidden, discord.HTTPException) as e:
                     await message.reply(f":x: Failed to create medal emoji: {e}")
-                    botState.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
+                    botState.client.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
                     try:
                         await iconMsg.delete()
                     except (discord.NotFound, discord.HTTPException):
@@ -141,14 +142,14 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
         emojiServer: discord.Guild = botState.client.get_guild(cfg.emojisServer) or \
                                     await botState.client.fetch_guild(cfg.emojisServer)
         if emojiServer is None:
-            botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.emojisServer",
+            botState.client.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to find cfg.emojisServer",
                                 eventType="UKWN_GLD")
             await message.reply(":x: Failed to connect to the emojisServer")
             return
 
         if noEmoji:
             success = False
-            async with botState.httpClient.get(kwargs["icon"]) as resp:
+            async with botState.client.httpClient.get(kwargs["icon"]) as resp:
                 try:
                     resp.raise_for_status()
                 except aiohttp.ClientResponseError as e:
@@ -166,7 +167,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
                                                                                             reason="dev_cmd_create_medal")
                         except (discord.Forbidden, discord.HTTPException) as e:
                             await message.reply(f":x: Failed to create medal emoji: {e}")
-                            botState.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
+                            botState.client.logger.log("dev_medals", "dev_cmd_create_medal", str(e), exception=e)
                             return
                         kwargs["emoji"] = lib.emojis.BasedEmoji(id=newEmoji.id)
             if not success:
@@ -176,29 +177,29 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
             dcEmoji: discord.Emoji = botState.client.get_emoji(kwargs["emoji"].id)
             if dcEmoji is None:
                 await message.reply(":x: Failed to get your requested emoji.")
-                botState.logger.log("dev_medals", "dev_cmd_create_medal", f"Failed to get given emoji: {kwargs['emoji']}",
+                botState.client.logger.log("dev_medals", "dev_cmd_create_medal", f"Failed to get given emoji: {kwargs['emoji']}",
                                     eventType="EMOJI_ERR")
                 return
             kwargs["icon"] = dcEmoji.url
     
     if kwargs["icon"] == "":
         await message.reply(":x: Failed to infer medal icon. Please provide it explicitly with kwargs.")
-        botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to infer medal icon", eventType="INFER_FAIL")
+        botState.client.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to infer medal icon", eventType="INFER_FAIL")
         return
     if kwargs["emoji"] == lib.emojis.BasedEmoji.EMPTY:
         await message.reply(":x: Failed to infer medal emoji. Please provide it explicitly with kwargs.")
-        botState.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to infer medal emoji", eventType="INFER_FAIL")
+        botState.client.logger.log("dev_medals", "dev_cmd_create_medal", "Failed to infer medal emoji", eventType="INFER_FAIL")
         return
     
     newMedal = Medal(medalName, medalDesc, **kwargs)
-    bbData.medalsData[medalName.lower()] = newMedal.toDict()
+    bbData.medalsData[medalName.lower()] = newMedal.serialize()
     bbData.medalObjs[medalName.lower()] = newMedal
 
     dirPath = os.path.join(cfg.paths.bbMedalsMETAFolder, medalName + ".bbMedal")
     if not os.path.isdir(dirPath):
         os.makedirs(dirPath)
     filePath = os.path.join(dirPath, "META.json")
-    lib.jsonHandler.writeJSON(filePath, newMedal.toDict(), prettyPrint=True)
+    lib.jsonHandler.writeJSON(filePath, newMedal.serialize(), prettyPrint=True)
 
     await message.reply(f"{cfg.defaultEmojis.submit.sendable} medal added successfuly: {medalName}")
 
@@ -233,7 +234,7 @@ async def dev_cmd_give_medal(message : discord.Message, args : str, isDM : bool)
         await message.reply(":x: Unrecognisd user. Make sure we share a server.")
         return
 
-    requestedBUser: BasedUser = botState.usersDB.getOrAddID(userID)
+    requestedBUser: BasedUser = botState.client.usersDB.getOrAddID(userID)
     medal: Medal = bbData.medalObjs[medalName]
     if medal in requestedBUser.medals:
         await message.reply(f":x: {requestedUser.display_name} already has the {medal.name} medal.")
@@ -273,7 +274,7 @@ async def dev_cmd_take_medal(message : discord.Message, args : str, isDM : bool)
         await message.reply(":x: Unrecognisd user. Make sure we share a server.")
         return
 
-    requestedBUser: BasedUser = botState.usersDB.getOrAddID(userID)
+    requestedBUser: BasedUser = botState.client.usersDB.getOrAddID(userID)
     medal: Medal = bbData.medalObjs[medalName]
     if medal not in requestedBUser.medals:
         await message.reply(f":x: {requestedUser.display_name} already does not have the {medal.name} medal.")
@@ -313,10 +314,10 @@ async def dev_cmd_delete_medal(message : discord.Message, args : str, isDM : boo
         for subdir, dirs, _ in lib.jsonHandler.depthLimitedWalk(cfg.paths.bbMedalsMETAFolder, cfg.gameObjectCfgMaxRecursion):
             for dirname in dirs:
                 if dirname.lower().endswith(".bbmedal"):
-                    dirpath = subdir + os.sep + dirname
+                    dirpath = join(subdir, dirname)
 
                     # Read in the medal metadata
-                    if lib.jsonHandler.readJSON(dirpath + os.sep + "META.json")["name"] == medal.name:
+                    if lib.jsonHandler.readJSON(join(dirpath, "META.json"))["name"] == medal.name:
                         medalFound = True
                         shutil.rmtree(dirpath)
             
@@ -325,7 +326,7 @@ async def dev_cmd_delete_medal(message : discord.Message, args : str, isDM : boo
         if medalFound:
             del bbData.medalObjs[args]
             await message.reply(f"{cfg.defaultEmojis.submit} The {medal.name} medal was removed from the game successfuly." \
-                                + f"\nThe medal's emoji ({medal.emoji.toDict()}) and icon message (if any) were NOT deleted.")
+                                + f"\nThe medal's emoji ({medal.emoji.serialize()}) and icon message (if any) were NOT deleted.")
         else:
             await message.reply(":x: The medal's META file could not be located. Medal deletion cancelled.")
     else:

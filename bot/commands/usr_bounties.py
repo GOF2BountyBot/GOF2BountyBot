@@ -33,8 +33,8 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     callingUser: Optional[basedUser.BasedUser] = None
-    if botState.usersDB.idExists(message.author.id):
-        callingUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        callingUser = botState.client.usersDB.getUser(message.author.id)
         currentStatus = callingUser.classicModeEnabled
     else:
         currentStatus = False
@@ -70,7 +70,7 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
 
     elif confirmResults[0] == cfg.defaultEmojis.accept:
         if callingUser is None:
-            callingUser = botState.usersDB.addID(message.author.id)
+            callingUser = botState.client.usersDB.addID(message.author.id)
         if callingUser.classicModeEnabled:
             callingUser.disableClassicMode()
         else:
@@ -104,13 +104,13 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     # Verify that this guild has bounties enabled
-    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if callingGuild.bountiesDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
 
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
-    requestedBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
     if not requestedBBUser.hasHomeGuild():
         await requestedBBUser.transferGuild(message.guild)
         await message.reply(mention_author=False, content=":airplane_arriving: Your home server has been set.")
@@ -231,7 +231,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         bountyWon = True
 
                         basedUsers: Dict[int, basedUser.BasedUser] = \
-                            {i: botState.usersDB.getOrAddID(i) for i in set(bounty.checked.values())}
+                            {i: botState.client.usersDB.getOrAddID(i) for i in set(bounty.checked.values())}
                         classicModeUserIDs = set(u.id for u in basedUsers.values() if u.classicModeEnabled)
                         nonClassicModeUserIDs = set(u.id for u in basedUsers.values() if u.id not in classicModeUserIDs)
 
@@ -363,7 +363,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
             try:
                 btyDivision.removeBountyObj(bounty)
             except OverflowError as e:
-                botState.logger.log("usr_bounties", "cmd_check", str(e), exception=e)
+                botState.client.logger.log("usr_bounties", "cmd_check", str(e), exception=e)
         # remove all escaped bounties
         for bounty in toEscape:
             bounty.escape()
@@ -403,7 +403,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
     # If the calling user is on checking cooldown
     else:
         # Print an error message with the remaining time on the calling user's cooldown
-        diff = datetime.utcfromtimestamp(botState.usersDB.getUser(message.author.id).bountyCooldownEnd) - datetime.utcnow()
+        diff = datetime.utcfromtimestamp(botState.client.usersDB.getUser(message.author.id).bountyCooldownEnd) - datetime.utcnow()
         await message.reply(mention_author=False,
                             content=f":stopwatch: **{message.author.display_name}**, your *Khador Drive* is still charging!" \
                                     + f" please wait **{lib.timeUtil.td_format_noYM(diff)}.**")
@@ -424,7 +424,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     # Verify that this guild has bounties enabled
-    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if callingGuild.bountiesDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
@@ -433,7 +433,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
 
     if not args:
         try:
-            callingUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+            callingUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
         except KeyError:
             division = callingGuild.bountiesDB.divisionForLevel(0)
         else:
@@ -509,7 +509,7 @@ async def cmd_route(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     # Verify that this guild has bounties enabled
-    callingGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if callingGuild.bountiesDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have bounties enabled.")
         return
@@ -604,8 +604,8 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Invalid stakes (amount of credits)!")
         return
 
-    sourceBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
-    targetBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(requestedUser.id)
+    sourceBBUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
+    targetBBUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(requestedUser.id)
 
     # await duelRequest.buildDuelResultsImage(sourceBBUser, sourceBBUser.activeShip, targetBBUser, targetBBUser.activeShip, {"winningShip": sourceBBUser.activeShip if int((sourceBBUser.activeShip.getArmour() + sourceBBUser.activeShip.getShield()) / targetBBUser.activeShip.getDPS()) > int((targetBBUser.activeShip.getArmour() + targetBBUser.activeShip.getShield()) / sourceBBUser.activeShip.getDPS()) else targetBBUser.activeShip,
     #         "ship1": {"health": {"stock": int(sourceBBUser.activeShip.getArmour() + sourceBBUser.activeShip.getShield()), "varied": int(sourceBBUser.activeShip.getArmour() + sourceBBUser.activeShip.getShield())},
@@ -616,7 +616,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
     #                 "TTK": int((targetBBUser.activeShip.getArmour() + targetBBUser.activeShip.getShield()) / sourceBBUser.activeShip.getDPS())}})
     # return
 
-    callingGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     if action == "challenge":
         if sourceBBUser.hasDuelChallengeFor(targetBBUser):
@@ -628,12 +628,12 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
 
         try:
             newDuelReq = duelRequest.DuelRequest(
-                sourceBBUser, targetBBUser, stakes, None, botState.guildsDB.getGuild(message.guild.id))
+                sourceBBUser, targetBBUser, stakes, None, botState.client.guildsDB.getGuild(message.guild.id))
             duelTT = timedTask.TimedTask(expiryDelta=timedelta(**cfg.timeouts.duelRequest),
                                             expiryFunction=duelRequest.expireAndAnnounceDuelReq,
                                             expiryFunctionArgs={"duelReq": newDuelReq})
             newDuelReq.duelTimeoutTask = duelTT
-            botState.taskScheduler.scheduleTask(duelTT)
+            botState.client.taskScheduler.scheduleTask(duelTT)
             sourceBBUser.addDuelChallenge(newDuelReq)
         except KeyError:
             await message.reply(mention_author=False, content=":x: User not found! Did they leave the server?")
@@ -664,7 +664,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
                 await message.reply(mention_author=False, content=":x: User not found! Did they leave the server?")
                 return
             else:
-                targetUserBBGuild = botState.guildsDB.getGuild(targetUserDCGuild.id)
+                targetUserBBGuild = botState.client.guildsDB.getGuild(targetUserDCGuild.id)
                 if targetUserBBGuild.hasPlayChannel():
                     targetUserNameOrTag = lib.discordUtil.IDAlertedUserMentionOrName("duels_challenge_incoming_new",
                                                                                         dcGuild=targetUserDCGuild,
@@ -682,11 +682,11 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
         for msg in sentMsgs:
             menuTT = timedTask.TimedTask(expiryDelta=timedelta(**cfg.timeouts.duelChallengeMenuExpiry),
                                             expiryFunction=expiryFunctions.removeEmbedAndOptions, expiryFunctionArgs=msg.id)
-            botState.taskScheduler.scheduleTask(menuTT)
+            botState.client.taskScheduler.scheduleTask(menuTT)
             newMenu = reactionDuelChallengeMenu.ReactionDuelChallengeMenu(msg, newDuelReq, timeout=menuTT)
             newDuelReq.menus.append(newMenu)
             await newMenu.updateMessage()
-            botState.reactionMenusDB[msg.id] = newMenu
+            botState.client.reactionMenusDB[msg.id] = newMenu
 
 
     elif action == "cancel":
@@ -699,7 +699,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
                                         + str(requestedUser) + "**.")
             targetUserGuild = lib.discordUtil.findBBUserDCGuild(targetBBUser)
             if targetUserGuild is not None:
-                targetUserBBGuild = botState.guildsDB.getGuild(targetUserGuild.id)
+                targetUserBBGuild = botState.client.guildsDB.getGuild(targetUserGuild.id)
                 if targetUserBBGuild.hasPlayChannel() and \
                         targetBBUser.isAlertedForID("duels_challenge_incoming_cancel", targetUserGuild, targetUserBBGuild,
                                                     targetUserGuild.get_member(targetBBUser.id)):
@@ -708,7 +708,7 @@ async def cmd_duel(message : discord.Message, args : str, isDM : bool):
                                                                     + " has cancelled their duel challenge.")
         else:
             if targetBBUser.isAlertedForID("duels_challenge_incoming_cancel", message.guild,
-                                            botState.guildsDB.getGuild(message.guild.id),
+                                            botState.client.guildsDB.getGuild(message.guild.id),
                                             message.guild.get_member(targetBBUser.id)):
                 await message.reply(mention_author=False, content=":white_check_mark: You have cancelled your duel challenge for " \
                                             + requestedUser.mention + ".")
@@ -763,8 +763,8 @@ async def cmd_use(message : discord.Message, args : str, isDM : bool):
     :param str args: a single integer indicating the index of the tool to use
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    callingBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
-    callingGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    callingBUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
+    callingGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     if not args:
         await message.reply(mention_author=False, content=":x: Please give the number of the tool you would like to use! e.g: `" \
@@ -812,11 +812,11 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.channel.send(":x: This command can only be used by level 10 bounty hunters!")
         return
 
-    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    callingBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     if callingBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
@@ -824,7 +824,7 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(":x: This command can only be used by level 10 bounty hunters!")
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     confirmMsg = await message.channel.send("Are you sure you want to prestige now? Your bounty hunter level, loadout, " \
                                             + "balance, hangar and loma will all be **reset**.\n" \
@@ -837,13 +837,13 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
 
     if cfg.defaultEmojis.accept in confirmResult:
         callingBBUser.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(1)
-        callingBBUser.activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
+        callingBBUser.activeShip = shipItem.Ship.deserialize(basedUser.defaultShipLoadoutDict)
         callingBBUser.credits = 0
         callingBBUser.inactiveShips.clear()
         callingBBUser.inactiveModules.clear()
         callingBBUser.inactiveWeapons.clear()
         for weaponDict in basedUser.defaultUserDict["inactiveWeapons"]:
-            callingBBUser.inactiveWeapons.addItem(primaryWeapon.PrimaryWeapon.fromDict(weaponDict["item"]),
+            callingBBUser.inactiveWeapons.addItem(primaryWeapon.PrimaryWeapon.deserialize(weaponDict["item"]),
                                                     quantity=weaponDict["count"])
         callingBBUser.inactiveTurrets.clear()
         callingBBUser.inactiveTools.clear()
@@ -855,11 +855,11 @@ async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
             callingBBUser.loma.toolsStock.clear()
 
         callingBBUser.prestiges += 1
-        newCrate = crateTool.CrateTool.fromDict({"type": "bbCrate", "crateType": "special", "typeNum": 0, "builtIn": True})
+        newCrate = crateTool.CrateTool.deserialize({"type": "bbCrate", "crateType": "special", "typeNum": 0, "builtIn": True})
         callingBBUser.inactiveTools.addItem(newCrate)
 
         if callingBBUser.hasHomeGuild():
-            homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+            homeGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(callingBBUser.homeGuildID)
             oldDiv = homeGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
             oldDivName = nameForDivision(oldDiv)
             newDiv = homeGuild.bountiesDB.divisionForLevel(cfg.minTechLevel)
@@ -907,16 +907,16 @@ async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.reply(":x: You don't have enough XP to go to the next division!", mention_author=False)
         return
 
-    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    callingBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     if callingBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     if not callingBBUser.hasHomeGuild():
         await message.reply(f":x: You must have a **home server** to use this command (see `{commandPrefix}transfer`).",
@@ -933,7 +933,7 @@ async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
         await message.reply(":x: You don't have enough XP to go to the next division!", mention_author=False)
         return
     
-    homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+    homeGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(callingBBUser.homeGuildID)
 
     newLevel = userLevel + 1
     newDiv = homeGuild.bountiesDB.divisionForLevel(newLevel)
@@ -999,23 +999,23 @@ async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.reply(":x: You are already in the lowest division!", mention_author=False)
         return
 
-    callingBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    callingBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     if callingBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     if not callingBBUser.hasHomeGuild():
         await message.reply(f":x: You must have a **home server** to use this command (see `{commandPrefix}transfer`).",
                             mention_author=False)
         return
     
-    homeGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(callingBBUser.homeGuildID)
+    homeGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(callingBBUser.homeGuildID)
     userLevel = gameMaths.calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
     oldDiv = homeGuild.bountiesDB.divisionForLevel(userLevel)
 

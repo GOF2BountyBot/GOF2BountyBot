@@ -4,10 +4,10 @@ from .. import lib
 from .. import botState
 import traceback
 from typing import List
-from carica import ISerializable # type: ignore[import]
+from ..baseClasses.serializable import Serializable
 
 
-class UserDB(ISerializable):
+class UserDB(Serializable):
     """A database of BasedUser objects.
 
     :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
@@ -89,7 +89,7 @@ class UserDB(ISerializable):
         if self.idExists(userID):
             raise KeyError("Attempted to add a user that is already in this UserDB")
         # Create and return a new user
-        newUser = BasedUser.fromDict(defaultUserDict, id=userID)
+        newUser = BasedUser.deserialize(defaultUserDict, id=userID)
         self.users[userID] = newUser
         return newUser
 

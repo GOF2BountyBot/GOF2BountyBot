@@ -16,7 +16,7 @@ async def dev_cmd_give(message : discord.Message, args : str, isDM : bool):
     """developer command giving the provided user the provided item of the provided type.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
-    item must be a json format description in line with the item's to and fromDict functions.
+    item must be a json format description in line with the item's to and deserialize functions.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
@@ -24,13 +24,13 @@ async def dev_cmd_give(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     if not lib.stringTyping.isInt(args.split(" ")[0]) and not lib.stringTyping.isMention(args.split(" ")[0]):
-        requestedUser = botState.usersDB.getOrAddID(message.author.id)
+        requestedUser = botState.client.usersDB.getOrAddID(message.author.id)
         itemStr = args
 
     # otherwise get the specified user's bb object
     # [!] no validation is done.
     else:
-        requestedUser = botState.usersDB.getOrAddID(
+        requestedUser = botState.client.usersDB.getOrAddID(
             int(args.split(" ")[0].lstrip("<@!").rstrip(">")))
         itemStr = args[len(args.split(" ")[0]) + 1:]
 
@@ -74,7 +74,7 @@ async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
@@ -94,7 +94,7 @@ async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.reply(mention_author=False, content=":x: Invalid user! ")
         return
-    requestedBBUser = botState.usersDB.getOrAddID(
+    requestedBBUser = botState.client.usersDB.getOrAddID(
         int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
@@ -186,7 +186,7 @@ async def dev_cmd_del_item_key(message : discord.Message, args : str, isDM : boo
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
         await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide a user, an item type " \
@@ -205,7 +205,7 @@ async def dev_cmd_del_item_key(message : discord.Message, args : str, isDM : boo
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.reply(mention_author=False, content=":x: Invalid user! ")
         return
-    requestedBBUser = botState.usersDB.getOrAddID(
+    requestedBBUser = botState.client.usersDB.getOrAddID(
         int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
@@ -323,7 +323,7 @@ async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool
     if not divName and level != -1:
         divName = divisionNameForLevel(level)
 
-    guild = botState.guildsDB.getGuild(message.guild.id)
+    guild = botState.client.guildsDB.getGuild(message.guild.id)
     if guild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This guild's shops are disabled.")
     else:
@@ -358,11 +358,11 @@ async def dev_cmd_debug_hangar(message : discord.Message, args : str, isDM : boo
         await message.reply(mention_author=False, content=":x: Unrecognised user!")
         return
 
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         await message.reply(mention_author=False, content="User has not played yet!")
         return
 
-    requestedBBUser = botState.usersDB.getUser(requestedUser.id)
+    requestedBBUser = botState.client.usersDB.getUser(requestedUser.id)
     maxPerPage = cfg.maxItemsPerHangarPageAll
 
     maxPage = requestedBBUser.numInventoryPages("all", maxPerPage)
@@ -464,7 +464,7 @@ async def dev_cmd_crim_value(message : discord.Message, args : str, isDM : bool)
 
     # If a user is specified
     else:
-        callingBBGuild = botState.guildsDB.getGuild(message.guild.id)
+        callingBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
         if callingBBGuild.bountiesDisabled:
             await message.channel.send(":x: This server has bounties disabled!")
             return

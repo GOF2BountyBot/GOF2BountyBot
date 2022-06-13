@@ -241,13 +241,13 @@ class CrateTool(toolItem.ToolItem):
                 + "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this crate into dictionary format.
 
         :return: A dictionary fully describing this crate instance
         :rtype: dict
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         if "aliases" in data:
             del data["aliases"]
         if self.builtIn:
@@ -259,12 +259,12 @@ class CrateTool(toolItem.ToolItem):
 
             data["itemPool"] = []
             for item in self.itemPool:
-                data["itemPool"].append(item.toDict(**kwargs))
+                data["itemPool"].append(item.serialize(**kwargs))
         return data
 
 
     @classmethod
-    def fromDict(cls, crateDict: dict, **kwargs) -> CrateTool:
+    def deserialize(cls, crateDict: dict, **kwargs) -> CrateTool:
         """Deserialize a CrateTool instance from its dictionary representation.
 
         :param dict crateDict: A dictionary fully describing the CrateDict instance to create. Must contain itemPool.
@@ -300,7 +300,7 @@ class CrateTool(toolItem.ToolItem):
                     errorType = "BAD_TYPE"
                 if errorStr:
                     if skipInvalidItems:
-                        botState.logger.log("crateTool", "fromDict", errorStr, eventType=errorType)
+                        botState.client.logger.log("crateTool", "deserialize", errorStr, eventType=errorType)
                     else:
                         raise ValueError(errorStr)
                 else:
@@ -314,15 +314,15 @@ class CrateTool(toolItem.ToolItem):
                             allSingleType = False
 
         else:
-            botState.logger.log("crateTool", "fromDict", "fromDict-ing a crateTool with no itemPool.")
+            botState.client.logger.log("crateTool", "deserialize", "deserialize-ing a crateTool with no itemPool.")
 
         if allSingleType and singleType in singleTypeCrates:
             return singleTypeCrates[singleType](**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
-                                                emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
+                                                emoji=lib.emojis.BasedEmoji.deserialize(crateDict["emoji"]) \
                                                         if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
         return CrateTool(**cls._makeDefaults(crateDict, ("type", "aliases"), itemPool=itemPool,
-                                            emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
+                                            emoji=lib.emojis.BasedEmoji.deserialize(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
 

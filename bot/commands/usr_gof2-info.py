@@ -55,7 +55,7 @@ async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify two systems are given separated by a comma and a space
     if args == "" or "," not in args or len(args[:args.index(",")]) < 1 or len(args[args.index(","):]) < 2:
         await message.reply(mention_author=False, content=":x: Please provide source and destination systems, separated with a comma and space.\n" \
@@ -142,7 +142,7 @@ async def cmd_info_system(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a systemw as specified
     if args == "":
         await message.reply(mention_author=False,
@@ -204,7 +204,7 @@ async def cmd_info_criminal(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a criminal was given
     if args == "":
         await message.reply(mention_author=False,
@@ -254,7 +254,7 @@ async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False,
@@ -267,7 +267,7 @@ async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
     itemData = {}
 
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):
             itemObj = shipObj
             itemData = ship
@@ -355,7 +355,7 @@ async def cmd_info_weapon(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False,
@@ -413,7 +413,7 @@ async def cmd_info_module(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False,
@@ -472,7 +472,7 @@ async def cmd_info_turret(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False,
@@ -533,7 +533,7 @@ async def cmd_info_commodity(message : discord.Message, args : str, isDM : bool)
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # verify a item was given
     if args == "":
@@ -586,7 +586,7 @@ async def cmd_info_skin(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a Skin! Example: `" + prefix + "info skin tex`")
@@ -679,7 +679,7 @@ async def cmd_info_medal(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.channel.send(f":x: Please provide a medal! Example: `{prefix}info medal {next(i for i in bbData.medalObjs)}`")
@@ -720,7 +720,7 @@ async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.channel.send(":x: Please provide a tool! Example: " \
@@ -813,7 +813,7 @@ async def cmd_showme_criminal(message : discord.Message, args : str, isDM : bool
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a criminal was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a criminal! Example: `" + prefix + "criminal Toma Prakupy`")
@@ -850,7 +850,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        callingBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+        callingBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
         prefix = callingBGuild.commandPrefix
         if reskin and callingBGuild.hasRendersChannel() and callingBGuild.rendersChannel.id != message.channel.id:
             await message.reply(f":x: Skin renders are restricted to {callingBGuild.rendersChannel.mention}.")
@@ -950,7 +950,7 @@ async def cmd_showme_weapon(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a weapon! Example: `" + prefix + "weapon Nirai Impulse EX 1`")
@@ -988,7 +988,7 @@ async def cmd_showme_module(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a module! Example: `" + prefix + "module Groza Mk II`")
@@ -1025,7 +1025,7 @@ async def cmd_showme_turret(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a turret! Example: `" + prefix + "turret Groza Mk II`")
@@ -1064,7 +1064,7 @@ async def cmd_showme_commodity(message : discord.Message, args : str, isDM : boo
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.reply(mention_author=False, content=":x: Please provide a commodity! Example: `" + prefix + "commodity Groza Mk II`")
@@ -1306,7 +1306,7 @@ async def cmd_texture(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix: str = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # verify a item was given
     if args == "":

@@ -2,9 +2,9 @@
 
 import github
 from bot.gameObjects.items import shipItem
-from .cfg import cfg, versionInfo, bbData, gameConfigurator
+from .cfg import cfg, bbData, gameConfigurator
 from typing import List, Literal, Optional, Union, cast
-from .cfg import cfg, versionInfo
+from .cfg import cfg
 
 # Discord Imports
 
@@ -29,12 +29,15 @@ from github import Github
 # BASED Imports
 
 from . import lib, botState, logging
+from .lib import BASED_version
 from .lib.emojis import UninitializedBasedEmoji
 from .databases import guildDB, reactionMenuDB, userDB, bountyDB
 from .scheduling.timedTask import TimedTask
 from .scheduling.timedTaskHeap import TimedTaskHeap
-from bot.scheduling import timedTaskHeap
+from .scheduling import timedTaskHeap
 from .reactionMenus import reactionMenu
+from .users.basedGuild import BasedGuild
+
 # register as spawnable
 from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
@@ -55,13 +58,13 @@ def setHelpEmbedThumbnails():
 
 
 async def initializeBountyBoardChannels():
-    for guild in botState.guildsDB.getGuilds():
+    for guild in botState.client.guildsDB.getGuilds():
         if guild.hasBountyBoardChannels:
             for div in guild.bountiesDB.divisions.values():
                 try:
                     await div.bountyBoardChannel.init(botState.client)
                 except lib.exceptions.NoLongerExists:
-                    botState.logger.log("main", "initializeBountyBoardChannels",
+                    botState.client.logger.log("main", "initializeBountyBoardChannels",
                                         f"failed to load bountyboard channel {div.bountyBoardChannel.channelIDToBeLoaded}" \
                                             + f" for guild {guild.id}, division {bountyDB.nameForDivision(div)}. Removing.",
                                         category="bountyBoards", eventType="UKWN_CHAN")
@@ -101,19 +104,19 @@ botCommands = commands.loadCommands()
 
 async def announceNewShopStock(guildID : int = -1):
     """Announce the refreshing of shop stocks to one or all joined guilds.
-    Messages will be sent to the playChannels of all guilds in the botState.guildsDB, if they have one
+    Messages will be sent to the playChannels of all guilds in the botState.client.guildsDB, if they have one
 
     :param int guildID: The guild to announce to. If guildID is -1, the shop refresh will be announced to all joined guilds.
                         (Default -1)
     """
     if guildID == -1:
         # loop over all guilds
-        for guild in botState.guildsDB.guilds.values():
+        for guild in botState.client.guildsDB.guilds.values():
             # ensure guild has a valid playChannel
             if not guild.shopsDisabled:
                 await guild.announceNewShopStock()
     else:
-        guild = botState.guildsDB.getGuild(guildID)
+        guild = botState.client.guildsDB.getGuild(guildID)
         # ensure guild has a valid playChannel
         if not guild.shopsDisabled:
             await guild.announceNewShopStock()
@@ -123,7 +126,7 @@ async def refreshAndAnnounceAllShopStocks():
     """Generate new tech levels and inventories for the shops of all joined guilds,
     and announce the stock refresh to those guilds.
     """
-    botState.guildsDB.refreshAllShopStocks()
+    botState.client.guildsDB.refreshAllShopStocks()
     await announceNewShopStock()
 
 
@@ -192,7 +195,8 @@ async def on_guild_join(guild: discord.Guild):
         guildExists = True
         if not botState.client.guildsDB.idExists(guild.id):
             guildExists = False
-            botState.client.guildsDB.addID(guild.id)
+            newGuild = BasedGuild.deserialize({}, guildID=guild.id)
+            botState.client.guildsDB.addBasedGuild(newGuild)
 
         botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
                                 ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),
@@ -224,12 +228,6 @@ async def on_ready():
     print(f"System time UTC offset measured at: {lib.timeUtil.td_format_noYM(botState.utcOffset) or 'None'}")
 
 
-    ##### GAME OBJECTS LOADING #####
-
-    gameConfigurator.loadAllGameObjectData()
-    gameConfigurator.loadAllGameObjects()
-
-
     ##### SCHEDULING #####
 
     shopRefreshDelta = timedelta(**cfg.timeouts.shopRefresh)
@@ -237,15 +235,15 @@ async def on_ready():
                                         autoReschedule=True,
                                         expiryFunction=refreshAndAnnounceAllShopStocks)
                                         
-    botState.taskScheduler.scheduleTask(botState.shopRefreshTT)
+    botState.client.taskScheduler.scheduleTask(botState.shopRefreshTT)
 
 
     ##### SCHEDULING CONTINUED #####
     # to be moved
     # Schedule guild activity measurement decaying
     botState.temperatureDecayTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.guildActivityDecay),
-                                            autoReschedule=True, expiryFunction=botState.guildsDB.decayAllTemps)
-    botState.taskScheduler.scheduleTask(botState.temperatureDecayTT)
+                                            autoReschedule=True, expiryFunction=botState.client.guildsDB.decayAllTemps)
+    botState.client.taskScheduler.scheduleTask(botState.temperatureDecayTT)
 
 
     ##### CLEANUP #####
@@ -255,7 +253,7 @@ async def on_ready():
     # Set help embed thumbnails
     setHelpEmbedThumbnails()
 
-    print("BASED " + versionInfo.BASED_VERSION + " loaded.\nClient logged in as {0.user}".format(botState.client))
+    print("BASED " + BASED_version.getBASEDVersion().BASED_version + " loaded.\nClient logged in as {0.user}".format(botState.client))
 
     # Set custom bot status
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
@@ -333,7 +331,7 @@ async def on_message(message: discord.Message):
                                         + "This command probably won't work until we've looked into it.",
                                 mention_author=False)
             # log the exception as misc
-            botState.logger.log("Main", "on_message",
+            botState.client.logger.log("Main", "on_message",
                                 f"An unexpected error occured when calling command '{command}' with args '{args}'",
                                 exception=e)
             print(traceback.format_exc())
@@ -549,7 +547,7 @@ async def runAsync():
         # Launch bot
         await botState.client.start(cfg.botToken if cfg.botToken else os.environ[cfg.botToken_envVarName])
     
-    return botState.shutdown
+    return botState.client.shutDownState
 
 
 def run():

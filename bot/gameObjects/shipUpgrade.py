@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from ..cfg import bbData
 from .items import shipItem
-from carica import ISerializable
+from ..baseClasses.serializable import Serializable
+from ..baseClasses.simpleHash import simpleHash
 from .. import lib
 
 
-class ShipUpgrade(ISerializable):
+'https://stackoverflow.com/a/53519136'
+@simpleHash
+class ShipUpgrade(Serializable):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.
@@ -148,7 +151,7 @@ class ShipUpgrade(ISerializable):
         return ship.value * self.shipToUpgradeValueMult
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this shipUpgrade into a dictionary for saving to file
         Contains all information needed to reconstruct this upgrade. If the upgrade is builtIn,
         this includes only the upgrade name.
@@ -211,9 +214,9 @@ class ShipUpgrade(ISerializable):
 
 
     @classmethod
-    def fromDict(cls, upgradeDict : dict, **kwargs) -> ShipUpgrade:
+    def deserialize(cls, upgradeDict : dict, **kwargs) -> ShipUpgrade:
         """Factory function reconstructing a shipUpgrade object from its dictionary-serialized representation.
-        The opposite of shipUpgrade.toDict
+        The opposite of shipUpgrade.serialize
         If the upgrade is builtIn, return a reference to the pre-constructed upgrade object.
 
         :param dict upgradeDict: A dictionary containing all information needed to produce the required shipUpgrade

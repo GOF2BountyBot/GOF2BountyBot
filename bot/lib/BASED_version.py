@@ -49,13 +49,18 @@ def getBASEDVersion() -> VersionInfo:
     """
     # Ensure file existence
     if not os.path.isfile(BASED_VERSIONFILE):
-        raise RuntimeError("BASED version file not found, please update cfg.versionInfo.BASED_VERSIONFILE path")
+        raise RuntimeError("BASED version file not found, please update lib.BASED_version.BASED_VERSIONFILE path")
     # Read version file
     return lib.jsonHandler.loadObject(BASED_VERSIONFILE, VersionInfo)
 
 
 # Version of BASED currently installed
 BASED_VERSION = getBASEDVersion().BASED_version
+
+def nextUpdateCheck():
+    """Get the time after which the next updates check should occur.
+    """
+    return datetime.fromtimestamp(getBASEDVersion().next_update_check, timezone.utc)
 
 
 async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResults:
@@ -68,10 +73,10 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdateCheck = datetime.fromtimestamp(getBASEDVersion().next_update_check, timezone.utc)
+    nextUpdate = nextUpdateCheck
 
     # Is it time to check yet?
-    if utcnow() >= nextUpdateCheck:
+    if utcnow() >= nextUpdate:
         # Get latest version
         latest = await lib.github.getNewestTagOnRemote(httpClient, BASED_API_URL)
 

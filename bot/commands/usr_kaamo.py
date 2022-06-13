@@ -19,11 +19,11 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
-    requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     if requestedBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
@@ -31,7 +31,7 @@ async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     if requestedBBUser.kaamo is None or requestedBBUser.kaamo.totalItems == 0:
         await message.channel.send(":x: There are no items stored in your Kaamo Club!")
@@ -107,11 +107,11 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
-    requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    requestedBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     if requestedBBUser.classicModeEnabled:
         await message.reply(":x: This command is not available in classic mode!", mention_author=False)
         return
@@ -119,7 +119,7 @@ async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
         await message.channel.send(f":x: This command can only be used by level {cfg.maxTechLevel} bounty hunters!")
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
@@ -206,7 +206,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
     sendChannel = None
     sendDM = False
 
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
                                             desc=f"{message.author.mention}\n*0/{cfg.kaamoMaxCapacity} items*",
                                             footerTxt="All items" if item == "all" else (item + "s").title(),
@@ -214,7 +214,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
         shopEmbed.add_field(name="‎", value="No items stored.")
     
     else:
-        callingBBUser = botState.usersDB.getUser(message.author.id)
+        callingBBUser = botState.client.usersDB.getUser(message.author.id)
 
         if item == "all":
             if message.author.dm_channel is None:
@@ -250,7 +250,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
                             currentItem = currentStock[itemNum - 1].item
                         except KeyError:
                             try:
-                                botState.logger.log("Main", "cmd_kaamo",
+                                botState.client.logger.log("Main", "cmd_kaamo",
                                                     f"Requested {currentItemType} '{currentStock.keys[itemNum-1].name}" \
                                                         + f"' (index {itemNum-1}" \
                                                         + "), which was not found in the shop stock",
@@ -261,7 +261,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
                                 keysStr = ""
                                 for item in currentStock.items:
                                     keysStr += str(item) + ", "
-                                botState.logger.log("Main", "cmd_kaamo",
+                                botState.client.logger.log("Main", "cmd_kaamo",
                                                     f"Unexpected type in {currentItemType}sStock KEYS, index " \
                                                         + str(itemNum-1) + ". Got " \
                                                         + type(currentStock.keys[itemNum-1]).__name__ \

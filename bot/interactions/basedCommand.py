@@ -23,7 +23,7 @@ class BasedCommandMeta:
     :var formattedParamDescs: Descriptions for each parameter of the command with more allowed length and markdown formatting, to be used in help commands
     :type formattedParamDescs: Optional[Dict[str, str]]
     """
-    def __init__(self, accessLevel: _AccessLevelBase = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs : Optional[Dict[str, str]] = None):
+    def __init__(self, accessLevel: Type[_AccessLevelBase] = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs : Optional[Dict[str, str]] = None):
         self._accessLevel = accessLevel
         self.showInHelp = showInHelp
         self._helpSection = helpSection
@@ -134,7 +134,7 @@ def commandMeta(command: app_commands.Command) -> BasedCommandMeta:
     return BasedCommandMeta()
 
 
-def accessLevel(command: app_commands.Command) -> _AccessLevelBase:
+def accessLevel(command: app_commands.Command) -> Type[_AccessLevelBase]:
     """Get the access level required to use a BASED command
     If the command is not a BASED command, then the default access level is returned
 

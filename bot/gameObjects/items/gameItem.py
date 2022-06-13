@@ -103,7 +103,7 @@ class GameItem(aliasable.Aliasable):
 
 
     @abstractmethod
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this item into dictionary format, for saving to file.
         This base implementation should be used in gameItem implementations, and custom attributes saved into it.
 
@@ -117,12 +117,12 @@ class GameItem(aliasable.Aliasable):
         if self.builtIn:
             data = {"name": self.name, "builtIn": True}
         else:
-            data = super().toDict(**kwargs)
+            data = super().serialize(**kwargs)
             data["value"] = self.value
             data["wiki"] = self.wiki
             data["manufacturer"] = self.manufacturer
             data["icon"] = self.icon
-            data["emoji"] = self.emoji.toDict(**kwargs)
+            data["emoji"] = self.emoji.serialize(**kwargs)
             data["techLevel"] = self.techLevel
             data["builtIn"] = False
 
@@ -153,7 +153,7 @@ def spawnItem(data : dict) -> GameItem:
     elif data["type"] not in subClassNames:
         raise KeyError("Unrecognised item type: " + str(data["type"]))
 
-    return subClassNames[data["type"]].fromDict(data)
+    return subClassNames[data["type"]].deserialize(data)
 
 
 def isSpawnableItemClass(cls):

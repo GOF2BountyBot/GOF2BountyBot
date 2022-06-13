@@ -12,7 +12,7 @@ class GiveawayMenu(reactionMenu.ReactionMenu):
     def __init__(self, msg: Message, items: List[gameItem.GameItem], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = None, footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Member = None, targetRole: Role = None):
         options = {i.emoji: GiveawayMenuOption(self, i) for i in items}
         timeout = timedTask.TimedTask(expiryDelta=activeTime, expiryFunction=expiryFunctions.markExpiredMenu, expiryFunctionArgs=msg.id, rescheduleOnExpiryFuncFailure=True)
-        botState.taskScheduler.scheduleTask(timeout)
+        botState.client.taskScheduler.scheduleTask(timeout)
         super().__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, timeout=timeout, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName, targetMember=targetMember, targetRole=targetRole)
         self.givenUsers: Set[Member] = set()
         self.originalDesc = desc
@@ -28,11 +28,11 @@ class GiveawayMenu(reactionMenu.ReactionMenu):
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs):
+    def deserialize(cls, data: dict, **kwargs):
         raise NotImplementedError()
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         raise NotImplementedError()
 
 
@@ -45,9 +45,9 @@ class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
 
     async def award(self, reactingUser: Member):
         if not self.menu.hasGivenToUser(reactingUser):
-            bUser: basedUser.BasedUser = botState.usersDB.getOrAddID(reactingUser.id)
+            bUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(reactingUser.id)
             # de-serializing and re-serializing here in order to get a copy (if appropriate)
-            itemCopy = type(self.item).fromDict(self.item.toDict(saveType=True))
+            itemCopy = type(self.item).deserialize(self.item.serialize(saveType=True))
             bUser.getInventoryForItem(self.item).addItem(itemCopy)
             self.menu.givenUsers.add(reactingUser)
             await self.menu.addGivenUser(reactingUser)

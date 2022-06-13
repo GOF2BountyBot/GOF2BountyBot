@@ -1,7 +1,7 @@
 from ..lib.emojis import UninitializedBasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
-from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, SerializablePath
-from typing import Dict, Tuple
+from .schema import BasicAccessLevelNames, EmojisConfig, UnpackableSerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
+from typing import Dict, List, Tuple
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -67,73 +67,102 @@ defaultEmojis = EmojisConfig(
 )
 
 timeouts = TimeoutsConfig(
-    helpMenu = SerializableTimedelta(minutes=3),
-    BASED_updateCheckFrequency = SerializableTimedelta(days=1),
+    helpMenu = UnpackableSerializableTimedelta(minutes=3),
+    BASED_updateCheckFrequency = UnpackableSerializableTimedelta(days=1),
     # The time to wait inbetween database autosaves.
-    dataSaveFrequency = SerializableTimedelta(hours=1),
+    dataSaveFrequency = UnpackableSerializableTimedelta(hours=1),
 
     # Amount of time before a duel request expires
-    duelRequest = SerializableTimedelta(days=1),
+    duelRequest = UnpackableSerializableTimedelta(days=1),
 
     # Amount of time to wait between refreshing stock of all shops
-    shopRefresh = SerializableTimedelta(hours=6),
+    shopRefresh = UnpackableSerializableTimedelta(hours=6),
 
     # time to put users on cooldown between using !bb check
-    checkCooldown = SerializableTimedelta(minutes=3),
+    checkCooldown = UnpackableSerializableTimedelta(minutes=3),
 
     # Default amount of time reaction menus should be active for
-    roleMenuExpiry = SerializableTimedelta(days=1),
-    duelChallengeMenuExpiry = SerializableTimedelta(hours=2),
-    pollMenuExpiry = SerializableTimedelta(minutes=5),
+    roleMenuExpiry = UnpackableSerializableTimedelta(days=1),
+    duelChallengeMenuExpiry = UnpackableSerializableTimedelta(hours=2),
+    pollMenuExpiry = UnpackableSerializableTimedelta(minutes=5),
 
     # The time between decrements to the guild activity temperatures of each tech level
-    guildActivityDecay = SerializableTimedelta(hours=1),
+    guildActivityDecay = UnpackableSerializableTimedelta(hours=1),
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    newBountyDelayRandomMin = SerializableTimedelta(minutes=5),
-    newBountyDelayRandomMax = SerializableTimedelta(minutes=7),
+    newBountyDelayRandomMin = UnpackableSerializableTimedelta(minutes=5),
+    newBountyDelayRandomMax = UnpackableSerializableTimedelta(minutes=7),
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    githubIssueSubmitDelay = SerializableTimedelta(minutes=5),
+    githubIssueSubmitDelay = UnpackableSerializableTimedelta(minutes=5),
 
     # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
-    selectImageSizeHandling = SerializableTimedelta(minutes=1),
+    selectImageSizeHandling = UnpackableSerializableTimedelta(minutes=1),
 
-    toggleClassicMode = SerializableTimedelta(minutes=2)
+    toggleClassicMode = UnpackableSerializableTimedelta(minutes=2),
+
+    # The termination signal checking period.
+    shutdownCheckPeriod = UnpackableSerializableTimedelta(seconds=10),
+
+    # The cooldown between uses of the transfer command.
+    homeGuildTransferCooldown = UnpackableSerializableTimedelta(weeks=1),
+
+    # time to wait inbetween spawning bounties, when newBountyDelayType starts with 'fixed'
+    # when using fixed-routeScale generation, use this for bounties of route length 1
+    newBountyFixedDelta = UnpackableSerializableTimedelta(minutes=1)
 )
 
 paths = PathsConfig(
     # path to JSON files for database saves
-    usersDB = SerializablePath("saveData", "users.json"),
-    guildsDB = SerializablePath("saveData", "guilds.json"),
-    reactionMenusDB = SerializablePath("saveData", "reactionMenus.json"),
+    usersDB = ConcatenatableSerializablePath("saveData", "users.json"),
+    guildsDB = ConcatenatableSerializablePath("saveData", "guilds.json"),
+    reactionMenusDB = ConcatenatableSerializablePath("saveData", "reactionMenus.json"),
 
     # path to folder to save log txts to
-    logsFolder = SerializablePath("saveData", "logs"),
+    logsFolder = ConcatenatableSerializablePath("saveData", "logs"),
 
     # folders containing game objects to load into the game
-    CriminalMETAFolder = SerializablePath("game objects", "criminals"),
-    shipSkinMETAFolder = SerializablePath("game objects", "ship skins"),
-    bbShipUpgradesMETAFolder = SerializablePath("game objects", "ship upgrades"),
-    SolarSystemMETAFolder = SerializablePath("game objects", "solar systems"),
-    bbCommodityMETAFolder = SerializablePath("game objects", "items", "commodities"),
-    bbModuleMETAFolder = SerializablePath("game objects", "items", "modules"),
-    bbSecondaryMETAFolder = SerializablePath("game objects", "items", "secondaries"),
-    bbShipMETAFolder = SerializablePath("game objects", "items", "ships"),
-    bbWeaponMETAFolder = SerializablePath("game objects", "items", "weapons"),
-    bbTurretMETAFolder = SerializablePath("game objects", "items", "turrets"),
-    bbToolMETAFolder = SerializablePath("game objects", "items", "tools"),
-    bbMedalsMETAFolder = SerializablePath("game objects", "user profile", "medals"),
+    CriminalMETAFolder = ConcatenatableSerializablePath("game objects", "criminals"),
+    shipSkinMETAFolder = ConcatenatableSerializablePath("game objects", "ship skins"),
+    bbShipUpgradesMETAFolder = ConcatenatableSerializablePath("game objects", "ship upgrades"),
+    SolarSystemMETAFolder = ConcatenatableSerializablePath("game objects", "solar systems"),
+    bbCommodityMETAFolder = ConcatenatableSerializablePath("game objects", "items", "commodities"),
+    bbModuleMETAFolder = ConcatenatableSerializablePath("game objects", "items", "modules"),
+    bbSecondaryMETAFolder = ConcatenatableSerializablePath("game objects", "items", "secondaries"),
+    bbShipMETAFolder = ConcatenatableSerializablePath("game objects", "items", "ships"),
+    bbWeaponMETAFolder = ConcatenatableSerializablePath("game objects", "items", "weapons"),
+    bbTurretMETAFolder = ConcatenatableSerializablePath("game objects", "items", "turrets"),
+    bbToolMETAFolder = ConcatenatableSerializablePath("game objects", "items", "tools"),
+    bbMedalsMETAFolder = ConcatenatableSerializablePath("game objects", "user profile", "medals"),
     
     # Temporary folder for autoskin renders
-    tempRenders = SerializablePath("rendering-temp"),
+    tempRenders = ConcatenatableSerializablePath("rendering-temp"),
 
     # snowball images to use in ThrowSnowballTool
-    snowballImages = SerializablePath("snowballs"),
+    snowballImages = ConcatenatableSerializablePath("snowballs"),
 
     # map image used in bounty route renders
-    mapImage = SerializablePath("starmap.png")
+    mapImage = ConcatenatableSerializablePath("starmap.png"),
+
+    # The image to display behind the XP bar during cmd_stats
+    userProfileBackground = ConcatenatableSerializablePath("xp-bar-background.jpg"),
+
+    # Font to use for user profiles in the stats command.
+    userProfileFont = ConcatenatableSerializablePath("user-profile-font.ttf"),
+
+    # Background images to display behind duel results. Images are selected at random. Give [] to disable
+    duelResultsBackgrounds = [],
+    # Image to display between the background and content. Give "" to disable
+    duelResultsUnderlay = ConcatenatableSerializablePath(),
+    # Image to display on top of all other graphics. Give "" to disable
+    duelResultsOverlay = ConcatenatableSerializablePath(),
+    duelResultsRightWinner = ConcatenatableSerializablePath(),
+    duelResultsLeftWinner = ConcatenatableSerializablePath(),
+    duelResultsDraw = ConcatenatableSerializablePath(),
+
+    # Font to use for duel statistics, e.g time to kill
+    duelResultsFont = ConcatenatableSerializablePath("duel-results-font.ttf")
 )
 
 
@@ -159,7 +188,7 @@ defaultHelpSection = "Miscellaneous"
 maxCommandsPerHelpPage = 5
 
 # List of module names from the commands package to import
-includedCommandModules = ()
+includedCommandModules: List[str] = []
 
 def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
     return ".".join((basePackage, cogName))
@@ -193,9 +222,6 @@ prestigeConfirmTimeoutSeconds = 60
 
 ##### SCHEDULING #####
 
-# The termination signal checking period.
-shutdownCheckPeriodSeconds = 10
-
 # Whether or not to check for updates to BASED
 BASED_checkForUpdates = True
 
@@ -206,9 +232,6 @@ BASED_checkForUpdates = True
 # discord user IDs of developers - will be granted developer command permissions
 developers = [188618589102669826, 448491245296418817]
 
-# Names of user access levels to be used in help menus.
-# Also determines the number of access levels available, e.g when registering commands
-userAccessLevels = ["user", "mod", "admin", "dev"]
 
 # titles to give each type of user when reporting error messages etc
 accessLevelTitles = ["pilot", "captain", "commander", "officer"]
@@ -225,8 +248,6 @@ userAlertsIDsDefaults = {   "shop_refresh": False,
                             "system_updates_major": False,
                             "system_updates_minor": False,
                             "system_misc": False}
-
-homeGuildTransferCooldown = {"weeks": 1}
 
 
 
@@ -264,9 +285,6 @@ bountyXPLevelBoundaries = [-1, 0, 1050, 2000, 3500, 10000, 18000, 61000, 71000, 
 # total earnings from bounty hunting.
 bountyRewardToXPGainMult = 0.1
 
-# The image to display behind the XP bar during cmd_stats
-userProfileBackground = "xp-bar-background.jpg"
-
 # The image to fill the XP bar with during cmd_stats, for users of each division, in the same order as bountyDivisionNames
 xpBarFillsByDivision = ["xp-bar-fill.jpg", "xp-bar-fill.jpg", "xp-bar-fill.jpg"]
 
@@ -288,10 +306,6 @@ userProfileImgWidth = 350
 # The height of rendered user profile images (currently only includes bounty hunter XP info)
 userProfileImgHeight = 35
 
-# Name of the user profile background image to display by default
-# defaultUserProfileBackground = "aperture"
-
-userProfileFont = "user-profile-font.ttf"
 userProfileFontSize = 16
 userProfileLevelColour = (255, 255, 255)
 userProfileDivisionColour = (255, 255, 255)
@@ -315,15 +329,6 @@ duelLogMaxLength = 10
 # Percentage probability of a user envoking a cloak module in a given timeStep, should they have one equipped
 duelCloakChance = 20
 
-# Background images to display behind duel results. Images are selected at random. Give [] to disable
-duelResultsBackgrounds = []
-# Image to display between the background and content. Give "" to disable
-duelResultsUnderlay = ""
-# Image to display on top of all other graphics. Give "" to disable
-duelResultsOverlay = ""
-duelResultsRightWinner = ""
-duelResultsLeftWinner = ""
-duelResultsDraw = ""
 # Dimensions of the duel results image
 duelResultsImageDims = (500, 300)
 
@@ -334,8 +339,6 @@ duelResultsP1Pos = (54, 54)
 # Coordinates of the top-left corner of the player 2 profile image
 duelResultsP2Pos = (304, 54)
 
-# Font to use for duel statistics, e.g time to kill
-duelResultsFont = "duel-results-font.ttf"
 duelResultsNameFontSize = 16
 duelResultsStatsFontSize = 12
 duelResultsNameFontColour = "white"
@@ -389,16 +392,6 @@ maxBountiesPerDivision = 5
 
 # can be "fixed" or "random"
 newBountyDelayType = "random-routeScale"
-
-### Fixed delay config
-# only spawn bounties at this time of day.
-newBountyFixedDailyTime = {"hours": 18, "minutes": 40, "seconds": 0}
-
-# time to wait inbetween spawning bounties
-# when using fixed-routeScale generation, use this for bounties of route length 1
-newBountyFixedDelta = {"days": 0, "hours": 0, "minutes": 1, "seconds": 0}
-
-### random delay config
 
 ### routeScale config
 newBountyDelayRouteScaleCoefficient = 1

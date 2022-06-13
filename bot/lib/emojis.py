@@ -3,7 +3,9 @@ import emoji # type: ignore[import]
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from carica import ISerializable, PrimativeType, SerializableType # type: ignore[import]
+from ..baseClasses.serializable import Serializable
+from ..baseClasses.simpleHash import simpleHash
+from carica import PrimativeType, SerializableType # type: ignore[import]
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
@@ -60,7 +62,7 @@ def strIsCustomEmoji(s: str) -> bool:
 T = TypeVar("T")
 
 
-class IBasedEmoji(ISerializable, ABC):
+class IBasedEmoji(Serializable, ABC):
     """An interface to unify over BasedEmoji and UninitializedBasedEmoji.
     """
     def __init__(self) -> None:
@@ -178,6 +180,8 @@ class IBasedEmoji(ISerializable, ABC):
         raise ValueError(f"Cannot extend the contents of a {type(self).__name__}")
 
 
+'https://stackoverflow.com/a/53519136'
+@simpleHash
 class BasedEmoji(IBasedEmoji):
     """A class that really shouldnt be necessary, acting as a union over the str (unicode) and Emoji type emojis used
     and returned by discord. To instance this class, provide exactly one of the constructor's keyword arguments.
@@ -300,7 +304,7 @@ class BasedEmoji(IBasedEmoji):
         :return: A new BasedEmoji object as described in emojiDict
         :rtype: BasedEmoji
         """
-        if isinstance(emojiDict) == BasedEmoji:
+        if isinstance(emojiDict, BasedEmoji):
             return emojiDict
         if "id" in emojiDict:
             return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
@@ -378,7 +382,7 @@ class BasedEmoji(IBasedEmoji):
         if isinstance(s, BasedEmoji):
             return s
         elif isinstance(s, dict):
-            return BasedEmoji.fromDict(s, rejectInvalid=rejectInvalid)
+            return BasedEmoji.deserialize(s, rejectInvalid=rejectInvalid)
         elif isinstance(s, str):
             if strIsUnicodeEmoji(s):
                 return BasedEmoji(unicode=s, rejectInvalid=rejectInvalid)

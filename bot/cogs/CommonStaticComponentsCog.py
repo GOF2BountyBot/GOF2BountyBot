@@ -29,9 +29,12 @@ class CommonStaticComponentsCog(BasedCog):
         embed = message.embeds[0] if message.embeds else None
 
         await interaction.response.edit_message(content="sent!", view=None)
-        if lib.discordUtil.embedEmpty(embed):
-            embed.description = ZWSP
-        await interaction.channel.send(content=message.content, embed=embed)
+        if embed is not None:
+            if lib.discordUtil.embedEmpty(embed):
+                embed.description = ZWSP
+            await interaction.channel.send(content=message.content, embed=embed)
+        else:
+            await interaction.channel.send(content=message.content)
         await self.clearViewFromMessage(interaction)
 
 

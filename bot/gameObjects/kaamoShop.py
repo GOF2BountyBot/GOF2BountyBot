@@ -305,7 +305,7 @@ class KaamoShop(guildShop.GuildShop):
 
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts and current stocks.
         :return: A dictionary containing all information needed to reconstruct this shop object
@@ -321,9 +321,9 @@ class KaamoShop(guildShop.GuildShop):
 
             for currentItem in currentStock.keys:
                 if currentItem in currentStock.items:
-                    stockDict.append(currentStock.items[currentItem].toDict(**kwargs))
+                    stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
                 else:
-                    botState.logger.log("kaamoShop", "toDict",
+                    botState.client.logger.log("kaamoShop", "serialize",
                                         f"Failed to save invalid {invType} key '{currentItem}' - not found in items dict",
                                         category="shop", eventType="UNKWN_KEY")
 
@@ -333,8 +333,8 @@ class KaamoShop(guildShop.GuildShop):
 
 
     @classmethod
-    def fromDict(cls, shopDict : dict, **kwargs) -> KaamoShop:
-        """Recreate a bbShop instance from its dictionary-serialized representation - the opposite of bbShop.toDict
+    def deserialize(cls, shopDict : dict, **kwargs) -> KaamoShop:
+        """Recreate a bbShop instance from its dictionary-serialized representation - the opposite of bbShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new bbShop object as described by shopDict
@@ -346,11 +346,11 @@ class KaamoShop(guildShop.GuildShop):
         turretsStock = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
         toolsStock = inventory.TypeRestrictedInventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship.fromDict),
-                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon.fromDict),
-                                        ("modulesStock", modulesStock, moduleItemFactory.fromDict),
-                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon.fromDict),
-                                        ("toolsStock", toolsStock, toolItemFactory.fromDict)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship.deserialize),
+                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon.deserialize),
+                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
+                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon.deserialize),
+                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
                     stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])

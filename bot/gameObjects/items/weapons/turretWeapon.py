@@ -11,9 +11,9 @@ class TurretWeapon(Weapon):
     """
 
     @classmethod
-    def fromDict(cls, turretDict : dict, **kwargs) -> TurretWeapon:
+    def deserialize(cls, turretDict : dict, **kwargs) -> TurretWeapon:
         """Factory function constructing a new turretWeapon object from a dictionary serialised representation -
-        the opposite of turretWeapon.toDict.
+        the opposite of turretWeapon.serialize.
 
         :param dict turretDict: A dictionary containing all information needed to construct the desired turretWeapon
         :return: A new turretWeapon object as described in turretDict

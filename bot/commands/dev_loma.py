@@ -18,7 +18,7 @@ async def dev_cmd_loma_give(message : discord.Message, args : str, isDM : bool):
     """developer command spawning the described item, and placing it in the given user's loma shop.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
-    item must be a json format description in line with the item's to and fromDict functions.
+    item must be a json format description in line with the item's to and deserialize functions.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
@@ -28,13 +28,13 @@ async def dev_cmd_loma_give(message : discord.Message, args : str, isDM : bool):
     requestedUser: BasedUser = None
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
-        requestedUser = botState.usersDB.getOrAddID(message.author.id)
+        requestedUser = botState.client.usersDB.getOrAddID(message.author.id)
         itemStr = args
 
     # otherwise get the specified user's bb object
     # [!] no validation is done.
     else:
-        requestedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+        requestedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
         itemStr = args[len(argsSplit[0]) + 1:]
 
     itemType = itemStr.split(" ")[0].lower()
@@ -72,7 +72,7 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
     item number must be a number as shown in dev_cmd_debug_loma
-    item discount must be a json format description in line with ItemDiscount.fromDict.
+    item discount must be a json format description in line with ItemDiscount.deserialize.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
@@ -82,13 +82,13 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
     requestedUser: BasedUser = None
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
-        requestedUser = botState.usersDB.getOrAddID(message.author.id)
+        requestedUser = botState.client.usersDB.getOrAddID(message.author.id)
         itemStr = args
 
     # otherwise get the specified user's bb object
     # [!] no validation is done.
     else:
-        requestedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+        requestedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
         itemStr = args[len(argsSplit[0]) + 1:]
 
     if requestedUser.loma is None or requestedUser.loma.isEmpty():
@@ -111,10 +111,10 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
         await message.reply(f":x: The doesn't have any {itemType}s!")
         return
 
-    newDiscount = ItemDiscount.fromDict(discountDict)
+    newDiscount = ItemDiscount.deserialize(discountDict)
     itemListing.pushDiscount(newDiscount)
 
-    await message.channel.send(f":white_check_mark: Given one '{newDiscount.toDict()}' to **" \
+    await message.channel.send(f":white_check_mark: Given one '{newDiscount.serialize()}' to **" \
                                 + lib.discordUtil.userOrMemberName(botState.client.get_user(requestedUser.id),
                                                                     message.guild) + "**, for their " \
                                 + itemListing.item.name + ".")
@@ -138,11 +138,11 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
         await message.author.send(":x: Unrecognised user!")
         return
 
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         await message.author.send("User has not played yet!")
         return
 
-    requestedBBUser: BasedUser = botState.usersDB.getUser(requestedUser.id)
+    requestedBBUser: BasedUser = botState.client.usersDB.getUser(requestedUser.id)
     if requestedBBUser.loma is None:
         await message.author.send(":x: The requested pilot has no loma!")
         return
@@ -175,7 +175,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
                 currentItem = currentStock[itemNum - 1].item
             except KeyError:
                 try:
-                    botState.logger.log("dev_loma", "dev_cmd_debug_loma",
+                    botState.client.logger.log("dev_loma", "dev_cmd_debug_loma",
                                         "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                             + "' (index " + str(itemNum-1) \
                                             + "), which was not found in the shop stock",
@@ -186,7 +186,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
                     keysStr = ""
                     for item in currentStock.items:
                         keysStr += str(item) + ", "
-                    botState.logger.log("dev_loma", "dev_cmd_debug_loma",
+                    botState.client.logger.log("dev_loma", "dev_cmd_debug_loma",
                                         "Unexpected type in " + currentItemType + "sStock KEYS, index " \
                                             + str(itemNum-1) + ". Got " \
                                             + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
@@ -240,7 +240,7 @@ async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bo
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
@@ -260,7 +260,7 @@ async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bo
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
         return
-    requestedBBUser: BasedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+    requestedBBUser: BasedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
     if requestedUser is None:
@@ -359,7 +359,7 @@ async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM 
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
         await message.channel.send(":x: Not enough arguments! Please provide a user, an item type " \
@@ -378,7 +378,7 @@ async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM 
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
         return
-    requestedBBUser: BasedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+    requestedBBUser: BasedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
     if requestedUser is None:
@@ -488,7 +488,7 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 4:
@@ -510,7 +510,7 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
         return
-    requestedBBUser: BasedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+    requestedBBUser: BasedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
     if requestedUser is None:
@@ -602,7 +602,7 @@ async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM 
     else:
         itemName = requestedItem.name + "\n" + requestedItem.statsStringShort()
 
-    await message.channel.send(f":white_check_mark: Discount '{discountObj.toDict()}' from " \
+    await message.channel.send(f":white_check_mark: Discount '{discountObj.serialize()}' from " \
                                 + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
                                 + "'s loma: " + itemName, embed=itemEmbed)
     lomaItemStock.removeItem(requestedItem)

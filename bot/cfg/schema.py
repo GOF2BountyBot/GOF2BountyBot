@@ -1,9 +1,57 @@
 from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath # type: ignore[import]
 from dataclasses import dataclass
 import os
-from typing import Dict, List, Set, Tuple, Union, Any, cast
+from typing import Dict, List, Set, Tuple, TypeVar, Union, Any, cast
+from pathlib import PosixPath, WindowsPath, Path
 
 from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
+
+
+class UnpackableSerializableTimedelta(SerializableTimedelta):
+    def keys(self):
+        return ["weeks", "days", "hours", "minutes", "seconds", "milliseconds", "microseconds"]
+
+    def __getitem__(self, key):
+        return self.serialize()[key]
+
+T = TypeVar("T", bound=Path)
+
+class ConcatenatableSerializablePath(SerializablePath):
+    def __new__(cls, *args, **kwargs):
+        if cls is ConcatenatableSerializablePath:
+            cls = ConcatenatableSerializableWindowsPath if os.name == 'nt' else ConcatenatableSerializablePosixPath
+        self = cls._from_parts(args, init=False)
+        if not self._flavour.is_supported:
+            raise NotImplementedError("cannot instantiate %r on your system"
+                                      % (cls.__name__,))
+        self._init()
+        return self
+
+    def __add__(self, o: T) -> Union[T, str]:
+        if isinstance(o, Path):
+            return self.joinpath(o)
+        elif isinstance(o, str):
+            return str(self) + o
+        raise TypeError(f"Can only add Path or str to {type(self).__name__}, not {type(o).__name__}")
+
+
+    def __radd__(self, o: T) -> Union[T, str]:
+        if isinstance(o, Path):
+            return o.joinpath(self)
+        elif isinstance(o, str):
+            return o + str(self)
+        raise TypeError(f"Can only add Path or str to {type(self).__name__}, not {type(o).__name__}")
+
+
+    def __iadd__(self, o: T):
+        raise ValueError(f"Cannot extend the contents of a {type(self).__name__}")
+
+class ConcatenatableSerializableWindowsPath(ConcatenatableSerializablePath, WindowsPath):
+    pass
+
+class ConcatenatableSerializablePosixPath(ConcatenatableSerializablePath, PosixPath):
+    pass
+
 
 EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
@@ -84,87 +132,126 @@ class EmojisConfig(SerializableDataClass):
 
 @dataclass
 class TimeoutsConfig(SerializableDataClass):
-    helpMenu: SerializableTimedelta
-    BASED_updateCheckFrequency: SerializableTimedelta
-    dataSaveFrequency: SerializableTimedelta
+    helpMenu: UnpackableSerializableTimedelta
+    BASED_updateCheckFrequency: UnpackableSerializableTimedelta
+    dataSaveFrequency: UnpackableSerializableTimedelta
 
     # Amount of time before a duel request expires
-    duelRequest: SerializableTimedelta
+    duelRequest: UnpackableSerializableTimedelta
 
     # Amount of time to wait between refreshing stock of all shops
-    shopRefresh: SerializableTimedelta
+    shopRefresh: UnpackableSerializableTimedelta
 
     # time to put users on cooldown between using !bb check
-    checkCooldown: SerializableTimedelta
+    checkCooldown: UnpackableSerializableTimedelta
 
     # Default amount of time reaction menus should be active for
-    roleMenuExpiry: SerializableTimedelta
-    duelChallengeMenuExpiry: SerializableTimedelta
-    pollMenuExpiry: SerializableTimedelta
+    roleMenuExpiry: UnpackableSerializableTimedelta
+    duelChallengeMenuExpiry: UnpackableSerializableTimedelta
+    pollMenuExpiry: UnpackableSerializableTimedelta
 
     # The time between decrements to the guild activity temperatures of each tech level
-    guildActivityDecay: SerializableTimedelta
+    guildActivityDecay: UnpackableSerializableTimedelta
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    newBountyDelayRandomMin: SerializableTimedelta
-    newBountyDelayRandomMax: SerializableTimedelta
+    newBountyDelayRandomMin: UnpackableSerializableTimedelta
+    newBountyDelayRandomMax: UnpackableSerializableTimedelta
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    githubIssueSubmitDelay: SerializableTimedelta
+    githubIssueSubmitDelay: UnpackableSerializableTimedelta
 
     # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
-    selectImageSizeHandling: SerializableTimedelta
+    selectImageSizeHandling: UnpackableSerializableTimedelta
 
-    toggleClassicMode: SerializableTimedelta
+    toggleClassicMode: UnpackableSerializableTimedelta
+
+    # The termination signal checking period.
+    shutdownCheckPeriod: UnpackableSerializableTimedelta
+
+    # The cooldown between uses of the transfer command.
+    homeGuildTransferCooldown: UnpackableSerializableTimedelta
+
+    # time to wait inbetween spawning bounties, when newBountyDelayType starts with 'fixed'
+    # when using fixed-routeScale generation, use this for bounties of route length 1
+    newBountyFixedDelta: UnpackableSerializableTimedelta
+
+
+def _fixPath(val: str) -> str:
+    # Normalize path
+    normalized = os.path.normpath(val)
+    
+    # If the path is a file, get the path to the parent directory
+    pathSplit = os.path.splitext(normalized)
+    pathDir = os.path.dirname(pathSplit[0]) if pathSplit[1] else pathSplit[0]
+    
+    # Create missing directories
+    if pathDir and not os.path.isdir(pathDir):
+        os.makedirs(pathDir)
+
+    return normalized
 
 
 @dataclass
 class PathsConfig(SerializableDataClass):
     # path to JSON files for database saves
-    usersDB: SerializablePath
-    guildsDB: SerializablePath
-    reactionMenusDB: SerializablePath
+    usersDB: ConcatenatableSerializablePath
+    guildsDB: ConcatenatableSerializablePath
+    reactionMenusDB: ConcatenatableSerializablePath
     # path to folder to save log txts to
-    logsFolder: SerializablePath
+    logsFolder: ConcatenatableSerializablePath
 
     # folders containing game objects to load into the game
-    CriminalMETAFolder: SerializablePath
-    shipSkinMETAFolder: SerializablePath
-    bbShipUpgradesMETAFolder: SerializablePath
-    SolarSystemMETAFolder: SerializablePath
-    bbCommodityMETAFolder: SerializablePath
-    bbModuleMETAFolder: SerializablePath
-    bbSecondaryMETAFolder: SerializablePath
-    bbShipMETAFolder: SerializablePath
-    bbWeaponMETAFolder: SerializablePath
-    bbTurretMETAFolder: SerializablePath
-    bbToolMETAFolder: SerializablePath
-    bbMedalsMETAFolder: SerializablePath
+    CriminalMETAFolder: ConcatenatableSerializablePath
+    shipSkinMETAFolder: ConcatenatableSerializablePath
+    bbShipUpgradesMETAFolder: ConcatenatableSerializablePath
+    SolarSystemMETAFolder: ConcatenatableSerializablePath
+    bbCommodityMETAFolder: ConcatenatableSerializablePath
+    bbModuleMETAFolder: ConcatenatableSerializablePath
+    bbSecondaryMETAFolder: ConcatenatableSerializablePath
+    bbShipMETAFolder: ConcatenatableSerializablePath
+    bbWeaponMETAFolder: ConcatenatableSerializablePath
+    bbTurretMETAFolder: ConcatenatableSerializablePath
+    bbToolMETAFolder: ConcatenatableSerializablePath
+    bbMedalsMETAFolder: ConcatenatableSerializablePath
     
     # Temporary folder for autoskin renders
-    tempRenders: SerializablePath
+    tempRenders: ConcatenatableSerializablePath
     
     # snowball images to use in ThrowSnowballTool
-    snowballImages: SerializablePath
+    snowballImages: ConcatenatableSerializablePath
     
     # map image used in bounty route renders
-    mapImage: SerializablePath
+    mapImage: ConcatenatableSerializablePath
+
+    # The image to display behind the XP bar during cmd_stats
+    userProfileBackground: ConcatenatableSerializablePath
+
+    # Font to use for user profiles in the stats command.
+    userProfileFont: ConcatenatableSerializablePath
+
+    # Background images to display behind duel results. Images are selected at random. Give [] to disable
+    duelResultsBackgrounds: List[ConcatenatableSerializablePath]
+    # Image to display between the background and content. Give "" to disable
+    duelResultsUnderlay: ConcatenatableSerializablePath
+    # Image to display on top of all other graphics. Give "" to disable
+    duelResultsOverlay: ConcatenatableSerializablePath
+    duelResultsRightWinner: ConcatenatableSerializablePath
+    duelResultsLeftWinner: ConcatenatableSerializablePath
+    duelResultsDraw: ConcatenatableSerializablePath
+
+    # Font to use for duel statistics, e.g time to kill
+    duelResultsFont: ConcatenatableSerializablePath
+
 
     def createMissingDirectories(self):
         # Normalize all paths and create missing directories
-        for varname in self._fieldNames():
-            # Normalize path
-            normalized = os.path.normpath(getattr(self, varname))
-            setattr(self, varname, normalized)
-            
-            # If the path is a file, get the path to the parent directory
-            pathSplit = os.path.splitext(normalized)
-            pathDir = os.path.dirname(pathSplit[0]) if pathSplit[1] else pathSplit[0]
-            
-            # Create missing directories
-            if pathDir and not os.path.isdir(pathDir):
-                os.makedirs(pathDir)
+        for varname, varvalue in self._fieldItems().items():
+            if isinstance(varvalue, Path):
+                newVal = _fixPath()
+            elif isinstance(varvalue, list):
+                newVal = [_fixPath(p) for p in varvalue]
+            setattr(self, varname, newVal)
 
 
 @dataclass

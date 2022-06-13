@@ -105,11 +105,11 @@ class ModuleItem(GameItem):
         return statsStr if len(statsStr) > 1 else "*No effect*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this moduleItem into dictionary format, for saving to file.
         This method should be overriden and used as a base in any modules that implement
         custom behaviour, outside of simple stat boosts.
-        For an example of using this toDict implementation as a base for an overridden implementation,
+        For an example of using this serialize implementation as a base for an overridden implementation,
         please see a moduleItem class (e.g bbMiningDrillModule.py)
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -120,7 +120,7 @@ class ModuleItem(GameItem):
         if "saveType" not in kwargs:
             kwargs["saveType"] = True
 
-        itemDict = super(ModuleItem, self).toDict(**kwargs)
+        itemDict = super(ModuleItem, self).serialize(**kwargs)
 
         if not self.builtIn:
             additiveStats = {   "armour": self.armour, "shield": self.shield, "dps": self.dps,
@@ -139,10 +139,10 @@ class ModuleItem(GameItem):
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict : dict, **kwargs):
         """Factory function constructing a new moduleItem object from a dictionary serialised
-        representation - the opposite of moduleItem.toDict. This generic module factory function is unlikely
-        to ever be called, your module type-specific fromDict should be used instead. Except of course, in the
+        representation - the opposite of moduleItem.serialize. This generic module factory function is unlikely
+        to ever be called, your module type-specific deserialize should be used instead. Except of course, in the
         case of custom-spawned, custom-typed modules which do not correspond to a BountyBot-known module type.
 
         :param dict moduleDict: A dictionary containing all information needed to construct the desired moduleItem

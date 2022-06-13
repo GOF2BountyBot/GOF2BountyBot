@@ -5,7 +5,7 @@ _idToIndex: Dict[str, int] = {c: i for i, c in enumerate(string.printable)}
 _indexToID: Dict[int, str] = {i: c for c, i in _idToIndex.items()}
 _numChars = len(_idToIndex)
 
-def _idCharToIndex(c: str, exclusions: List[str] = None) -> int:
+def _idCharToIndex(c: str, exclusions: Union[str, List[str]] = None) -> int:
     v = _idToIndex[c]
     if exclusions:
         if c in exclusions:
@@ -14,7 +14,7 @@ def _idCharToIndex(c: str, exclusions: List[str] = None) -> int:
     return v
 
 
-def _indexToCharID(i: int, exclusions: List[str] = None) -> str:
+def _indexToCharID(i: int, exclusions: Union[str, List[str]] = None) -> str:
     if exclusions is not None:
         i -= sum(1 for c in exclusions if _idToIndex[c] < i)
     v = _indexToID.get(i, None)
@@ -23,7 +23,7 @@ def _indexToCharID(i: int, exclusions: List[str] = None) -> str:
     return v
 
 
-def idToIndex(ID: str, exclusions: List[str] = None) -> int:
+def idToIndex(ID: str, exclusions: Union[str, List[str]] = None) -> int:
     """Convert a compacted ID from `indexToID` back into the original number.
     This method effectively converts `i` to a higher base, but allows for exclusions of characters
     from the alphabet.
@@ -50,7 +50,7 @@ def idToIndex(ID: str, exclusions: List[str] = None) -> int:
     return v
 
 
-def indexToID(i: int, pad: int = None, exclusions: List[str] = None) -> str:
+def indexToID(i: int, pad: int = None, exclusions: Union[str, List[str]] = None) -> str:
     """Compact a number into a much smaller string ID. This method effectively
     converts `i` to a higher base, but allows for exclusions of characters from the alphabet.
 

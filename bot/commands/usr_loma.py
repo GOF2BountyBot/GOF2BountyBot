@@ -19,16 +19,16 @@ async def cmd_loma_buy(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if not botState.usersDB.idExists(message.author.id):
+    if not botState.client.usersDB.idExists(message.author.id):
         await message.channel.send("The Loma pirates do not have any items to sell!")
         return
 
-    requestedBUser: BasedUser = botState.usersDB.getUser(message.author.id)
+    requestedBUser: BasedUser = botState.client.usersDB.getUser(message.author.id)
     if requestedBUser.loma is None or requestedBUser.loma.isEmpty():
         await message.channel.send("The Loma pirates do not have any items to sell!")
         return
 
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
@@ -97,7 +97,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
     :param str args: either empty string, or one of bbConfig.validItemNames
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     if args.startswith("buy"):
         await cmd_loma_buy(message, args[4:].lstrip(" "), isDM)
         return
@@ -116,7 +116,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
 
     sendChannel = None
     sendDM = False
-    callingBBUser: BasedUser = botState.usersDB.getOrAddID(message.author.id)
+    callingBBUser: BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
 
     if item == "all":
         if message.author.dm_channel is None:
@@ -150,7 +150,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
                         currentItem = currentStock[itemNum - 1].item
                     except KeyError:
                         try:
-                            botState.logger.log("Main", "cmd_loma",
+                            botState.client.logger.log("Main", "cmd_loma",
                                                 "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                                     + "' (index " + str(itemNum-1) \
                                                     + "), which was not found in the shop stock",
@@ -161,7 +161,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
                             keysStr = ""
                             for item in currentStock.items:
                                 keysStr += str(item) + ", "
-                            botState.logger.log("Main", "cmd_loma",
+                            botState.client.logger.log("Main", "cmd_loma",
                                                 "Unexpected type in " + currentItemType + "sStock KEYS, index " \
                                                     + str(itemNum-1) + ". Got " \
                                                     + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \

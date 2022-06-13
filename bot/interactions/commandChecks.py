@@ -4,7 +4,7 @@ from ..cfg import cfg
 from . import accessLevels
 
 
-async def _checkLevel(level: "accessLevels._AccessLevelBase", interaction: Interaction) -> bool:
+async def _checkLevel(level: Type["accessLevels._AccessLevelBase"], interaction: Interaction) -> bool:
     return await level.userHasAccess(interaction) \
             if issubclass(level, accessLevels.AccessLevelAsync) \
             else level.userHasAccess(interaction)
@@ -23,7 +23,7 @@ async def inferUserPermissions(interaction: Interaction) -> Type["accessLevels._
     return accessLevels.defaultAccessLevel()
 
 
-def accessLevelSufficient(current: "accessLevels._AccessLevelBase", required: "accessLevels._AccessLevelBase") -> bool:
+def accessLevelSufficient(current: Type["accessLevels._AccessLevelBase"], required: Type["accessLevels._AccessLevelBase"]) -> bool:
     """Decide whether an access level is at least as high in the heirarchy as another
 
     :param current: The 'owned' access level
@@ -36,7 +36,7 @@ def accessLevelSufficient(current: "accessLevels._AccessLevelBase", required: "a
     return current._intLevel() >= required._intLevel()
 
 
-async def userHasAccess(interaction: Interaction, level: "accessLevels._AccessLevelBase") -> bool:
+async def userHasAccess(interaction: Interaction, level: Type["accessLevels._AccessLevelBase"]) -> bool:
     return accessLevelSufficient(await inferUserPermissions(interaction), level)
 
 

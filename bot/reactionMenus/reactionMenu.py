@@ -11,7 +11,7 @@ from .. import botState, lib
 from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Type, Union, Dict, List, cast
 import asyncio
-from carica import ISerializable # type: ignore[import]
+from ..baseClasses.serializable import Serializable
 from . import expiryFunctions
 
 
@@ -23,7 +23,7 @@ MenuOptionCallbackType = Union[Callable[[], Any], Callable[[Any], Any], Callable
                                 Callable[[Any, _DCUserUnion], Awaitable[Any]]]
 
 
-class ReactionMenuOption(ISerializable):
+class ReactionMenuOption(Serializable):
     """An abstract class representing an option in a reaction menu.
     Reaction menu options must have a name and emoji. They may optionally have a function to call when added,
     a function to call when removed, and arguments for each.
@@ -245,10 +245,10 @@ class DummyReactionMenuOption(ReactionMenuOption):
         :return: A new DummyReactionMenuOption as described by `data`
         :rtype: DummyReactionMenuOption
         """
-        return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.fromDict(data["emoji"], **kwargs))
+        return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.deserialize(data["emoji"], **kwargs))
 
 
-class ReactionMenu(ISerializable):
+class ReactionMenu(Serializable):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
     ReactionMenu need only be extended in the following cases:
@@ -732,7 +732,7 @@ def isSaveableMenuTypeName(clsName: str) -> bool:
     return clsName in saveableNameMenuTypes
 
 
-def saveableMenuClassFromName(clsName: str) -> Type[ISerializable]:
+def saveableMenuClassFromName(clsName: str) -> Type["ReactionMenu"]:
     """Retreive the saveable ReactionMenu subclass that as the given class name.
     clsName must correspond to a ReactionMenu subclass that has been registered as saveble with the saveableMenu decorator.
 
@@ -764,14 +764,14 @@ class DummySingleUserReactionMenu(SingleUserReactionMenu):
 
 
     # @classmethod
-    # def fromDict(cls, data: dict, msg: Message = None, **kwargs) -> "DummySingleUserReactionMenu":
+    # def deserialize(cls, data: dict, msg: Message = None, **kwargs) -> "DummySingleUserReactionMenu":
     #     if msg is None:
     #         raise ValueError("Required argument not given: msg")
         
     #     options = {}
     #     for e, n in data.get("options", {}).items():
-    #         emoji = lib.emojis.BasedEmoji.fromDict(e)
-    #         options[emoji] = DummyReactionMenuOption.fromDict(n)
+    #         emoji = lib.emojis.BasedEmoji.deserialize(e)
+    #         options[emoji] = DummyReactionMenuOption.deserialize(n)
 
     #     return DummySingleUserReactionMenu(msg, options, activeTime = timedelta(seconds=data["timeout"]),
     #             options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],

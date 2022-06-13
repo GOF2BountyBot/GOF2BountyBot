@@ -53,7 +53,7 @@ class Criminal(aliasable.Aliasable):
         self.builtIn = builtIn
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this criminal into dictionary format, for saving to file.
 
         :return: A dictionary containing all data necessary to replicate this object
@@ -67,7 +67,7 @@ class Criminal(aliasable.Aliasable):
 
 
     @classmethod
-    def fromDict(cls, crimDict : dict, **kwargs) -> Criminal:
+    def deserialize(cls, crimDict : dict, **kwargs) -> Criminal:
         """Factory function that will either provide a reference to a builtIn criminal if a builtIn criminal is requested,
         or construct a new criminal object from the provided data.
 

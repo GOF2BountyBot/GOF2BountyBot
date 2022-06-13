@@ -1,7 +1,7 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Tuple, Type, Union, overload
+from typing import List, Optional, Dict, Tuple, Type, Union, cast, overload
 import aiohttp
 import discord # type: ignore[import]
 from discord import app_commands, TextChannel
@@ -18,6 +18,8 @@ from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
+from .users.basedGuild import BasedGuild
+from .cfg import gameConfigurator
 from github import Github
 from github.Repository import Repository
 
@@ -87,6 +89,7 @@ def waitBeforeStartingTask(task: tasks.Loop):
     
     task.before_loop(inner)
     return task
+
 
 class BasedClient(ClientBaseClass):
     """A minor extension to discord.ext.commands.Bot to include database saving and extended shutdown procedures.
@@ -410,7 +413,7 @@ class BasedClient(ClientBaseClass):
 
 
     @property
-    def reactionMenusDB(self):
+    def reactionMenusDB(self) -> reactionMenuDB.ReactionMenuDB:
         """The bot's database of reaction menus.
         Databases are only available after on_ready.
 
@@ -420,7 +423,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return self._reactionMenusDB
+        return cast(reactionMenuDB.ReactionMenuDB, self._reactionMenusDB)
 
 
     @property
@@ -488,7 +491,8 @@ class BasedClient(ClientBaseClass):
         self._guildsDB = loadGuildsDB(cfg.paths.guildsDB)
         async for guild in self.fetch_guilds(limit=None):
             if not self._guildsDB.idExists(guild.id):
-                self._guildsDB.addID(guild.id)
+                newGuild = BasedGuild.deserialize({}, guildID=guild.id)
+                self._guildsDB.addBasedGuild(newGuild)
                 
         print(f"{len(self._guildsDB.guilds)} guilds loaded")
 
@@ -544,7 +548,7 @@ class BasedClient(ClientBaseClass):
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
 
 
-    @tasks.loop(seconds=cfg.shutdownCheckPeriodSeconds)
+    @tasks.loop(seconds=cfg.timeouts.shutdownCheckPeriod.total_seconds())
     async def shutdownCheckTask(self):
         if self.killer.kill_now:
             print("begin shutdown...")
@@ -567,6 +571,11 @@ class BasedClient(ClientBaseClass):
 
     
     async def _asyncInit(self, dispatchReady: bool = True, *args, **kwargs):
+        ##### GAME OBJECTS LOADING #####
+
+        gameConfigurator.loadAllGameObjectData()
+        gameConfigurator.loadAllGameObjects()
+
         mediaServer = self.get_guild(cfg.mediaServer)
         self._skinStorageChannel = mediaServer.get_channel(cfg.skinRendersChannel)
         self._bountyRouteImagesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
