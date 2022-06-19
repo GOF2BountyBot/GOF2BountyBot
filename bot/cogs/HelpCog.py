@@ -69,7 +69,7 @@ def commandDescription(command: Union[app_commands.Command, app_commands.Group],
     if not meta.formattedDesc:
         d = command.description or \
         (command.callback.__doc__ if isinstance(command, app_commands.Command) else command.__doc__)
-        return d if d != "…" else "(description missing)"
+        return d if d != "…" and d is not None else "(description missing)"
     return meta.formattedDesc 
 
 
@@ -78,7 +78,7 @@ def commandDescriptionAndParameters(command: Union[app_commands.Command, app_com
     return commandDescription(command, meta) + (f"\n\n{params}" if params else "")
 
 
-def packHelpPageArgs(showAll: bool, category: str = None, pageNum: int = None, accessLevelNum: int = None) -> str:
+def packHelpPageArgs(showAll: bool, category: Optional[str] = None, pageNum: Optional[int] = None, accessLevelNum: Optional[int] = None) -> str:
     return HELP_CUSTOMID_ARGS_SEPARATOR.join((
         category or "",
         str(lib.ids.indexToID(pageNum, pad=HELP_CUSTOMID_PAGE_ID_MAX_LENGTH, exclusions=HELP_CUSTOMID_ARGS_SEPARATOR)) if pageNum is not None else "",
