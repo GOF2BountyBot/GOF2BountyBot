@@ -6,7 +6,7 @@ from typing import Any, List, Dict, Union, cast
 from aiohttp import client_exceptions
 import random
 
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
@@ -77,7 +77,7 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     return e
 
 
-class BasedGuild(Serializable):
+class BasedGuild(SerializesToJson):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -832,7 +832,7 @@ class BasedGuild(Serializable):
                                     eventType="PLCH_NONE")
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
@@ -859,7 +859,7 @@ class BasedGuild(Serializable):
 
 
     @classmethod
-    def deserialize(cls, guildDict: dict, dbReload=False, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: JsonType, dbReload=False, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
         in the provided guildDict - the opposite of BasedGuild.serialize
 

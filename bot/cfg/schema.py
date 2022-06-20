@@ -1,10 +1,11 @@
-from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath # type: ignore[import]
+from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath
+from carica.typeChecking import TypeOverride
 from dataclasses import dataclass
 import os
 from typing import Dict, List, Set, Tuple, TypeVar, Union, Any, cast
 from pathlib import PosixPath, WindowsPath, Path
 
-from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji
+from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
 
 
 class UnpackableSerializableTimedelta(SerializableTimedelta):
@@ -43,7 +44,7 @@ class ConcatenatableSerializablePath(SerializablePath):
         raise TypeError(f"Can only add Path or str to {type(self).__name__}, not {type(o).__name__}")
 
 
-    def __iadd__(self, o: T):
+    def __iadd__(self, o: T) -> T:
         raise ValueError(f"Cannot extend the contents of a {type(self).__name__}")
 
 class ConcatenatableSerializableWindowsPath(ConcatenatableSerializablePath, WindowsPath):
@@ -68,58 +69,58 @@ def convertEmoji(o) -> EmojisFieldType:
 
 @dataclass
 class EmojisConfig(SerializableDataClass):
+    longProcess: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
-    unrecognisedEmoji: Union[UninitializedBasedEmoji, IBasedEmoji]
-    longProcess: Union[UninitializedBasedEmoji, IBasedEmoji]
+    unrecognisedEmoji: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent: Union[UninitializedBasedEmoji, IBasedEmoji]
-    cancel: Union[UninitializedBasedEmoji, IBasedEmoji]
-    submit: Union[UninitializedBasedEmoji, IBasedEmoji]
-    spiral: Union[UninitializedBasedEmoji, IBasedEmoji]
-    error: Union[UninitializedBasedEmoji, IBasedEmoji]
-    accept: Union[UninitializedBasedEmoji, IBasedEmoji]
-    reject: Union[UninitializedBasedEmoji, IBasedEmoji]
-    next: Union[UninitializedBasedEmoji, IBasedEmoji]
-    previous: Union[UninitializedBasedEmoji, IBasedEmoji]
-    numbers: List[Union[UninitializedBasedEmoji, IBasedEmoji]]
+    dmSent: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    cancel: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    submit: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    spiral: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    error: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    accept: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    reject: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    next: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    previous: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    numbers: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
     # The default emojis to list in a reaction menu
-    menuOptions: List[Union[UninitializedBasedEmoji, IBasedEmoji]]
+    menuOptions: List[BasedEmoji] = TypeOverride(List[UninitializedBasedEmoji], [])
 
     # Default emoji to assign to shipSkinTool items
-    shipSkinTool: Union[UninitializedBasedEmoji, IBasedEmoji]
+    shipSkinTool: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
     # Default emoji to assign to bbCrates containing shipSkinTools
-    skinCrate: Union[UninitializedBasedEmoji, IBasedEmoji]
+    skinCrate: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
     # Default emoji to assign to all other crates
-    defaultCrate: Union[UninitializedBasedEmoji, IBasedEmoji]
+    defaultCrate: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     
     # Emoji sent with new bounty listings
-    newBounty: Union[UninitializedBasedEmoji, IBasedEmoji]
+    newBounty: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    bountyRespawn: Union[UninitializedBasedEmoji, IBasedEmoji]
+    bountyRespawn: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    newIssue: Union[UninitializedBasedEmoji, IBasedEmoji]
-    issueClosed: Union[UninitializedBasedEmoji, IBasedEmoji]
-    bug: Union[UninitializedBasedEmoji, IBasedEmoji]
-    feature: Union[UninitializedBasedEmoji, IBasedEmoji]
-    gameBalance: Union[UninitializedBasedEmoji, IBasedEmoji]
-    optimisation: Union[UninitializedBasedEmoji, IBasedEmoji]
+    newIssue: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    issueClosed: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    bug: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    feature: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    gameBalance: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    optimisation: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    cropImage: Union[UninitializedBasedEmoji, IBasedEmoji]
-    stretchImage: Union[UninitializedBasedEmoji, IBasedEmoji]
+    cropImage: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    stretchImage: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    classicMode: Union[UninitializedBasedEmoji, IBasedEmoji]
+    classicMode: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    money: Union[UninitializedBasedEmoji, IBasedEmoji]
+    money: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    rarity_common: Union[UninitializedBasedEmoji, IBasedEmoji]
-    rarity_uncommon: Union[UninitializedBasedEmoji, IBasedEmoji]
-    rarity_rare: Union[UninitializedBasedEmoji, IBasedEmoji]
-    rarity_epic: Union[UninitializedBasedEmoji, IBasedEmoji]
+    rarity_common: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    rarity_uncommon: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    rarity_rare: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    rarity_epic: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
-    divUpUnlocked: Union[UninitializedBasedEmoji, IBasedEmoji]
-    prestigeUnlocked: Union[UninitializedBasedEmoji, IBasedEmoji]
+    divUpUnlocked: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    prestigeUnlocked: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
 
 
     def initializeEmojis(self):

@@ -1,10 +1,14 @@
+import json
+from carica import SerializableType
 import json, os
-from carica import SerializableType # type: ignore[import]
-from carica.exceptions import NonSerializableObject # type: ignore[import]
-import typing
+from carica.exceptions import NonSerializableObject
+from typing import TypeVar, Type, Union
+from pathlib import Path
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
+TSelf = TypeVar("TSelf", bound=SerializesToJson)
 
-def readJSON(dbFile: str) -> dict:
+def readJSON(dbFile: Union[Path, str]) -> JsonType:
     """Read the json file with the given path, and return the contents as a dictionary.
 
     :param str dbFile: Path to the file to read
@@ -16,7 +20,7 @@ def readJSON(dbFile: str) -> dict:
     return data
 
 
-def writeJSON(dbFile: str, db: dict, prettyPrint=False):
+def writeJSON(dbFile: Union[Path, str], db: JsonType, prettyPrint=False):
     """Write the given json-serializable dictionary to the given file path.
     All objects in the dictionary must be JSON-serializable.
 
@@ -31,7 +35,10 @@ def writeJSON(dbFile: str, db: dict, prettyPrint=False):
             json.dump(db, f)
 
 
-def loadObject(filePath: str, objectType: typing.Type[SerializableType], **kwargs):
+T = TypeVar("T", bound=SerializableType)
+
+
+def loadObject(filePath: Union[Path, str], objectType: Type[T], **kwargs) -> T:
     """Read the specified JSON file, and deserialize the contents into a new instance of `objectType`.
 
     :param str filePath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
@@ -44,7 +51,7 @@ def loadObject(filePath: str, objectType: typing.Type[SerializableType], **kwarg
     return objectType.deserialize(data, **kwargs)
 
 
-def saveObject(filePath: str, o: SerializableType, **kwargs):
+def saveObject(filePath: Union[Path, str], o: SerializesToJson, **kwargs):
     """Call the given serializable object's serialize method, and save the resulting dictionary to the specified JSON file.
 
     :param str filePath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
@@ -53,25 +60,6 @@ def saveObject(filePath: str, o: SerializableType, **kwargs):
     if not isinstance(o, SerializableType):
         raise NonSerializableObject(o)
     writeJSON(filePath, o.serialize(**kwargs))
-
-
-async def _saveObjectAsync(filePath: str, o: SerializableType, **kwargs):
-    data = await o.serialize(**kwargs)
-    writeJSON(filePath, data)
-
-
-def saveObjectAsync(filePath: str, o: SerializableType, **kwargs):
-    """This function should be used in place of saveObject for objects whose serialize method is asynchronous.
-    This function is currently unused.
-
-    Await the given object's serialize method, and save the resulting dictionary to the specified JSON file.
-
-    :param str filePath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
-    :param o: the object to save
-    """
-    if not isinstance(o, SerializableType):
-        raise NonSerializableObject(o)
-    return _saveObjectAsync(filePath, o, **kwargs)
 
 
 def depthLimitedWalk(top: str, maxDepth: int):

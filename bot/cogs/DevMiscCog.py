@@ -1,7 +1,7 @@
 import traceback
 from typing import Optional, TYPE_CHECKING, Protocol, Union, List, cast
 from .. import client, lib
-from ..lib.discordUtil import ZWSP, EMPTY_IMAGE
+from ..lib.discordUtil import ZWSP, EMPTY_IMAGE, textChannel
 import discord
 from discord import Message, InteractionMessage, app_commands, Interaction, ButtonStyle, Embed, TextStyle, Colour, SelectOption, TextChannel
 from discord import HTTPException, ClientException, NotFound
@@ -13,6 +13,8 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents, staticComponentCustomId
 from ..logging import LogCategory
+
+EMBED_FIELD_INLINE_DEFAULT = "y"
 
 
 # I can't get this imported from discord, so I copy-pasted it.
@@ -30,7 +32,7 @@ class EmbedTextParams(Modal):
     colour: TextInput = TextInput(label="Colour (hex or RANDOM)", required=False, max_length=8)
     
     def __init__(self, *, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING,
-                    currentEmbed: Embed = None):
+                    currentEmbed: Optional[Embed] = None):
         super().__init__(title=title, timeout=timeout, custom_id=custom_id)
         if currentEmbed is not None:
             self.titleTxt.default = currentEmbed.title or ""
@@ -50,7 +52,7 @@ class EmbedImageParams(Modal):
     footerIcon: TextInput = TextInput(label="Footer icon", required=False, max_length=4000)
     
     def __init__(self, *, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING,
-                    currentEmbed: Embed = None):
+                    currentEmbed: Optional[Embed] = None):
         super().__init__(title=title, timeout=timeout, custom_id=custom_id)
         if currentEmbed is not None:
             self.authorIcon.default = (currentEmbed.author.icon_url or "") if currentEmbed.author is not None else ""
@@ -63,12 +65,12 @@ class EmbedImageParams(Modal):
 
 
 class EmbedFieldParams(Modal):
-    fieldName: TextInput = TextInput(label="Feld name", required=False)
-    fieldValue: TextInput = TextInput(label="Field value", required=False, style=TextStyle.paragraph)
-    fieldInline: TextInput = TextInput(label="Inline? (y/n)", required=False, max_length=1, placeholder="n")
+    fieldName = TextInput(label="Feld name", required=False)
+    fieldValue = TextInput(label="Field value", required=False, style=TextStyle.paragraph)
+    fieldInline = TextInput(label="Inline? (y/n)", required=False, max_length=1, placeholder=EMBED_FIELD_INLINE_DEFAULT)
 
     def __init__(self, *, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING,
-                        currentField: _EmbedFieldProxy = None) -> None:
+                        currentField: Optional[_EmbedFieldProxy] = None) -> None:
         super().__init__(title=title, timeout=timeout, custom_id=custom_id)
         if currentField is not None:
             self.fieldName.default = currentField.name if currentField.name != ZWSP else ""
@@ -79,35 +81,34 @@ class EmbedFieldParams(Modal):
         await interaction.response.defer(thinking=False)
 
 
-def messageEditorView(userId: Optional[Union[str, int]], embed: Embed = None) -> View:
+def messageEditorView(userId: Optional[Union[int, str]], embed: Optional[Embed] = None) -> View:
     view = View()
     _userId = "" if userId is None else str(userId)
 
-    confirmButton: Button = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 2)
-    confirmButton = StaticComponents.Clone_Message(confirmButton, args=str(_userId))
-    cancelButton: Button = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
-    cancelButton = StaticComponents.Clear_View(cancelButton, args=str(_userId))
-    view.add_item(cancelButton).add_item(confirmButton) # type: ignore
-    
+    confirmButton = Button(style=ButtonStyle.green, label="send", row=0 if embed is None else 2)
+    confirmButton = StaticComponents.Clone_Message(confirmButton, args=_userId)
+    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
+    cancelButton = StaticComponents.Clear_View(cancelButton, args=_userId)
+    view.add_item(cancelButton).add_item(confirmButton)
     if embed is not None:
-        editEmbedTextButton: Button = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
-        editEmbedTextButton = StaticComponents.User_Embed_Edit_Text(editEmbedTextButton, args=str(_userId))
+        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
+        editEmbedTextButton = StaticComponents.User_Embed_Edit_Text(editEmbedTextButton, args=_userId)
         view.add_item(editEmbedTextButton)
 
-        editEmbedImagesButton: Button = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
-        editEmbedImagesButton = StaticComponents.User_Embed_Edit_Images(editEmbedImagesButton, args=str(_userId))
+        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
+        editEmbedImagesButton = StaticComponents.User_Embed_Edit_Images(editEmbedImagesButton, args=_userId)
         view.add_item(editEmbedImagesButton)
 
-        addFieldButton: Button = Button(style=ButtonStyle.blurple, label="add embed field", row=1)
-        addFieldButton = StaticComponents.User_Embed_Add_Field(addFieldButton, args=str(_userId))
+        addFieldButton = Button(style=ButtonStyle.blurple, label="add embed field", row=1)
+        addFieldButton = StaticComponents.User_Embed_Add_Field(addFieldButton, args=_userId)
         view.add_item(addFieldButton)
 
-        removeFieldButton: Button = Button(style=ButtonStyle.blurple, label="remove embed field", row=1)
-        removeFieldButton = StaticComponents.User_Embed_Remove_Field_Select(removeFieldButton, args=str(_userId))
+        removeFieldButton = Button(style=ButtonStyle.blurple, label="remove embed field", row=1)
+        removeFieldButton = StaticComponents.User_Embed_Remove_Field_Select(removeFieldButton, args=_userId)
         view.add_item(removeFieldButton)
 
-        editFieldButton: Button = Button(style=ButtonStyle.blurple, label="edit embed field", row=1)
-        editFieldButton = StaticComponents.User_Embed_Edit_Field_Select(editFieldButton, args=str(_userId))
+        editFieldButton = Button(style=ButtonStyle.blurple, label="edit embed field", row=1)
+        editFieldButton = StaticComponents.User_Embed_Edit_Field_Select(editFieldButton, args=_userId)
         view.add_item(editFieldButton)
     
     return view
@@ -128,7 +129,7 @@ class DevMiscCog(BasedCog):
 
 #region util
 
-    async def messageForInteraction(self, interaction: Interaction, funcName: str, staticComponentId: StaticComponents) -> Optional[Union[Message, InteractionMessage]]:
+    async def messageForInteraction(self, interaction: Interaction, funcName: str, staticComponentId: StaticComponents) -> Optional[Message]:
         """TODO: This appears to acknowledge the interaction, event """
         if interaction.message is not None: return interaction.message
         # await interaction.response.defer(thinking=False)
@@ -170,7 +171,7 @@ class DevMiscCog(BasedCog):
         if await modal.wait(): return
         
         embed.add_field(name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP,
-                        inline=modal.fieldInline.value is not None and modal.fieldInline.value.lower() == "y")
+                        inline=(modal.fieldInline.value or EMBED_FIELD_INLINE_DEFAULT).lower() == "y")
         await interaction.edit_original_message(embed=embed)
 
 
@@ -210,11 +211,11 @@ class DevMiscCog(BasedCog):
         embed = message.embeds[0]
 
         view = messageEditorView(userId, embed=embed)
-        selected = None if interaction.data is None else cast(Optional[List[str]], interaction.data.get("values", None))
+        selected: Optional[List[str]] = None if interaction.data is None else interaction.data.get("values", None)
 
         if not embed.fields:
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " The embed has no fields!", ephemeral=True)
-        elif selected is None:
+        elif not selected:
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
             self.bot.logger.log(type(self).__name__, "endRemoveField",
                                 "select-based static component triggered for non-select interaction: " \
@@ -268,11 +269,11 @@ class DevMiscCog(BasedCog):
         embed = message.embeds[0]
 
         view = messageEditorView(userId, embed=embed)
-        selected = None if interaction.data is None else cast(Optional[List[str]], interaction.data.get("values", None))
+        selected: List[str] = [] if interaction.data is None else interaction.data.get("values", [])
 
         if not embed.fields:
             await interaction.response.send_message("The embed has no fields!", ephemeral=True)
-        elif selected is None or len(selected) != 1:
+        elif len(selected) != 1:
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
             self.bot.logger.log(type(self).__name__, "endEditField",
                                 "select-based static component triggered for non-select interaction: " \
@@ -293,7 +294,7 @@ class DevMiscCog(BasedCog):
             if await modal.wait(): view.stop()
         
             embed.set_field_at(selectedFieldIndex, name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP,
-                                inline=modal.fieldInline.value is not None and modal.fieldInline.value.lower() == "y")
+                                inline=(modal.fieldInline.value or EMBED_FIELD_INLINE_DEFAULT).lower() == "y")
 
         await interaction.edit_original_message(embed=embed, view=view)
 
@@ -429,13 +430,12 @@ class DevMiscCog(BasedCog):
     @app_commands.command(name="say",
                             description="Say something in this channel.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_say(self, interaction: Interaction, content: str = None, add_embed: bool = False, string_form: str = None):
+    async def dev_cmd_say(self, interaction: Interaction, content: Optional[str] = None, add_embed: bool = False, string_form: Optional[str] = None):
         """developer command sending a message to the same channel as the command is called in
         """
         if string_form is not None:
             await interaction.response.defer(thinking=False)
-            # messageArgsFromStr returns a dict that is guaranteed to contain 'content'
-            await interaction.channel.send(**lib.discordUtil.messageArgsFromStr(string_form)) # type: ignore
+            await textChannel(interaction).send(**lib.discordUtil.messageArgsFromStr(string_form))
             return
 
         if content is None and add_embed == False:

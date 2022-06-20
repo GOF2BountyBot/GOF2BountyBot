@@ -1,69 +1,69 @@
-from ..lib.emojis import UninitializedBasedEmoji
+from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, UnpackableSerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
     # The emoji that will be used when attempting to display an emoji which the bot cannot access. Make sure this is accessible.
-    unrecognisedEmoji = UninitializedBasedEmoji("⁉"),
-    longProcess = UninitializedBasedEmoji("⏳"),
+    unrecognisedEmoji = cast(BasedEmoji, UninitializedBasedEmoji("⁉")),
+    longProcess = cast(BasedEmoji, UninitializedBasedEmoji("⏳")),
     # When a user message prompts a DM to be sent, this emoji will be added to the message reactions.
-    dmSent = UninitializedBasedEmoji("📬"),
-    cancel = UninitializedBasedEmoji("🇽"),
-    submit = UninitializedBasedEmoji("✅"),
-    spiral = UninitializedBasedEmoji("🌀"),
-    error = UninitializedBasedEmoji("❓"),
-    accept = UninitializedBasedEmoji("👍"),
-    reject = UninitializedBasedEmoji("👎"),
-    next = UninitializedBasedEmoji('⏩'),
-    previous = UninitializedBasedEmoji('⏪'),
-    numbers = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    dmSent = cast(BasedEmoji, UninitializedBasedEmoji("📬")),
+    cancel = cast(BasedEmoji, UninitializedBasedEmoji("🇽")),
+    submit = cast(BasedEmoji, UninitializedBasedEmoji("✅")),
+    spiral = cast(BasedEmoji, UninitializedBasedEmoji("🌀")),
+    error = cast(BasedEmoji, UninitializedBasedEmoji("❓")),
+    accept = cast(BasedEmoji, UninitializedBasedEmoji("👍")),
+    reject = cast(BasedEmoji, UninitializedBasedEmoji("👎")),
+    next = cast(BasedEmoji, UninitializedBasedEmoji('⏩')),
+    previous = cast(BasedEmoji, UninitializedBasedEmoji('⏪')),
+    numbers = cast(List[BasedEmoji], [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                 UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                 UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]),
 
     # The default emojis to list in a reaction menu
-    menuOptions = [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
+    menuOptions = cast(List[BasedEmoji], [UninitializedBasedEmoji("0️⃣"), UninitializedBasedEmoji("1️⃣"), UninitializedBasedEmoji("2️⃣"),
                     UninitializedBasedEmoji("3️⃣"), UninitializedBasedEmoji("4️⃣"), UninitializedBasedEmoji("5️⃣"),
                     UninitializedBasedEmoji("6️⃣"), UninitializedBasedEmoji("7️⃣"), UninitializedBasedEmoji("8️⃣"),
-                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")],
+                    UninitializedBasedEmoji("9️⃣"), UninitializedBasedEmoji("🔟")]),
 
     # Default emoji to assign to shipSkinTool items
-    shipSkinTool = UninitializedBasedEmoji("🎨"),
+    shipSkinTool = cast(BasedEmoji, UninitializedBasedEmoji("🎨")),
 
     # Default emoji to assign to bbCrates containing shipSkinTools
-    skinCrate = UninitializedBasedEmoji("🧰"),
+    skinCrate = cast(BasedEmoji, UninitializedBasedEmoji("🧰")),
 
     # Default emoji to assign to all other crates
-    defaultCrate = UninitializedBasedEmoji("📦"),
+    defaultCrate = cast(BasedEmoji, UninitializedBasedEmoji("📦")),
     
     # Emoji sent with new bounty listings
-    newBounty = UninitializedBasedEmoji("⛓"),
+    newBounty = cast(BasedEmoji, UninitializedBasedEmoji("⛓")),
 
-    bountyRespawn = UninitializedBasedEmoji("⛓"),
+    bountyRespawn = cast(BasedEmoji, UninitializedBasedEmoji("⛓")),
 
-    newIssue = UninitializedBasedEmoji("📥"),
-    issueClosed = UninitializedBasedEmoji("✅"),
-    bug = UninitializedBasedEmoji("🕷"),
-    feature = UninitializedBasedEmoji("✨"),
-    gameBalance = UninitializedBasedEmoji("⚖"),
-    optimisation = UninitializedBasedEmoji("🚀"),
+    newIssue = cast(BasedEmoji, UninitializedBasedEmoji("📥")),
+    issueClosed = cast(BasedEmoji, UninitializedBasedEmoji("✅")),
+    bug = cast(BasedEmoji, UninitializedBasedEmoji("🕷")),
+    feature = cast(BasedEmoji, UninitializedBasedEmoji("✨")),
+    gameBalance = cast(BasedEmoji, UninitializedBasedEmoji("⚖")),
+    optimisation = cast(BasedEmoji, UninitializedBasedEmoji("🚀")),
 
-    cropImage = UninitializedBasedEmoji("✂"),
-    stretchImage = UninitializedBasedEmoji("↔"),
+    cropImage = cast(BasedEmoji, UninitializedBasedEmoji("✂")),
+    stretchImage = cast(BasedEmoji, UninitializedBasedEmoji("↔")),
 
-    classicMode = UninitializedBasedEmoji("💽"),
+    classicMode = cast(BasedEmoji, UninitializedBasedEmoji("💽")),
 
-    money = UninitializedBasedEmoji("💰"),
+    money = cast(BasedEmoji, UninitializedBasedEmoji("💰")),
 
-    rarity_common = UninitializedBasedEmoji("⚫"),
-    rarity_uncommon = UninitializedBasedEmoji("🟤"),
-    rarity_rare = UninitializedBasedEmoji("🟠"),
-    rarity_epic = UninitializedBasedEmoji("🔴"),
+    rarity_common = cast(BasedEmoji, UninitializedBasedEmoji("⚫")),
+    rarity_uncommon = cast(BasedEmoji, UninitializedBasedEmoji("🟤")),
+    rarity_rare = cast(BasedEmoji, UninitializedBasedEmoji("🟠")),
+    rarity_epic = cast(BasedEmoji, UninitializedBasedEmoji("🔴")),
 
-    divUpUnlocked = UninitializedBasedEmoji("🔼"),
-    prestigeUnlocked = UninitializedBasedEmoji("⏫")
+    divUpUnlocked = cast(BasedEmoji, UninitializedBasedEmoji("🔼")),
+    prestigeUnlocked = cast(BasedEmoji, UninitializedBasedEmoji("⏫"))
 )
 
 timeouts = TimeoutsConfig(
@@ -636,6 +636,6 @@ leaderboardHelpDescriptions: Tuple[str, ...] = (
 )
 
 def validateConfig():
-    for basicAccessLevel in basicAccessLevels._fieldItems().values():
+    for _, basicAccessLevel in basicAccessLevels._fieldItems():
         if basicAccessLevel not in userAccessLevels:
             raise ValueError(f"basic access level '{basicAccessLevel}' is missing from userAccessLevels")

@@ -126,7 +126,7 @@ class Logger:
 
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = cfg.paths.logsFolder + (category + ".txt")
+                currentFName = path.join(cfg.paths.logsFolder, category + ".txt")
                 logsSaved += category + ".txt, "
 
                 if category not in files:
@@ -136,13 +136,13 @@ class Logger:
                             f.close()
                             logsSaved += "[+]"
                         except IOError as e:
-                            print(nowStr + "-[LOG::SAVE]>F_NEW_IOERR: ERROR CREATING LOG FILE: " \
-                                    + currentFName + ":" + type(e).__name__ + "\n" + traceback.format_exc())
+                            print(nowStr + "-[LOG::SAVE]>F_NEW_IOERR: ERROR CREATING LOG FILE: " +
+                                  str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                     try:
                         files[category] = open(currentFName, 'ab')
                     except IOError as e:
-                        print(nowStr + "-[LOG::SAVE]>F_OPN_IOERR: ERROR OPENING LOG FILE: " \
-                                + currentFName + ":" + type(e).__name__ + "\n" + traceback.format_exc())
+                        print(nowStr + "-[LOG::SAVE]>F_OPN_IOERR: ERROR OPENING LOG FILE: " +
+                              str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                         files[category] = None
 
         while not self.isEmpty():
@@ -165,8 +165,8 @@ class Logger:
         self.clearLogs()
 
 
-    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: str = None,
-                trace: str = "", exception: Exception = None, noPrintEvent: bool = False, noPrint: bool = False):
+    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: Optional[str] = None,
+                trace: str = "", exception: Optional[BaseException] = None, noPrintEvent: bool = False, noPrint: bool = False):
         """Log an event, queueing the log to be saved to a file.
 
         :param str classStr: The class in which the event occurred

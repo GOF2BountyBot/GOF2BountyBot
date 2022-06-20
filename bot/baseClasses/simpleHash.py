@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 class SimpleHashMixin():
     """A class mixin that adds a minimal hash implementation.
     """
@@ -13,8 +15,9 @@ class SimpleHashMixin():
         """
         return hash(repr(self))
 
+T = TypeVar("T", bound=type)
 
-def simpleHash(cls: type) -> type:
+def simpleHash(cls: T) -> T:
     """Assign the SimpleHashMixin hash implementation to a class using a decorator instead of inheritence.
     """
     cls.__hash__ = SimpleHashMixin.__hash__ # type: ignore

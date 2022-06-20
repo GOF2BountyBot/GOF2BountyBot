@@ -1,9 +1,10 @@
 from __future__ import annotations
-import emoji # type: ignore[import]
+import emoji
+
 from .. import botState
 from . import stringTyping, exceptions
 import traceback
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import Serializable, JsonType
 from ..baseClasses.simpleHash import simpleHash
 from carica import PrimativeType, SerializableType # type: ignore[import]
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
@@ -199,7 +200,8 @@ class BasedEmoji(IBasedEmoji):
     :var EMPTY: static class variable representing an empty emoji
     :vartype EMPTY: BasedEmoji
     """
-    EMPTY: "BasedEmoji" = None
+    # Casting here because I set this field immediately after class definition
+    EMPTY = cast("BasedEmoji", None)
 
     def __init__(self, id: int = -1, unicode: str = "", rejectInvalid: bool = False):
         """
@@ -236,7 +238,7 @@ class BasedEmoji(IBasedEmoji):
         self._classInit = True
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs):
         """Serialize this emoji to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this emoji.
@@ -289,7 +291,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def deserialize(cls, emojiDict: dict, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
+    def deserialize(cls, emojiDict: JsonType, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 
@@ -307,11 +309,13 @@ class BasedEmoji(IBasedEmoji):
         if isinstance(emojiDict, BasedEmoji):
             return emojiDict
         if "id" in emojiDict:
-            return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
+
+        # doing some casts here because pyright doesn't know the structure of a serialized emoji
+            return BasedEmoji(id=cast(int, emojiDict["id"]), rejectInvalid=rejectInvalid)
         else:
             if emojiDict.get("empty", False):
                 return BasedEmoji.EMPTY
-            return BasedEmoji(unicode=emojiDict["unicode"], rejectInvalid=rejectInvalid)
+            return BasedEmoji(unicode=cast(str, emojiDict["unicode"]), rejectInvalid=rejectInvalid)
 
 
     @classmethod
@@ -330,7 +334,8 @@ class BasedEmoji(IBasedEmoji):
         if e.is_unicode_emoji():
             return BasedEmoji(unicode=e.name, rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid)
+            # Casting the id here from Optional[int] to int, because id will always be present for non-unicode emojis
+            return BasedEmoji(id=cast(int, e.id), rejectInvalid=rejectInvalid)
 
 
     @classmethod
@@ -358,7 +363,10 @@ class BasedEmoji(IBasedEmoji):
         if isinstance(e, PartialEmoji):
             return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid)
         else:
-            return BasedEmoji(id=cast(PartialEmoji, e).id, rejectInvalid=rejectInvalid)
+            # Ignoring two warnings here:
+            # e could be str - I've already checked for this.
+            # e.id could be None - Here e can only be Emoji (a custom emoji), so id is guaranteed to be present
+            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid) # type: ignore[reportGeneralTypeIssues]
 
 
     @classmethod

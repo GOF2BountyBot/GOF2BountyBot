@@ -3,11 +3,11 @@ from ..users.basedUser import BasedUser, defaultUserDict
 from .. import lib
 from .. import botState
 import traceback
-from typing import List
-from ..baseClasses.serializable import Serializable
+from typing import List, cast
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
 
-class UserDB(Serializable):
+class UserDB(SerializesToJson):
     """A database of BasedUser objects.
 
     :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
@@ -160,7 +160,7 @@ class UserDB(Serializable):
         return list(self.users.keys())
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialise this UserDB into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this UserDB
@@ -191,7 +191,7 @@ class UserDB(Serializable):
 
 
     @classmethod
-    def deserialize(cls, userDBDict: dict, **kwargs) -> UserDB:
+    def deserialize(cls, userDBDict: JsonType, **kwargs) -> UserDB:
         """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.serialize()
 
         :param dict userDBDict: a dictionary-serialised representation of the UserDB to construct
@@ -204,5 +204,5 @@ class UserDB(Serializable):
         for userID in userDBDict.keys():
             # Construct new BasedUsers for each ID in the database
             # JSON stores properties as strings, so ids must be converted to int first.
-            newDB.addUser(BasedUser.deserialize(userDBDict[userID], id=int(userID)))
+            newDB.addUser(BasedUser.deserialize(cast(JsonType, userDBDict[userID]), id=int(userID)))
         return newDB

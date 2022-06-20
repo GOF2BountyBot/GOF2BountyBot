@@ -5,7 +5,7 @@ from typing import Union, TYPE_CHECKING, Dict, List, MutableSet
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
 from ..cfg import cfg, bbData
 from ..gameObjects import kaamoShop, lomaShop
@@ -41,7 +41,7 @@ defaultUserDict = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsW
 defaultUserValue = 28970
 
 
-class BasedUser(Serializable):
+class BasedUser(SerializesToJson):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
@@ -467,7 +467,7 @@ class BasedUser(Serializable):
         self.inactiveShips.removeItem(self.activeShip)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
@@ -896,7 +896,7 @@ class BasedUser(Serializable):
 
 
     @classmethod
-    def deserialize(cls, userDict: dict, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: JsonType, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
         given dictionary - The opposite of BasedUser.serialize
 
