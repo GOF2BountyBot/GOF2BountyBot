@@ -121,7 +121,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
     if message.guild is None:
         prefix: str = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # look up the ship data
     try:
@@ -348,7 +348,7 @@ async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.Autosk
     except shipRenderer.RenderFailed:
         await message.reply("🥺 Render failed! The error has been logged, please try a different ship.",
                             mention_author=True)
-        botState.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
+        botState.client.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
     else:
         with open(renderPath, "rb") as f:
             rendersChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)

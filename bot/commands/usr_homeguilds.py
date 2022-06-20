@@ -17,7 +17,7 @@ async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
+    requestedBBUser = botState.client.usersDB.getOrAddID(message.author.id)
     if message.guild.id == requestedBBUser.homeGuildID:
         await message.reply(mention_author=False, content=":x: This is already your home server!")
     elif not requestedBBUser.canTransferGuild():
@@ -26,7 +26,7 @@ async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
                                     + lib.timeUtil.td_format_noYM(timeLeft) + " left)")
     else:
         confirmMsg = await message.reply(mention_author=False, content="Move your home server to '" + message.guild.name + "'?")
-        cooldownTime = timedelta(**cfg.homeGuildTransferCooldown)
+        cooldownTime = cfg.timeouts.homeGuildTransferCooldown
         confirmation = await InlineConfirmationMenu(confirmMsg, message.author, cfg.toolUseConfirmTimeoutSeconds,
                                                     desc="This command's cooldown is " \
                                                         + lib.timeUtil.td_format_noYM(cooldownTime) + ".").doMenu()
@@ -50,8 +50,8 @@ async def cmd_home(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if botState.usersDB.idExists(message.author.id):
-        requestedBBUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        requestedBBUser = botState.client.usersDB.getUser(message.author.id)
         if message.guild is not None and message.guild.id == requestedBBUser.homeGuildID:
             await message.reply(mention_author=False, content="🌍 This is your home server.")
             return
@@ -62,7 +62,7 @@ async def cmd_home(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     await message.reply(mention_author=False, content="🌑 Your home server has not yet been set.\n" \
                                 + "Set your home server by using the shop or bounty board, or with the `" + prefix \
                                 + "transfer` command.")

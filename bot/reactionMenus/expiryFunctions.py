@@ -1,5 +1,5 @@
 from .. import botState
-from discord import NotFound, HTTPException, Forbidden
+from discord import NotFound, HTTPException, Forbidden # type: ignore[import]
 from ..cfg import cfg
 
 
@@ -8,13 +8,13 @@ async def deleteReactionMenu(menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.reactionMenusDB[menuID]
+    menu = botState.client.reactionMenusDB[menuID]
     try:
         await menu.msg.delete()
     except NotFound:
         pass
-    if menu.msg.id in botState.reactionMenusDB:
-        del botState.reactionMenusDB[menu.msg.id]
+    if menu.msg.id in botState.client.reactionMenusDB:
+        del botState.client.reactionMenusDB[menu.msg.id]
 
 
 async def removeEmbedAndOptions(menuID: int):
@@ -23,14 +23,14 @@ async def removeEmbedAndOptions(menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    if menuID in botState.reactionMenusDB:
-        menu = botState.reactionMenusDB[menuID]
+    if menuID in botState.client.reactionMenusDB:
+        menu = botState.client.reactionMenusDB[menuID]
         await menu.msg.edit(suppress=True)
 
         for react in menu.options:
             await menu.msg.remove_reaction(react.sendable, menu.msg.guild.me)
 
-        del botState.reactionMenusDB[menu.msg.id]
+        del botState.client.reactionMenusDB[menu.msg.id]
 
 
 async def markExpiredMenu(menuID: int):
@@ -39,17 +39,13 @@ async def markExpiredMenu(menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.reactionMenusDB[menuID]
+    menu = botState.client.reactionMenusDB[menuID]
     try:
         await menu.msg.edit(content=cfg.expiredMenuMsg)
-    except NotFound:
+    except HTTPException: # note: HttpException also covers NotFound and Forbidden
         pass
-    except HTTPException:
-        pass
-    except Forbidden:
-        pass
-    if menuID in botState.reactionMenusDB:
-        del botState.reactionMenusDB[menuID]
+    if menuID in botState.client.reactionMenusDB:
+        del botState.client.reactionMenusDB[menuID]
 
 
 async def markExpiredMenuAndRemoveOptions(menuID: int):
@@ -58,7 +54,7 @@ async def markExpiredMenuAndRemoveOptions(menuID: int):
 
     :param int menuID: The ID of the menu, corresponding with the discord ID of the menu's message
     """
-    menu = botState.reactionMenusDB[menuID]
+    menu = botState.client.reactionMenusDB[menuID]
     menu.msg = await menu.msg.channel.fetch_message(menu.msg.id)
     try:
         await menu.msg.clear_reactions()
@@ -76,6 +72,6 @@ async def expireHelpMenu(menuID: int):
     """Expire a reaction help menu, and mark it so in the discord message.
     Unregister the menu as owned by the owning user, allowing them to make more help menus.
     """
-    menu = botState.reactionMenusDB[menuID]
+    menu = botState.client.reactionMenusDB[menuID]
     menu.owningBasedUser.removeOwnedMenu("help", menu)
     await markExpiredMenuAndRemoveOptions(menuID)

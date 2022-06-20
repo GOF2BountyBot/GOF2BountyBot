@@ -17,19 +17,19 @@ async def dev_cmd_reset_transfer_cooldown(message : discord.Message, args : str,
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     if not args:
-        if not botState.usersDB.idExists(message.author.id):
+        if not botState.client.usersDB.idExists(message.author.id):
             await message.reply(":x: You are not on transfer cooldown!")
             return
-        requestedBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+        requestedBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
     else:
         requestedUser = lib.discordUtil.getMemberFromRef(args, message.guild)
         if requestedUser is None:
             await message.reply(":x: Unknown user!")
             return
-        if not botState.usersDB.idExists(requestedUser.id):
+        if not botState.client.usersDB.idExists(requestedUser.id):
             await message.reply(":x: That user is not on transfer cooldown!")
             return
-        requestedBBUser = botState.usersDB.getUser(message.author.id)
+        requestedBBUser = botState.client.usersDB.getUser(message.author.id)
 
     now = datetime.utcnow()
     if requestedBBUser.canTransferGuild(now=now):

@@ -3,11 +3,11 @@ from ..users.basedUser import BasedUser, defaultUserDict
 from .. import lib
 from .. import botState
 import traceback
-from typing import List
-from ..baseClasses import serializable
+from typing import List, cast
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
 
-class UserDB(serializable.Serializable):
+class UserDB(SerializesToJson):
     """A database of BasedUser objects.
 
     :var users: Dictionary of users in the database, where values are the BasedUser objects and keys are the ids
@@ -89,7 +89,7 @@ class UserDB(serializable.Serializable):
         if self.idExists(userID):
             raise KeyError("Attempted to add a user that is already in this UserDB")
         # Create and return a new user
-        newUser = BasedUser.fromDict(defaultUserDict, id=userID)
+        newUser = BasedUser.deserialize(defaultUserDict, id=userID)
         self.users[userID] = newUser
         return newUser
 
@@ -160,7 +160,7 @@ class UserDB(serializable.Serializable):
         return list(self.users.keys())
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialise this UserDB into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this UserDB
@@ -172,9 +172,10 @@ class UserDB(serializable.Serializable):
             # Serialise each BasedUser in the database and save it, along with its ID to dict
             # JSON stores properties as strings, so ids must be converted to str first.
             try:
-                data[str(userID)] = self.users[userID].toDict(**kwargs)
+                data[str(userID)] = self.users[userID].serialize(**kwargs)
             except Exception as e:
-                botState.logger.log("UserDB", "toDict", "Error serialising BasedUser: " + type(e).__name__,
+                botState.client.logger.log("UserDB", "serialize",
+                                    "Error serialising BasedUser: " + type(e).__name__,
                                     exception=e, eventType="TODICT_ERR")
         return data
 
@@ -190,8 +191,8 @@ class UserDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, userDBDict: dict, **kwargs) -> UserDB:
-        """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.toDict()
+    def deserialize(cls, userDBDict: JsonType, **kwargs) -> UserDB:
+        """Construct a UserDB from a dictionary-serialised representation - the reverse of UserDB.serialize()
 
         :param dict userDBDict: a dictionary-serialised representation of the UserDB to construct
         :return: the new UserDB
@@ -203,5 +204,5 @@ class UserDB(serializable.Serializable):
         for userID in userDBDict.keys():
             # Construct new BasedUsers for each ID in the database
             # JSON stores properties as strings, so ids must be converted to int first.
-            newDB.addUser(BasedUser.fromDict(userDBDict[userID], id=int(userID)))
+            newDB.addUser(BasedUser.deserialize(cast(JsonType, userDBDict[userID]), id=int(userID)))
         return newDB

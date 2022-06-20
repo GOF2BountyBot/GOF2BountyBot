@@ -20,7 +20,7 @@ async def printAndExpirePollResults(msgID : int):
 
     :param int msgID: The id of the discord message containing the menu to expire
     """
-    menu: ReactionPollMenu = botState.reactionMenusDB[msgID]
+    menu: ReactionPollMenu = botState.client.reactionMenusDB[msgID]
     menuMsg: Message = await menu.msg.channel.fetch_message(menu.msg.id)
     results = {}
 
@@ -44,7 +44,7 @@ async def printAndExpirePollResults(msgID : int):
             currentEmoji = lib.emojis.BasedEmoji(unicode=reaction.emoji)
 
         if currentEmoji is None:
-            botState.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to fetch BasedEmoji for reaction: " \
+            botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to fetch BasedEmoji for reaction: " \
                                 + str(reaction), category="reactionMenus", eventType="INV_REACT")
             pollEmbed = menuMsg.embeds[0]
             pollEmbed.set_footer(text="This poll has ended.")
@@ -59,7 +59,7 @@ async def printAndExpirePollResults(msgID : int):
                 break
 
         if menuOption is None:
-            # botState.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to find menuOption for emoji: " \
+            # botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to find menuOption for emoji: " \
             #                                                                 + str(currentEmoji),
             #                     category="reactionMenus", eventType="UNKN_OPTN")
             # pollEmbed = menuMsg.embeds[0]
@@ -108,8 +108,8 @@ async def printAndExpirePollResults(msgID : int):
         pollEmbed.add_field(name="Results", value="No votes received!", inline=False)
 
     await menuMsg.edit(embed=pollEmbed)
-    if msgID in botState.reactionMenusDB:
-        del botState.reactionMenusDB[msgID]
+    if msgID in botState.client.reactionMenusDB:
+        del botState.client.reactionMenusDB[msgID]
 
     for reaction in menuMsg.reactions:
         await reaction.remove(menuMsg.guild.me)
@@ -209,22 +209,22 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         return baseEmbed
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this menu to dictionary format for saving.
 
         :return: A dictionary containing all information needed to recreate this menu
         :rtype: dict
         """
-        baseDict = super(ReactionPollMenu, self).toDict(**kwargs)
+        baseDict = super(ReactionPollMenu, self).serialize(**kwargs)
         baseDict["multipleChoice"] = self.multipleChoice
         baseDict["owningBBUser"] = self.owningBBUser.id
         return baseDict
 
 
     @classmethod
-    def fromDict(cls, rmDict : dict, **kwargs) -> ReactionPollMenu:
+    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionPollMenu:
         """Reconstruct a ReactionPollMenu object from its dictionary-serialized representation -
-        the opposite of ReactionPollMenu.toDict
+        the opposite of ReactionPollMenu.serialize
 
         :param dict rmDict: A dictionary containing all information needed to recreate the desired ReactionPollMenu
         :return: A new ReactionPollMenu object as described in rmDict
@@ -242,11 +242,11 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         timeoutTT = None
         if "timeout" in rmDict:
             expiryTime = datetime.utcfromtimestamp(rmDict["timeout"])
-            botState.taskScheduler.scheduleTask(timedTask.TimedTask(expiryTime=expiryTime,
+            botState.client.taskScheduler.scheduleTask(timedTask.TimedTask(expiryTime=expiryTime,
                                                     expiryFunction=printAndExpirePollResults, expiryFunctionArgs=msg.id))
 
-        if "owningBBUser" in rmDict and botState.usersDB.idExists(rmDict["owningBBUser"]):
-            owner = botState.usersDB.getUser(rmDict["owningBBUser"])
+        if "owningBBUser" in rmDict and botState.client.usersDB.idExists(rmDict["owningBBUser"]):
+            owner = botState.client.usersDB.getUser(rmDict["owningBBUser"])
         else:
             owner = None
         

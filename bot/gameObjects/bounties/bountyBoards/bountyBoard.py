@@ -1,10 +1,10 @@
 # CURRENTLY UNUSED FILE
 from __future__ import annotations
 from ....databases import bountyDB
-from ....baseClasses import serializable
+from ....baseClasses.serializable import Serializable
 
 
-class BountyBoard(serializable.Serializable):
+class BountyBoard(Serializable):
     """A single message that acts as a duplicate of the output of $bounties,
     except it is continuously updated with new and completed bounties.
 
@@ -23,7 +23,7 @@ class BountyBoard(serializable.Serializable):
         self.bountiesDB = bountiesDB
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialise this BountyBoard into dictionary format for saving to file
 
         :return: A dictionary containing all data needed to reload this BountyBoard
@@ -33,9 +33,9 @@ class BountyBoard(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(bountyBoardDict : dict, **kwargs) -> BountyBoard:
+    def deserialize(bountyBoardDict : dict, **kwargs) -> BountyBoard:
         """Factory function constructing a BountyBoard from the data contained in the given dictionary.
-        The opposite of BountyBoard.toDict
+        The opposite of BountyBoard.serialize
 
         :param dict bountyBoardDict: A dict containing all information needed to reconstruct the desired BountyBoard
         :return: The new BountyBoard object

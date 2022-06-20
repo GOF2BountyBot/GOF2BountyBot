@@ -15,10 +15,10 @@ from .inventories.inventory import Inventory, TypeRestrictedInventory
 import random
 from .. import botState
 from ..lib import gameMaths
-from ..baseClasses import serializable
+from ..baseClasses.serializable import Serializable
 
 
-class GuildShop(serializable.Serializable):
+class GuildShop(Serializable):
     """A shop containing a selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
 
@@ -456,7 +456,7 @@ class GuildShop(serializable.Serializable):
     ##### SERIALIZING #####
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts, and current stocks.
 
@@ -473,9 +473,9 @@ class GuildShop(serializable.Serializable):
 
             for currentItem in currentStock.keys:
                 if currentItem in currentStock.items:
-                    stockDict.append(currentStock.items[currentItem].toDict(**kwargs))
+                    stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
                 else:
-                    botState.logger.log("bbShp", "toDict",
+                    botState.client.logger.log("bbShp", "serialize",
                                 "Failed to save invalid " + invType + " key '" + str(currentItem) \
                                     + "' - not found in items dict",
                                 category="shop", eventType="UNKWN_KEY")
@@ -486,8 +486,8 @@ class GuildShop(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, shopDict : dict, **kwargs) -> GuildShop:
-        """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.toDict
+    def deserialize(cls, shopDict : dict, **kwargs) -> GuildShop:
+        """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.serialize
 
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new guildShop object as described by shopDict
@@ -499,11 +499,11 @@ class GuildShop(serializable.Serializable):
         turretsStock = TypeRestrictedInventory(TurretWeapon)
         toolsStock = TypeRestrictedInventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.fromDict),
-                                        ("weaponsStock", weaponsStock, PrimaryWeapon.fromDict),
-                                        ("modulesStock", modulesStock, moduleItemFactory.fromDict),
-                                        ("turretsStock", turretsStock, TurretWeapon.fromDict),
-                                        ("toolsStock", toolsStock, toolItemFactory.fromDict)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.deserialize),
+                                        ("weaponsStock", weaponsStock, PrimaryWeapon.deserialize),
+                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
+                                        ("turretsStock", turretsStock, TurretWeapon.deserialize),
+                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
                     stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
@@ -617,8 +617,9 @@ class TechLeveledShop(GuildShop):
                 # Iterate over all item types
                 for itemType, minCount in typeMins.items():
                     # Find the items of the required type that could spawn at the shop's current level
+
                     possibleItems: Dict[int, List[gameItem.GameItem]] = {tl: i for tl, i in {
-                        tl: [i for i in keys[tl - 1] if isinstance(i, itemType)]
+                        tl: [i for i in (keys[tl - 1] if tl >= len(keys) else []) if isinstance(i, itemType)]
                             for tl in gameMaths.possibleItemTLs(self.currentTechLevel)
                     }.items() if i}
 
@@ -657,18 +658,18 @@ class TechLeveledShop(GuildShop):
         for _ in range(cfg.shopDefaultShipsNum):
             itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
             if len(bbData.shipKeysByTL[itemTL - 1]) != 0:
-                newShip = Ship.fromDict(bbData.builtInShipData[random.choice(bbData.shipKeysByTL[itemTL - 1])])
+                newShip = Ship.deserialize(bbData.builtInShipData[random.choice(bbData.shipKeysByTL[itemTL - 1])])
                 self.shipsStock.addItem(newShip)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts, current tech level, and current stocks.
 
         :return: A dictionary containing all information needed to reconstruct this shop object
         :rtype: dict
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         data["minLevel"] = self.minLevel
         data["maxLevel"] = self.maxLevel
         data["currentTechLevel"] = self.currentTechLevel
@@ -676,8 +677,8 @@ class TechLeveledShop(GuildShop):
 
 
     @classmethod
-    def fromDict(cls, shopDict : dict, **kwargs) -> TechLeveledShop:
-        """Recreate a TechLeveledShop instance from its dictionary-serialized representation - the opposite of TechLeveledShop.toDict
+    def deserialize(cls, shopDict : dict, **kwargs) -> TechLeveledShop:
+        """Recreate a TechLeveledShop instance from its dictionary-serialized representation - the opposite of TechLeveledShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new TechLeveledShop object as described by shopDict
@@ -689,11 +690,11 @@ class TechLeveledShop(GuildShop):
         turretsStock = TypeRestrictedInventory(TurretWeapon)
         toolsStock = TypeRestrictedInventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.fromDict),
-                                        ("weaponsStock", weaponsStock, PrimaryWeapon.fromDict),
-                                        ("modulesStock", modulesStock, moduleItemFactory.fromDict),
-                                        ("turretsStock", turretsStock, TurretWeapon.fromDict),
-                                        ("toolsStock", toolsStock, toolItemFactory.fromDict)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.deserialize),
+                                        ("weaponsStock", weaponsStock, PrimaryWeapon.deserialize),
+                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
+                                        ("turretsStock", turretsStock, TurretWeapon.deserialize),
+                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
                     stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])

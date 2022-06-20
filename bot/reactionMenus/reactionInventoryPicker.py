@@ -47,15 +47,15 @@ class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
                                                             removeFunc=menu.deselectItem, removeArgs=self.item)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this menu option to dictionary format for saving.
 
         :return: A dictionary containing all information needed to reconstruct this menu option instance - the item
                     it represents
         :rtype: dict
         """
-        baseDict = super(ReactionInventoryPickerOption, self).toDict(**kwargs)
-        baseDict["item"] = self.item.toDict(**kwargs)
+        baseDict = super(ReactionInventoryPickerOption, self).serialize(**kwargs)
+        baseDict["item"] = self.item.serialize(**kwargs)
 
         return baseDict
 
@@ -145,7 +145,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         return item
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """⚠ ReactionInventoryPickers are not currently saveable. Do not use this method.
         Dummy method, once implemented this method will serialize this reactionMenu to dictionary format.
 
@@ -154,16 +154,16 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         :rtype: dict
         :raise NotImplementedError: Always.
         """
-        raise NotImplementedError("Attempted to call toDict on an unsaveable reaction menu type")
+        raise NotImplementedError("Attempted to call serialize on an unsaveable reaction menu type")
 
 
     @classmethod
-    def fromDict(cls, rmDict : dict, **kwargs) -> ReactionInventoryPicker:
+    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionInventoryPicker:
         """⚠ ReactionInventoryPickers are not currently saveable. Do not use this method.
         When implemented, this function will construct a new ReactionInventoryPicker from a dictionary-serialized
-        representation - The opposite of ReactionInventoryPicker.toDict.
+        representation - The opposite of ReactionInventoryPicker.serialize.
 
         :param dict rmDict: A dictionary containg all information needed to construct the required ReactionInventoryPicker
         :raise NotImplementedError: Always.
         """
-        raise NotImplementedError("Attempted to call fromDict on an unsaveable reaction menu type")
+        raise NotImplementedError("Attempted to call deserialize on an unsaveable reaction menu type")

@@ -4,9 +4,10 @@ from ..shipRenderer import shipRenderer
 from .. import lib
 from discord import File
 from typing import Dict, List
-from ..baseClasses import serializable
+from ..baseClasses.serializable import Serializable
 from ..baseClasses.hasRarity import HasRarity
 from .items import shipItem
+from os.path import join
 
 
 def _saveShip(ship):
@@ -16,14 +17,14 @@ def _saveShip(ship):
     del shipData["techLevel"]
     del shipData["path"]
     shipData["builtIn"] = False
-    lib.jsonHandler.writeJSON(shipPath + os.sep + "META.json", shipData, prettyPrint=True)
+    lib.jsonHandler.writeJSON(join(shipPath, "META.json"), shipData, prettyPrint=True)
     shipData["builtIn"] = True
     shipData["techLevel"] = shipTL
     shipData["saveDue"] = False
     shipData["path"] = shipPath
 
 
-class ShipSkin(HasRarity, serializable.Serializable):
+class ShipSkin(HasRarity, Serializable):
     def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
                     path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
                     allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False):
@@ -55,7 +56,7 @@ class ShipSkin(HasRarity, serializable.Serializable):
         super().__init__(rarityLevel)
 
 
-    def toDict(self, ignoreBuiltIn: bool = False, **kwargs) -> dict:
+    def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> dict:
         """Serialize this ship skin to dictionary.
 
         :param bool ignoreBuiltIn: When True, the serializer will serialize fully, ignoring
@@ -81,7 +82,7 @@ class ShipSkin(HasRarity, serializable.Serializable):
 
 
     def _updateItemMETA(self, **kwargs):
-        lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(ignoreBuiltIn=True, **kwargs),
+        lib.jsonHandler.writeJSON(join(self.path, "META.json"), self.serialize(ignoreBuiltIn=True, **kwargs),
                                     prettyPrint=True)
 
     
@@ -109,18 +110,18 @@ class ShipSkin(HasRarity, serializable.Serializable):
             raise ValueError("Attempted to render a skin onto an non-skinnable ship: '" + str(ship) + "'")
 
         if ship not in self.shipRenders:
-            _outputSkinFile = shipData["path"] + os.sep + "skins" + os.sep + self.name
+            _outputSkinFile = join(shipData["path"], "skins", self.name)
             renderPath = _outputSkinFile + "-RENDER.png"
             # emojiRenderPath = _outputSkinFile + "_emoji-RENDER.png"
             texPath = _outputSkinFile + ".jpg"
             # emojiTexPath = _outputSkinFile + "_emoji.jpg"
 
             # if not os.path.isfile(renderPath):
-            textureFiles = {0: self.path + os.sep + "1.jpg"}
+            textureFiles = {0: join(self.path, "1.jpg")}
 
             for textureNum in self.textureRegions:
                 if textureNum <= shipData["textureRegions"]:
-                    textureFiles[textureNum] = self.path + os.sep + str(textureNum + 1) + ".jpg"
+                    textureFiles[textureNum] = join(self.path, str(textureNum + 1) + ".jpg")
 
             regionsToDisable = []
             if "textureRegions" in shipData and shipData["textureRegions"] > 0:
@@ -169,7 +170,7 @@ class ShipSkin(HasRarity, serializable.Serializable):
 
         if self.name in shipData["compatibleSkins"]:
             try:
-                os.remove(shipData["path"] + os.sep + "skins" + os.sep + self.name + ".png")
+                os.remove(join(shipData["path"], "skins", self.name + ".png"))
             except FileNotFoundError:
                 pass
             shipData["compatibleSkins"].remove(self.name.lower())
@@ -184,7 +185,7 @@ class ShipSkin(HasRarity, serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, skinDict: dict, **kwargs):
+    def deserialize(cls, skinDict: dict, **kwargs):
         if skinDict.get("builtIn", False):
             return bbData.builtInShipSkins[skinDict["name"]]
         return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict["ships"]))

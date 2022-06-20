@@ -1,14 +1,15 @@
-from ...baseClasses import serializable
+from carica import ISerializable # type: ignore[import]
+from ...baseClasses.serializable import Serializable
 from ..itemDiscount import ItemDiscount
 from typing import List
 
 
-class InventoryListing(serializable.Serializable):
+class InventoryListing(Serializable):
     """A listing representing an object and a quantity of that object stored.
     To ensure serializability, inventorylistings can only store serializable objects.
 
     serializable deserializing is not defined in the general case, so InventoryListing does
-    not have a general case fromDict function.
+    not have a general case deserialize function.
 
     :var item: The item this inventory listing represents
     :var count: The quantity of item stored
@@ -20,7 +21,7 @@ class InventoryListing(serializable.Serializable):
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
         """
-        if not isinstance(item, serializable.Serializable):
+        if not isinstance(item, ISerializable):
             raise TypeError("InventoryListing can only store serializables to ensure serializability. Given: " \
                             + type(item).__name__)
         self.item = item
@@ -78,19 +79,19 @@ class InventoryListing(serializable.Serializable):
         return str(self.count) + " in inventory. " + str(self.item.value) + " credits each"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Return a dictionary description of this inventory listing.
 
         :return: A dictionary identifying the object stored, and the amount
         :rtype: int
         """
-        return {"item": self.item.toDict(**kwargs), "count": self.count}
+        return {"item": self.item.serialize(**kwargs), "count": self.count}
 
 
     @classmethod
-    def fromDict(cls, listingDict : dict, **kwargs):
-        raise NotImplementedError("Cannot fromDict on InventoryListing in the general case. " \
-                                    + "Instead instance InventoryListing with your fromDict-ed item object.")
+    def deserialize(cls, listingDict : dict, **kwargs):
+        raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
+                                    + "Instead instance InventoryListing with your deserialize-ed item object.")
 
 
 class DiscountableItemListing(InventoryListing):
@@ -115,8 +116,8 @@ class DiscountableItemListing(InventoryListing):
         return self.discounts.pop(0)
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = super().toDict(**kwargs)
+    def serialize(self, **kwargs) -> dict:
+        data = super().serialize(**kwargs)
         if self.discounts:
-            data["discounts"] = [discount.toDict(**kwargs) for discount in self.discounts]
+            data["discounts"] = [discount.serialize(**kwargs) for discount in self.discounts]
         return data

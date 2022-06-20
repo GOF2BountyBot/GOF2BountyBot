@@ -9,13 +9,14 @@ import random
 
 from . import commandsDB as botCommands
 from .. import botState, lib
+from ..lib import BASED_version
 from ..users.basedUser import BasedUser
 from ..users import basedGuild
 from ..gameObjects.items.tools import crateTool
 from ..gameObjects.bounties import bounty
 from datetime import timedelta
 from ..reactionMenus import giveawayMenu
-from ..cfg import bbData, cfg, versionInfo
+from ..cfg import bbData, cfg
 from ..reactionMenus import reactionMenu
 from ..scheduling import timedTask
 from ..databases import bountyDB, bountyDivision
@@ -51,7 +52,7 @@ async def dev_cmd_sleep(message: discord.Message, args: str, isDM: bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    botState.shutdown = botState.ShutDownState.shutdown
+    botState.client.shutDownState = botState.ShutDownState.shutdown
     await message.reply(mention_author=False, content="shutting down.")
     await botState.client.shutdown()
 
@@ -106,11 +107,11 @@ async def dev_cmd_broadcast(message : discord.Message, args : str, isDM : bool):
         sendArgs = lib.discordUtil.messageArgsFromStr(args)
 
         if args.split(" ")[0].lower() == "announce-channel":
-            for guild in botState.guildsDB.guilds.values():
+            for guild in botState.client.guildsDB.guilds.values():
                 if guild.hasAnnounceChannel():
                     await guild.getAnnounceChannel().send(sendArgs)
         else:
-            for guild in botState.guildsDB.guilds.values():
+            for guild in botState.client.guildsDB.guilds.values():
                 if guild.hasPlayChannel():
                     await guild.getPlayChannel().send(sendArgs)
 
@@ -127,11 +128,11 @@ async def dev_cmd_reset_has_poll(message : discord.Message, args : str, isDM : b
     try:
         # reset the calling user's cooldown if no user is specified
         if args == "":
-            requestedBUser: BasedUser = botState.usersDB.getUser(message.author.id)
+            requestedBUser: BasedUser = botState.client.usersDB.getUser(message.author.id)
         # otherwise get the specified user's discord object and reset their poll ownership.
         # [!] no validation is done.
         else:
-            requestedBUser: BasedUser = botState.usersDB.getUser(int(args.lstrip("<@!").rstrip(">")))
+            requestedBUser: BasedUser = botState.client.usersDB.getUser(int(args.lstrip("<@!").rstrip(">")))
     except KeyError:
         await message.reply(":x: Unknown user. They may not have used the bot yet.")
 
@@ -151,7 +152,7 @@ async def dev_cmd_bot_update(message: discord.Message, args: str, isDM: bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    botState.shutdown = botState.ShutDownState.update
+    botState.client.shutDownState = botState.ShutDownState.update
     await message.reply(mention_author=False, content="updating and restarting...")
     await botState.client.shutdown()
 
@@ -179,10 +180,10 @@ async def dev_cmd_setbalance(message : discord.Message, args : str, isDM : bool)
     if requestedUser is None:
         await message.reply(mention_author=False, content=":x: invalid user!!")
         return
-    if not botState.usersDB.idExists(requestedUser.id):
-        requestedBBUser = botState.usersDB.addID(requestedUser.id)
+    if not botState.client.usersDB.idExists(requestedUser.id):
+        requestedBBUser = botState.client.usersDB.addID(requestedUser.id)
     else:
-        requestedBBUser = botState.usersDB.getUser(requestedUser.id)
+        requestedBBUser = botState.client.usersDB.getUser(requestedUser.id)
     # update the balance
     requestedBBUser.credits = int(argsSplit[1])
     await message.reply(mention_author=False, content="Done!")
@@ -197,13 +198,13 @@ async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str,
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     giveawayMsg = await message.channel.send("‎")
-    stocking = crateTool.CrateTool.fromDict({"type": "CrateTool", "crateType": "christmas", "typeNum": 2021, "builtIn": True})
+    stocking = crateTool.CrateTool.deserialize({"type": "CrateTool", "crateType": "christmas", "typeNum": 2021, "builtIn": True})
     menu = giveawayMenu.GiveawayMenu(giveawayMsg, [stocking], activeTime=timedelta(days=3),
                                         titleTxt="Merry Christmas!", 
                                         desc="React below to receive your stocking!\nFind it in your `$hangar tool`, and open it with the new `$use` command.",
                                         col=discord.Colour.random())
 
-    botState.reactionMenusDB[giveawayMsg.id] = menu
+    botState.client.reactionMenusDB[giveawayMsg.id] = menu
     await menu.updateMessage()
 
 botCommands.register("start-stocking-giveaway", dev_cmd_start_stocking_giveaway, 3, useDoc=True)
@@ -216,8 +217,8 @@ async def dev_cmd_restart_task_checker(message : discord.Message, args : str, is
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    botState.taskScheduler.stopTaskChecking()
-    botState.taskScheduler.startTaskChecking()
+    botState.client.taskScheduler.stopTaskChecking()
+    botState.client.taskScheduler.startTaskChecking()
     await message.author.send(f"> {message.jump_url}\n✅ Done!")
 
 botCommands.register("restart-task-scheduler", dev_cmd_restart_task_checker, 3, allowDM=True, useDoc=True)
@@ -241,7 +242,7 @@ def describeTT(tt: Optional[timedTask.TimedTask], issueTime: bool = True, expiry
         ttStrParts.append(f"Function: {'None' if tt.expiryFunction is None else str(tt.expiryFunction)}")
         ttStrParts.append(f"Args: {'None' if tt.expiryFunctionArgs is None else 'Not None'}")
     if scheduled:
-        ttStrParts.append(f"Scheduled on taskScheduler: {tt in botState.taskScheduler.tasksHeap}")
+        ttStrParts.append(f"Scheduled on taskScheduler: {tt in botState.client.taskScheduler.tasksHeap}")
 
     return(sep.join(ttStrParts))
 
@@ -255,58 +256,58 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
     """
     embed = discord.Embed(title="Bot Status", colour=discord.Colour.random())
 
-    newestBASED = await versionInfo.getNewestTagOnRemote(botState.httpClient, versionInfo.BASED_API_URL)
-    nextUpdate = versionInfo.nextUpdateCheck().strftime("%d/%m/%Y, %H:%M:%S") if cfg.BASED_checkForUpdates else "disabled"
+    newestBASED = await lib.github.getNewestTagOnRemote(botState.client.httpClient, BASED_version.BASED_API_URL)
+    nextUpdate = BASED_version.nextUpdateCheck().strftime("%d/%m/%Y, %H:%M:%S") if cfg.BASED_checkForUpdates else "disabled"
 
     embed.add_field(name="Client",
                     value=f"{botState.client.user} ({botState.client.user.id})")
 
     embed.add_field(name="Shutdown Mode",
-                    value=f"{botState.shutdown}")
+                    value=f"{botState.client.shutDownState}")
 
     embed.add_field(name="HttpClient",
-                    value=f"State: {'Closed' if botState.httpClient.closed else 'Open'}\n" \
-                        + f"Cookies: {len(botState.httpClient.cookie_jar)}")
+                    value=f"State: {'Closed' if botState.client.httpClient.closed else 'Open'}\n" \
+                        + f"Cookies: {len(botState.client.httpClient.cookie_jar)}")
 
     embed.add_field(name="GitHub",
-                    value=f"Repo: {botState.githubRepo.url}")
+                    value=f"Repo: {botState.client.githubRepo.url}")
 
     embed.add_field(name="Shop Refresh TT",
                     value=describeTT(botState.shopRefreshTT))
 
-    if botState.taskScheduler is None:
+    if botState.client.taskScheduler is None:
         schedulerStr = "null"
     else:
-        if len(botState.taskScheduler.tasksHeap) == 0:
+        if len(botState.client.taskScheduler.tasksHeap) == 0:
             nextTaskStr = "No tasks"
         else:
-            nextTask = botState.taskScheduler.tasksHeap[0]
+            nextTask = botState.client.taskScheduler.tasksHeap[0]
             nextTaskStr = "- " + describeTT(nextTask, sep="\n- ")
 
-        asyncIOLoopStr = f"{'running' if botState.taskScheduler.loop.is_running() else 'not running'}/" \
-                        + ('closed' if botState.taskScheduler.loop.is_closed() else 'not closed')
+        asyncIOLoopStr = f"{'running' if botState.client.taskScheduler.loop.is_running() else 'not running'}/" \
+                        + ('closed' if botState.client.taskScheduler.loop.is_closed() else 'not closed')
 
-        if botState.taskScheduler.sleepTask is None:
+        if botState.client.taskScheduler.sleepTask is None:
             sleepTaskStr = "None"
         else:
-            if botState.taskScheduler.sleepTask.done() or botState.taskScheduler.sleepTask.cancelled():
-                if e := botState.taskScheduler.sleepTask.exception():
+            if botState.client.taskScheduler.sleepTask.done() or botState.client.taskScheduler.sleepTask.cancelled():
+                if e := botState.client.taskScheduler.sleepTask.exception():
                     exceptionStr = str(e)
                 else:
                     exceptionStr = "None"
 
-                resultStr = "None" if botState.taskScheduler.sleepTask.result is None else "Not None"
+                resultStr = "None" if botState.client.taskScheduler.sleepTask.result is None else "Not None"
             else:
                 exceptionStr = "Still executing"
                 returnStr = "Still executing"
 
-            sleepTaskStr = f"{'done' if botState.taskScheduler.sleepTask.done() else 'not done'}/" \
-                        + f"{'cancelled' if botState.taskScheduler.sleepTask.cancelled() else 'not cancelled'}\n" \
+            sleepTaskStr = f"{'done' if botState.client.taskScheduler.sleepTask.done() else 'not done'}/" \
+                        + f"{'cancelled' if botState.client.taskScheduler.sleepTask.cancelled() else 'not cancelled'}\n" \
                         + f"Exception: {exceptionStr}\nResult: {returnStr}"
 
-        schedulerStr = f"Active: {botState.taskScheduler.active}\n" \
+        schedulerStr = f"Active: {botState.client.taskScheduler.active}\n" \
                     + f"Asyncio Loop: {asyncIOLoopStr}\n" \
-                    + f"Tasks: {len(botState.taskScheduler.tasksHeap)}\n" \
+                    + f"Tasks: {len(botState.client.taskScheduler.tasksHeap)}\n" \
                     + f"Next task: {nextTaskStr}\n" \
                     + f"Sleep task: {sleepTaskStr}"
 
@@ -314,7 +315,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
                     value=schedulerStr, inline=False)
 
     embed.add_field(name="BASED",
-                    value=f"Current: {versionInfo.BASED_VERSION}\n Newest: {newestBASED}\n Next check: {nextUpdate}\n- " \
+                    value=f"Current: {BASED_version.getBASEDVersion().BASED_version}\n Newest: {newestBASED}\n Next check: {nextUpdate}\n- " \
                         + describeTT(botState.updatesCheckTT, sep="\n- "))
 
     embed.add_field(name="Commands",
@@ -324,19 +325,19 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
                     inline=False)
 
     menuTypeCounts: Dict[Type[reactionMenu.ReactionMenu], int] = {}
-    for menu in botState.reactionMenusDB.values():
+    for menu in botState.client.reactionMenusDB.values():
         menuTypeCounts[type(menu)] = menuTypeCounts.get(type(menuTypeCounts), 0) + 1
 
     embed.add_field(name="Reaction Menus",
-                    value=f"{len(botState.reactionMenusDB)} Menus\n" \
+                    value=f"{len(botState.client.reactionMenusDB)} Menus\n" \
                         + "\n".join(f"- {menuType.__name__}: {numMenus}" for menuType, numMenus in menuTypeCounts.items()))
     embed.add_field(name="Users",
-                    value=f"Guilds: {len(botState.guildsDB.guilds)} registered/{len(botState.client.guilds)} total\n" \
-                        + f"Users: {len(botState.usersDB.users)} Users/0 Depracated Users *(UNIMPLEMENTED)*")
+                    value=f"Guilds: {len(botState.client.guildsDB.guilds)} registered/{len(botState.client.guilds)} total\n" \
+                        + f"Users: {len(botState.client.usersDB.users)} Users/0 Depracated Users *(UNIMPLEMENTED)*")
 
     embed.add_field(name="Logger",
                     value=f"Unsaved logs:\n" \
-                        + "\n".join(f"{c}: {len(l.values())}" for c, l in botState.logger.logs.items() if l))
+                        + "\n".join(f"{c}: {len(l.values())}" for c, l in botState.client.logger.logs.items() if l))
 
     embed.add_field(name="DB Save TT",
                     value=describeTT(botState.dbSaveTT))
@@ -414,11 +415,11 @@ async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : boo
     if botState.client.get_guild(guildId) is None:
         await message.author.send("I am not a member of the guild")
 
-    if not botState.guildsDB.idExists(guildId):
+    if not botState.client.guildsDB.idExists(guildId):
         await message.author.send("Guild not registered in the database")
         return
 
-    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+    bGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(guildId)
 
     embed = discord.Embed(title="Guild Status", colour=discord.Colour.random())
     
@@ -543,11 +544,11 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
     if not (dcUser := botState.client.get_user(userId)):
         await message.author.send("I don't share any servers with that user")
 
-    if not botState.usersDB.idExists(userId):
+    if not botState.client.usersDB.idExists(userId):
         await message.author.send("user not registered in the database")
         return
 
-    bUser: BasedUser = botState.usersDB.getUser(userId)
+    bUser: BasedUser = botState.client.usersDB.getUser(userId)
 
     embed = discord.Embed(title="User Status", colour=discord.Colour.random())
 
@@ -591,7 +592,7 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
     embed.add_field(name="Duel Requests", value="\n".join(f"{target.id}: {request.stakes}" for target, request in bUser.duelRequests.items()) if bUser.duelRequests else "None")
     embed.add_field(name="Duels", value=f"Wins: {bUser.duelWins}\nLosses: {bUser.duelLosses}\nCredits won: {bUser.duelCreditsWins}\nCredits lost: {bUser.duelCreditsLosses}")
     
-    if bUser.hasHomeGuild() and (homeGuild := botState.guildsDB.getGuild(bUser.homeGuildID)):
+    if bUser.hasHomeGuild() and (homeGuild := botState.client.guildsDB.getGuild(bUser.homeGuildID)):
         if dcUser is None:
             userAlertsStr = "States unknown, dcUser unavailable.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
         else:
@@ -667,7 +668,7 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
         await message.reply("Unknown criminal")
         return
 
-    bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    bGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if bGuild.bountiesDisabled:
         await message.reply("Bounties disabled here")
         return
@@ -702,7 +703,7 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
     embed.add_field(name="Route", value="\n".join(f"{s}: " + (f"{botState.client.get_user(u)} ({u})" if u != -1 else "unchecked") for s, u in b.checked.items()))
     embed.add_field(name="Answer", value=b.answer)
 
-    botState.logger.log("dev_misc", "dev_cmd_bounty_status",
+    botState.client.logger.log("dev_misc", "dev_cmd_bounty_status",
                         f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
                         + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
                         category="bountiesDB", eventType="CHEAT")
@@ -790,7 +791,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         return
 
     try:
-        bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+        bGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(guildId)
     except KeyError:
         await message.reply(f"Unknown guild: {guildRef}")
         return
@@ -815,10 +816,10 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         else:
             try:
                 shipDict = json.loads(newValue)
-                newShip = shipItem.Ship.fromDict(shipDict)
+                newShip = shipItem.Ship.deserialize(shipDict)
             except Exception as e:
                 await message.reply(f"{type(e).__name__} when deserializing new ship: {e}")
-                botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
                 return
 
             if b.hasShip:
@@ -840,7 +841,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             newTime = datetime.utcfromtimestamp(float(newValue))
         except Exception as e:
             await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
-            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+            botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
             return
 
         if newTime == b.issueTime:
@@ -852,7 +853,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             newTime = datetime.utcfromtimestamp(float(newValue))
         except Exception as e:
             await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
-            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+            botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
             return
 
         if newTime == b.endTime:
@@ -866,7 +867,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await b.expire(dbReload=True)
         else:
             b.expiryTT = timedTask.TimedTask(datetime.utcnow(), newTime, None, b.expire)
-            botState.taskScheduler.scheduleTask(b.expiryTT)
+            botState.client.taskScheduler.scheduleTask(b.expiryTT)
 
         b.endTime = newTime.timestamp()
 
@@ -890,7 +891,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
                 await message.reply("bounty expiry time is in the past. Set a new expiry time to unexpire bounty.")
                 return
             b.expiryTT = timedTask.TimedTask(datetime.utcnow(), endDT, None, b.expire)
-            botState.taskScheduler.scheduleTask(b.expiryTT)
+            botState.client.taskScheduler.scheduleTask(b.expiryTT)
     
 
     elif fieldName == "route":
@@ -989,7 +990,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             await message.reply("that system is not in the bounty's route. cancelled.")
             return
         b.answer = syst.name
-        botState.logger.log("dev_misc", "dev_cmd_edit_bounty",
+        botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty",
                         f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
                         + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
                         category="bountiesDB", eventType="CHEAT")
@@ -1039,7 +1040,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
             newTime = datetime.utcfromtimestamp(float(newValue))
         except Exception as e:
             await message.reply(f"{type(e).__name__} error converting timestamp str to datetime: {e}")
-            botState.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+            botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
             return
 
         if b.respawnTT is not None and newTime == b.respawnTT.expiryTime:
@@ -1059,7 +1060,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
                 await b.division.bountyBoardChannel.updateEscapedBountiesMessage()
 
         b.respawnTT = respawnTT
-        botState.taskScheduler.scheduleTask(b.respawnTT)
+        botState.client.taskScheduler.scheduleTask(b.respawnTT)
         b.endTime = newTime.timestamp()
 
     await message.reply("Success!")
@@ -1113,7 +1114,7 @@ async def dev_cmd_force_update_listing(message : discord.Message, args : str, is
         return
 
     try:
-        bGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(guildId)
+        bGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(guildId)
     except KeyError:
         await message.reply(f"Unknown guild: {guildRef}")
         return

@@ -26,10 +26,10 @@ async def cmd_balance(message : discord.Message, args : str, isDM : bool):
     """
     # If no user is specified, send the balance of the calling user
     if args == "":
-        if not botState.usersDB.idExists(message.author.id):
-            botState.usersDB.addID(message.author.id)
+        if not botState.client.usersDB.idExists(message.author.id):
+            botState.client.usersDB.addID(message.author.id)
         await message.reply(mention_author=False, content=":moneybag: **" + message.author.display_name + "**, you have **" \
-                                    + commaSplitNum(botState.usersDB.getUser(message.author.id).credits) + " Credits**.")
+                                    + commaSplitNum(botState.client.usersDB.getUser(message.author.id).credits) + " Credits**.")
 
     # If a user is specified
     else:
@@ -39,11 +39,11 @@ async def cmd_balance(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Unknown user!")
             return
         # ensure that the user is in the users database
-        if not botState.usersDB.idExists(requestedUser.id):
-            botState.usersDB.addID(requestedUser.id)
+        if not botState.client.usersDB.idExists(requestedUser.id):
+            botState.client.usersDB.addID(requestedUser.id)
         # send the user's balance
         await message.reply(mention_author=False, content=":moneybag: **" + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
-                                    + "** has **" + commaSplitNum(botState.usersDB.getUser(requestedUser.id).credits) + " Credits**.")
+                                    + "** has **" + commaSplitNum(botState.client.usersDB.getUser(requestedUser.id).credits) + " Credits**.")
 
 botCommands.register("balance", cmd_balance, 0, aliases=["bal", "credits"], forceKeepArgsCasing=True, allowDM=True,
                         helpSection="economy", signatureStr="**balance** *[user]*",
@@ -61,7 +61,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
     :param str args: either empty string, or one of cfg.validItemNames
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if requestedBGuild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have shops.")
         return
@@ -88,8 +88,8 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
 
     bUser: Optional[basedUser.BasedUser] = None
 
-    if botState.usersDB.idExists(message.author.id):
-        bUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        bUser = botState.client.usersDB.getUser(message.author.id)
         if bUser.classicModeEnabled:
             userDivision = cfg.classic_divisionName
         else:
@@ -126,7 +126,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                     + "You can access any shop by giving its division name in shop commands.\n") \
                     if isClassicMode else ""
 
-    requestedShop = botState.guildsDB.getGuild(message.guild.id).divisionShops[divName]
+    requestedShop = botState.client.guildsDB.getGuild(message.guild.id).divisionShops[divName]
     shopEmbed = lib.discordUtil.makeEmbed(titleTxt=f"{divName} Shop",
                                             desc=f"__{message.guild.name}__\n" \
                                                 + classicModeDesc \
@@ -145,7 +145,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                     currentItem = currentStock[itemNum - 1].item
                 except KeyError:
                     try:
-                        botState.logger.log("Main", "cmd_shop",
+                        botState.client.logger.log("Main", "cmd_shop",
                                             "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                                 + "' (index " + str(itemNum-1) + "), which was not found in the shop stock",
                                             category="shop", eventType="UNKWN_KEY")
@@ -155,7 +155,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                         keysStr = ""
                         for item in currentStock.items:
                             keysStr += str(item) + ", "
-                        botState.logger.log("Main", "cmd_shop",
+                        botState.client.logger.log("Main", "cmd_shop",
                                             "Unexpected type in " + currentItemType + "sStock KEYS, index " \
                                                 + str(itemNum-1) + ". Got " + type(currentStock.keys[itemNum-1]).__name__ \
                                                 + ".\nInventory keys: " + keysStr[:-2],
@@ -210,7 +210,7 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
                         separated by a single space
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if requestedBGuild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have shops.")
         return
@@ -227,8 +227,8 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     bUser: Optional[basedUser.BasedUser] = None
 
-    if botState.usersDB.idExists(message.author.id):
-        bUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        bUser = botState.client.usersDB.getUser(message.author.id)
         if bUser.classicModeEnabled:
             userDivision = cfg.classic_divisionName
         else:
@@ -251,7 +251,7 @@ async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
 
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
     if bUser is None:
-        requestedBUser = botState.usersDB.AddID(message.author.id)
+        requestedBUser = botState.client.usersDB.AddID(message.author.id)
     else:
         requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
@@ -414,7 +414,7 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing an item type and an index number, and optionally "clear", separated by a single space
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if requestedBGuild.shopsDisabled:
         await message.reply(mention_author=False, content=":x: This server does not have shops.")
         return
@@ -431,8 +431,8 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     bUser: Optional[basedUser.BasedUser] = None
 
-    if botState.usersDB.idExists(message.author.id):
-        bUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        bUser = botState.client.usersDB.getUser(message.author.id)
         if bUser.classicModeEnabled:
             userDivision = cfg.classic_divisionName
         else:
@@ -453,7 +453,7 @@ async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
 
     # verify this is the calling user's home guild. If no home guild is set, transfer here.
     if bUser is None:
-        requestedBUser = botState.usersDB.AddID(message.author.id)
+        requestedBUser = botState.client.usersDB.AddID(message.author.id)
     else:
         requestedBUser = bUser
     if not requestedBUser.hasHomeGuild():
@@ -573,8 +573,8 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: You have to pay at least 1 credit!")
         return
 
-    if botState.usersDB.idExists(message.author.id):
-        sourceBBUser: basedUser.BasedUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        sourceBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(message.author.id)
         if not sourceBBUser.credits >= amount:
             await message.reply(mention_author=False, content=":x: You don't have that many credits!")
             return
@@ -582,7 +582,7 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         if not basedUser.defaultUserDict.get("credits", 0) >= amount:
             await message.reply(mention_author=False, content=":x: You don't have that many credits!")
             return
-        sourceBBUser = botState.usersDB.addID(message.author.id)
+        sourceBBUser = botState.client.usersDB.addID(message.author.id)
 
     resultsMessage: discord.Message = None
     async def sendOrEdit(resultsMessage: Optional[discord.Message], **kwargs) -> discord.Message:
@@ -604,7 +604,7 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
         resultsMessage = await sendOrEdit(resultsMessage,
                                             content="You must have a home server set in order to use this command.\n" \
                                                 + f"Set your home server to '{message.guild.name}' now?")
-        cooldownTime = timedelta(**cfg.homeGuildTransferCooldown)
+        cooldownTime = cfg.timeouts.homeGuildTransferCooldown
         confirmation = await InlineConfirmationMenu(resultsMessage, message.author, cfg.toolUseConfirmTimeoutSeconds,
                                                     desc="The home server transfer cooldown is " \
                                                         + lib.timeUtil.td_format_noYM(cooldownTime) + ".").doMenu()
@@ -616,8 +616,8 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
 
     homeGuild: discord.Guild = botState.client.get_guild(sourceBBUser.homeGuildID)
 
-    if botState.usersDB.idExists(requestedUser.id):
-        targetBBUser: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
+    if botState.client.usersDB.idExists(requestedUser.id):
+        targetBBUser: basedUser.BasedUser = botState.client.usersDB.getUser(requestedUser.id)
         if not targetBBUser.hasHomeGuild() or targetBBUser.homeGuildID != sourceBBUser.homeGuildID:
             await sendOrEdit(resultsMessage, content=f":x: You can only pay players whose home server is {homeGuild.name}!")
             return
@@ -633,7 +633,7 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
                             + f" **{amount}** credits!")
     
     if message.guild.get_member(requestedUser.id) is None:
-        homeBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(homeGuild.id)
+        homeBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(homeGuild.id)
         if homeBGuild.hasPlayChannel():
             await homeBGuild.getPlayChannel().send(f":moneybag: {message.author.mention} paid " \
                                                     + f"{requestedUser.mention} **{amount}** credits!")
@@ -641,7 +641,7 @@ async def cmd_pay(message : discord.Message, args : str, isDM : bool):
             try:
                 await requestedUser.send(f":moneybag: {message.author.mention} paid you **{amount}** credits!")
             except (discord.Forbidden, discord.HTTPException, discord.NotFound) as e:
-                botState.logger.log("user_economy", "cmd_pay", "Exception thrown when attempting to DM pay announcement",
+                botState.client.logger.log("user_economy", "cmd_pay", "Exception thrown when attempting to DM pay announcement",
                                     exception=e)
         
 
@@ -669,11 +669,11 @@ async def cmd_total_value(message : discord.Message, args : str, isDM : bool):
     """
     # If no user is specified, send the balance of the calling user
     if args == "":
-        if not botState.usersDB.idExists(message.author.id):
-            botState.usersDB.addID(message.author.id)
+        if not botState.client.usersDB.idExists(message.author.id):
+            botState.client.usersDB.addID(message.author.id)
         await message.reply(mention_author=False, content=":moneybag: **" + message.author.display_name \
                                     + "**, your items and balance are worth a total of **" \
-                                    + str(botState.usersDB.getUser(message.author.id).getStatByName("value")) + " Credits**.")
+                                    + str(botState.client.usersDB.getUser(message.author.id).getStatByName("value")) + " Credits**.")
 
     # If a user is specified
     else:
@@ -683,12 +683,12 @@ async def cmd_total_value(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Unknown user!")
             return
         # ensure that the user is in the users database
-        if not botState.usersDB.idExists(requestedUser.id):
-            botState.usersDB.addID(requestedUser.id)
+        if not botState.client.usersDB.idExists(requestedUser.id):
+            botState.client.usersDB.addID(requestedUser.id)
         # send the user's balance
         await message.reply(mention_author=False, content=":moneybag: **" + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
                                     + "**'s items and balance have a total value of **" \
-                                    + str(botState.usersDB.getUser(requestedUser.id).getStatByName("value")) + " Credits**.")
+                                    + str(botState.client.usersDB.getUser(requestedUser.id).getStatByName("value")) + " Credits**.")
 
 botCommands.register("total-value", cmd_total_value, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="economy",
                         signatureStr="**total-value** *[user]*",

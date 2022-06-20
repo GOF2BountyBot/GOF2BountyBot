@@ -6,13 +6,13 @@ from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardCh
 from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
-from ..baseClasses import serializable
 from ..cfg import cfg
 from ..users import basedGuild
 from .. import botState, lib
 from .bountyDivision import BountyDivision
 from datetime import datetime
 from ..scheduling.timedTask import TimedTask
+from ..baseClasses.serializable import Serializable
 
 
 def nameForDivision(div: BountyDivision) -> str:
@@ -44,7 +44,7 @@ def divisionNameForLevel(tl: int) -> str:
         raise KeyError(f"No division found for bounties of TL {tl}")
 
 
-class BountyDB(serializable.Serializable):
+class BountyDB(Serializable):
     """A database of Bounty.
     Bounty criminal names must be unique within the database.
     Faction names are case sensitive.
@@ -446,7 +446,7 @@ class BountyDB(serializable.Serializable):
         return any(not div.isEmpty() for div in self.divisions.values())
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialise the bountyDB and all of its divisions into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this bountyDB.
@@ -457,13 +457,13 @@ class BountyDB(serializable.Serializable):
             data["temperatures"][div.minLevel] = div.temperature
             for tlBounties in div.bounties.values():
                 for bty in tlBounties.values():
-                    data["active"].append(bty.toDict(**kwargs))
+                    data["active"].append(bty.serialize(**kwargs))
             for tlBounties in div.escapedBounties.values():
                 for bty in tlBounties.values():
-                    data["escaped"].append(bty.toDict(**kwargs))
+                    data["escaped"].append(bty.serialize(**kwargs))
         
         if next(i for i in self.divisions.values()).bountyBoardChannel is not None:
-            data["bountyBoardChannels"] = {div.minLevel: div.bountyBoardChannel.toDict(**kwargs) for div in self.divisions.values()}
+            data["bountyBoardChannels"] = {div.minLevel: div.bountyBoardChannel.serialize(**kwargs) for div in self.divisions.values()}
         
         if next(i for i in self.divisions.values()).alertRoleID != -1:
             data["alertRoleIDs"] = {div.minLevel: div.alertRoleID for div in self.divisions.values()}
@@ -472,8 +472,8 @@ class BountyDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, bountyDBDict: dict, owningBasedGuild: basedGuild.BasedGuild = None, dbReload: bool = False, **kwargs) -> BountyDB:
-        """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.toDict.
+    def deserialize(cls, bountyDBDict: dict, owningBasedGuild: basedGuild.BasedGuild = None, dbReload: bool = False, **kwargs) -> BountyDB:
+        """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.serialize.
 
         :param dict bountyDBDict: a dictionary representation of the bountyDB, to convert to an object
         :param bool dbReload: Whether or not this bountyDB is being created during the initial database loading
@@ -496,17 +496,17 @@ class BountyDB(serializable.Serializable):
             newDB.divisionForLevel(int(minLevel)).setTemp(divTemp)
 
         for bountyDict in activeBountiesData:
-            newDB.addBounty(bounty.Bounty.fromDict(bountyDict, dbReload=dbReload, owningDB=newDB, makeExpiryTT=False),
+            newDB.addBounty(bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB, makeExpiryTT=False),
                             dbReload=dbReload)
         for bountyDict in escapedBountiesData:
-            # Adding escaped bounties to DB is done during Bounty.fromDict
+            # Adding escaped bounties to DB is done during Bounty.deserialize
             # TODO: Should probably change that
-            bounty.Bounty.fromDict(bountyDict, dbReload=dbReload, owningDB=newDB)
+            bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB)
 
         if "bountyBoardChannels" in bountyDBDict:
             for minLevel, bbcDict in bountyDBDict["bountyBoardChannels"].items():
                 div = newDB.divisionForLevel(int(minLevel))
-                div.bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict, division=div)
+                div.bountyBoardChannel = BountyBoardChannel.deserialize(bbcDict, division=div)
 
         if "alertRoleIDs" in bountyDBDict:
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():

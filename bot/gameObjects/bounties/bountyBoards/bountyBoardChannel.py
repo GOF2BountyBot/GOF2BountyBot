@@ -4,6 +4,7 @@ from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, 
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
+from ....baseClasses.serializable import Serializable
 
 if TYPE_CHECKING:
     from ....databases.bountyDivision import BountyDivision
@@ -13,7 +14,6 @@ from .. import criminal, bounty
 from .... import botState
 import asyncio
 from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union, cast
-from ....baseClasses import serializable
 from .. import solarSystem
 
 
@@ -66,7 +66,7 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
                                                         "BBC", meta, *args, **kwargs)
 
 
-class BountyBoardChannel(serializable.Serializable):
+class BountyBoardChannel(Serializable):
     """A channel which stores a continuously updating listing message for every active bounty.
 
     Initialisation atts: These attributes are used only when loading in the BBC from dictionary-serialised format.
@@ -375,7 +375,7 @@ class BountyBoardChannel(serializable.Serializable):
 
 
     async def _loadCriminalMsg(self, crimDict: dict, msgId: int, logUrls: bool = True):
-        crim = criminal.Criminal.fromDict(crimDict)
+        crim = criminal.Criminal.deserialize(crimDict)
         if self.division.criminalObjExists(crim):
             msg = await self.loadMessageWithRetry(msgId,
                                                     f"criminal: {crim.name}", logUrls)
@@ -560,7 +560,7 @@ class BountyBoardChannel(serializable.Serializable):
         if self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-ADD-BNTY_EXSTS: Attempted to add a bounty to a bountyboardchannel, " \
                             + "but the bounty is already listed")
-            botState.logger.log("BBC", "addBty",
+            botState.client.logger.log("BBC", "addBty",
                         "Attempted to add a bounty to a bountyboardchannel, but the bounty is already listed: " \
                         + bounty.criminal.name, category='bountyBoards', eventType="LISTING_ADD-EXSTS")
         self.bountyMessages[bounty.criminal] = message
@@ -584,7 +584,7 @@ class BountyBoardChannel(serializable.Serializable):
         if not self.hasMessageForCriminal(criminal):
             raise KeyError("BNTY_BRD_CH-REM-BNTY_NOT_EXST: Attempted to remove a criminal from a bountyboardchannel, " \
                             + "but the criminal is not listed")
-            botState.logger.log("BBC", "remCrim",
+            botState.client.logger.log("BBC", "remCrim",
                                 "Attempted to remove a criminal from a bountyboardchannel, but the criminal is not listed: " \
                                     + criminal.name,
                                 category='bountyBoards', eventType="LISTING_REM-NO_EXST")
@@ -621,7 +621,7 @@ class BountyBoardChannel(serializable.Serializable):
         if not self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-UPD-BNTY_NOT_EXST: " \
                             + "Attempted to update a BBC message for a criminal that is not listed")
-            botState.logger.log("BBC", "remBty", "Attempted to update a BBC message for a criminal that is not listed: " \
+            botState.client.logger.log("BBC", "remBty", "Attempted to update a BBC message for a criminal that is not listed: " \
                         + bounty.criminal.name, category='bountyBoards', eventType="LISTING_UPD-NO_EXST")
 
         content = self.bountyMessages[bounty.criminal].content
@@ -641,23 +641,23 @@ class BountyBoardChannel(serializable.Serializable):
             await self.updateEscapedBountiesMessage()
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialise this BBC to dictionary format
 
         :return: A dictionary containing all data needed to recreate this BBC
         :rtype: dict
         """
         # dict of message id: criminal dict
-        listings = {msg.id: crim.toDict(**kwargs) for crim, msg in self.bountyMessages.items()}
+        listings = {msg.id: crim.serialize(**kwargs) for crim, msg in self.bountyMessages.items()}
         return {"channel": self.channel.id, "listings": listings,
                 "noBountiesMsg": self.noBountiesMessage.id if self.noBountiesMessage is not None else -1,
                 "escapedBountiesMsg": self.escapedBountiesMessage.id if self.escapedBountiesMessage is not None else -1}
 
 
     @classmethod
-    def fromDict(cls, BBCDict : dict, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
+    def deserialize(cls, BBCDict : dict, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
         """Factory function constructing a new BBC from the information in the provided dictionary
-        - the opposite of bountyBoardChannel.toDict
+        - the opposite of bountyBoardChannel.serialize
 
         :param dict BBCDict: a dictionary representation of the BBC, to convert to an object
         :return: The new bountyBoardChannel object

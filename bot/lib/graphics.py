@@ -262,8 +262,8 @@ def copyUserProfileBackground() -> Image.Image:
     """
     global USR_PROF_BACKGROUND
     if USR_PROF_BACKGROUND is None:
-        if cfg.userProfileBackground:
-            USR_PROF_BACKGROUND = Image.open(cfg.userProfileBackground)
+        if cfg.paths.userProfileBackground:
+            USR_PROF_BACKGROUND = Image.open(cfg.paths.userProfileBackground)
             USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
         else:
             raise ValueError("No userProfileBackground given in cfg")
@@ -274,27 +274,27 @@ def copyUserProfileBackground() -> Image.Image:
 def copyRandomDuelResultsBackground() -> Image.Image:
     """Get a copy of a random image to display behind duel results.
     The image is in "RGBA" mode, and has correct dimensions according to cfg.
-    The image has the cfg.duelResultsUnderlay already applied to it, if one was given.
+    The image has the cfg.paths.duelResultsUnderlay already applied to it, if one was given.
 
-    :return: A random image selected from cfg.duelResultsBackgrounds, but scaled to the right dimensions
+    :return: A random image selected from cfg.paths.duelResultsBackgrounds, but scaled to the right dimensions
     :rtype: Image.Image
     """
     global DUEL_RESULTS_BACKGROUNDS
     if DUEL_RESULTS_BACKGROUNDS == []:
-        if not cfg.duelResultsBackgrounds:
+        if not cfg.paths.duelResultsBackgrounds:
             raise ValueError("No duelResultsBackgrounds given in cfg")
 
-        if cfg.duelResultsUnderlay:
-            underlayImg = cropAndScale(Image.open(cfg.duelResultsUnderlay), cfg.duelResultsImageDims[0],
+        if cfg.paths.duelResultsUnderlay:
+            underlayImg = cropAndScale(Image.open(cfg.paths.duelResultsUnderlay), cfg.duelResultsImageDims[0],
                                         cfg.duelResultsImageDims[1]).convert("RGBA")
         pathsDone: Dict[str, Image.Image] = {}
-        for imgPath in cfg.duelResultsBackgrounds:
+        for imgPath in cfg.paths.duelResultsBackgrounds:
             if imgPath in pathsDone:
                 DUEL_RESULTS_BACKGROUNDS.append(pathsDone[imgPath])
             else:
                 DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
                                                                 cfg.duelResultsImageDims[1]).convert("RGBA"))
-                if cfg.duelResultsUnderlay:
+                if cfg.paths.duelResultsUnderlay:
                     DUEL_RESULTS_BACKGROUNDS[-1] = Image.composite(underlayImg, DUEL_RESULTS_BACKGROUNDS[-1],
                                                                     underlayImg)
                 pathsDone[imgPath] = DUEL_RESULTS_BACKGROUNDS[-1]
@@ -311,8 +311,8 @@ def copyDuelResultsOverlay() -> Image.Image:
     """
     global DUEL_RESULTS_OVERLAY
     if DUEL_RESULTS_OVERLAY is None:
-        if cfg.duelResultsOverlay:
-            DUEL_RESULTS_OVERLAY = Image.open(cfg.duelResultsOverlay)
+        if cfg.paths.duelResultsOverlay:
+            DUEL_RESULTS_OVERLAY = Image.open(cfg.paths.duelResultsOverlay)
             DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
                                                 cfg.duelResultsImageDims[1])
         else:
@@ -332,7 +332,7 @@ def copyDuelWinnerOverlay(winner: str) -> Image.Image:
     global DUEL_WINNER_OVERLAYS
     if DUEL_WINNER_OVERLAYS == {}:
         pathsDone: Dict[str, Image.Image] = {}
-        for side, imgPath in (("left", cfg.duelResultsLeftWinner), ("right", cfg.duelResultsRightWinner), ("draw", cfg.duelResultsDraw)):
+        for side, imgPath in (("left", cfg.paths.duelResultsLeftWinner), ("right", cfg.paths.duelResultsRightWinner), ("draw", cfg.paths.duelResultsDraw)):
             if imgPath in pathsDone:
                 DUEL_WINNER_OVERLAYS[side] = pathsDone[imgPath]
             else:

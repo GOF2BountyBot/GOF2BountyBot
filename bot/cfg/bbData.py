@@ -79,29 +79,29 @@ builtInWeaponData = {}
 # which are stored in builtInUpgradeObjs in a similar dict format.
 builtInUpgradeData = {}
 
-# data for builtIn criminals to be used in Criminal.fromDict
+# data for builtIn criminals to be used in Criminal.deserialize
 # criminals marked as not builtIn to allow for dictionary init.
 # The criminal object is then marked as builtIn during bot.on_ready
 builtInCriminalData = {}
 
-# data for builtIn systems to be used in SolarSystem.fromDict
+# data for builtIn systems to be used in SolarSystem.deserialize
 builtInSystemData = {}
 
-# data for builtIn Turrets to be used in bbTurret.fromDict
+# data for builtIn Turrets to be used in bbTurret.deserialize
 builtInTurretData = {}
 
-# data for builtIn commodities to be used in bbCommodity.fromDict (unimplemented)
+# data for builtIn commodities to be used in bbCommodity.deserialize (unimplemented)
 builtInCommodityData = {}
 
 builtInToolData = {}
 
-# data for builtIn secondaries to be used in bbSecondary.fromDict (unimplemented)
+# data for builtIn secondaries to be used in bbSecondary.deserialize (unimplemented)
 builtInSecondariesData = {}
 
-# data for builtIn ShipSkins to be used in ShipSkin.fromDict
+# data for builtIn ShipSkins to be used in ShipSkin.deserialize
 builtInShipSkinsData = {}
 
-# data for Medals to be used in Medal.fromDict. builtIn is not applicable to Medals, as custom Medals cannot be created
+# data for Medals to be used in Medal.deserialize. builtIn is not applicable to Medals, as custom Medals cannot be created
 medalsData = {}
 
 

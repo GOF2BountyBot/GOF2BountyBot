@@ -113,8 +113,8 @@ class LomaShop(guildShop.GuildShop):
 
 
     @classmethod
-    def fromDict(cls, shopDict : dict, **kwargs) -> LomaShop:
-        """Recreate a LomaShop instance from its dictionary-serialized representation - the opposite of LomaShop.toDict
+    def deserialize(cls, shopDict : dict, **kwargs) -> LomaShop:
+        """Recreate a LomaShop instance from its dictionary-serialized representation - the opposite of LomaShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new LomaShop object as described by shopDict
@@ -126,18 +126,18 @@ class LomaShop(guildShop.GuildShop):
         turretsStock = inventory.DiscountableTypeRestrictedInventory(turretWeapon.TurretWeapon)
         toolsStock = inventory.DiscountableTypeRestrictedInventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship.fromDict),
-                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon.fromDict),
-                                        ("modulesStock", modulesStock, moduleItemFactory.fromDict),
-                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon.fromDict),
-                                        ("toolsStock", toolsStock, toolItemFactory.fromDict)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship.deserialize),
+                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon.deserialize),
+                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
+                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon.deserialize),
+                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
                     newItem = deserializer(listingDict["item"], **kwargs)
                     stock.addItem(newItem, quantity=listingDict["count"])
                     if "discounts" in listingDict:
                         for discountDict in listingDict["discounts"]:
-                            stock.getListing(newItem).pushDiscount(itemDiscount.ItemDiscount.fromDict(discountDict, **kwargs))
+                            stock.getListing(newItem).pushDiscount(itemDiscount.ItemDiscount.deserialize(discountDict, **kwargs))
 
         return LomaShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                         turretsStock=turretsStock, toolsStock=toolsStock)

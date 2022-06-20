@@ -1,9 +1,10 @@
-from ...baseClasses import serializable
+from ...baseClasses.serializable import Serializable
 from ...cfg import bbData
 from ... import lib
 import os
+from os.path import join
 
-class XPBarFill(serializable.Serializable):
+class XPBarFill(Serializable):
     def __init__(self, name: str, path: str, designer: str, wiki: str = ""):
         self.name = name
         self.path = path
@@ -13,10 +14,10 @@ class XPBarFill(serializable.Serializable):
 
     
     def _updateItemMETA(self, **kwargs):
-        lib.jsonHandler.writeJSON(self.path + os.sep + "META.json", self.toDict(**kwargs), prettyPrint=True)
+        lib.jsonHandler.writeJSON(join(self.path, "META.json"), self.serialize(**kwargs), prettyPrint=True)
 
     
-    def toDict(self, **kwargs):
+    def serialize(self, **kwargs):
         data = {"name": self.name, "designer": self.designer}
         if self.hasWiki:
             data["wiki"] = self.wiki
@@ -24,7 +25,7 @@ class XPBarFill(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs):
+    def deserialize(cls, data: dict, **kwargs):
         if data["name"] in bbData.builtInXPBars:
             return bbData.builtInXPBars[data["name"]]
         return XPBarFill(**cls._makeDefaults(data))

@@ -76,15 +76,15 @@ class ToolItem(gameItem.GameItem):
 
 
     @abstractmethod
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this tool into dictionary format.
         This step of implementation adds a 'type' string indicating the name of this tool's subclass.
 
         :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem toDict implementation, with an added 'type' field
+        :return: The default gameItem serialize implementation, with an added 'type' field
         :rtype: dict
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         data["autoUse"] = self.autoUse
         return data
 
@@ -109,7 +109,7 @@ def userFriendlySingleUse(func: Callable) -> Callable:
     from calling user's inactiveTools after use.
     """
     async def inner(self: ToolItem, message: Message, *args, **kwargs):
-        callingBUser = botState.usersDB.getOrAddID(message.author.id)
+        callingBUser = botState.client.usersDB.getOrAddID(message.author.id)
         result = await func(self, message, *args, **kwargs)
         if self in callingBUser.inactiveTools:
             callingBUser.inactiveTools.removeItem(self)

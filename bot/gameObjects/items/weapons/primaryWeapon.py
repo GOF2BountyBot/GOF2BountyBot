@@ -10,9 +10,9 @@ class PrimaryWeapon(Weapon):
     """
 
     @classmethod
-    def fromDict(cls, weaponDict, **kwargs):
+    def deserialize(cls, weaponDict, **kwargs):
         """Factory function constructing a new primaryWeapon object from a dictionary serialised
-        representation - the opposite of primaryWeapon.toDict.
+        representation - the opposite of primaryWeapon.serialize.
 
         :param dict weaponDict: A dictionary containing all information needed to construct the desired primaryWeapon
         :return: A new primaryWeapon object as described in weaponDict

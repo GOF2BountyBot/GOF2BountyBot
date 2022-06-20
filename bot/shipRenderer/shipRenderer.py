@@ -9,6 +9,7 @@ import subprocess
 # import sys
 from typing import Any, List, Dict
 import os
+from os.path import join
 import pathlib
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -18,8 +19,8 @@ SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 CWD = os.getcwd()
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-RENDER_TEMP_DIR = script_path + os.sep + "temp"
-RENDER_ARGS_PATH = script_path + os.sep + "render_vars"
+RENDER_TEMP_DIR = join(script_path, "temp")
+RENDER_ARGS_PATH = join(script_path, "render_vars")
 
 
 class RenderFailed(Exception):
@@ -73,7 +74,7 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
     """
     # Load and combine the base texture and under layer
     workingTex = ensureImageMode(Image.open(textures[0]))
-    baseTex = ensureImageMode(Image.open(shipPath + os.sep + "skinBase.png"))
+    baseTex = ensureImageMode(Image.open(join(shipPath, "skinBase.png")))
     workingTex = Image.alpha_composite(workingTex, baseTex)
 
     maxLayerNum = max(max(textures), max(disabledLayers)) if disabledLayers else max(textures)
@@ -92,7 +93,7 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
 
         # Check that a corresponding mask exists for the model
         try:
-            mask = Image.open(shipPath + os.sep + "mask" + str(maskNum) + ".jpg")
+            mask = Image.open(join(shipPath, "mask" + str(maskNum) + ".jpg"))
         except FileNotFoundError:
             print("WARNING: Attempted to " + ("render" if maskNum in textures else "disable") + " texture region " \
                     + str(maskNum) + " but mask" + str(maskNum) + ".jpg does not exist. shipPath:" + shipPath)
@@ -116,13 +117,13 @@ def setRenderArgs(args : List[str]):
 
     :param List[str] args: List of arguments to write to file
     """
-    with open(SCRIPT_PATH + os.sep + "render_vars", "w") as f:
+    with open(join(SCRIPT_PATH, "render_vars"), "w") as f:
         for arg in args:
             f.write(arg + "\n")
 
 
 def start_render():
-    subprocess.call("blender -b \"" + SCRIPT_PATH + os.sep + "cube.blend\" -P \"" + SCRIPT_PATH + os.sep + "_render.py\"",
+    subprocess.call("blender -b \"" + join(SCRIPT_PATH, "cube.blend") + "\" -P \"" + join(SCRIPT_PATH, "_render.py") + "\"",
                     shell=True)
 
 
@@ -151,9 +152,9 @@ async def renderShip(skinName : str, shipPath : str, shipModelName : str, textur
                         element in textures as the texture for the model. (Default False)
     """
     # Generate render arguments
-    current_model = shipPath + os.sep + shipModelName
-    render_output_file = shipPath + os.sep + "skins" + os.sep + skinName + "-RENDER.png"
-    texture_output_file = shipPath + os.sep + "skins" + os.sep + skinName + ".jpg"
+    current_model = join(shipPath, shipModelName)
+    render_output_file = join(shipPath, "skins", skinName + "-RENDER.png")
+    texture_output_file = join(shipPath, "skins", skinName + ".jpg")
 
     if res_x > 1920:
         raise ValueError("Attempted to render an image above 1080p (width=" + str(res_x) + ")")

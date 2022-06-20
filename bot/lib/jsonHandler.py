@@ -1,7 +1,14 @@
+import json
+from carica import SerializableType
 import json, os
+from carica.exceptions import NonSerializableObject
+from typing import TypeVar, Type, Union
+from pathlib import Path
+from ..baseClasses.serializable import SerializesToJson, JsonType
 
+TSelf = TypeVar("TSelf", bound=SerializesToJson)
 
-def readJSON(dbFile: str) -> dict:
+def readJSON(dbFile: Union[Path, str]) -> JsonType:
     """Read the json file with the given path, and return the contents as a dictionary.
 
     :param str dbFile: Path to the file to read
@@ -13,7 +20,7 @@ def readJSON(dbFile: str) -> dict:
     return data
 
 
-def writeJSON(dbFile: str, db: dict, prettyPrint=False):
+def writeJSON(dbFile: Union[Path, str], db: JsonType, prettyPrint=False):
     """Write the given json-serializable dictionary to the given file path.
     All objects in the dictionary must be JSON-serializable.
 
@@ -28,27 +35,31 @@ def writeJSON(dbFile: str, db: dict, prettyPrint=False):
             json.dump(db, f)
 
 
-def saveDB(dbPath: str, db, **kwargs):
-    """Call the given database object's toDict method, and save the resulting dictionary to the specified JSON file.
-    TODO: child database classes to a single ABC, and type check to that ABC here before saving
+T = TypeVar("T", bound=SerializableType)
 
-    :param str dbPath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
-    :param db: the database object to save
+
+def loadObject(filePath: Union[Path, str], objectType: Type[T], **kwargs) -> T:
+    """Read the specified JSON file, and deserialize the contents into a new instance of `objectType`.
+
+    :param str filePath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
+    :param objectType: the object type to deserialize `filePath`'s contents into
     """
-    writeJSON(dbPath, db.toDict(**kwargs))
+    if not issubclass(objectType, SerializableType):
+        raise NonSerializableObject(objectType)
+    
+    data = readJSON(filePath)
+    return objectType.deserialize(data, **kwargs)
 
 
-async def saveDBAsync(dbPath: str, db, **kwargs):
-    """This function should be used in place of saveDB for database objects whose toDict method is asynchronous.
-    This function is currently unused.
+def saveObject(filePath: Union[Path, str], o: SerializesToJson, **kwargs):
+    """Call the given serializable object's serialize method, and save the resulting dictionary to the specified JSON file.
 
-    Await the given database object's toDict method, and save the resulting dictionary to the specified JSON file.
-    TODO: child database classes to a single ABC, and type check to that ABC here before saving
-
-    :param str dbPath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
-    :param db: the database object to save
+    :param str filePath: path to the JSON file to save to. Theoretically, this can be absolute or relative.
+    :param o: the object to save
     """
-    writeJSON(dbPath, await db.toDict(**kwargs))
+    if not isinstance(o, SerializableType):
+        raise NonSerializableObject(o)
+    writeJSON(filePath, o.serialize(**kwargs))
 
 
 def depthLimitedWalk(top: str, maxDepth: int):

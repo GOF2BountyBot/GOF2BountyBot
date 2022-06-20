@@ -18,7 +18,7 @@ async def dev_cmd_kaamo_give(message : discord.Message, args : str, isDM : bool)
     """developer command spawning the described item, and placing it in the given user's kaamo shop.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
-    item must be a json format description in line with the item's to and fromDict functions.
+    item must be a json format description in line with the item's to and deserialize functions.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
@@ -28,13 +28,13 @@ async def dev_cmd_kaamo_give(message : discord.Message, args : str, isDM : bool)
     requestedUser: BasedUser = None
     argsSplit = args.split(" ")
     if not lib.stringTyping.isInt(argsSplit[0]) and not lib.stringTyping.isMention(argsSplit[0]):
-        requestedUser = botState.usersDB.getOrAddID(message.author.id)
+        requestedUser = botState.client.usersDB.getOrAddID(message.author.id)
         itemStr = args
 
     # otherwise get the specified user's bb object
     # [!] no validation is done.
     else:
-        requestedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+        requestedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
         itemStr = args[len(argsSplit[0]) + 1:]
 
     if requestedUser.kaamo is not None and requestedUser.kaamo.isFull():
@@ -87,11 +87,11 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
         await message.author.send(":x: Unrecognised user!")
         return
 
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         await message.author.send("User has not played yet!")
         return
 
-    requestedBBUser: BasedUser = botState.usersDB.getUser(requestedUser.id)
+    requestedBBUser: BasedUser = botState.client.usersDB.getUser(requestedUser.id)
     if requestedBBUser.kaamo is None:
         await message.author.send(":x: The requested pilot has no kaamo!")
         return
@@ -124,7 +124,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
                 currentItem = currentStock[itemNum - 1].item
             except KeyError:
                 try:
-                    botState.logger.log("dev_kaamo", "dev_cmd_debug_kaamo",
+                    botState.client.logger.log("dev_kaamo", "dev_cmd_debug_kaamo",
                                         "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                             + "' (index " + str(itemNum-1) \
                                             + "), which was not found in the shop stock",
@@ -135,7 +135,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
                     keysStr = ""
                     for item in currentStock.items:
                         keysStr += str(item) + ", "
-                    botState.logger.log("dev_kaamo", "dev_cmd_debug_kaamo",
+                    botState.client.logger.log("dev_kaamo", "dev_cmd_debug_kaamo",
                                         "Unexpected type in " + currentItemType + "sStock KEYS, index " \
                                             + str(itemNum-1) + ". Got " \
                                             + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
@@ -182,7 +182,7 @@ async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : b
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
@@ -202,7 +202,7 @@ async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : b
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
         return
-    requestedBBUser: BasedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+    requestedBBUser: BasedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
     if requestedUser is None:
@@ -301,7 +301,7 @@ async def dev_cmd_del_kaamo_item_key(message : discord.Message, args : str, isDM
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     argsSplit = args.split(" ")
     if len(argsSplit) < 3:
         await message.channel.send(":x: Not enough arguments! Please provide a user, an item type " \
@@ -320,7 +320,7 @@ async def dev_cmd_del_kaamo_item_key(message : discord.Message, args : str, isDM
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
         return
-    requestedBBUser: BasedUser = botState.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
+    requestedBBUser: BasedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
 
     requestedUser = botState.client.get_user(requestedBBUser.id)
     if requestedUser is None:

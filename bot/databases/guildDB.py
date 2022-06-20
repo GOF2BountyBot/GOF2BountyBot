@@ -1,21 +1,23 @@
 from __future__ import annotations
-from typing import List, Dict
+from typing import List, Dict, cast
 from discord import Guild
 from concurrent.futures import ThreadPoolExecutor
 import os
 
 from ..users import basedGuild
 from . import bountyDB
-from .. import botState
-from ..baseClasses import serializable
+from .. import botState, lib
 from .. import lib
+from ..baseClasses.serializable import SerializesToJson, JsonType
+from ..logging import LogCategory
 
 
 _minGuildsToParallelize = os.cpu_count()
-_minGuildsToParallelize = (_minGuildsToParallelize + (_minGuildsToParallelize % 2)) // 2
+_minGuildsToParallelize = None if _minGuildsToParallelize is None else \
+                            (_minGuildsToParallelize + (_minGuildsToParallelize % 2)) // 2
 
 
-class GuildDB(serializable.Serializable):
+class GuildDB(SerializesToJson):
     """A database of BasedGuilds.
 
     :var guilds: Dictionary of guild.id to guild, where guild is a BasedGuild
@@ -92,7 +94,7 @@ class GuildDB(serializable.Serializable):
         """
         # Ensure guild is not yet in the database
         if self.guildExists(guild):
-            raise KeyError("Attempted to add a guild that already exists: " + guild.id)
+            raise KeyError(f"Attempted to add a guild that already exists: {guild.id}")
         self.guilds[guild.id] = guild
 
 
@@ -106,7 +108,7 @@ class GuildDB(serializable.Serializable):
         """
         # Ensure the requested guild does not yet exist in the database
         if self.idExists(dcGuild.id):
-            raise KeyError("Attempted to add a guild that already exists: " + id)
+            raise KeyError("Attempted to add a guild that already exists: " + dcGuild.id)
         # Create and return a BasedGuild for the requested ID
         self.guilds[dcGuild.id] = basedGuild.BasedGuild(dcGuild.id, dcGuild, bountyDB.BountyDB(None, dummy=True))
         self.guilds[dcGuild.id].bountiesDB = bountyDB.BountyDB(self.guilds[dcGuild.id])
@@ -155,7 +157,7 @@ class GuildDB(serializable.Serializable):
         """Decay the activity temperatures of all guilds in the database.
         This should be called daily.
         """
-        if len(self.guilds) > _minGuildsToParallelize:
+        if _minGuildsToParallelize is not None and len(self.guilds) > _minGuildsToParallelize:
             print("parallelizing temp decay")
             with ThreadPoolExecutor() as executor:
                 executor.map(self._decayGuildTemps, self.getGuilds())
@@ -164,11 +166,11 @@ class GuildDB(serializable.Serializable):
             for g in self.getGuilds():
                 print("decaying guild #" + str(g.id))
                 self._decayGuildTemps(g)
-        botState.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
+        botState.client.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
                             category="bountiesDB", eventType="TEMPS_DECAY")
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialise this GuildDB into dictionary format
 
         :return: A dictionary containing all data needed to recreate this GuildDB
@@ -179,7 +181,7 @@ class GuildDB(serializable.Serializable):
         for guild in self.getGuilds():
             # Serialise and then store each guild
             # JSON stores properties as strings, so ids must be converted to str first.
-            data[str(guild.id)] = guild.toDict(**kwargs)
+            data[str(guild.id)] = guild.serialize(**kwargs)
         return data
 
 
@@ -194,8 +196,8 @@ class GuildDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, guildDBDict: dict, dbReload=False, **kwargs) -> GuildDB:
-        """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.todict()
+    def deserialize(cls, guildDBDict: JsonType, dbReload=False, **kwargs) -> GuildDB:
+        """Construct a GuildDB object from dictionary-serialised format; the reverse of GuildDB.serialize()
 
         :param dict bountyDBDict: The dictionary representation of the GuildDB to create
         :return: The new GuildDB
@@ -208,10 +210,11 @@ class GuildDB(serializable.Serializable):
             # Instance new BasedGuilds for each ID, with the provided data
             # JSON stores properties as strings, so ids must be converted to int first.
             try:
-                newDB.addBasedGuild(basedGuild.BasedGuild.fromDict(guildDBDict[guildID], guildID=int(guildID), dbReload=dbReload))
+                # casting here because pyright doesn't know the structure of a serialized guild
+                newDB.addBasedGuild(basedGuild.BasedGuild.deserialize(cast(JsonType, guildDBDict[guildID]), guildID=int(guildID), dbReload=dbReload))
             # Ignore guilds that don't have a corresponding dcGuild
             except lib.exceptions.NoneDCGuildObj:
-                botState.logger.log("GuildDB", "fromDict",
+                botState.client.logger.log("GuildDB", "deserialize",
                                     "no corresponding discord guild found for ID " + guildID + ", guild removed from database",
-                                    category="guildsDB", eventType="NULL_GLD")
+                                    category=LogCategory.guildsDB, eventType="NULL_GLD")
         return newDB

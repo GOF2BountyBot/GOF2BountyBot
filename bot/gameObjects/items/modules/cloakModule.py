@@ -41,23 +41,23 @@ class CloakModule(moduleItem.ModuleItem):
         return "*Duration: " + moduleItem.lib.stringTyping.formatAdditive(self.duration) + "s*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem toDict
+    def serialize(self, **kwargs) -> dict:
+        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(CloakModule, self).toDict(**kwargs)
+        itemDict = super(CloakModule, self).serialize(**kwargs)
         if not self.builtIn:
             itemDict["duration"] = self.duration
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict : dict, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict

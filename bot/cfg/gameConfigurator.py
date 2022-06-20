@@ -1,4 +1,5 @@
 import os
+from os.path import join
 import json
 from typing import Dict, Any, List
 from types import FunctionType
@@ -31,13 +32,13 @@ def _loadGameItemsFromDir(itemDir : str, itemFolderExt : str, lowerKey: bool = F
     for subdir, dirs, _ in lib.jsonHandler.depthLimitedWalk(itemDir, cfg.gameObjectCfgMaxRecursion):
         for dirname in dirs:
             if dirname.lower().endswith(itemFolderExt):
-                dirpath = subdir + os.sep + dirname
+                dirpath = join(subdir, dirname)
                 # Ensure a meta file exists
-                if not os.path.isfile(dirpath + os.sep + "META.json"):
+                if not os.path.isfile(join(dirpath, "META.json")):
                     raise lib.exceptions.InvalidGameObjectFolder(dirpath, "missing META.json")
 
                 # Read in the object metadata and add to the database
-                with open(dirpath + os.sep + "META.json", "r") as f:
+                with open(join(dirpath, "META.json"), "r") as f:
                     currentItemData = json.loads(f.read())
                     if lowerKey:
                         itemDB[currentItemData["name"].lower()] = currentItemData
@@ -60,18 +61,18 @@ def _loadShipItemsFromDir(shipsDir : str) -> Dict[str, dict]:
     for subdir, dirs, _ in lib.jsonHandler.depthLimitedWalk(shipsDir, cfg.gameObjectCfgMaxRecursion):
         for dirname in dirs:
             if dirname.lower().endswith(".bbship"):
-                dirpath = subdir + os.sep + dirname
+                dirpath = join(subdir, dirname)
 
                 # Ensure a meta file exists
-                if not os.path.isfile(dirpath + os.sep + "META.json"):
+                if not os.path.isfile(join(dirpath, "META.json")):
                     raise lib.exceptions.InvalidGameObjectFolder(dirpath, "missing META.json")
 
                 # Read in the ship metadata
-                with open(dirpath + os.sep + "META.json", "r") as f:
+                with open(join(dirpath, "META.json"), "r") as f:
                     currentItemData = json.loads(f.read())
 
                 # Set the ship config file path, for use later when locating model files
-                currentItemData["path"] = CWD + os.sep + dirpath
+                currentItemData["path"] = join(CWD, dirpath)
 
                 # Default skinnable attribute to False
                 if "skinnable" not in currentItemData or "model" not in currentItemData:
@@ -109,17 +110,17 @@ def _loadShipSkinsFromDir(shipsDir : str) -> Dict[str, dict]:
     for subdir, dirs, _ in lib.jsonHandler.depthLimitedWalk(shipsDir, cfg.gameObjectCfgMaxRecursion):
         for dirname in dirs:
             if dirname.lower().endswith(".bbshipskin"):
-                dirpath = subdir + os.sep + dirname
+                dirpath = join(subdir, dirname)
 
                 # Ensure a meta file exists
-                if not os.path.isfile(dirpath + os.sep + "META.json"):
+                if not os.path.isfile(join(dirpath, "META.json")):
                     raise lib.exceptions.InvalidGameObjectFolder(dirpath, "missing META.json")
 
                 # Read in the skin metadata
-                with open(dirpath + os.sep + "META.json", "r") as f:
+                with open(join(dirpath, "META.json"), "r") as f:
                     currentItemData = json.loads(f.read())
 
-                currentItemData["path"] = CWD + os.sep + dirpath
+                currentItemData["path"] = join(CWD, dirpath)
 
                 # register the skin to the database under the LOWER-shifted skin name
                 itemDB[currentItemData["name"].lower()] = currentItemData
@@ -180,7 +181,7 @@ def _sortGameObjects(objsDB : Dict[str, Any]) -> List[List[Any]]:
     :rtype: List[List[Any]]
     """
     # Sort module objects by tech level
-    sortedDB = [[] for _ in range(cfg.maxTechLevel - cfg.minTechLevel + 1)]
+    sortedDB: List[List[Any]] = [[] for _ in range(cfg.maxTechLevel - cfg.minTechLevel + 1)]
     for obj in objsDB.values():
         sortedDB[obj.techLevel - 1].append(obj)
     return sortedDB
@@ -286,14 +287,14 @@ def loadAllGameObjects():
     bbData.builtInSecondariesObjs
     """
     for dataDB, objsDB, deserializer in (
-                (bbData.builtInCriminalData,bbData.builtInCriminalObjs, criminal.Criminal.fromDict),
-                (bbData.builtInSystemData,  bbData.builtInSystemObjs,   solarSystem.SolarSystem.fromDict),
-                (bbData.builtInWeaponData,  bbData.builtInWeaponObjs,   primaryWeapon.PrimaryWeapon.fromDict),
-                (bbData.builtInUpgradeData, bbData.builtInUpgradeObjs,  shipUpgrade.ShipUpgrade.fromDict),
-                (bbData.builtInTurretData,  bbData.builtInTurretObjs,   turretWeapon.TurretWeapon.fromDict),
-                (bbData.builtInModuleData,  bbData.builtInModuleObjs,   moduleItemFactory.fromDict),
-                (bbData.builtInShipSkinsData,bbData.builtInShipSkins,   shipSkin.ShipSkin.fromDict),
-                (bbData.medalsData,         bbData.medalObjs,           medal.Medal.fromDict)):
+                (bbData.builtInCriminalData,bbData.builtInCriminalObjs, criminal.Criminal.deserialize),
+                (bbData.builtInSystemData,  bbData.builtInSystemObjs,   solarSystem.SolarSystem.deserialize),
+                (bbData.builtInWeaponData,  bbData.builtInWeaponObjs,   primaryWeapon.PrimaryWeapon.deserialize),
+                (bbData.builtInUpgradeData, bbData.builtInUpgradeObjs,  shipUpgrade.ShipUpgrade.deserialize),
+                (bbData.builtInTurretData,  bbData.builtInTurretObjs,   turretWeapon.TurretWeapon.deserialize),
+                (bbData.builtInModuleData,  bbData.builtInModuleObjs,   moduleItemFactory.deserialize),
+                (bbData.builtInShipSkinsData,bbData.builtInShipSkins,   shipSkin.ShipSkin.deserialize),
+                (bbData.medalsData,         bbData.medalObjs,           medal.Medal.deserialize)):
         _loadGameObjects(dataDB, objsDB, deserializer)
 
     # generate shipSkinTool objects for each shipSkin
@@ -320,7 +321,7 @@ def loadAllGameObjects():
 
     bbData.builtInCrateObjs = {crateType: [] for crateType in cfg.crateTypes}
     # Load in tools
-    _loadToolObjects(bbData.builtInToolData, bbData.builtInToolObjs, toolItemFactory.fromDict)
+    _loadToolObjects(bbData.builtInToolData, bbData.builtInToolObjs, toolItemFactory.deserialize)
 
     bbData.builtInCrateObjs["levelUp"] = _makeLevelUpCrates()
 

@@ -34,7 +34,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
     page = 1
 
     useDummyData = False
-    prefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    prefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     def extractArgs():
         requestedUser = message.author
@@ -86,7 +86,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
             await message.reply(f":x: You must be an admin to view other players' hangars!")
             return
 
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         useDummyData = True
 
     foundUser = requestedUser != message.author
@@ -158,7 +158,7 @@ async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
         return
 
     else:
-        requestedBBUser = botState.usersDB.getUser(requestedUser.id)
+        requestedBBUser = botState.client.usersDB.getUser(requestedUser.id)
 
         if page < 1:
             await message.reply(mention_author=False, content=":x: Invalid page number. Showing page one:")
@@ -285,7 +285,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
         if isDM:
             await message.channel.send(":x: criminal loadouts can only be requested from inside a server!")
         else:
-            callingBBGuild = botState.guildsDB.getGuild(message.guild.id)
+            callingBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
             if callingBBGuild.bountiesDisabled:
                 await message.channel.send(":x: This server has bounties disabled!")
                 return
@@ -326,11 +326,11 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False, content=":x: Invalid user requested! Please either ping them, or give their ID!")
             return
 
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         useDummyData = True
 
     if useDummyData:
-        activeShip = shipItem.Ship.fromDict(basedUser.defaultShipLoadoutDict)
+        activeShip = shipItem.Ship.deserialize(basedUser.defaultShipLoadoutDict)
         loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout", desc=requestedUser.mention,
                                                     col=bbData.factionColours[activeShip.manufacturer] \
                                                         if activeShip.manufacturer in bbData.factionColours \
@@ -342,7 +342,7 @@ async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
         return
 
     else:
-        requestedBBUser = botState.usersDB.getUser(requestedUser.id)
+        requestedBBUser = botState.client.usersDB.getUser(requestedUser.id)
         activeShip = requestedBBUser.activeShip
         loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout", desc=requestedUser.mention,
                                                     col=bbData.factionColours[activeShip.manufacturer] if \
@@ -377,7 +377,7 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     argsSplit = args.split(" ")
     if len(argsSplit) < 2:
@@ -390,7 +390,7 @@ async def cmd_equip(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
         return
 
-    requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
+    requestedBBUser = botState.client.usersDB.getOrAddID(message.author.id)
 
     itemNum = argsSplit[1]
     
@@ -597,7 +597,7 @@ async def cmd_unequip(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     if not unequipAllItems and len(argsSplit) < 2:
         await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide both an item type (all/weapon/module/turret) " \
@@ -608,7 +608,7 @@ async def cmd_unequip(message : discord.Message, args : str, isDM : bool):
                                     + "an item number or `all`.")
         return
 
-    requestedBBUser = botState.usersDB.getOrAddID(message.author.id)
+    requestedBBUser = botState.client.usersDB.getOrAddID(message.author.id)
 
     if unequipAllItems:
         requestedBBUser.unequipAll(requestedBBUser.activeShip)
@@ -709,10 +709,10 @@ async def cmd_nameship(message : discord.Message, args : str, isDM : bool):
     :param str args: string containing the new nickname.
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if botState.usersDB.idExists(message.author.id):
-        requestedBBUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        requestedBBUser = botState.client.usersDB.getUser(message.author.id)
     else:
-        requestedBBUser = botState.usersDB.addID(message.author.id)
+        requestedBBUser = botState.client.usersDB.addID(message.author.id)
 
     if requestedBBUser.activeShip is None:
         await message.reply(mention_author=False, content=":x: You do not have a ship equipped!")
@@ -742,10 +742,10 @@ async def cmd_unnameship(message : discord.Message, args : str, isDM : bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if botState.usersDB.idExists(message.author.id):
-        requestedBBUser = botState.usersDB.getUser(message.author.id)
+    if botState.client.usersDB.idExists(message.author.id):
+        requestedBBUser = botState.client.usersDB.getUser(message.author.id)
     else:
-        requestedBBUser = botState.usersDB.addID(message.author.id)
+        requestedBBUser = botState.client.usersDB.addID(message.author.id)
 
     if requestedBBUser.activeShip is None:
         await message.reply(mention_author=False, content=":x: You do not have a ship equipped!")

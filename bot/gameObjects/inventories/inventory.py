@@ -1,10 +1,10 @@
 from __future__ import annotations
 from . import inventoryListing
-from ...baseClasses import serializable
+from ...baseClasses.serializable import Serializable
 from typing import Dict, Any, List, Tuple
 
 
-class Inventory(serializable.Serializable):
+class Inventory(Serializable):
     """A database of InventoryListings.
     Aside from the use of InventoryListing for the purpose of item quantities, this class is type unaware.
 
@@ -238,21 +238,21 @@ class Inventory(serializable.Serializable):
         return item in self.keys
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = super().toDict(**kwargs)
+    def serialize(self, **kwargs) -> dict:
+        data = super().serialize(**kwargs)
         data["items"] = []
         for listing in self.items.values():
-            data["items"].append(listing.toDict(**kwargs))
+            data["items"].append(listing.serialize(**kwargs))
 
         return data
 
 
     @classmethod
-    def fromDict(cls, invDict, **kwargs) -> Inventory:
+    def deserialize(cls, invDict, **kwargs) -> Inventory:
         newInv = Inventory()
         if "items" in invDict:
             for listingDict in invDict["items"]:
-                newInv._addListing(cls.listingType.fromDict(listingDict))
+                newInv._addListing(cls.listingType.deserialize(listingDict))
 
         return newInv
 

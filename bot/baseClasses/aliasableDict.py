@@ -63,20 +63,20 @@ class AliasableDict(dict):
         return results
 
 
-    def getValuesForManyKeysNamed(self, name: List[str]) -> Dict[str, Any]:
+    def getValuesForManyKeysNamed(self, names: List[str]) -> Dict[str, Any]:
         """Search the dictionary for keys with the given names or aliases, and get the values paired with them.
         All names must match a key, no partial results are returned.
 
         In the worst case, this is as efficient as executing one getManyKeysNamed search per name.
         In the general case however, this is much more efficient as the search is performed over a single iteration.
 
-        :param str name: The list of names or aliases to look up
+        :param str names: The list of names or aliases to look up
         :return: A mapping from search terms to values paired with registered keys that are named/aliased as such
         :rtype: Dict[str, Any]
         :raise KeyError: If no key in the dictionary could be found for at least one search term
-        :raise TypeError: If name is not a list of strings
+        :raise TypeError: If names is not a list of strings
         """
-        return {n: self[k] for n, k in self.getManyKeysNamed().items()}
+        return {n: self[k] for n, k in self.getManyKeysNamed(names).items()}
 
 
     def __setitem__(self, k: Aliasable, v: Any) -> None:
@@ -92,9 +92,8 @@ class AliasableDict(dict):
 
 
     def add(self, k: Aliasable) -> None:
-        """Register a key value pair, or change the value of an existing pair. k must be an Aliasable.
-        The key to register is inferred as k.name
+        """Register a key, with a value of itself. k must be an Aliasable.
 
-        :param Aliasable k: The key to register, or change the value of
+        :param Aliasable k: The key to register/update
         """
-        self[k.name] = k
+        self[k] = k

@@ -43,7 +43,7 @@ class Weapon(GameItem):
         return "*Dps: " + str(self.dps) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this item into dictionary format, for saving to file.
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -51,7 +51,7 @@ class Weapon(GameItem):
                     If the weapon is builtIn, this is only its name.
         :rtype: dict
         """
-        itemDict = super(Weapon, self).toDict(**kwargs)
+        itemDict = super(Weapon, self).serialize(**kwargs)
         if not self.builtIn:
             itemDict["dps"] = self.dps
         return itemDict

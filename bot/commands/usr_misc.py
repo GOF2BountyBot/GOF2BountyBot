@@ -12,8 +12,8 @@ from . import commandsDB as botCommands
 from . import util_help
 from .. import lib, botState
 from ..lib.stringTyping import commaSplitNum
-from ..lib import gameMaths
-from ..cfg import cfg, bbData, versionInfo
+from ..lib import gameMaths, BASED_version
+from ..cfg import cfg, bbData
 from ..users import basedUser, basedGuild
 from ..reactionMenus import reactionMenu, reactionPollMenu
 from ..scheduling import timedTask
@@ -61,7 +61,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
     srcEmbed.add_field(name="API",
                        value="[Discord.py " + discord.__version__ + "](https://github.com/Rapptz/discord.py/)")
     srcEmbed.add_field(name="BASED",
-                       value="[BASED " + versionInfo.BASED_VERSION + "](https://github.com/Trimatix/BASED)")
+                       value="[BASED " + BASED_version.getBASEDVersion().BASED_version + "](https://github.com/Trimatix/BASED)")
     srcEmbed.add_field(name="GitHub",
                        value="[GitHub Repository](https://github.com/GOF2BountyBot/GOF2BountyBot)")
     srcEmbed.add_field(name="Invite",
@@ -101,7 +101,7 @@ async def cmd_how_to_play(message : discord.Message, args : str, isDM : bool):
     try:
         newBountiesChannelStr = ""
         if not isDM:
-            requestedBBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+            requestedBBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
             if requestedBBGuild.hasBountyBoardChannels:
                 newBountiesChannelStr = " in " + requestedBBGuild.bountiesDB.divisionForLevel(0).bountyBoardChannel.channel.mention
             elif requestedBBGuild.hasAnnounceChannel:
@@ -188,7 +188,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # verify the user mention
     if requestedUser is None:
@@ -207,7 +207,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
     isClassic = False
 
     # If the requested user is not in the database, don't bother adding them just print zeroes
-    if not botState.usersDB.idExists(requestedUser.id):
+    if not botState.client.usersDB.idExists(requestedUser.id):
         hunterLvl = 1
         bountyXP = effectiveBountyXP = gameMaths.bountyHuntingXPForLevel(1)
         nextXP = gameMaths.bountyHuntingXPForLevel(2)
@@ -229,7 +229,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
 
     # Otherwise, print the stats stored in the user's database entry
     else:
-        userObj: basedUser.BasedUser = botState.usersDB.getUser(requestedUser.id)
+        userObj: basedUser.BasedUser = botState.client.usersDB.getUser(requestedUser.id)
         isClassic = userObj.classicModeEnabled
 
         if isClassic:
@@ -299,7 +299,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         # Image to mask with xpBarMask, filling the bar
         xpBarFill = lib.graphics.copyXPBarFill(divisionNameForLevel(hunterLvl))
         # User profile background image
-        if cfg.userProfileBackground:
+        if cfg.paths.userProfileBackground:
             profileBackground = lib.graphics.copyUserProfileBackground()
         else:
             profileBackground = Image.new("RGBA", (cfg.userProfileImgWidth, cfg.userProfileImgHeight), (0, 0, 0, 0))
@@ -332,7 +332,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
         # if xpBarSil.size != xpBarMask or xpBarSil.size != xpBarFill.size
         # Ensure the XP bar fits within the profile background. Could fix this later with scaling if needed.
         if xpBarSil.size[0] > profileBackground.size[0] or xpBarSil.size[1] > profileBackground.size[1]:
-            botState.logger.log("usr_misc", "cmd_stats", "XP Bar does not fit within user profile image. Image" \
+            botState.client.logger.log("usr_misc", "cmd_stats", "XP Bar does not fit within user profile image. Image" \
                                 + f"sizes: xpBarSil {xpBarSil.size}, profileBackground {profileBackground.size}",
                                 eventType="XPBAR_DIM")
             statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
@@ -344,7 +344,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                 # Create the XP bar, by masking the fill image and placing it on top of the silhouette
                 xpBarFill = Image.composite(xpBarFill, xpBarSil, xpBarMask)
             except ValueError as e:
-                botState.logger.log("usr_misc", "cmd_stats",
+                botState.client.logger.log("usr_misc", "cmd_stats",
                                     "Received images of differing sizes when masking xp bar fill. Image" \
                                     + f"sizes: xpBarFill {xpBarFill.size}, xpBarSil {xpBarSil.size}, " \
                                     + f"xpBarMask {xpBarMask.size}",
@@ -364,7 +364,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                 try:
                     profileBackground.paste(xpBarFill, (barPasteLocX, barPasteLocY), xpBarFill)
                 except ValueError as e:
-                    botState.logger.log("usr_misc", "cmd_stats",
+                    botState.client.logger.log("usr_misc", "cmd_stats",
                                         "Received images of differing sizes when combining xp bar " \
                                         + f"layers. Image sizes: xpBarFill {xpBarFill.size}, profileBackground " \
                                         + str(profileBackground.size), exception=e)
@@ -375,7 +375,7 @@ async def cmd_stats(message : discord.Message, args : str, isDM : bool):
                 else:
                     textDraw: ImageDraw.ImageDraw = ImageDraw.Draw(profileBackground)
                     # Load font
-                    font = ImageFont.truetype(cfg.userProfileFont, cfg.userProfileFontSize)
+                    font = ImageFont.truetype(cfg.paths.userProfileFont, cfg.paths.userProfileFontSize)
                     # Add level and division
                     textDraw.text((xPad, yPad), f"Level {hunterLvl} {divisionNameForLevel(hunterLvl).title()}",
                                     cfg.userProfileLevelColour, font=font)
@@ -440,7 +440,7 @@ async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
     if isDM:
         prefix = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     globalArgs = ('global', 'g')
     foundBoardType = False
@@ -498,7 +498,7 @@ async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
 
     # get the requested stats and sort users by the stat
     inputDict = {}
-    for user in botState.usersDB.getUsers():
+    for user in botState.client.usersDB.getUsers():
         if (globalBoard and botState.client.get_user(user.id) is not None) or \
                 (not globalBoard and message.guild.get_member(user.id) is not None):
             inputDict[user.id] = user.getStatByName(stat)
@@ -564,8 +564,8 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                         separated by a single space.
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBUser: basedUser.BasedUser = botState.usersDB.getOrAddID(message.author.id)
-    requestedBBGuild: basedGuild.BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
+    requestedBBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     if not message.guild.me.guild_permissions.manage_roles:
         await message.reply(mention_author=False, content=":x: I do not have the 'Manage Roles' permission in this server! " \
@@ -601,7 +601,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                 except client_exceptions.ClientOSError:
                     await message.channel.send(":thinking: Whoops! A connection error occurred, and the error has been " \
                                                 + "logged. Could you try that again please?")
-                    botState.logger.log("main", "cmd_notify",
+                    botState.client.logger.log("main", "cmd_notify",
                                         "aiohttp.client_exceptions.ClientOSError occurred when attempting to " \
                                             + "remove new bounty role " + tlRole.name + "#" + tlRole.id \
                                             + ", TL " + str(tl) + f", from {classicStr}user " \
@@ -630,7 +630,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                 except client_exceptions.ClientOSError:
                     await message.channel.send(":thinking: Whoops! A connection error occurred, and the error has been " \
                                                 + "logged. Could you try that again please?")
-                    botState.logger.log("main", "cmd_notify",
+                    botState.client.logger.log("main", "cmd_notify",
                                         "aiohttp.client_exceptions.ClientOSError occurred when attempting to " \
                                             + "grant new bounty role " + tlRole.name + "#" + tlRole.id \
                                             + ", TL " + str(tl) + f", from {classicStr}user " \
@@ -672,7 +672,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
             await message.reply(mention_author=False,
                                 content=":thinking: Whoops! A connection error occurred, and the error has been logged. " \
                                         + "Could you try that again please?")
-            botState.logger.log("main", "cmd_notify", "ClientOSError occurred when attempting to grant " \
+            botState.client.logger.log("main", "cmd_notify", "ClientOSError occurred when attempting to grant " \
                                                         + f"{message.author.name}#{str(message.author.id)}" \
                                                         + f" alert {alertID} in guild {message.guild.name}#" \
                                                         + str(message.guild.id) + ".",
@@ -718,13 +718,13 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
                         in this function's docstring
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if botState.usersDB.getOrAddID(message.author.id).hasMenuOfTypeID("poll"):
+    if botState.client.usersDB.getOrAddID(message.author.id).hasMenuOfTypeID("poll"):
         await message.reply(mention_author=False, content=":x: You can only make one poll at a time!")
         return
 
     pollOptions = {}
     kwArgs = {}
-    requestedBBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     argsSplit = args.split("\n")
     if len(argsSplit) < 2:
@@ -838,15 +838,15 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
     timeoutDelta = timedelta(**(timeoutDict or cfg.timeouts.pollMenuExpiry))
     timeoutTT = timedTask.TimedTask(expiryDelta=timeoutDelta, expiryFunction=reactionPollMenu.printAndExpirePollResults,
                                     expiryFunctionArgs=menuMsg.id)
-    botState.taskScheduler.scheduleTask(timeoutTT)
+    botState.client.taskScheduler.scheduleTask(timeoutTT)
 
     menu = reactionPollMenu.ReactionPollMenu(menuMsg, pollOptions, timeoutTT, pollStarter=message.author,
                                                 multipleChoice=multipleChoice, targetRole=targetRole,
-                                                owningBBUser=botState.usersDB.getUser(message.author.id),
+                                                owningBBUser=botState.client.usersDB.getUser(message.author.id),
                                                 desc=pollSubject)
     await menu.updateMessage()
-    botState.reactionMenusDB[menuMsg.id] = menu
-    botState.usersDB.getUser(message.author.id).addOwnedMenu("poll", menu)
+    botState.client.reactionMenusDB[menuMsg.id] = menu
+    botState.client.usersDB.getUser(message.author.id).addOwnedMenu("poll", menu)
 
 botCommands.register("poll", cmd_poll, 0, forceKeepArgsCasing=True, allowDM=False,
                         signatureStr="**poll** *<subject>*\n**<option1 emoji> <option1 name>**\n...    ...\n*[kwargs]*",

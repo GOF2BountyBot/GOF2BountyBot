@@ -118,7 +118,7 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
             except AttributeError:
                 prefix = cfg.defaultCommandPrefix
             else:
-                prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+                prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
             return ":x: Your ship is not compatible with this skin! Please equip a different ship, or use `" \
                     + prefix + "info skin " + self.skin.name + "` to see what ships are compatible with this skin."
 
@@ -150,21 +150,21 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
             return "*Designer: user #" + str(self.manufacturer) + "*"
 
 
-    def toDict(self, **kwargs):
+    def serialize(self, **kwargs):
         """
 
         :param bool saveType: When true, include the string name of the object type in the output.
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         if self.builtIn:
             data["name"] = self.skin.name
         else:
-            data["skin"] = self.skin.toDict(**kwargs)
+            data["skin"] = self.skin.serialize(**kwargs)
         return data
 
 
     @classmethod
-    def fromDict(cls, toolDict : dict, **kwargs) -> ShipSkinTool:
+    def deserialize(cls, toolDict : dict, **kwargs) -> ShipSkinTool:
         """Construct a shipSkinTool from its dictionary-serialized representation.
 
         :param dict toolDict: A dictionary containing all information needed to construct the required shipSkinTool.
@@ -175,5 +175,5 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
         if toolDict["builtIn"]:
             return bbData.builtInToolObjs[lib.stringTyping.shipSkinNameToToolName(toolDict["name"])]
         else:
-            skin = ShipSkin.fromDict(toolDict["skin"])
+            skin = ShipSkin.deserialize(toolDict["skin"])
             return ShipSkinTool(skin, value=gameMaths.shipSkinValueForTL(skin.averageTL), builtIn=False)

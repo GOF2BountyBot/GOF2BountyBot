@@ -31,7 +31,7 @@ async def dev_cmd_addSkin(message : discord.Message, args : str, isDM : bool):
         if isDM:
             prefix = cfg.defaultCommandPrefix
         else:
-            prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+            prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
         await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")
         return
 
@@ -47,7 +47,7 @@ async def dev_cmd_addSkin(message : discord.Message, args : str, isDM : bool):
     itemName = args.rstrip(" ").title()
     itemObj = None
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):
             itemObj = shipObj
 
@@ -94,7 +94,7 @@ async def dev_cmd_delSkin(message : discord.Message, args : str, isDM : bool):
         if isDM:
             prefix = cfg.defaultCommandPrefix
         else:
-            prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+            prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
         await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")
         return
 
@@ -110,7 +110,7 @@ async def dev_cmd_delSkin(message : discord.Message, args : str, isDM : bool):
     itemName = args.rstrip(" ").title()
     itemObj = None
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):
             itemObj = shipObj
 
@@ -155,7 +155,7 @@ async def dev_cmd_makeSkin(message : discord.Message, args : str, isDM : bool):
         if isDM:
             prefix = cfg.defaultCommandPrefix
         else:
-            prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+            prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
         await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")
         return
 
@@ -171,7 +171,7 @@ async def dev_cmd_makeSkin(message : discord.Message, args : str, isDM : bool):
     itemName = args.rstrip(" ").title()
     itemObj = None
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):
             itemObj = shipObj
 
@@ -216,7 +216,7 @@ async def dev_cmd_applySkin(message : discord.Message, args : str, isDM : bool):
         await message.reply(mention_author=False, content=":x: Please provide a skin!")
         return
 
-    activeShip = botState.usersDB.getOrAddID(message.author.id).activeShip
+    activeShip = botState.client.usersDB.getOrAddID(message.author.id).activeShip
     if activeShip.isSkinned:
         await message.reply(mention_author=False, content=":x: Your ship already has a skin applied!")
         return
@@ -247,7 +247,7 @@ async def dev_cmd_unapplySkin(message : discord.Message, args : str, isDM : bool
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
 
-    activeShip = botState.usersDB.getOrAddID(message.author.id).activeShip
+    activeShip = botState.client.usersDB.getOrAddID(message.author.id).activeShip
     if not activeShip.isSkinned:
         await message.reply(mention_author=False, content=":x: Your ship has no skin applied!")
     elif not activeShip.builtIn:
@@ -334,7 +334,7 @@ async def dev_cmd_show_incompatible_skin(message : discord.Message, args : str, 
     :param str args: string containing a ship name and optionally a skin, prefaced with a + character.
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
     # verify a item was given
     if args == "":
         await message.channel.send(":x: Please provide a ship! Example: `" + commandPrefix + "ship Groza Mk II`")
@@ -355,7 +355,7 @@ async def dev_cmd_show_incompatible_skin(message : discord.Message, args : str, 
     itemName = args.rstrip(" ").title()
     itemObj = None
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):	
             itemObj = shipObj
     # report unrecognised ship names
@@ -406,7 +406,7 @@ async def dev_cmd_try_all_skins(message : discord.Message, args : str, isDM : bo
     :param str args: string containing a ship name and optionally a skin, prefaced with a + character.
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.guildsDB.getGuild(message.guild.id).commandPrefix
+    commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # verify a item was given
     if args == "":
@@ -417,7 +417,7 @@ async def dev_cmd_try_all_skins(message : discord.Message, args : str, isDM : bo
     itemName = args.rstrip(" ").title()
     itemObj = None
     for ship in bbData.builtInShipData.values():
-        shipObj = shipItem.Ship.fromDict(ship)
+        shipObj = shipItem.Ship.deserialize(ship)
         if shipObj.isCalled(itemName):	
             itemObj = shipObj
     # report unrecognised ship names

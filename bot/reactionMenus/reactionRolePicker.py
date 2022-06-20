@@ -54,9 +54,9 @@ async def markExpiredRoleMenu(menuID : int):
 
     :param int menuID: The message ID of the menu to expire
     """
-    menu = botState.reactionMenusDB[menuID]
-    if botState.guildsDB.idExists(menu.msg.guild.id):
-        botState.guildsDB.getGuild(menu.msg.guild.id).ownedRoleMenus -= 1
+    menu = botState.client.reactionMenusDB[menuID]
+    if botState.client.guildsDB.idExists(menu.msg.guild.id):
+        botState.client.guildsDB.getGuild(menu.msg.guild.id).ownedRoleMenus -= 1
     await reactionMenu.markExpiredMenu(menuID)
 
 
@@ -77,14 +77,14 @@ class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
                                                         self.role, menu.msg.id))
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize the option into dictionary format for saving.
         Since reaction menu options are saved alongside their emojis, this dictionary need not contain the option emoji.
 
         :return: A dictionary containing all information needed to reconstruct this menu option
         :rtype: dict
         """
-        # baseDict = super(ReactionRolePickerOption, self).toDict(**kwargs)
+        # baseDict = super(ReactionRolePickerOption, self).serialize(**kwargs)
         # baseDict["role"] = self.role.id
 
         # return baseDict
@@ -143,20 +143,20 @@ class ReactionRolePicker(reactionMenu.ReactionMenu):
                                                     targetRole=targetRole)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this menu to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this menu object
         :rtype: dict
         """
-        # TODO: Remove this method. The guild is already saved in ReactionMenu.toDict
-        baseDict = super(ReactionRolePicker, self).toDict(**kwargs)
+        # TODO: Remove this method. The guild is already saved in ReactionMenu.serialize
+        baseDict = super(ReactionRolePicker, self).serialize(**kwargs)
         baseDict["guild"] = self.dcGuild.id
         return baseDict
 
 
     @classmethod
-    def fromDict(cls, rmDict : dict, **kwargs) -> ReactionRolePicker:
+    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionRolePicker:
         """Reconstruct a ReactionRolePicker from its dictionary-serialized representation.
 
         :param dict rmDict: A dictionary containing all information needed to construct the desired ReactionRolePicker
@@ -177,7 +177,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu):
             timeoutTT = timedTask.TimedTask(expiryTime=expiryTime,
                                             expiryFunction=reactionMenu.markExpiredMenu,
                                             expiryFunctionArgs=msg.id)
-            botState.taskScheduler.scheduleTask(timeoutTT)
+            botState.client.taskScheduler.scheduleTask(timeoutTT)
 
         menuColour = Colour.from_rgb(rmDict["col"][0], rmDict["col"][1], rmDict["col"][2]) \
                         if "col" in rmDict else Colour.blue()

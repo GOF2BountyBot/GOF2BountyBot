@@ -39,24 +39,24 @@ class Medal(Serializable):
         self.emoji = emoji
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """Serialize this medal into dictionary format.
 
         :return: A dictionary fully describing this medal and its attriutes
         :rtype: dict
         """
-        data = {"name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.toDict()}
+        data = {"name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.serialize()}
         if self.hasWiki:
             data["wiki"] = self.wiki
         return data
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> "Medal":
+    def deserialize(cls, data: dict, **kwargs) -> "Medal":
         """Deserialize a Medal instance.
 
         :param dict data: A dictionary describing all desired attributes of the Medal
         :return: A new Medal instance with the attributes described in data
         :rtype: Medal
         """
-        return Medal(**cls._makeDefaults(data, emoji=BasedEmoji.fromDict(data["emoji"])))
+        return Medal(**cls._makeDefaults(data, emoji=BasedEmoji.deserialize(data["emoji"])))

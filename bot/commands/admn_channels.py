@@ -16,7 +16,7 @@ async def admin_cmd_set_announce_channel(message : discord.Message, args : str, 
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if args == "off":
         if requestedBBGuild.hasAnnounceChannel():
             requestedBBGuild.removeAnnounceChannel()
@@ -47,7 +47,7 @@ async def admin_cmd_set_play_channel(message : discord.Message, args : str, isDM
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if args == "off":
         if requestedBBGuild.hasPlayChannel():
             requestedBBGuild.removePlayChannel()
@@ -74,7 +74,7 @@ async def admin_cmd_set_renders_channel(message : discord.Message, args : str, i
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    requestedBBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if args == "off":
         if requestedBBGuild.hasRendersChannel():
             requestedBBGuild.removeRendersChannel()
@@ -104,7 +104,7 @@ async def admin_cmd_make_bounty_board_channels(message : discord.Message, args :
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     """
-    guild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")
@@ -156,7 +156,7 @@ async def admin_cmd_remove_bounty_board_channels(message : discord.Message, args
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")
@@ -180,7 +180,7 @@ async def admin_cmd_rebuild_bounty_board_channel(message : discord.Message, args
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild: BasedGuild = botState.guildsDB.getGuild(message.guild.id)
+    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")

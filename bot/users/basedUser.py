@@ -5,7 +5,8 @@ from typing import Union, TYPE_CHECKING, Dict, List, MutableSet
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
-from ..baseClasses import serializable
+from ..baseClasses.serializable import SerializesToJson, JsonType
+
 from ..cfg import cfg, bbData
 from ..gameObjects import kaamoShop, lomaShop
 from ..gameObjects.items import shipItem, moduleItemFactory
@@ -40,7 +41,7 @@ defaultUserDict = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsW
 defaultUserValue = 28970
 
 
-class BasedUser(serializable.Serializable):
+class BasedUser(SerializesToJson):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
@@ -240,7 +241,7 @@ class BasedUser(serializable.Serializable):
                 elif isinstance(alerts[alertType], bool):
                     self.userAlerts[alertType] = alertType(alerts[alertType])
                 else:
-                    botState.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
+                    botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertType]).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
                         category="usersDB", eventType="LOAD-UA_STATE_TYPE")
@@ -251,7 +252,7 @@ class BasedUser(serializable.Serializable):
                 elif isinstance(alerts[alertID], bool):
                     self.userAlerts[alertType] = alertType(alerts[alertID])
                 else:
-                    botState.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
+                    botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertID]).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
                         category="usersDB", eventType="LOAD-UA_STATE_TYPE")
@@ -286,7 +287,7 @@ class BasedUser(serializable.Serializable):
         self.bountyCooldownEnd = -1
         self.systemsChecked = 0
         self.bountyWins = 0
-        self.activeShip = shipItem.Ship.fromDict(defaultShipLoadoutDict)
+        self.activeShip = shipItem.Ship.deserialize(defaultShipLoadoutDict)
         self.inactiveModules.clear()
         self.inactiveShips.clear()
         self.inactiveWeapons.clear()
@@ -466,7 +467,7 @@ class BasedUser(serializable.Serializable):
         self.inactiveShips.removeItem(self.activeShip)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> JsonType:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
@@ -474,21 +475,21 @@ class BasedUser(serializable.Serializable):
         """
         data = {"credits": self.credits, "lifetimeBountyCreditsWon": self.lifetimeBountyCreditsWon,
                 "bountyCooldownEnd": self.bountyCooldownEnd, "systemsChecked": self.systemsChecked,
-                "bountyWins": self.bountyWins, "activeShip": self.activeShip.toDict(**kwargs),
+                "bountyWins": self.bountyWins, "activeShip": self.activeShip.serialize(**kwargs),
                 "duelWins": self.duelWins, "duelLosses": self.duelLosses,
                 "duelCreditsWins": self.duelCreditsWins, "bountyHuntingXP": self.bountyHuntingXP,
                 "duelCreditsLosses": self.duelCreditsLosses, "homeGuildID": self.homeGuildID,
                 "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges}
 
-        data["inactiveShips"] = self.inactiveShips.toDict(**kwargs)["items"]
-        data["inactiveModules"] = self.inactiveModules.toDict(**kwargs)["items"]
-        data["inactiveWeapons"] = self.inactiveWeapons.toDict(**kwargs)["items"]
-        data["inactiveTurrets"] = self.inactiveTurrets.toDict(**kwargs)["items"]
+        data["inactiveShips"] = self.inactiveShips.serialize(**kwargs)["items"]
+        data["inactiveModules"] = self.inactiveModules.serialize(**kwargs)["items"]
+        data["inactiveWeapons"] = self.inactiveWeapons.serialize(**kwargs)["items"]
+        data["inactiveTurrets"] = self.inactiveTurrets.serialize(**kwargs)["items"]
 
         if "saveType" not in kwargs:
-            data["inactiveTools"] = self.inactiveTools.toDict(saveType=True, **kwargs)["items"]
+            data["inactiveTools"] = self.inactiveTools.serialize(saveType=True, **kwargs)["items"]
         else:
-            data["inactiveTools"] = self.inactiveTools.toDict(**kwargs)["items"]
+            data["inactiveTools"] = self.inactiveTools.serialize(**kwargs)["items"]
 
         data["alerts"] = {}
         for alertType in self.userAlerts:
@@ -496,9 +497,9 @@ class BasedUser(serializable.Serializable):
                 data["alerts"][userAlerts.userAlertsTypesIDs[alertType]] = self.userAlerts[alertType].state
 
         if self.kaamo is not None:
-            data["kaamo"] = self.kaamo.toDict(**kwargs)
+            data["kaamo"] = self.kaamo.serialize(**kwargs)
         if self.loma is not None:
-            data["loma"] = self.loma.toDict(**kwargs)
+            data["loma"] = self.loma.serialize(**kwargs)
 
         if len(self.ownedMenus) > 0:
             data["ownedMenus"] = {}
@@ -506,8 +507,8 @@ class BasedUser(serializable.Serializable):
                 if self.ownedMenus[menuTypeID]:
                     data["ownedMenus"][menuTypeID] = []
                     for menuID in self.ownedMenus[menuTypeID]:
-                        if menuID in botState.reactionMenusDB \
-                                and reactionMenu.isSaveableMenuInstance(botState.reactionMenusDB[menuID]):
+                        if menuID in botState.client.reactionMenusDB \
+                                and reactionMenu.isSaveableMenuInstance(botState.client.reactionMenusDB[menuID]):
                             data["ownedMenus"][menuTypeID].append(menuID)
         
         if self.medals:
@@ -785,7 +786,7 @@ class BasedUser(serializable.Serializable):
             raise NameError("This user is not a member of the given guild '" + newGuild.name + "#" + str(newGuild.id) + "'")
 
         self.homeGuildID = newGuild.id
-        self.guildTransferCooldownEnd = now + timedelta(**cfg.homeGuildTransferCooldown)
+        self.guildTransferCooldownEnd = now + cfg.timeouts.homeGuildTransferCooldown
 
 
     def getInventoryForItem(self, item):
@@ -895,9 +896,9 @@ class BasedUser(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, userDict: dict, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: JsonType, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
-        given dictionary - The opposite of BasedUser.toDict
+        given dictionary - The opposite of BasedUser.serialize
 
         :param int id: The discord ID of the user
         :param dict userDict: A dictionary containing all information necessary to construct
@@ -909,7 +910,7 @@ class BasedUser(serializable.Serializable):
             raise NameError("Required kwarg not given: id")
         userID = kwargs["id"]
 
-        activeShip = shipItem.Ship.fromDict(userDict["activeShip"])
+        activeShip = shipItem.Ship.deserialize(userDict["activeShip"])
 
         inactiveShips = inventory.TypeRestrictedInventory(shipItem.Ship)
         inactiveWeapons = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
@@ -917,11 +918,11 @@ class BasedUser(serializable.Serializable):
         inactiveTurrets = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
         inactiveTools = userInventory.UserToolInventory(userInventory.USER_PLACEHOLDER)
 
-        for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship.fromDict),
-                                        ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon.fromDict),
-                                        ("inactiveModules", inactiveModules, moduleItemFactory.fromDict),
-                                        ("inactiveTurrets", inactiveTurrets, turretWeapon.TurretWeapon.fromDict),
-                                        ("inactiveTools", inactiveTools, toolItemFactory.fromDict)):
+        for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship.deserialize),
+                                        ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon.deserialize),
+                                        ("inactiveModules", inactiveModules, moduleItemFactory.deserialize),
+                                        ("inactiveTurrets", inactiveTurrets, turretWeapon.TurretWeapon.deserialize),
+                                        ("inactiveTools", inactiveTools, toolItemFactory.deserialize)):
             if key in userDict:
                 for listingDict in userDict[key]:
                     stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
@@ -937,8 +938,8 @@ class BasedUser(serializable.Serializable):
             else:
                 bountyHuntingXP = int(lifetimeBountyCreditsWon * cfg.bountyRewardToXPGainMult)
 
-        kaamo = kaamoShop.KaamoShop.fromDict(userDict["kaamo"]) if "kaamo" in userDict else None
-        loma = lomaShop.LomaShop.fromDict(userDict["loma"]) if "loma" in userDict else None
+        kaamo = kaamoShop.KaamoShop.deserialize(userDict["kaamo"]) if "kaamo" in userDict else None
+        loma = lomaShop.LomaShop.deserialize(userDict["loma"]) if "loma" in userDict else None
 
         ownedMenus = {}
         if "ownedMenus" in userDict:
