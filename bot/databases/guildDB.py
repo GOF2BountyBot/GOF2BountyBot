@@ -8,6 +8,7 @@ from ..users import basedGuild
 from . import bountyDB
 from .. import botState, lib
 from .. import lib
+from ..logging import LogCategory
 from ..baseClasses.serializable import SerializesToJson, JsonType
 from ..logging import LogCategory
 
@@ -167,7 +168,7 @@ class GuildDB(SerializesToJson):
                 print("decaying guild #" + str(g.id))
                 self._decayGuildTemps(g)
         botState.client.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
-                            category="bountiesDB", eventType="TEMPS_DECAY")
+                            category=LogCategory.bountiesDB, eventType="TEMPS_DECAY")
 
 
     def serialize(self, **kwargs) -> JsonType:

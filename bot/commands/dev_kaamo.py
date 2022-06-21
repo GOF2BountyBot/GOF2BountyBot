@@ -3,6 +3,7 @@ import json
 
 from . import commandsDB as botCommands
 from .. import lib, botState
+from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
 from ..gameObjects.items import gameItem
@@ -128,7 +129,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
                                         "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                             + "' (index " + str(itemNum-1) \
                                             + "), which was not found in the shop stock",
-                                        category="shop", eventType="UNKWN_KEY")
+                                        category=LogCategory.shop, eventType="UNKWN_KEY")
                 except IndexError:
                     break
                 except AttributeError as e:
@@ -140,7 +141,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
                                             + str(itemNum-1) + ". Got " \
                                             + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
                                             + keysStr[:-2],
-                                        category="shop", eventType="INVTY_KEY_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
                     shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" \
                                             + currentStock.keys[itemNum-1] + "'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)

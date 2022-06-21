@@ -10,6 +10,7 @@ import random
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..lib import BASED_version
+from ..logging import LogCategory
 from ..users.basedUser import BasedUser
 from ..users import basedGuild
 from ..gameObjects.items.tools import crateTool
@@ -706,7 +707,7 @@ async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bo
     botState.client.logger.log("dev_misc", "dev_cmd_bounty_status",
                         f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
                         + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
-                        category="bountiesDB", eventType="CHEAT")
+                        category=LogCategory.bountiesDB, eventType="CHEAT")
 
     if b.activeShip is None:
         shipStr = "None"
@@ -993,7 +994,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
         botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty",
                         f"Bounty answer revealed to user {message.author} ({message.author.id}). " \
                         + f"Bounty: {b.criminal.name} in {message.guild} ({message.guild.id})",
-                        category="bountiesDB", eventType="CHEAT")
+                        category=LogCategory.bountiesDB, eventType="CHEAT")
 
     elif fieldName == "techLevel":
         if not lib.stringTyping.isInt(newValue) or int(newValue) < 0 or int(newValue) > cfg.maxTechLevel:

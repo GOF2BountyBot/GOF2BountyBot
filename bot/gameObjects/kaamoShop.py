@@ -11,6 +11,7 @@ from .items.modules import moduleItem
 from .items.tools import toolItem, toolItemFactory
 from .. import botState
 from .inventories import inventory
+from ..logging import LogCategory
 
 
 class KaamoShop(guildShop.GuildShop):
@@ -325,7 +326,7 @@ class KaamoShop(guildShop.GuildShop):
                 else:
                     botState.client.logger.log("kaamoShop", "serialize",
                                         f"Failed to save invalid {invType} key '{currentItem}' - not found in items dict",
-                                        category="shop", eventType="UNKWN_KEY")
+                                        category=LogCategory.shop, eventType="UNKWN_KEY")
 
             data[invType + "sStock"] = stockDict
 

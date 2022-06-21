@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from . import commandsDB as botCommands
 from .. import botState, lib
+from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
 from ..lib import gameMaths
 from ..cfg import cfg
@@ -148,7 +149,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                         botState.client.logger.log("Main", "cmd_shop",
                                             "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
                                                 + "' (index " + str(itemNum-1) + "), which was not found in the shop stock",
-                                            category="shop", eventType="UNKWN_KEY")
+                                            category=LogCategory.shop, eventType="UNKWN_KEY")
                     except IndexError:
                         break
                     except AttributeError as e:
@@ -159,7 +160,7 @@ async def cmd_shop(message : discord.Message, args : str, isDM : bool):
                                             "Unexpected type in " + currentItemType + "sStock KEYS, index " \
                                                 + str(itemNum-1) + ". Got " + type(currentStock.keys[itemNum-1]).__name__ \
                                                 + ".\nInventory keys: " + keysStr[:-2],
-                                            category="shop", eventType="INVTY_KEY_TYPE")
+                                            category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
                         shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" + currentStock.keys[itemNum-1] + "'",
                                             value="Do not attempt to buy. Could cause issues.", inline=True)
                         continue

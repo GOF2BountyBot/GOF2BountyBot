@@ -5,6 +5,7 @@ from bot.users import basedUser
 from . import commandsDB as bbCommands
 from .. import botState, lib
 from ..lib import gameMaths
+from ..logging import LogCategory
 from ..cfg import cfg
 from ..gameObjects import kaamoShop
 from ..users import basedUser
@@ -254,7 +255,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
                                                     f"Requested {currentItemType} '{currentStock.keys[itemNum-1].name}" \
                                                         + f"' (index {itemNum-1}" \
                                                         + "), which was not found in the shop stock",
-                                                    category="shop", eventType="UNKWN_KEY")
+                                                    category=LogCategory.shop, eventType="UNKWN_KEY")
                             except IndexError:
                                 break
                             except AttributeError as e:
@@ -267,7 +268,7 @@ async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
                                                         + type(currentStock.keys[itemNum-1]).__name__ \
                                                         + ".\nInventory keys: " \
                                                         + keysStr[:-2],
-                                                    category="shop", eventType="INVTY_KEY_TYPE")
+                                                    category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
                                 shopEmbed.add_field(name=str(itemNum) + ". **⚠ #INVALID-ITEM# '" \
                                                         + currentStock.keys[itemNum-1] + "'",
                                                     value="Do not attempt to get. Could cause issues.", inline=True)

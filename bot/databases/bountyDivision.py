@@ -11,6 +11,7 @@ from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardCh
 from ..cfg import cfg, bbData
 from .. import botState, lib
 from ..lib import gameMaths
+from ..logging import LogCategory
 from ..scheduling.timedTask import TimedTask, DynamicRescheduleTask
 from traceback import format_stack
 from ..baseClasses.serializable import Serializable
@@ -398,7 +399,7 @@ class BountyDivision(Serializable):
             botState.client.logger.log("Main", "routeScaleBntyDelayFixed",
                                 f"New bounty delay generated, {latestCriminal}" \
                                     + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
-                                category="newBounties",
+                                category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
         return delay
 
@@ -427,7 +428,7 @@ class BountyDivision(Serializable):
                                     + f"\nRange: " \
                                         + f"{lib.timeUtil.td_format_noYM(minTime)} - {lib.timeUtil.td_format_noYM(maxTime)}" \
                                     + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
-                                category="newBounties",
+                                category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
 
         return delay
@@ -460,7 +461,7 @@ class BountyDivision(Serializable):
                                     + f"\nRange: " \
                                         + f"{lib.timeUtil.td_format_noYM(minTime)} - {lib.timeUtil.td_format_noYM(maxTime)}" \
                                     + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
-                                category="newBounties",
+                                category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
         return delay
 
@@ -678,7 +679,7 @@ class BountyDivision(Serializable):
                     if newBounty.criminal in crims:
                         botState.client.logger.log("BountyDivision", "deserialize",
                                             f"2 listings for the same criminal found: {bty.criminal.name}. Ignoring one." \
-                                                + "Neither was escaped.", category="bountiesDB", eventType="DUPE_CRIM")
+                                                + "Neither was escaped.", category=LogCategory.bountiesDB, eventType="DUPE_CRIM")
                     else:
                         crims.add(newBounty.criminal)
                         bounties[l][newBounty.criminal] = newBounty
@@ -691,7 +692,7 @@ class BountyDivision(Serializable):
                     if newBounty.criminal in crims:
                         botState.client.logger.log("BountyDivision", "deserialize",
                                             f"2 listings for the same criminal found: {bty.criminal.name}. Ignoring one." \
-                                                + "At least one was escaped.", category="bountiesDB", eventType="DUPE_CRIM")
+                                                + "At least one was escaped.", category=LogCategory.bountiesDB, eventType="DUPE_CRIM")
                     else:
                         crims.add(newBounty.criminal)
                         escapedBounties[l][newBounty.criminal] = newBounty

@@ -15,6 +15,7 @@ from .inventories.inventory import Inventory, TypeRestrictedInventory
 import random
 from .. import botState
 from ..lib import gameMaths
+from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
 
 
@@ -478,7 +479,7 @@ class GuildShop(Serializable):
                     botState.client.logger.log("bbShp", "serialize",
                                 "Failed to save invalid " + invType + " key '" + str(currentItem) \
                                     + "' - not found in items dict",
-                                category="shop", eventType="UNKWN_KEY")
+                                category=LogCategory.shop, eventType="UNKWN_KEY")
 
             data[invType + "sStock"] = stockDict
 

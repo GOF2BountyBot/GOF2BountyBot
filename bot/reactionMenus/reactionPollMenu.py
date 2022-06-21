@@ -45,7 +45,7 @@ async def printAndExpirePollResults(msgID : int):
 
         if currentEmoji is None:
             botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to fetch BasedEmoji for reaction: " \
-                                + str(reaction), category="reactionMenus", eventType="INV_REACT")
+                                + str(reaction), category=LogCategory.reactionMenus, eventType="INV_REACT")
             pollEmbed = menuMsg.embeds[0]
             pollEmbed.set_footer(text="This poll has ended.")
             await menu.msg.edit(content="An error occured when calculating the results of this poll. " \
@@ -61,7 +61,7 @@ async def printAndExpirePollResults(msgID : int):
         if menuOption is None:
             # botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to find menuOption for emoji: " \
             #                                                                 + str(currentEmoji),
-            #                     category="reactionMenus", eventType="UNKN_OPTN")
+            #                     category=LogCategory.reactionMenus, eventType="UNKN_OPTN")
             # pollEmbed = menuMsg.embeds[0]
             # pollEmbed.set_footer(text="This poll has ended.")
             # await menu.msg.edit(content="An error occured when calculating the results of this poll. " \

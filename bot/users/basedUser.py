@@ -21,6 +21,7 @@ from discord import Guild, Member # type: ignore[import]
 from ..users import basedGuild
 from .. import lib, botState
 from ..lib import gameMaths
+from ..logging import LogCategory
 from ..reactionMenus import reactionMenu
 
 
@@ -244,7 +245,7 @@ class BasedUser(SerializesToJson):
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertType]).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
-                        category="usersDB", eventType="LOAD-UA_STATE_TYPE")
+                        category=LogCategory.usersDB, eventType="LOAD-UA_STATE_TYPE")
                     self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
             elif alertID in alerts:
                 if isinstance(alerts[alertID], userAlerts.UABase):
@@ -255,7 +256,7 @@ class BasedUser(SerializesToJson):
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertID]).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
-                        category="usersDB", eventType="LOAD-UA_STATE_TYPE")
+                        category=LogCategory.usersDB, eventType="LOAD-UA_STATE_TYPE")
                     self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
             else:
                 self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])

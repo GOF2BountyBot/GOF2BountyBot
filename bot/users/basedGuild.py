@@ -10,6 +10,7 @@ from ..baseClasses.serializable import SerializesToJson, JsonType
 
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
+from ..logging import LogCategory
 from ..gameObjects import guildShop
 from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel
 from ..userAlerts import userAlerts
@@ -283,7 +284,7 @@ class BasedGuild(SerializesToJson):
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError as e:
                 await channel.send(":thinking: Whoops! A connection error occurred when removing your old division role, " \
                                     + "the error has been logged.")
@@ -291,7 +292,7 @@ class BasedGuild(SerializesToJson):
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
         if newRole is not None:
             try:
                 await dcUser.add_roles(newRole, reason=f"User {actionOverride} into a new division")
@@ -305,7 +306,7 @@ class BasedGuild(SerializesToJson):
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError:
                 await channel.send(":thinking: Whoops! A connection error occurred when granting your new division role, " \
                                     + "the error has been logged.")
@@ -313,7 +314,7 @@ class BasedGuild(SerializesToJson):
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
 
 
     def getAnnounceChannel(self) -> TextChannel:
@@ -569,7 +570,7 @@ class BasedGuild(SerializesToJson):
                 botState.client.logger.log("BasedGuild", "anncBnty",
                                     "Failed to post BBCh listing to guild " + botState.client.get_guild(self.id).name + "#" \
                                     + str(self.id) + " in channel " + newBounty.division.bountyBoardChannel.channel.name + "#" \
-                                    + str(newBounty.division.bountyBoardChannel.channel.id), category="bountyBoards",
+                                    + str(newBounty.division.bountyBoardChannel.channel.id), category=LogCategory.bountyBoards,
                                     eventType="BBC_NW_FRBDN")
 
         # If the guild has an announceChannel
@@ -828,7 +829,7 @@ class BasedGuild(SerializesToJson):
             except Forbidden:
                 botState.client.logger.log("Main", "anncNwShp",
                                     "Failed to post shop stock announcement to " + self.dcGuild.name + "#" + str(self.id) \
-                                    + " in channel " + playCh.name + "#" + str(playCh.id), category="shop",
+                                    + " in channel " + playCh.name + "#" + str(playCh.id), category=LogCategory.shop,
                                     eventType="PLCH_NONE")
 
 

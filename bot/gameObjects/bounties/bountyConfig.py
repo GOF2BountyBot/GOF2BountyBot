@@ -12,6 +12,7 @@ from types import FunctionType
 from ...cfg import bbData, cfg
 from ... import lib, botState
 from ...lib import gameMaths
+from ...logging import LogCategory
 from ..items.modules import armourModule, shieldModule, moduleItem
 from ..items import shipItem
 from ..items.weapons import primaryWeapon, turretWeapon
@@ -378,7 +379,7 @@ class BountyConfig:
                         if weaponTL == -1:
                             botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing weapons",
-                                                eventType="NO_ITEMS", category="bountyConfig")
+                                                eventType="NO_ITEMS", category=LogCategory.bountyConfig)
 
                     if weaponTL != -1:
                         numWeapons = random.randint(max(1, self.activeShip.maxPrimaries - 1), self.activeShip.maxPrimaries)
@@ -417,7 +418,7 @@ class BountyConfig:
                         if moduleTL == -1:
                             botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing equippable " + moduleType.__name__ + "s",
-                                                eventType="NO_ITEMS", category="bountyConfig")
+                                                eventType="NO_ITEMS", category=LogCategory.bountyConfig)
                             break
                         else:
                             itemToEquip = random.choice(bbData.moduleObjsByTL[moduleTL])
@@ -445,7 +446,7 @@ class BountyConfig:
                         if turretTL == -1:
                             botState.client.logger.log("BountyConfig", "generate",
                                                 "unable to find any TLs containing turrets",
-                                                eventType="NO_ITEMS", category="bountyConfig")
+                                                eventType="NO_ITEMS", category=LogCategory.bountyConfig)
 
                     if turretTL != -1:
                         numTurrets = random.randint(max(0, self.activeShip.maxTurrets - 1), self.activeShip.maxTurrets)

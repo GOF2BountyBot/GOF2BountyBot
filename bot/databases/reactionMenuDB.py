@@ -99,6 +99,6 @@ async def deserialize(dbDict: JsonType) -> ReactionMenuDB:
             botState.client.logger.log("reactionMenuDB", "deserialize",
                                 "Attempted to deserialize a non-saveable menu type, ignoring and removing. " \
                                     + "msg #" + str(msgID) + ", type " + menuData["type"],
-                                category="reactionMenus", eventType="dictUnsaveable")
+                                category=LogCategory.reactionMenus, eventType="dictUnsaveable")
 
     return newDB

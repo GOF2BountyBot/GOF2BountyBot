@@ -11,6 +11,7 @@ import random
 from . import commandsDB as botCommands
 from . import util_help
 from .. import lib, botState
+from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
 from ..lib import gameMaths, BASED_version
 from ..cfg import cfg, bbData
@@ -607,7 +608,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                                             + ", TL " + str(tl) + f", from {classicStr}user " \
                                             + message.author.name + "#" + str(message.author.id) \
                                             +  " in guild " + message.guild.name + "#" + str(message.guild.id) + ".",
-                                        category="userAlerts",
+                                        category=LogCategory.userAlerts,
                                         eventType="ClientOSError", trace=traceback.format_exc())
                 else:
                     await message.channel.send(":white_check_mark: You have unsubscribed from new bounties notifications.")
@@ -636,7 +637,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                                             + ", TL " + str(tl) + f", from {classicStr}user " \
                                             + message.author.name + "#" + str(message.author.id) \
                                             +  " in guild " + message.guild.name + "#" + str(message.guild.id) + ".",
-                                        category="userAlerts",
+                                        category=LogCategory.userAlerts,
                                         eventType="ClientOSError", trace=traceback.format_exc())
                 else:
                     await message.channel.send(":white_check_mark: You have subscribed to new bounties notifications!")
@@ -676,7 +677,7 @@ async def cmd_notify(message : discord.Message, args : str, isDM : bool):
                                                         + f"{message.author.name}#{str(message.author.id)}" \
                                                         + f" alert {alertID} in guild {message.guild.name}#" \
                                                         + str(message.guild.id) + ".",
-                                category="userAlerts", exception=e)
+                                category=LogCategory.userAlerts, exception=e)
 
 botCommands.register("notify", cmd_notify, 0, allowDM=False, signatureStr="**notify <type>** *[alert]*",
                         longHelp="Subscribe to pings when events take place. Currently, **type** can be `bounties`, " \

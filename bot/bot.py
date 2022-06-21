@@ -71,7 +71,7 @@ async def initializeBountyBoardChannels():
                     botState.client.logger.log("main", "initializeBountyBoardChannels",
                                         f"failed to load bountyboard channel {div.bountyBoardChannel.channelIDToBeLoaded}" \
                                             + f" for guild {guild.id}, division {bountyDB.nameForDivision(div)}. Removing.",
-                                        category="bountyBoards", eventType="UKWN_CHAN")
+                                        category=LogCategory.bountyBoards, eventType="UKWN_CHAN")
                     div.removeBountyBoardChannel()
 
 
