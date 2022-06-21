@@ -57,7 +57,7 @@ An ambitious discord bot written in python, recreating some of the features of G
 The 'main' file is `bot.bot`, which defines regular behaviour with `discord.Client.event`s.
 Command definitions are located in the various modules of the `commands` package.
 
-As of v2.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
+As of v1.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
 
 Any config variables added to the module as part of your application will automatically be read into the module from toml. For more information, including how to store and receive custom classes in config, see the [Carica repository](https://github.com/Trimatix/Carica).
 
