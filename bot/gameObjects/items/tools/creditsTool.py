@@ -1,5 +1,5 @@
 from . import toolItem
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ....users import basedUser
 from .... import lib, botState
@@ -14,9 +14,9 @@ class CreditsTool(toolItem.ToolItem):
     """A slightly unnecessary tool that is supposed to add a number of credits to a user's account upon entering their hangar.
     """
 
-    def __init__(self, name : str, aliases : List[str], value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.moneyIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, autoUse: bool = True):
+    def __init__(self, name: str, aliases: List[str], value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = cfg.moneyIcon, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, autoUse: bool = True):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -38,14 +38,14 @@ class CreditsTool(toolItem.ToolItem):
 
 
     @toolItem.singleUse
-    async def use(self, callingBUser: "basedUser.BasedUser" = None, *args, **kwargs):
+    async def use(self, /, callingBUser: "basedUser.BasedUser", *args, **kwargs):
         """Add money to the calling user's account.
         """
         callingBUser.credits += self.value
 
 
     @toolItem.userFriendlySingleUse
-    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, message: Message, *args, **kwargs) -> str:
         """Add money to the calling user's account.
         :param Message message: The discord message that triggered this tool use
         :return: A user-friendly message summarising the result of the tool use.

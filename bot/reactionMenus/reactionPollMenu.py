@@ -5,15 +5,16 @@ from .. import botState, lib
 from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role
 from datetime import datetime
 from ..scheduling import timedTask
-from typing import Union
+from typing import Dict, Optional, Union, cast
 from ..users import basedUser
+from ..logging import LogCategory
 
 
 checkMarkIcon = \
     "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/ballot-box-with-ballot_1f5f3.png"
 
 
-async def printAndExpirePollResults(msgID : int):
+async def printAndExpirePollResults(msgID: int):
     """Menu expiring method specific to ReactionPollMenus. Count the reactions on the menu, selecting only one per user
     in the case of single-choice mode polls, and replace the menu embed content with a bar chart summarising
     the results of the poll.
@@ -38,8 +39,9 @@ async def printAndExpirePollResults(msgID : int):
             maxOptionLen = len(option.name)
 
     for reaction in menuMsg.reactions:
-        if type(reaction.emoji) in [Emoji, PartialEmoji]:
-            currentEmoji = lib.emojis.BasedEmoji(id=reaction.emoji.id)
+        if isinstance(reaction.emoji, (Emoji, PartialEmoji)):
+            # Casting here because custom emojis are guaranteed to have an ID
+            currentEmoji = lib.emojis.BasedEmoji(id=cast(int, reaction.emoji.id))
         else:
             currentEmoji = lib.emojis.BasedEmoji(unicode=reaction.emoji)
 
@@ -69,10 +71,10 @@ async def printAndExpirePollResults(msgID : int):
             # return
             continue
         
-        user: Member
+        user: Union[User, Member]
         async for user in reaction.users():
             if user != botState.client.user:
-                if menu.targetRole is not None and menu.targetRole not in user.roles:
+                if menu.targetRole is not None and (isinstance(user, User) or menu.targetRole not in user.roles):
                     continue
                 validVote = True
                 if not menu.multipleChoice:
@@ -111,12 +113,13 @@ async def printAndExpirePollResults(msgID : int):
     if msgID in botState.client.reactionMenusDB:
         del botState.client.reactionMenusDB[msgID]
 
-    for reaction in menuMsg.reactions:
-        await reaction.remove(menuMsg.guild.me)
+    if menuMsg.guild is not None:
+        for reaction in menuMsg.reactions:
+            await reaction.remove(menuMsg.guild.me)
 
 
 @reactionMenu.saveableMenu
-class ReactionPollMenu(reactionMenu.ReactionMenu):
+class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuOption]):
     """A saveable reaction menu taking a vote from its participants on a selection of option strings.
     On menu expiry, the menu's TimedTask should call printAndExpirePollResults. This edits to menu embed to provide a summary
     and bar chart of the votes submitted to the poll. The poll options have no functionality, all vote counting takes place
@@ -130,11 +133,11 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
     :var owningBBUser: The bbUser who started the poll
     :vartype owningBBUser: bbUser
     """
-    def __init__(self, msg : Message, pollOptions : dict, timeout : timedTask.TimedTask,
-            pollStarter : Union[User, Member] = None, multipleChoice : bool = False, titleTxt : str = "", desc : str = "",
-            col : Colour = Colour.blue(), footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "",
-            authorName : str = "", targetRole : Role = None,
-            owningBBUser : basedUser.BasedUser = None):
+    def __init__(self, msg: Message, pollOptions: Dict[lib.emojis.BasedEmoji, reactionMenu.DummyReactionMenuOption], timeout: timedTask.TimedTask,
+            pollStarter: Optional[Union[User, Member]] = None, multipleChoice: bool = False, titleTxt: str = "", desc: str = "",
+            col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
+            authorName: str = "", targetRole: Optional[Role] = None,
+            owningBBUser: Optional[basedUser.BasedUser] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the poll options. Poll option behaviour functions are not called.
@@ -170,7 +173,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         if icon == "":
             if pollStarter is not None:
-                icon = str(pollStarter.avatar_url_as(size=64))
+                icon = str(pollStarter.display_avatar.with_size(64))
         else:
             icon = icon if icon else checkMarkIcon
 
@@ -217,12 +220,13 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         """
         baseDict = super(ReactionPollMenu, self).serialize(**kwargs)
         baseDict["multipleChoice"] = self.multipleChoice
-        baseDict["owningBBUser"] = self.owningBBUser.id
+        if self.owningBBUser is not None:
+            baseDict["owningBBUser"] = self.owningBBUser.id
         return baseDict
 
 
     @classmethod
-    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionPollMenu:
+    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionPollMenu:
         """Reconstruct a ReactionPollMenu object from its dictionary-serialized representation -
         the opposite of ReactionPollMenu.serialize
 

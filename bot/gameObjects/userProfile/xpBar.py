@@ -1,10 +1,10 @@
-from ...baseClasses.serializable import Serializable
+from ...baseClasses.serializable import SerializesToJson, JsonType
 from ...cfg import bbData
 from ... import lib
 import os
 from os.path import join
 
-class XPBarFill(Serializable):
+class XPBarFill(SerializesToJson):
     def __init__(self, name: str, path: str, designer: str, wiki: str = ""):
         self.name = name
         self.path = path
@@ -17,11 +17,12 @@ class XPBarFill(Serializable):
         lib.jsonHandler.writeJSON(join(self.path, "META.json"), self.serialize(**kwargs), prettyPrint=True)
 
     
-    def serialize(self, **kwargs):
+    def serialize(self, **kwargs) -> JsonType:
         data = {"name": self.name, "designer": self.designer}
         if self.hasWiki:
             data["wiki"] = self.wiki
-        return data
+        # TODO: I can't figure out what's going on here. Apparently Dict[str, str] isn't primative!?
+        return data # type: ignore[reportGeneralTypeIssues]
 
 
     @classmethod

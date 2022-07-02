@@ -4,7 +4,11 @@ EARLY UNFINISHED PROTOTYPE
 
 Written by Trimatix
 """
-import bpy
+try:
+    import bpy # type: ignore[reportMissingImports]
+except ImportError:
+    raise ValueError("This script can only be run by blender.")
+
 import os
 from os.path import join
 from math import radians
@@ -64,7 +68,7 @@ class RenderArgs:
     :vartype material: str
     """
 
-    def __init__(self, res_x : int, res_y : int, output_file_path : str, model_path : str, texture_path : str,
+    def __init__(self, res_x: int, res_y: int, output_file_path: str, model_path: str, texture_path: str,
             numSamples: int):
         """
         :param int res_x: The width in pixels of the render resolution.

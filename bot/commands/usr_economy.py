@@ -18,7 +18,7 @@ from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 botCommands.addHelpSection(0, "economy")
 
 
-async def cmd_balance(message : discord.Message, args : str, isDM : bool):
+async def cmd_balance(message: discord.Message, args: str, isDM: bool):
     """print the balance of the specified user, use the calling user if no user is specified.
 
     :param discord.Message message: the discord message calling the command
@@ -54,7 +54,7 @@ botCommands.register("balance", cmd_balance, 0, aliases=["bal", "credits"], forc
                                     + "(#number). If used from DMs, `user` must be an ID or mention.")
 
 
-async def cmd_shop(message : discord.Message, args : str, isDM : bool):
+async def cmd_shop(message: discord.Message, args: str, isDM: bool):
     """list the current stock of the guildShop owned by the guild containing the sent message.
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
 
@@ -199,7 +199,7 @@ botCommands.register("shop", cmd_shop, 0, aliases=["store"], allowDM=False, help
                                     + "specify the division name.")
 
 
-async def cmd_shop_buy(message : discord.Message, args : str, isDM : bool):
+async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
     """Buy the item of the given item type, at the given index, from the guild's shop.
     if "transfer" is specified, the new ship's items are unequipped, and the old ship's items attempt to fill the new ship.
     any items left unequipped are added to the user's inactive items lists.
@@ -406,7 +406,7 @@ botCommands.register("buy", cmd_shop_buy, 0, allowDM=False, helpSection="economy
                                     + "\n🌎 This command must be used in your **home server**.")
 
 
-async def cmd_shop_sell(message : discord.Message, args : str, isDM : bool):
+async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
     """Sell the item of the given item type, at the given index, from the user's inactive items, to the guild's shop.
     if "clear" is specified, the ship's items are unequipped before selling.
     "clear" is only valid when selling a ship.
@@ -552,7 +552,7 @@ botCommands.register("sell", cmd_shop_sell, 0, allowDM=False, helpSection="econo
                                     + "🌎 This command must be used in your **home server**.")
 
 
-async def cmd_pay(message : discord.Message, args : str, isDM : bool):
+async def cmd_pay(message: discord.Message, args: str, isDM: bool):
     """Pay a given user the given number of credits from your balance.
     """
     argsSplit = args.split(" ")
@@ -655,7 +655,7 @@ botCommands.register("pay", cmd_pay, 0, forceKeepArgsCasing=True, allowDM=True, 
                                     + "\n🌎 You can only pay users who share your **home server**.")
 
 
-async def cmd_total_value(message : discord.Message, args : str, isDM : bool):
+async def cmd_total_value(message: discord.Message, args: str, isDM: bool):
     """⚠ WARNING: MARKED FOR CHANGE ⚠
     The following function is provisional and marked as planned for overhaul.
     Details: The command output is finalised. However, the inner workings of the command are to be replaced with attribute

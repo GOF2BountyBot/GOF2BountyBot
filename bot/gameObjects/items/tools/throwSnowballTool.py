@@ -1,9 +1,9 @@
 from . import toolItem
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ....users import basedUser
 from .... import lib, botState
-from discord import Message, User, MessageType, File, TextChannel, Embed, Colour
+from discord import Guild, Message, User, MessageType, File, TextChannel, Embed, Colour
 from typing import List, cast
 from .. import gameItem
 from random import randint
@@ -20,9 +20,9 @@ class ThrowSnowballTool(toolItem.ToolItem):
     with a snowball layered over the top.
     """
 
-    def __init__(self, name : str, aliases : List[str] = [], value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = SNOWBALL_ICON, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, autoUse: bool = False):
+    def __init__(self, name: str, aliases: List[str] = [], value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = SNOWBALL_ICON, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, autoUse: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -42,7 +42,7 @@ class ThrowSnowballTool(toolItem.ToolItem):
                             techLevel=techLevel, builtIn=builtIn, autoUse=False)
 
 
-    async def use(self, callingBUser: "basedUser.BasedUser" = None, *args, **kwargs):
+    async def use(self, /, callingBUser: "basedUser.BasedUser", *args, **kwargs):
         """This tool can only be used from userFriendlyUse, as it must be interactive.
         :raise NotImplementedError: always
         """
@@ -57,6 +57,8 @@ class ThrowSnowballTool(toolItem.ToolItem):
         :return: A user-friendly message summarising the result of the tool use.
         :rtype: str
         """
+        if message.guild is None:
+            raise ValueError("ToolItem.userFriendlyUse can only be used from a guild context")
         if argsStr:
             if not lib.stringTyping.isInt(argsStr) and not lib.stringTyping.isMention(argsStr):
                 return ":x: This tool accepts either a user ID or user @mention."
@@ -68,24 +70,24 @@ class ThrowSnowballTool(toolItem.ToolItem):
             pickMsg = await message.reply("Pick your target! **Reply** to this message, pinging one victim, within 60s.")
 
             def targetCheck(m: Message) -> bool:
+                # Casting here because the message must be a reply to one sent in the same channel as the message that triggered the use
                 return      m.type == MessageType.default \
                         and m.reference is not None \
                         and m.reference.message_id == pickMsg.id \
-                        and ((len(m.mentions) == 1 and m.mentions[0] == message.guild.me)
-                            or (len([u for u in m.mentions if u != message.guild.me]) == 1))
+                        and ((len(m.mentions) == 1 and m.mentions[0] == cast(Guild, message.guild).me)
+                            or (len([u for u in m.mentions if u != cast(Guild, message.guild).me]) == 1))
 
             try:
                 targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
             except asyncio.TimeoutError:
-                await message.reply(":x: Out of time! Please try again.")
-                return
+                return ":x: Out of time! Please try again."
 
             if len(targetPickedMsg.mentions) != 1:
-                targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
+                targetUser = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
             else:
                 targetUser = targetPickedMsg.mentions[0]
 
-        profileAsset = targetUser.avatar_url_as(size=256, format="png")
+        profileAsset = targetUser.display_avatar.with_size(256).with_format("png")
         assetBytes = BytesIO()
         await profileAsset.save(assetBytes, seek_begin=True)
         assetBytes.seek(0)

@@ -13,6 +13,8 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents, staticComponentCustomId
 from ..logging import LogCategory
+from typing import List, cast
+from discord.abc import Snowflake
 
 EMBED_FIELD_INLINE_DEFAULT = "y"
 
@@ -479,4 +481,6 @@ class DevMiscCog(BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(DevMiscCog(bot), guilds=cfg.developmentGuilds)
+    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
+    # even though it extends discord.Object
+    await bot.add_cog(DevMiscCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))

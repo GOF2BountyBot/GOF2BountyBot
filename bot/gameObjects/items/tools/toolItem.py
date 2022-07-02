@@ -13,9 +13,9 @@ class ToolItem(gameItem.GameItem):
     Intended to be very generic at this level of implementation.
     """
 
-    def __init__(self, name : str, aliases : List[str], value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = "", emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY,
-            techLevel : int = -1, builtIn : bool = False, autoUse: bool = False):
+    def __init__(self, name: str, aliases: List[str], value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = "", emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY,
+            techLevel: int = -1, builtIn: bool = False, autoUse: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -93,7 +93,7 @@ def singleUse(func: Callable) -> Callable:
     """Decorator to apply to ToolItem use methods. The tool becomes single use, automatically removing itself
     from callingBUsers inactiveTools after use.
     """
-    async def inner(self: ToolItem, *args, callingBUser: "basedUser.BasedUser" = None, **kwargs):
+    async def inner(self: ToolItem, *args, callingBUser: "basedUser.BasedUser", **kwargs):
         if callingBUser is None:
             raise ValueError("Missing required argument: callingBUser")
         result = await func(self, *args, callingBUser=callingBUser, **kwargs)

@@ -15,10 +15,10 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
     :vartype count: int
     """
 
-    def __init__(self, name : str, aliases : List[str], HPps : float = 0, count : int = 0,
-            value : int = 0, wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], HPps: float = 0, count: int = 0,
+            value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -60,7 +60,7 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
 
 
     @classmethod
-    def deserialize(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: dict, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 

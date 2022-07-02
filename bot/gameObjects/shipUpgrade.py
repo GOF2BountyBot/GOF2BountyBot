@@ -6,11 +6,12 @@ from .items import shipItem
 from ..baseClasses.serializable import Serializable
 from ..baseClasses.simpleHash import simpleHash
 from .. import lib
+from .gameObject import LoadedObject
 
 
 'https://stackoverflow.com/a/53519136'
 @simpleHash
-class ShipUpgrade(Serializable):
+class ShipUpgrade(LoadedObject):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.
@@ -65,12 +66,12 @@ class ShipUpgrade(Serializable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, shipToUpgradeValueMult : float, armour : int = 0.0, armourMultiplier : float = 1.0,
-                    cargo : int = 0, cargoMultiplier : float = 1.0, maxSecondaries : int = 0,
-                    maxSecondariesMultiplier : float = 1.0, handling : int = 0, handlingMultiplier : float = 1.0,
-                    maxPrimaries : int = 0, maxPrimariesMultiplier : float = 1.0, maxTurrets : int = 0,
-                    maxTurretsMultiplier : float = 1.0, maxModules : int = 0, maxModulesMultiplier : float = 1.0,
-                    vendor : str = "", wiki : str = "", techLevel : int = -1, builtIn : bool = False):
+    def __init__(self, name: str, shipToUpgradeValueMult: float, armour: int = 0, armourMultiplier: float = 1.0,
+                    cargo: int = 0, cargoMultiplier: float = 1.0, maxSecondaries: int = 0,
+                    maxSecondariesMultiplier: float = 1.0, handling: int = 0, handlingMultiplier: float = 1.0,
+                    maxPrimaries: int = 0, maxPrimariesMultiplier: float = 1.0, maxTurrets: int = 0,
+                    maxTurretsMultiplier: float = 1.0, maxModules: int = 0, maxModulesMultiplier: float = 1.0,
+                    vendor: str = "", wiki: str = "", techLevel: int = -1, builtIn: bool = False):
         """
         :param str name: The name of the upgrade. This must be unique.
         :param float shipToUpgradeValueMult: upgrades do not have a value, their value is calculated as a percentage of the
@@ -128,10 +129,10 @@ class ShipUpgrade(Serializable):
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
 
-        self.builtIn = builtIn
+        super().__init__(builtIn=builtIn)
 
 
-    def __eq__(self, other : ShipUpgrade) -> bool:
+    def __eq__(self, other: ShipUpgrade) -> bool:
         """Decide whether two ship upgrades are the same, based purely on their name and object type.
 
         :param shipUpgrade other: The upgrade to compare this one against.
@@ -141,14 +142,14 @@ class ShipUpgrade(Serializable):
         return type(self) == type(other) and self.name == other.name
 
 
-    def valueForShip(self, ship : shipItem.Ship) -> int:
+    def valueForShip(self, ship: shipItem.Ship) -> int:
         """Calculate the value of this ship upgrade, when it is to be applied to the given ship
 
         :param shipItem ship: The ship that the upgrade is to be applied to
         :return: The number of credits at which this upgrade is valued when being applied to ship
         :rtype: int
         """
-        return ship.value * self.shipToUpgradeValueMult
+        return int(ship.value * self.shipToUpgradeValueMult)
 
 
     def serialize(self, **kwargs) -> dict:
@@ -214,7 +215,7 @@ class ShipUpgrade(Serializable):
 
 
     @classmethod
-    def deserialize(cls, upgradeDict : dict, **kwargs) -> ShipUpgrade:
+    def deserialize(cls, upgradeDict: dict, **kwargs) -> ShipUpgrade:
         """Factory function reconstructing a shipUpgrade object from its dictionary-serialized representation.
         The opposite of shipUpgrade.serialize
         If the upgrade is builtIn, return a reference to the pre-constructed upgrade object.

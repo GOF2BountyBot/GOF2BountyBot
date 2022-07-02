@@ -95,7 +95,7 @@ async def dev_cmd_say(message: discord.Message, args: str, isDM: bool):
 botCommands.register("say", dev_cmd_say, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_broadcast(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_broadcast(message: discord.Message, args: str, isDM: bool):
     """developer command sending a message to the playChannel of all guilds that have one
 
     :param discord.Message message: the discord message calling the command
@@ -119,7 +119,7 @@ async def dev_cmd_broadcast(message : discord.Message, args : str, isDM : bool):
 botCommands.register("broadcast", dev_cmd_broadcast, 3, forceKeepArgsCasing=True, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_reset_has_poll(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_reset_has_poll(message: discord.Message, args: str, isDM: bool):
     """developer command resetting the poll ownership of the calling user, or the specified user if one is given.
 
     :param discord.Message message: the discord message calling the command
@@ -160,7 +160,7 @@ async def dev_cmd_bot_update(message: discord.Message, args: str, isDM: bool):
 botCommands.register("bot-update", dev_cmd_bot_update, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_setbalance(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_setbalance(message: discord.Message, args: str, isDM: bool):
     """developer command setting the requested user's balance.
 
     :param discord.Message message: the discord message calling the command
@@ -192,7 +192,7 @@ async def dev_cmd_setbalance(message : discord.Message, args : str, isDM : bool)
 botCommands.register("setbalance", dev_cmd_setbalance, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_start_stocking_giveaway(message: discord.Message, args: str, isDM: bool):
     """developer command starting a giveaway of the keith stocking crate for 48 hours
     :param discord.Message message: the discord message calling the command
     :param str args: ignore
@@ -211,7 +211,7 @@ async def dev_cmd_start_stocking_giveaway(message : discord.Message, args : str,
 botCommands.register("start-stocking-giveaway", dev_cmd_start_stocking_giveaway, 3, useDoc=True)
 
 
-async def dev_cmd_restart_task_checker(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_restart_task_checker(message: discord.Message, args: str, isDM: bool):
     """developer command that restarts the global timedtask scheduler
 
     :param discord.Message message: the discord message calling the command
@@ -248,7 +248,7 @@ def describeTT(tt: Optional[timedTask.TimedTask], issueTime: bool = True, expiry
     return(sep.join(ttStrParts))
 
 
-async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_bot_status(message: discord.Message, args: str, isDM: bool):
     """developer command sending a DM containing various info about the bot's current status
 
     :param discord.Message message: the discord message calling the command
@@ -364,7 +364,7 @@ async def dev_cmd_bot_status(message : discord.Message, args : str, isDM : bool)
 botCommands.register("bot-status", dev_cmd_bot_status, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_item_status(message: discord.Message, args: str, isDM: bool):
     """developer command sending a DM containing info about the loaded game objects
 
     :param discord.Message message: the discord message calling the command
@@ -395,7 +395,7 @@ async def dev_cmd_item_status(message : discord.Message, args : str, isDM : bool
 botCommands.register("item-status", dev_cmd_item_status, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_guild_status(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_guild_status(message: discord.Message, args: str, isDM: bool):
     """developer command sending a DM containing info about the specified guild
 
     :param discord.Message message: the discord message calling the command
@@ -524,7 +524,7 @@ botCommands.register("guild-status", dev_cmd_guild_status, 3, signatureStr="**gu
                     allowDM=True, useDoc=True)
 
 
-async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_user_status(message: discord.Message, args: str, isDM: bool):
     """developer command sending a DM containing info about the specified user
 
     :param discord.Message message: the discord message calling the command
@@ -651,7 +651,7 @@ async def dev_cmd_user_status(message : discord.Message, args : str, isDM : bool
 botCommands.register("user-status", dev_cmd_user_status, 3, allowDM=True, useDoc=True)
 
 
-async def dev_cmd_bounty_status(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_bounty_status(message: discord.Message, args: str, isDM: bool):
     """developer command sending a DM containing info about the specified bounty
 
     :param discord.Message message: the discord message calling the command
@@ -748,7 +748,7 @@ BOUNTY_EDIT_FIELDS = {
     "respawnTime"
 }
 
-async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_edit_bounty(message: discord.Message, args: str, isDM: bool):
     """developer command editing a value on a bounty
 
     :param discord.Message message: the discord message calling the command
@@ -1080,7 +1080,7 @@ async def dev_cmd_edit_bounty(message : discord.Message, args : str, isDM : bool
 botCommands.register("edit-bounty", dev_cmd_edit_bounty, 3, signatureStr="**edit-bounty <guild id or here> <criminal name> +<field> +<value>**", useDoc=True, forceKeepArgsCasing=True)
 
 
-async def dev_cmd_force_update_listing(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_force_update_listing(message: discord.Message, args: str, isDM: bool):
     """developer command forcing a BBC listing update on a bounty
 
     :param discord.Message message: the discord message calling the command

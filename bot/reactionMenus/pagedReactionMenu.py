@@ -2,16 +2,17 @@ from ..users import basedUser
 from .import reactionMenu
 from discord import Message, Member, Role, Embed # type: ignore[import]
 from .. import lib, botState
-from typing import Dict, Optional, cast
+from typing import Dict, Generic, Optional, TypeVar, Union, cast
 from ..scheduling import timedTask
 from ..cfg import cfg
 
 
-class PagedReactionMenu(reactionMenu.ReactionMenu):
+TMenuOptionType = TypeVar("TMenuOptionType", bound=reactionMenu.ReactionMenuOption)
+class PagedReactionMenu(reactionMenu.ReactionMenu, Generic[TMenuOptionType]):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
 
-    def __init__(self, msg: Message, pages: Optional[Dict[Embed, Dict[lib.emojis.BasedEmoji, reactionMenu.ReactionMenuOption]]] = None,
+    def __init__(self, msg: Message, pages: Optional[Dict[Embed, Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, reactionMenu.NonSaveableReactionMenuOption]]]] = None,
                  timeout: Optional[timedTask.TimedTask] = None, targetMember: Optional[Member] = None, targetRole: Optional[Role] = None,
                  owningBasedUser: Optional[basedUser.BasedUser] = None):
         """

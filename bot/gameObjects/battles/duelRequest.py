@@ -1,20 +1,21 @@
 from ... import lib, botState
 from ...cfg import cfg
-from discord import Embed, User, Message, DiscordException, HTTPException, NotFound, File
+from discord import Embed, Member, User, Message, DiscordException, HTTPException, NotFound, File
+from discord.abc import Messageable
 from ...users import basedUser
 from ...scheduling import timedTask
 from ...users import basedGuild
 from ..items import shipItem
 from ..bounties import criminal
 import random
-from typing import Union
+from typing import Dict, Optional, Union, cast
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import aiohttp
 import textwrap
 
 
-def makeDuelStatsEmbed(duelResults : dict, targetUser : basedUser.BasedUser, sourceUser : basedUser.BasedUser) -> Embed:
+def makeDuelStatsEmbed(duelResults: dict, targetUser: Union[User, Member], sourceUser: Union[User, Member]) -> Embed:
     """Build a discord.Embed displaying the statistics of a completed duel.
 
     :param dict duelResults: A dictionary describing the results of the duel
@@ -60,8 +61,8 @@ class DuelRequest:
                 of this duel request
     :vartype menus: ReactionDuelChallengeMenu
     """
-    def __init__(self, sourceBasedUser : basedUser.BasedUser, targetBasedUser : basedUser.BasedUser, stakes : int,
-                    duelTimeoutTask : timedTask.TimedTask, sourceBasedGuild : basedGuild.BasedGuild):
+    def __init__(self, sourceBasedUser: basedUser.BasedUser, targetBasedUser: basedUser.BasedUser, stakes: int,
+                    duelTimeoutTask: timedTask.TimedTask, sourceBasedGuild: basedGuild.BasedGuild):
         """
         :param BasedUser sourceBasedUser: -- The BasedUser who issued the duel challenge
         :param BasedUser targetBasedUser: -- The BasedUser to accept/reject the challenge
@@ -78,7 +79,7 @@ class DuelRequest:
 
 
 # ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE
-def fightShips(ship1 : shipItem.Ship, ship2 : shipItem.Ship, variancePercent : float) -> dict:
+def fightShips(ship1: shipItem.Ship, ship2: shipItem.Ship, variancePercent: float) -> dict:
     """Simulate a duel between two ships.
     Returns a dictionary containing statistics about the duel, as well as a reference to the winning ship.
 
@@ -169,188 +170,6 @@ def fightShips(ship1 : shipItem.Ship, ship2 : shipItem.Ship, variancePercent : f
                     "TTK": ship2TTK}}
 
 
-# ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE
-async def fightDuel(sourceUser : User, targetUser : User, duelReq : DuelRequest, acceptMsg : Message) -> dict:
-    """Simulate a duel between two users.
-    Returns a dictionary containing statistics about the duel, as well as references to the winning and losing BasedUsers.
-
-    :param BasedUser sourceUser: The BasedUser that issued this challenge
-    :param BasedUser targetUser: The BasedUser that this challenge was targetted towards
-    :param DuelRequest duelReq: The duel request that this duel simulation satisfies
-    :param discord.message acceptMsg: The message tha triggered this duel simulation
-    :return: A dictionary containing statistics about the duel, as well as references to the winning and losing BasedUsers
-    :rtype: dict
-    """
-    for menu in duelReq.menus:
-        await menu.delete()
-
-    sourceBasedUser = duelReq.targetBasedUser
-    targetBasedUser = duelReq.sourceBasedUser
-
-    # fight = ShipFight.ShipFight(sourceBasedUser.activeShip, targetBasedUser.activeShip)
-    # duelResults = fight.fightShips(cfg.duelVariancePercent)
-    duelResults = fightShips(
-        sourceBasedUser.activeShip, targetBasedUser.activeShip, cfg.duelVariancePercent)
-    winningShip = duelResults["winningShip"]
-
-    if winningShip is sourceBasedUser.activeShip:
-        winningBasedUser = sourceBasedUser
-        losingBasedUser = targetBasedUser
-    elif winningShip is targetBasedUser.activeShip:
-        winningBasedUser = targetBasedUser
-        losingBasedUser = sourceBasedUser
-    else:
-        winningBasedUser = None
-        losingBasedUser = None
-
-    try:
-        duelResultsImg = await buildDuelResultsImage(sourceBasedUser, sourceBasedUser.activeShip,
-                                                    targetBasedUser, targetBasedUser.activeShip,
-                                                    duelResults)
-    except RuntimeError:
-        statsEmbed = makeDuelStatsEmbed(duelResults, sourceUser, targetUser)
-        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. The error has been logged.")
-        duelResultsImg = None
-    else:
-        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
-        statsEmbed.set_image(url="attachment://duelResults.png")
-        duelResultsBytes = BytesIO()
-        duelResultsImg.save(duelResultsBytes, "PNG")
-        duelResultsBytes.seek(0)
-        duelResultsFile = File(duelResultsBytes, filename="duelResults.png")
-
-    # battleMsg =
-
-    # winningBasedUser = sourceBasedUser if winningShip is sourceBasedUser.activeShip else \
-    #                     (targetBasedUser if winningShip is targetBasedUser.activeShip else None)
-    # losingBasedUser = None if winningBasedUser is None else \
-    #                     (sourceBasedUser if winningBasedUser is targetBasedUser else targetBasedUser)
-
-    if winningBasedUser is None:
-        await acceptMsg.channel.send(":crossed_swords: **Stalemate!** " \
-                                        + str(targetUser) + " and " + sourceUser.mention + " drew in a duel!",
-                                        embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
-        if acceptMsg.guild.get_member(targetUser.id) is None:
-            targetDCGuild = lib.discordUtil.findBasedUserDCGuild(targetBasedUser)
-            if targetDCGuild is not None:
-                targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
-                if targetBasedGuild.hasPlayChannel():
-                    await targetBasedGuild.getPlayChannel().send(":crossed_swords: **Stalemate!** " \
-                                                                    + targetDCGuild.get_member(targetUser.id).mention \
-                                                                    + " and " + str(sourceUser) + " drew in a duel!",
-                                                                embed=statsEmbed,
-                                                                file=None if duelResultsImg is None else duelResultsFile)
-        else:
-            await acceptMsg.channel.send(":crossed_swords: **Stalemate!** " + targetUser.mention + " and " \
-                                            + sourceUser.mention + " drew in a duel!",
-                                            embed=statsEmbed, file=None if duelResultsImg is None else duelResultsFile)
-    else:
-        winningBasedUser.duelWins += 1
-        losingBasedUser.duelLosses += 1
-        winningBasedUser.duelCreditsWins += duelReq.stakes
-        losingBasedUser.duelCreditsLosses += duelReq.stakes
-
-        winningBasedUser.credits += duelReq.stakes
-        losingBasedUser.credits -= duelReq.stakes
-        creditsMsg = "The stakes were **" \
-                        + str(duelReq.stakes) + "** credit" \
-                        + ("s" if duelReq.stakes != 1 else "") + ":"
-
-        # Only display the new player balances if the duel stakes are greater than zero.
-        if duelReq.stakes > 0:
-            creditsMsg += ".\n**" + botState.client.get_user(winningBasedUser.id).name + "** now has **" \
-                + str(winningBasedUser.credits) + " credits**.\n**" + botState.client.get_user(losingBasedUser.id).name \
-                + "** now has **" + str(losingBasedUser.credits) + " credits**."
-
-        if acceptMsg.guild.get_member(winningBasedUser.id) is None:
-            await acceptMsg.channel.send(":crossed_swords: **Fight!** " + str(botState.client.get_user(winningBasedUser.id)) \
-                                            + " beat " + botState.client.get_user(losingBasedUser.id).mention \
-                                            + " in a duel!\n" + creditsMsg, embed=statsEmbed,
-                                            file=None if duelResultsImg is None else duelResultsFile)
-            winnerDCGuild = lib.discordUtil.findBasedUserDCGuild(winningBasedUser)
-            if winnerDCGuild is not None:
-                winnerBasedGuild = botState.client.guildsDB.getGuild(winnerDCGuild.id)
-                if winnerBasedGuild.hasPlayChannel():
-                    await winnerBasedGuild.getPlayChannel().send(":crossed_swords: **Fight!** " \
-                                                                    + winnerDCGuild.get_member(winningBasedUser.id).mention \
-                                                                    + " beat " \
-                                                                    + str(botState.client.get_user(losingBasedUser.id)) \
-                                                                    + " in a duel!\n" + creditsMsg, embed=statsEmbed,
-                                                                    file=None if duelResultsImg is None else duelResultsFile)
-        else:
-            if acceptMsg.guild.get_member(losingBasedUser.id) is None:
-                await acceptMsg.channel.send(":crossed_swords: **Fight!** " \
-                                                + botState.client.get_user(winningBasedUser.id).mention + " beat " \
-                                                + str(botState.client.get_user(losingBasedUser.id)) + " in a duel!\n" \
-                                                    + creditsMsg, embed=statsEmbed,
-                                                    file=None if duelResultsImg is None else duelResultsFile)
-                loserDCGuild = lib.discordUtil.findBasedUserDCGuild(losingBasedUser)
-                if loserDCGuild is not None:
-                    loserBasedGuild = botState.client.guildsDB.getGuild(loserDCGuild.id)
-                    if loserBasedGuild.hasPlayChannel():
-                        await loserBasedGuild.getPlayChannel().send(":crossed_swords: **Fight!** " \
-                                                                    + str(botState.client.get_user(winningBasedUser.id)) \
-                                                                    + " beat " \
-                                                                    + loserDCGuild.get_member(losingBasedUser.id).mention \
-                                                                    + " in a duel!\n" + creditsMsg, embed=statsEmbed,
-                                                                    file=None if duelResultsImg is None else duelResultsFile)
-            else:
-                await acceptMsg.channel.send(":crossed_swords: **Fight!** " \
-                                                + botState.client.get_user(winningBasedUser.id).mention + " beat " \
-                                                + botState.client.get_user(losingBasedUser.id).mention + " in a duel!\n" \
-                                                + creditsMsg, embed=statsEmbed,
-                                                file=None if duelResultsImg is None else duelResultsFile)
-
-    await targetBasedUser.duelRequests[sourceBasedUser].duelTimeoutTask.forceExpire(callExpiryFunc=False)
-    targetBasedUser.removeDuelChallengeObj(duelReq)
-    # logStr = ""
-    # for s in duelResults["battleLog"]:
-    #     logStr += s.replace("{PILOT1NAME}",sourceUser.name).replace("{PILOT2NAME}",targetUser.name) + "\n"
-    # await acceptMsg.channel.send(logStr)
-
-
-# ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE
-async def rejectDuel(duelReq : DuelRequest, rejectMsg : Message, challenger : User, recipient : User):
-    """Reject a duel request, including expiring the DuelReq object and its TimedTask,
-    announcing the request cancellation to both participants, and expiring all related ReactionDuelChallengeMenus.
-
-    :param DuelRequest duelReq: The duel request associated with this duel
-    :param discord.message rejectMsg: The message that triggered the rejection of this duel challenge
-    :param discord.User challenger: The user or member that issued this challenge
-    :param discord.User recipient: The user or member that this challenge was targetted towards
-    """
-    for menu in duelReq.menus:
-        await menu.delete()
-
-    await duelReq.duelTimeoutTask.forceExpire(callExpiryFunc=False)
-    duelReq.sourceBasedUser.removeDuelChallengeTarget(duelReq.targetBasedUser)
-
-    await rejectMsg.channel.send(":white_check_mark: You have rejected **" + str(challenger) + "**'s duel challenge.")
-    if rejectMsg.guild.get_member(duelReq.sourceBasedUser.id) is None:
-        targetDCGuild = lib.discordUtil.findBasedUserDCGuild(duelReq.sourceBasedUser.id)
-        if targetDCGuild is not None:
-            targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
-            if targetBasedGuild.hasPlayChannel():
-                await targetBasedGuild.getPlayChannel().send(":-1: <@" + str(duelReq.sourceBasedUser.id) + ">, **" \
-                                                                + str(recipient) + "** has rejected your duel request!")
-
-
-async def expireAndAnnounceDuelReq(duelReqDict : DuelRequest):
-    """Foce the expiry of a given DuelRequest. The duel expiry will be announced to the issuing user.
-    TODO: Announce duel expiry to target user, if they have the UA.
-
-    :param DuelRequest duelReqDict: The duel request to expire
-    """
-    duelReq = duelReqDict["duelReq"]
-    await duelReq.duelTimeoutTask.forceExpire(callExpiryFunc=False)
-    if duelReq.sourceBasedGuild.hasPlayChannel():
-        playCh = duelReq.sourceBasedGuild.getPlayChannel()
-        if playCh is not None:
-            await playCh.send(":stopwatch: <@" + str(duelReq.sourceBasedUser.id) + ">, your duel challenge for **" \
-                                + str(botState.client.get_user(duelReq.targetBasedUser.id)) + "** has now expired.")
-    duelReq.sourceBasedUser.removeDuelChallengeObj(duelReq)
-
-
 async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Criminal],
                                 ship1: shipItem.Ship,
                                 player2: Union[basedUser.BasedUser, criminal.Criminal],
@@ -363,14 +182,13 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
     canvas = Image.new("RGBA", cfg.duelResultsImageDims, (0, 0, 0, 0))
     
     # Load font
-    nameFont = ImageFont.truetype(cfg.paths.duelResultsFont, cfg.duelResultsNameFontSize)
-    statsFont = ImageFont.truetype(cfg.paths.duelResultsFont, cfg.duelResultsStatsFontSize)
+    nameFont = ImageFont.truetype(str(cfg.paths.duelResultsFont), cfg.duelResultsNameFontSize)
+    statsFont = ImageFont.truetype(str(cfg.paths.duelResultsFont), cfg.duelResultsStatsFontSize)
 
-    for player, ship, iconPos, statsPos, shipPos, shipKey in ((player1, ship1, cfg.duelResultsP1Pos,
-                                                        cfg.duelResultsP1StatsPos, cfg.duelResultsP1ShipPos, "ship1"),
-                                                    (player2, ship2, cfg.duelResultsP2Pos,
-                                                        cfg.duelResultsP2StatsPos, cfg.duelResultsP2ShipPos, "ship2")):
-        if type(player) == basedUser.BasedUser:
+    params = ((player1, ship1, cfg.duelResultsP1Pos, cfg.duelResultsP1StatsPos, cfg.duelResultsP1ShipPos, "ship1"),
+              (player2, ship2, cfg.duelResultsP2Pos, cfg.duelResultsP2StatsPos, cfg.duelResultsP2ShipPos, "ship2"))
+    for player, ship, iconPos, statsPos, shipPos, shipKey in params:
+        if isinstance(player, basedUser.BasedUser):
             dcUser: User = botState.client.get_user(player.id) or await botState.client.fetch_user(player.id)
             if dcUser is None:
                 raise ValueError(f"Failed to find discord User for BasedUser {player}")
@@ -382,7 +200,7 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
             icon = BytesIO()
 
             try:
-                await (dcUser.avatar_url_as(size=profileSize)).save(icon, seek_begin=True)
+                await (dcUser.display_avatar.with_size(profileSize)).save(icon, seek_begin=True)
             except (DiscordException, HTTPException, NotFound) as e:
                 botState.client.logger.log("duelRequest", "buildDuelResultsImage",
                                     f"Failed to fetch profile image for user {player}: {e}", exception=e)
@@ -494,3 +312,202 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
     if cfg.paths.duelResultsBackgrounds:
         canvas = Image.composite(canvas, lib.graphics.copyRandomDuelResultsBackground(), canvas)
     return canvas
+
+
+# ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE
+async def fightDuel(sourceUser: User, targetUser: Union[User, Member], duelReq: DuelRequest, acceptMsg: Message) -> dict:
+    """Simulate a duel between two users.
+    Returns a dictionary containing statistics about the duel, as well as references to the winning and losing BasedUsers.
+
+    :param BasedUser sourceUser: The BasedUser that issued this challenge
+    :param BasedUser targetUser: The BasedUser that this challenge was targetted towards
+    :param DuelRequest duelReq: The duel request that this duel simulation satisfies
+    :param discord.message acceptMsg: The message tha triggered this duel simulation
+    :return: A dictionary containing statistics about the duel, as well as references to the winning and losing BasedUsers
+    :rtype: dict
+    """
+    for menu in duelReq.menus:
+        await menu.delete()
+
+    sourceBasedUser = duelReq.targetBasedUser
+    targetBasedUser = duelReq.sourceBasedUser
+
+    # fight = ShipFight.ShipFight(sourceBasedUser.activeShip, targetBasedUser.activeShip)
+    # duelResults = fight.fightShips(cfg.duelVariancePercent)
+    duelResults = fightShips(sourceBasedUser.activeShip, targetBasedUser.activeShip, cfg.duelVariancePercent)
+    winningShip = duelResults["winningShip"]
+
+    if winningShip is sourceBasedUser.activeShip:
+        winningBasedUser = sourceBasedUser
+        winningDcUser = sourceUser
+        losingBasedUser = targetBasedUser
+        losingDcUser = targetUser
+    elif winningShip is targetBasedUser.activeShip:
+        winningBasedUser = targetBasedUser
+        winningDcUser = targetUser
+        losingBasedUser = sourceBasedUser
+        losingDcUser = sourceUser
+    else:
+        winningBasedUser = None
+        winningDcUser = None
+        losingBasedUser = None
+        losingDcUser = None
+
+    try:
+        duelResultsImg = await buildDuelResultsImage(sourceBasedUser, sourceBasedUser.activeShip,
+                                                    targetBasedUser, targetBasedUser.activeShip,
+                                                    duelResults)
+    except RuntimeError:
+        statsEmbed = makeDuelStatsEmbed(duelResults, sourceUser, targetUser)
+        statsEmbed.set_footer(text="An unexpected error occurred when building your duel results image. The error has been logged.")
+        duelResultsImg = None
+        duelResultsFile = None
+    else:
+        statsEmbed = lib.discordUtil.makeEmbed("Duel Results")
+        statsEmbed.set_image(url="attachment://duelResults.png")
+        duelResultsBytes = BytesIO()
+        duelResultsImg.save(duelResultsBytes, "PNG")
+        duelResultsBytes.seek(0)
+        duelResultsFile = File(duelResultsBytes, filename="duelResults.png")
+
+    # battleMsg =
+
+    # winningBasedUser = sourceBasedUser if winningShip is sourceBasedUser.activeShip else \
+    #                     (targetBasedUser if winningShip is targetBasedUser.activeShip else None)
+    # losingBasedUser = None if winningBasedUser is None else \
+    #                     (sourceBasedUser if winningBasedUser is targetBasedUser else targetBasedUser)
+
+    async def send(channel: Messageable, msg: str, embed: Embed, duelResultsFile: Optional[File]):
+        if duelResultsFile is None:
+            return await channel.send(msg, embed=embed)
+        else:
+            return await channel.send(msg, embed=embed, file=duelResultsFile)
+
+    if acceptMsg.guild is None:
+        raise ValueError("fightDuel can only be used from a guild context")
+
+    if winningBasedUser is None:
+        await send(acceptMsg.channel, f":crossed_swords: **Stalemate!** {targetUser} and {sourceUser.mention} drew in a duel!",
+                    statsEmbed, duelResultsFile)
+        
+        if acceptMsg.guild.get_member(targetUser.id) is None:
+            targetDCGuild = lib.discordUtil.findBUserDCGuild(targetBasedUser)
+            if targetDCGuild is not None:
+                targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
+                if targetBasedGuild.hasPlayChannel():
+                    await send(targetBasedGuild.getPlayChannel(),
+                                f":crossed_swords: **Stalemate!** {targetUser.mention} " \
+                                f"and {sourceUser} drew in a duel!",
+                                statsEmbed, duelResultsFile)
+        else:
+            await send(acceptMsg.channel,
+                        f":crossed_swords: **Stalemate!** {targetUser.mention} and {sourceUser.mention} drew in a duel!",
+                        statsEmbed, duelResultsFile)
+    else:
+        if losingBasedUser is None or winningDcUser is None or losingDcUser is None:
+            raise RuntimeError("Bug! If one of winningBasedUser and losingBasedUser is None, they must both be None.")
+        winningBasedUser.duelWins += 1
+        losingBasedUser.duelLosses += 1
+        winningBasedUser.duelCreditsWins += duelReq.stakes
+        losingBasedUser.duelCreditsLosses += duelReq.stakes
+
+        winningBasedUser.credits += duelReq.stakes
+        losingBasedUser.credits -= duelReq.stakes
+        creditsMsg = "The stakes were **" \
+                        + str(duelReq.stakes) + "** credit" \
+                        + ("s" if duelReq.stakes != 1 else "") + ":"
+
+        # Only display the new player balances if the duel stakes are greater than zero.
+        if duelReq.stakes > 0:
+            creditsMsg += ".\n**" + winningDcUser.name + "** now has **" \
+                + str(winningBasedUser.credits) + " credits**.\n**" + losingDcUser.name \
+                + "** now has **" + str(losingBasedUser.credits) + " credits**."
+
+        if acceptMsg.guild.get_member(winningBasedUser.id) is None:
+            await send(acceptMsg.channel, ":crossed_swords: **Fight!** " + str(winningDcUser) \
+                                            + " beat " + losingDcUser.mention \
+                                            + " in a duel!\n" + creditsMsg, embed=statsEmbed, duelResultsFile=duelResultsFile)
+
+            winnerDCGuild = lib.discordUtil.findBUserDCGuild(winningBasedUser)
+            if winnerDCGuild is not None:
+                winnerBasedGuild = botState.client.guildsDB.getGuild(winnerDCGuild.id)
+                if winnerBasedGuild.hasPlayChannel():
+                    await send(winnerBasedGuild.getPlayChannel(),
+                                f":crossed_swords: **Fight!** {winningDcUser.mention} beat {losingDcUser} in a duel!\n{creditsMsg}",
+                                embed=statsEmbed, duelResultsFile=duelResultsFile)
+        else:
+            if acceptMsg.guild.get_member(losingBasedUser.id) is None:
+                await send(acceptMsg.channel,
+                            f":crossed_swords: **Fight!** {winningDcUser.mention} beat {losingDcUser} in a duel!\n{creditsMsg}",
+                            embed=statsEmbed, duelResultsFile=duelResultsFile)
+
+                loserDCGuild = lib.discordUtil.findBUserDCGuild(losingBasedUser)
+                if loserDCGuild is not None:
+                    loserBasedGuild = botState.client.guildsDB.getGuild(loserDCGuild.id)
+                    if loserBasedGuild.hasPlayChannel():
+                        await send(loserBasedGuild.getPlayChannel(),
+                                f":crossed_swords: **Fight!** {winningDcUser} beat {losingDcUser.mention} in a duel!\n{creditsMsg}",
+                                embed=statsEmbed, duelResultsFile=duelResultsFile)
+            else:
+                await send(acceptMsg.channel,
+                            f":crossed_swords: **Fight!** {winningDcUser.mention} beat {losingDcUser.mention} in a duel!\n{creditsMsg}",
+                            embed=statsEmbed, duelResultsFile=duelResultsFile)
+
+    await targetBasedUser.duelRequests[sourceBasedUser].duelTimeoutTask.forceExpire(callExpiryFunc=False)
+    targetBasedUser.removeDuelChallengeObj(duelReq)
+
+    return duelResults
+    # logStr = ""
+    # for s in duelResults["battleLog"]:
+    #     logStr += s.replace("{PILOT1NAME}",sourceUser.name).replace("{PILOT2NAME}",targetUser.name) + "\n"
+    # await acceptMsg.channel.send(logStr)
+
+
+# ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE
+async def rejectDuel(duelReq: DuelRequest, rejectMsg: Message, challenger: Optional[Union[User, Member]], recipient: Optional[Union[User, Member]]):
+    """Reject a duel request, including expiring the DuelReq object and its TimedTask,
+    announcing the request cancellation to both participants, and expiring all related ReactionDuelChallengeMenus.
+
+    :param DuelRequest duelReq: The duel request associated with this duel
+    :param discord.message rejectMsg: The message that triggered the rejection of this duel challenge
+    :param discord.User challenger: The user or member that issued this challenge
+    :param discord.User recipient: The user or member that this challenge was targetted towards
+    """
+    for menu in duelReq.menus:
+        await menu.delete()
+
+    if rejectMsg.guild is None:
+        raise ValueError("rejectDuel can only be used from a guild context")
+
+    duelReq.duelTimeoutTask.forceExpire(callExpiryFunc=False)
+    duelReq.sourceBasedUser.removeDuelChallengeTarget(duelReq.targetBasedUser)
+
+    if challenger is None:
+        await rejectMsg.channel.send(":white_check_mark: Duel challenge rejected.")
+    else:    
+        await rejectMsg.channel.send(":white_check_mark: You have rejected **" + str(challenger) + "**'s duel challenge.")
+    
+    if rejectMsg.guild.get_member(duelReq.sourceBasedUser.id) is None:
+        targetDCGuild = lib.discordUtil.findBUserDCGuild(duelReq.sourceBasedUser)
+        if targetDCGuild is not None:
+            targetBasedGuild = botState.client.guildsDB.getGuild(targetDCGuild.id)
+            if targetBasedGuild.hasPlayChannel():
+                await targetBasedGuild.getPlayChannel().send(":-1: <@" + str(duelReq.sourceBasedUser.id) + ">, **" \
+                                                                + ('<unknown user>' if recipient is None else str(recipient)) \
+                                                                + "** has rejected your duel request!")
+
+
+async def expireAndAnnounceDuelReq(duelReqDict: Dict[str, DuelRequest]):
+    """Foce the expiry of a given DuelRequest. The duel expiry will be announced to the issuing user.
+    TODO: Announce duel expiry to target user, if they have the UA.
+
+    :param DuelRequest duelReqDict: The duel request to expire
+    """
+    duelReq = duelReqDict["duelReq"]
+    duelReq.duelTimeoutTask.forceExpire(callExpiryFunc=False)
+    if duelReq.sourceBasedGuild.hasPlayChannel():
+        playCh = duelReq.sourceBasedGuild.getPlayChannel()
+        if playCh is not None:
+            await playCh.send(":stopwatch: <@" + str(duelReq.sourceBasedUser.id) + ">, your duel challenge for **" \
+                                + str(botState.client.get_user(duelReq.targetBasedUser.id)) + "** has now expired.")
+    duelReq.sourceBasedUser.removeDuelChallengeObj(duelReq)

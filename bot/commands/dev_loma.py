@@ -15,7 +15,7 @@ from ..gameObjects.itemDiscount import ItemDiscount
 
 botCommands.addHelpSection(3, "loma")
 
-async def dev_cmd_loma_give(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_loma_give(message: discord.Message, args: str, isDM: bool):
     """developer command spawning the described item, and placing it in the given user's loma shop.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
@@ -68,7 +68,7 @@ async def dev_cmd_loma_give(message : discord.Message, args : str, isDM : bool):
 botCommands.register("loma-give", dev_cmd_loma_give, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="loma", useDoc=True)
 
 
-async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_loma_give_discount(message: discord.Message, args: str, isDM: bool):
     """developer command the described item item discount, and placing it in the given user's loma shop, for the described item.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
@@ -123,7 +123,7 @@ async def dev_cmd_loma_give_discount(message : discord.Message, args : str, isDM
 botCommands.register("loma-give-discount", dev_cmd_loma_give_discount, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="loma", useDoc=True)
 
 
-async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_debug_loma(message: discord.Message, args: str, isDM: bool):
     """developer command printing the requested user's loma, including object memory addresses.
 
     :param discord.Message message: the discord message calling the command
@@ -208,7 +208,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
                 discountedValue = int(currentItem.value * itemListing.discounts[0].mult)
                 discountAmountStr = lib.stringTyping.formatMultiplier(itemListing.discounts[0].mult)
                 valueStr = f"~~{commaSplitNum(currentItem.value)}~~ {commaSplitNum(discountedValue)}" \
-                            + f" Credits\n*{discountAmountStr} : {itemListing.discounts[0].desc}*\n"
+                            + f" Credits\n*{discountAmountStr}: {itemListing.discounts[0].desc}*\n"
             else:
                 valueStr = f"{commaSplitNum(currentItem.value)} Credits\n"
             shopEmbed.add_field(name=str(itemNum) + ". " \
@@ -228,7 +228,7 @@ async def dev_cmd_debug_loma(message : discord.Message, args : str, isDM : bool)
 botCommands.register("debug-loma", dev_cmd_debug_loma, 3, allowDM=True, helpSection="loma", useDoc=True)
 
 
-async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_loma_item(message: discord.Message, args: str, isDM: bool):
     """Delete an item in a requested user's loma.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)
@@ -347,7 +347,7 @@ async def dev_cmd_del_loma_item(message : discord.Message, args : str, isDM : bo
 botCommands.register("del-loma-item", dev_cmd_del_loma_item, 3, allowDM=True, helpSection="loma", useDoc=True)
 
 
-async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_loma_item_key(message: discord.Message, args: str, isDM: bool):
     """Delete ALL of an item in a requested user's loma.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)
@@ -475,7 +475,7 @@ async def dev_cmd_del_loma_item_key(message : discord.Message, args : str, isDM 
 botCommands.register("del-loma-item-key", dev_cmd_del_loma_item_key, 3, allowDM=True, helpSection="loma", useDoc=True)
 
 
-async def dev_cmd_del_loma_discount(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_loma_discount(message: discord.Message, args: str, isDM: bool):
     """Delete an item in a requested user's loma.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)

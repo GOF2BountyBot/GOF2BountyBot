@@ -1,12 +1,14 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
+from ..gameObject import LoadedObject
 
 from ...baseClasses import aliasable
 import math
 
 
-class SolarSystem(aliasable.Aliasable):
+class SolarSystem(aliasable.AliasableMixin, LoadedObject):
     """A solar system where a bounty may be located.
 
     :var name: The name of this system
@@ -32,8 +34,9 @@ class SolarSystem(aliasable.Aliasable):
     :vartype hasTechLevel: bool
     """
 
-    def __init__(self, name : str, faction : str, neighbours : List[str], security : int,
-            coordinates : Tuple[int, int], aliases : List[str] = [], wiki : str = "", techLevel : int = -1):
+    def __init__(self, name: str, faction: str, neighbours: List[str], security: int,
+            coordinates: Tuple[int, int], aliases: List[str] = [], wiki: str = "", techLevel: int = -1,
+            builtIn: Optional[bool] = False):
         """
         :param str name: The name of this system
         :param str faction: The faction that owns the system, if any
@@ -47,7 +50,7 @@ class SolarSystem(aliasable.Aliasable):
         :param int techLevel: The tech level of the system, indicating the typical tech level of items that can be found here
                                 - this currently has no behaviour, and is used only for lore. (Default -1)
         """
-        super(SolarSystem, self).__init__(name, aliases)
+        super(SolarSystem, self).__init__(name, aliases, builtIn=builtIn)
         self.name = name
         self.faction = faction
         self.neighbours = neighbours
@@ -69,7 +72,7 @@ class SolarSystem(aliasable.Aliasable):
         return self.neighbours
 
 
-    def distanceTo(self, other : SolarSystem) -> float:
+    def distanceTo(self, other: SolarSystem) -> float:
         """Calculate the straight-line distance from this system to another.
 
         :param System other: The other system to calculate distance to
@@ -105,7 +108,7 @@ class SolarSystem(aliasable.Aliasable):
 
 
     @classmethod
-    def deserialize(cls, sysDict : dict, **kwargs) -> SolarSystem:
+    def deserialize(cls, sysDict: dict, **kwargs) -> SolarSystem:
         """Factory function constructing a new System object from the information in the given dictionary.
 
         :param dict sysDict: A dictionary containing all information needed to construct the required System.

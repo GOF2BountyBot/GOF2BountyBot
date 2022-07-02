@@ -43,9 +43,9 @@ class TimedTask:
     :vartype rescheduleOnExpiryFuncFailure: bool
     """
 
-    def __init__(self, issueTime : Optional[datetime] = None, expiryTime : Optional[datetime] = None, expiryDelta : Optional[timedelta] = None,
-                 expiryFunction : Optional[TTCallbackType] = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
-                 rescheduleOnExpiryFuncFailure : bool = False):
+    def __init__(self, issueTime: Optional[datetime] = None, expiryTime: Optional[datetime] = None, expiryDelta: Optional[timedelta] = None,
+                 expiryFunction: Optional[TTCallbackType] = None, expiryFunctionArgs: Any = None, autoReschedule: bool = False,
+                 rescheduleOnExpiryFuncFailure: bool = False):
         """
         :param datetime.datetime issueTime: The datetime when this task was created. (Default now)
         :param datetime.datetime expiryTime: The datetime when this task should expire. (Default None)
@@ -217,24 +217,18 @@ class TimedTask:
         """Force the expiry of this task.
         Handles calling of this task's expiryFunction, and rescheduling if specified. Set's the task's expiryTime to now.
         :param bool callExpiryFunction: Whether or not to call the task's expiryFunction if the task expires. Default: True
-        :return: The result of the expiry function, if it is called
         """
         # Update expiryTime
         self.expiryTime = discord.utils.utcnow()
         # Call expiryFunction and reschedule if specified
         if callExpiryFunc and self.hasExpiryFunction:
-            expiryFuncResults = self.callExpiryFunction()
-        else:
-            expiryFuncResults = None
+            self.callExpiryFunction()
 
         if self.autoReschedule:
             self.reschedule()
         # Mark for removal if not rescheduled
         else:
             self.gravestone = True
-        # Return expiry function results
-        if callExpiryFunc and self.hasExpiryFunction:
-            return expiryFuncResults
 
 
 DelayGeneratorType = Union[Callable[[], timedelta], Callable[[Any], timedelta]]
@@ -245,10 +239,6 @@ class DynamicRescheduleTask(TimedTask):
     This allows for dynamically choosing the reschedule time.
     If an expiryTime is specified, then this will be used for the first scheduling period. After this time is reached,
     the scheduler will switch to calling the delayTimeGenerator.
-<<<<<<< HEAD
-
-=======
->>>>>>> a9f395e117ff8d3bd6db27d850ee5a7bd79cf5ad
     :var delayTimeGenerator: Reference (not call!) to the function which generates the
                                 expiryDelta. Must return a timedelta.
     :vartype delayTimeGenerator: function
@@ -267,10 +257,10 @@ class DynamicRescheduleTask(TimedTask):
     :varType autoReschedule: True
     """
 
-    def __init__(self, delayTimeGenerator : DelayGeneratorType, initialDelta: Optional[timedelta] = None,
-                        delayTimeGeneratorArgs : Any = None, issueTime : Optional[datetime] = None, expiryTime : Optional[datetime] = None,
-                        expiryFunction : Optional[TTCallbackType] = None, expiryFunctionArgs : Any = None, autoReschedule : bool = False,
-                        rescheduleOnExpiryFuncFailure : bool = False):
+    def __init__(self, delayTimeGenerator: DelayGeneratorType, initialDelta: Optional[timedelta] = None,
+                        delayTimeGeneratorArgs: Any = None, issueTime: Optional[datetime] = None, expiryTime: Optional[datetime] = None,
+                        expiryFunction: Optional[TTCallbackType] = None, expiryFunctionArgs: Any = None, autoReschedule: bool = False,
+                        rescheduleOnExpiryFuncFailure: bool = False):
         """
         :param DelayGeneratorType delayTimeGenerator: Reference (not call!) to the function which generates the expiryDelta.
                                                         Must return a timedelta, and must be synchronous (not a coroutine)

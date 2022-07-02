@@ -12,7 +12,7 @@ from ..databases.bountyDB import divisionNameForLevel
 botCommands.addHelpSection(3, "items")
 
 
-async def dev_cmd_give(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_give(message: discord.Message, args: str, isDM: bool):
     """developer command giving the provided user the provided item of the provided type.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
@@ -61,7 +61,7 @@ async def dev_cmd_give(message : discord.Message, args : str, isDM : bool):
 botCommands.register("give", dev_cmd_give, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="items", useDoc=True)
 
 
-async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_item(message: discord.Message, args: str, isDM: bool):
     """Delete an item in a requested user's inventory.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)
@@ -173,7 +173,7 @@ async def dev_cmd_del_item(message : discord.Message, args : str, isDM : bool):
 botCommands.register("del-item", dev_cmd_del_item, 3, allowDM=True, helpSection="items", useDoc=True)
 
 
-async def dev_cmd_del_item_key(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_item_key(message: discord.Message, args: str, isDM: bool):
     """Delete ALL of an item in a requested user's inventory.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)
@@ -294,7 +294,7 @@ async def dev_cmd_del_item_key(message : discord.Message, args : str, isDM : boo
 botCommands.register("del-item-key", dev_cmd_del_item_key, 3, allowDM=True, helpSection="items", useDoc=True)
 
 
-async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_refreshshop(message: discord.Message, args: str, isDM: bool):
     """Refresh the shop stock of the current guild. Does not reset the shop stock cooldown.
     To refresh all divisions, give no arguments.
     To refresh a division to a specific level, just give the level.
@@ -342,7 +342,7 @@ async def dev_cmd_refreshshop(message : discord.Message, args : str, isDM : bool
 botCommands.register("refreshshop", dev_cmd_refreshshop, 3, allowDM=False, helpSection="items", useDoc=True)
 
 
-async def dev_cmd_debug_hangar(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_debug_hangar(message: discord.Message, args: str, isDM: bool):
     """developer command printing the requested user's hangar, including object memory addresses.
 
     :param discord.Message message: the discord message calling the command
@@ -445,7 +445,7 @@ botCommands.register("debug-hangar", dev_cmd_debug_hangar, 3, allowDM=True, help
 
 
 # TODO: Move to dev_economy
-async def dev_cmd_crim_value(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_crim_value(message: discord.Message, args: str, isDM: bool):
     """⚠ WARNING: MARKED FOR CHANGE ⚠
     The following function is provisional and marked as planned for overhaul.
     Details: The command output is finalised. However, the inner workings of the command are to be replaced with attribute

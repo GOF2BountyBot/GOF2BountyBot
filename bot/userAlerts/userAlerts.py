@@ -16,9 +16,11 @@ class UABase(ABC):
     The state is not necessarily stored in an object attribute.
     A UserAlert may not necessarily depend on the guild in which it was set.
     """
+    def __init__(self, state: bool = False) -> None:
+        super().__init__()
 
     @abstractmethod
-    async def toggle(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    async def toggle(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         # TODO: Stop requesting BasedGuild, look it up from bbGlobals using dcGuild
         """Invert the alert's state (i.e if currently off, switch to on, and vice versa) for the given member
         in the given guild.
@@ -35,7 +37,7 @@ class UABase(ABC):
 
 
     @abstractmethod
-    def getState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    def getState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         # TODO: Stop requesting BasedGuild, look it up from bbGlobals using dcGuild
         """Get the state of the alert for the given member in the given guild.
 
@@ -51,7 +53,7 @@ class UABase(ABC):
 
 
     @abstractmethod
-    async def setState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member, newState : bool) -> bool:
+    async def setState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member, newState: bool) -> bool:
         # TODO: Stop requesting BasedGuild, look it up from bbGlobals using dcGuild
         """Set the alert's state for the given member in the given guild, to the given state.
 
@@ -75,7 +77,7 @@ class StateUserAlert(UABase):
     :vartype state: bool
     """
 
-    def __init__(self, state):
+    def __init__(self, state: bool = False):
         """
         :param bool state: The initial state of the alert (enabled/disabled)
         """
@@ -83,7 +85,7 @@ class StateUserAlert(UABase):
         self.state = state
 
 
-    async def toggle(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    async def toggle(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         """Invert the alert's state (i.e if currently off, switch to on, and vice versa).
 
         :param discord.Guild dcGuild: Ignored
@@ -96,7 +98,7 @@ class StateUserAlert(UABase):
         return self.state
 
 
-    def getState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    def getState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         """Get the state of the alert.
 
         :param discord.Guild dcGuild: Ignored
@@ -108,7 +110,7 @@ class StateUserAlert(UABase):
         return self.state
 
 
-    async def setState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member, newState : bool) -> bool:
+    async def setState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member, newState: bool) -> bool:
         """Set the alert's state.
 
         :param discord.Guild dcGuild: Ignored
@@ -129,11 +131,11 @@ class GuildRoleUserAlert(UABase):
     to use different roles for the same UA.
     """
 
-    def __init__(self):
+    def __init__(self, state: bool = False):
         super(GuildRoleUserAlert, self).__init__()
 
 
-    async def toggle(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    async def toggle(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         """Invert the alert's state (i.e if currently off, switch to on, and vice versa) of the alert,
         by fetching the role that the given guild has selected for this alert, and granting/removing it to the given member.
 
@@ -158,7 +160,7 @@ class GuildRoleUserAlert(UABase):
             return True
 
 
-    def getState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member) -> bool:
+    def getState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
         """Get the state of the alert for the given member in the given guild, by deciding the member's ownership of the role
         BasedGuild has selected for this alert type.
 
@@ -173,7 +175,7 @@ class GuildRoleUserAlert(UABase):
         return alertRole in dcMember.roles
 
 
-    async def setState(self, dcGuild : Guild, bGuild : 'basedGuild.BasedGuild', dcMember : Member, newState : bool) -> bool:
+    async def setState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member, newState: bool) -> bool:
         """Set the alert's state for the given member in the given guild, to the given state, granting the guild's
         selected role where newState is True, and taking the guild's selected role where newState is False.
 
@@ -185,7 +187,11 @@ class GuildRoleUserAlert(UABase):
         :return: The new state of the alert.
         :rtype: bool
         """
-        alertRole = utils.get(dcGuild.roles, id=bGuild.getUserAlertRoleID(userAlertsTypesIDs[type(self)]))
+        roleId = bGuild.getUserAlertRoleID(userAlertsTypesIDs[type(self)])
+        alertRole = utils.get(dcGuild.roles, id=roleId)
+        if alertRole is None:
+            raise ValueError(f"Unable to find role {roleId} in guild {dcGuild.name}#{dcGuild.id}")
+
         if alertRole in dcMember.roles and not newState:
             await dcMember.remove_roles(alertRole, reason="User unsubscribed from " + userAlertsTypesNames[type(self)] \
                                         + " notifications via BB command")
@@ -194,6 +200,7 @@ class GuildRoleUserAlert(UABase):
             await dcMember.add_roles(alertRole, reason="User subscribed to " + userAlertsTypesNames[type(self)] \
                                         + " notifications via BB command")
             return True
+        return newState
 
 
 
@@ -300,7 +307,7 @@ userAlertsTypesNames: Dict[Type[UABase], str] = {
                     }
 
 
-def getAlertIDFromHeirarchicalAliases(alertName : Union[str, List[str]]) -> List[str]:
+def getAlertIDFromHeirarchicalAliases(alertName: Union[str, List[str]]) -> List[str]:
     """Look up a given multi-levelled alert reference, and return a list of associated UserAlert IDs.
     This function implements:
     - user friendly alert names
@@ -320,7 +327,7 @@ def getAlertIDFromHeirarchicalAliases(alertName : Union[str, List[str]]) -> List
                 alert reference.
     :rtype: list[str]
     """
-    if type(alertName) != list:
+    if isinstance(alertName, str):
         alertName = alertName.split(" ")
 
     if alertName[0] in ["duel", "duels", "fight", "fights"]:

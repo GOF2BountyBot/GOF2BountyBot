@@ -1,10 +1,11 @@
-from carica import ISerializable # type: ignore[import]
 from ...baseClasses.serializable import Serializable
 from ..itemDiscount import ItemDiscount
-from typing import List
+from ..items import gameItem
+from typing import Generic, List, TypeVar
 
+TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
 
-class InventoryListing(Serializable):
+class InventoryListing(Serializable, Generic[TItemType]):
     """A listing representing an object and a quantity of that object stored.
     To ensure serializability, inventorylistings can only store serializable objects.
 
@@ -16,19 +17,19 @@ class InventoryListing(Serializable):
     :vartype count: int
     """
 
-    def __init__(self, item, count : int = 0):
+    def __init__(self, item: TItemType, count: int = 0):
         """
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
         """
-        if not isinstance(item, ISerializable):
+        if not isinstance(item, gameItem.GameItem):
             raise TypeError("InventoryListing can only store serializables to ensure serializability. Given: " \
                             + type(item).__name__)
         self.item = item
         self.count = count
 
 
-    def increaseCount(self, numIncrease : int):
+    def increaseCount(self, numIncrease: int):
         """Increase the number of this item stored in the listing
 
         :param int numIncrease: The amount to increment this listing's count by
@@ -36,7 +37,7 @@ class InventoryListing(Serializable):
         self.count += numIncrease
 
 
-    def decreaseCount(self, numDecrease : int):
+    def decreaseCount(self, numDecrease: int):
         """Decrease the number of this item stored in the listing
 
         :param int numDecrease: The amount to decrement this listing's count by
@@ -56,7 +57,7 @@ class InventoryListing(Serializable):
         return self.item
 
 
-    def storesItem(self, otherItem) -> bool:
+    def storesItem(self, otherItem: TItemType) -> bool:
         """Decide whether this inventory listing stores the given object
 
         :return: True if otherItem is the same object as the one stored in the listing, down to memory location.
@@ -64,19 +65,6 @@ class InventoryListing(Serializable):
         :rtype: bool
         """
         return self.item is otherItem
-
-
-    def statsStringShort(self) -> str:
-        """Get a short string summarising string describing this inventory listing
-        Written by Novahkiin22
-
-        ⚠ WARNING
-        Does not validate that the stored item has a value. Also does not return information identifying the stored item
-
-        :return: A string describing the quantity of the item stored, and its value.
-        :rtype: str
-        """
-        return str(self.count) + " in inventory. " + str(self.item.value) + " credits each"
 
 
     def serialize(self, **kwargs) -> dict:
@@ -89,16 +77,16 @@ class InventoryListing(Serializable):
 
 
     @classmethod
-    def deserialize(cls, listingDict : dict, **kwargs):
+    def deserialize(cls, listingDict: dict, **kwargs):
         raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
-                                    + "Instead instance InventoryListing with your deserialize-ed item object.")
+                                    + "Instead instance InventoryListing with your deserialized item object.")
 
 
-class DiscountableItemListing(InventoryListing):
+class DiscountableItemListing(InventoryListing[TItemType]):
     """An item listing that also stores a max-sorted list of single-use value modifications.
     A single value modification applies to a single instance of an item.
     """
-    def __init__(self, item, count : int = 0):
+    def __init__(self, item: TItemType, count: int = 0):
         """
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
@@ -107,9 +95,9 @@ class DiscountableItemListing(InventoryListing):
         self.discounts: List[ItemDiscount] = []
 
 
-    def pushDiscount(self, discount : ItemDiscount):
+    def pushDiscount(self, discount: ItemDiscount):
         self.discounts.append(discount)
-        self.discounts.sort()
+        self.discounts.sort(reverse=True) # reversed to give max-sorting - the biggest discount will be first
 
 
     def popDiscount(self) -> ItemDiscount:

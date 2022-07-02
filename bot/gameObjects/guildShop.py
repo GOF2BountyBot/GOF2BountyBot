@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Set, Type, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Type, TypeVar, Union, cast
 if TYPE_CHECKING:
     from ..users import basedUser
 
@@ -11,13 +11,14 @@ from .items.weapons.turretWeapon import TurretWeapon
 from .items import moduleItemFactory, gameItem
 from .items.modules import moduleItem
 from .items.tools import toolItem, toolItemFactory
-from .inventories.inventory import Inventory, TypeRestrictedInventory
+from .inventories.inventory import Inventory, _InventoryBase, TListingType
 import random
 from .. import botState
 from ..lib import gameMaths
 from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
 
+StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
 
 class GuildShop(Serializable):
     """A shop containing a selection of items which players can buy.
@@ -35,8 +36,11 @@ class GuildShop(Serializable):
     :vartype toolsStock: inventory
     """
 
-    def __init__(self, shipsStock : Inventory = None, weaponsStock : Inventory = None,
-                    modulesStock : Inventory = None, turretsStock : Inventory = None, toolsStock : Inventory = None):
+    def __init__(self, shipsStock: Optional[_InventoryBase[TListingType, Ship]] = None,
+                    weaponsStock: Optional[_InventoryBase[TListingType, PrimaryWeapon]] = None,
+                    modulesStock: Optional[_InventoryBase[TListingType, moduleItem.ModuleItem]] = None,
+                    turretsStock: Optional[_InventoryBase[TListingType, TurretWeapon]] = None,
+                    toolsStock: Optional[_InventoryBase[TListingType, toolItem.ToolItem]] = None):
         """
         :param Inventory shipsStock: The shop's current stock of ships (Default empty Inventory)
         :param Inventory weaponsStock: The shop's current stock of weapons (Default empty Inventory)
@@ -44,11 +48,11 @@ class GuildShop(Serializable):
         :param Inventory turretsStock: The shop's current stock of turrets (Default empty Inventory)
         :param Inventory toolsStock: The shop's current stock of tools (Default empty Inventory)
         """
-        self.shipsStock = shipsStock or TypeRestrictedInventory(Ship)
-        self.weaponsStock = weaponsStock or TypeRestrictedInventory(PrimaryWeapon)
-        self.modulesStock = modulesStock or TypeRestrictedInventory(moduleItem.ModuleItem)
-        self.turretsStock = turretsStock or TypeRestrictedInventory(TurretWeapon)
-        self.toolsStock = toolsStock or TypeRestrictedInventory(toolItem.ToolItem)
+        self.shipsStock = shipsStock or Inventory(Ship)
+        self.weaponsStock = weaponsStock or Inventory(PrimaryWeapon)
+        self.modulesStock = modulesStock or Inventory(moduleItem.ModuleItem)
+        self.turretsStock = turretsStock or Inventory(TurretWeapon)
+        self.toolsStock = toolsStock or Inventory(toolItem.ToolItem)
 
 
     def isEmpty(self) -> bool:
@@ -60,7 +64,7 @@ class GuildShop(Serializable):
             (self.shipsStock, self.weaponsStock, self.modulesStock, self.turretsStock, self.toolsStock))
 
 
-    def getStockByType(self, itemType: type) -> Inventory:
+    def getStockByType(self, itemType: Type[StoredItemType]) -> _InventoryBase:
         """Get the inventory containing all current stock of the given type.
         This object is mutable and can alter the stock of the shop.
 
@@ -83,7 +87,7 @@ class GuildShop(Serializable):
             raise KeyError(f"Unknown item type: {itemType.__name__}")
 
 
-    def getStockByName(self, item : str) -> Inventory:
+    def getStockByName(self, item: str) -> _InventoryBase:
         """Get the inventory containing all current stock of the named type.
         This object is mutable and can alter the stock of the shop.
 
@@ -109,7 +113,7 @@ class GuildShop(Serializable):
             raise NotImplementedError("Valid, but unrecognised item type: " + item)
 
 
-    def userCanAffordItemObj(self, user : basedUser.BasedUser, item : gameItem.GameItem) -> bool:
+    def userCanAffordItemObj(self, user: basedUser.BasedUser, item: gameItem.GameItem) -> bool:
         """Decide whether a user has enough credits to buy an item
 
         :param basedUser user: The user whose credits balance to check
@@ -123,7 +127,7 @@ class GuildShop(Serializable):
     ##### SHIP MANAGEMENT #####
 
 
-    def userCanAffordShipIndex(self, user : basedUser.BasedUser, index : int) -> bool:
+    def userCanAffordShipIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """Decide whether a user can afford to buy a ship from the shop's stock
 
         :param basedUser user: The user whose credits balance to check
@@ -134,7 +138,7 @@ class GuildShop(Serializable):
         return self.userCanAffordItemObj(user, self.shipsStock[index].item)
 
 
-    def amountCanAffordShipObj(self, amount : int, ship : Ship) -> bool:
+    def amountCanAffordShipObj(self, amount: int, ship: Ship) -> bool:
         """Decide whether amount of credits is enough to buy a ship from the shop's stock.
         This is used for checking whether a user would be able to afford a ship, if they sold their active one.
 
@@ -146,7 +150,7 @@ class GuildShop(Serializable):
         return amount >= ship.getValue()
 
 
-    def amountCanAffordShipIndex(self, amount : int, index : int) -> bool:
+    def amountCanAffordShipIndex(self, amount: int, index: int) -> bool:
         """Decide whether amount of credits is enough to buy the ship at the given index in the shop's stock.
         This is used for checking whether a user would be able to afford a ship, if they sold their active one.
 
@@ -155,20 +159,20 @@ class GuildShop(Serializable):
         :return: True if amount is at least as much as the ship's value, false otherwise
         :rtype: bool
         """
-        return self.amountCanAffordShipObj(amount, self.shipsStock[index].item)
+        return self.amountCanAffordShipObj(amount, self.shipsStock.itemAtIndex(index))
 
 
-    def userBuyShipIndex(self, user : basedUser.BasedUser, index : int):
+    def userBuyShipIndex(self, user: basedUser.BasedUser, index: int):
         """Sell the ship at the requested index to the given user,
         removing the appropriate balance of credits and adding the item into the user's inventory.
 
         :param basedUser user: The user attempting to buy the ship
         :param int index: The index of the requested ship in the shop's ships inventory's array of keys
         """
-        self.userBuyShipObj(user, self.shipsStock[index].item)
+        self.userBuyShipObj(user, self.shipsStock.itemAtIndex(index))
 
 
-    def userBuyShipObj(self, user : basedUser.BasedUser, requestedShip : Ship):
+    def userBuyShipObj(self, user: basedUser.BasedUser, requestedShip: Ship):
         """Sell the given ship to the given user,
         removing the appropriate balance of credits fromt the user and adding the item into the user's inventory.
 
@@ -185,7 +189,7 @@ class GuildShop(Serializable):
                                 + " but can't afford it: " + str(user.credits) + " < " + str(requestedShip.getValue()))
 
 
-    def userSellShipObj(self, user : basedUser.BasedUser, ship : Ship):
+    def userSellShipObj(self, user: basedUser.BasedUser, ship: Ship):
         """Buy the given ship from the given user,
         adding the appropriate credits to their balance and adding the ship to the shop stock.
 
@@ -197,20 +201,20 @@ class GuildShop(Serializable):
         user.inactiveShips.removeItem(ship)
 
 
-    def userSellShipIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellShipIndex(self, user: basedUser.BasedUser, index: int):
         """Buy the weapon at the given index in the given user's ships inventory,
         adding the appropriate credits to their balance and adding the ship to the shop stock.
 
         :param basedUser user: The user to buy ship from
         :param int index: The index of the weapon to buy from user, in the user's ships inventory's array of keys
         """
-        self.userSellShipObj(user, user.inactiveShips[index].item)
+        self.userSellShipObj(user, user.inactiveShips.itemAtIndex(index))
 
 
     ##### WEAPON MANAGEMENT #####
 
 
-    def userCanAffordWeaponIndex(self, user : basedUser.BasedUser, index : int) -> bool:
+    def userCanAffordWeaponIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """Decide whether a user can afford to buy a weapon from the shop's stock
 
         :param basedUser user: The user whose credits balance to check
@@ -218,20 +222,20 @@ class GuildShop(Serializable):
         :return: True if user can afford to buy weapon number index from the shop's stock, false otherwise
         :rtype: bool
         """
-        return self.userCanAffordItemObj(user, self.weaponsStock[index].item)
+        return self.userCanAffordItemObj(user, self.weaponsStock.itemAtIndex(index))
 
 
-    def userBuyWeaponIndex(self, user : basedUser.BasedUser, index : int):
+    def userBuyWeaponIndex(self, user: basedUser.BasedUser, index: int):
         """Sell the weapon at the requested index to the given user,
         removing the appropriate balance of credits and adding the item into the user's inventory.
 
         :param basedUser user: The user attempting to buy the weapon
         :param int index: The index of the requested weapon in the shop's weapons inventory's array of keys
         """
-        self.userBuyWeaponObj(user, self.weaponsStock[index].item)
+        self.userBuyWeaponObj(user, self.weaponsStock.itemAtIndex(index))
 
 
-    def userBuyWeaponObj(self, user : basedUser.BasedUser, requestedWeapon : PrimaryWeapon):
+    def userBuyWeaponObj(self, user: basedUser.BasedUser, requestedWeapon: PrimaryWeapon):
         """Sell the given weapon to the given user,
         removing the appropriate balance of credits fromt the user and adding the item into the user's inventory.
 
@@ -242,13 +246,13 @@ class GuildShop(Serializable):
         if self.userCanAffordItemObj(user, requestedWeapon):
             self.weaponsStock.removeItem(requestedWeapon)
             user.credits -= requestedWeapon.getValue()
-            user.inactiveModules.addItem(requestedWeapon)
+            user.inactiveWeapons.addItem(requestedWeapon)
         else:
-            raise RuntimeError("user " + str(user.id) + " attempted to buy weapon " + requestedWeapon.name \
-                                + " but can't afford it: " + str(user.credits) + " < " + str(requestedWeapon.getValue()))
+            raise RuntimeError(f"user {user.id} attempted to buy weapon {requestedWeapon.name}"
+                                f" but can't afford it: {user.credits} < {requestedWeapon.getValue()}")
 
 
-    def userSellWeaponObj(self, user : basedUser.BasedUser, weapon : PrimaryWeapon):
+    def userSellWeaponObj(self, user: basedUser.BasedUser, weapon: PrimaryWeapon):
         """Buy the given weapon from the given user,
         adding the appropriate credits to their balance and adding the weapon to the shop stock.
 
@@ -260,20 +264,20 @@ class GuildShop(Serializable):
         user.inactiveWeapons.removeItem(weapon)
 
 
-    def userSellWeaponIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellWeaponIndex(self, user: basedUser.BasedUser, index: int):
         """Buy the weapon at the given index in the given user's weapons inventory,
         adding the appropriate credits to their balance and adding the weapon to the shop stock.
 
         :param basedUser user: The user to buy weapon from
         :param int index: The index of the weapon to buy from user, in the user's weapons inventory's array of keys
         """
-        self.userSellWeaponObj(user, user.inactiveWeapons[index].item)
+        self.userSellWeaponObj(user, user.inactiveWeapons.itemAtIndex(index))
 
 
     ##### MODULE MANAGEMENT #####
 
 
-    def userCanAffordModuleIndex(self, user : basedUser.BasedUser, index : int) -> bool:
+    def userCanAffordModuleIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """Decide whether a user can afford to buy a module from the shop's stock
 
         :param basedUser user: The user whose credits balance to check
@@ -281,20 +285,20 @@ class GuildShop(Serializable):
         :return: True if user can afford to buy module number index from the shop's stock, false otherwise
         :rtype: bool
         """
-        return self.userCanAffordItemObj(user, self.modulesStock[index].item)
+        return self.userCanAffordItemObj(user, self.modulesStock.itemAtIndex(index))
 
 
-    def userBuyModuleIndex(self, user : basedUser.BasedUser, index : int):
+    def userBuyModuleIndex(self, user: basedUser.BasedUser, index: int):
         """Sell the module at the requested index to the given user,
         removing the appropriate balance of credits and adding the item into the user's inventory.
 
         :param basedUser user: The user attempting to buy the module
         :param int index: The index of the requested module in the shop's modules inventory's array of keys
         """
-        self.userBuyModuleObj(user, self.modulesStock[index].item)
+        self.userBuyModuleObj(user, self.modulesStock.itemAtIndex(index))
 
 
-    def userBuyModuleObj(self, user : basedUser.BasedUser, requestedModule : moduleItem.ModuleItem):
+    def userBuyModuleObj(self, user: basedUser.BasedUser, requestedModule: moduleItem.ModuleItem):
         """Sell the given module to the given user,
         removing the appropriate balance of credits fromt the user and adding the item into the user's inventory.
 
@@ -305,13 +309,13 @@ class GuildShop(Serializable):
         if self.userCanAffordItemObj(user, requestedModule):
             self.modulesStock.removeItem(requestedModule)
             user.credits -= requestedModule.getValue()
-            user.inactiveShips.addItem(requestedModule)
+            user.inactiveModules.addItem(requestedModule)
         else:
-            raise RuntimeError("user " + str(user.id) + " attempted to buy module " + requestedModule.name \
-                                + " but can't afford it: " + str(user.credits) + " < " + str(requestedModule.getValue()))
+            raise RuntimeError(f"user {user.id} attempted to buy module {requestedModule.name}"
+                                + f" but can't afford it: {user.credits} <{requestedModule.getValue()}")
 
 
-    def userSellModuleObj(self, user : basedUser.BasedUser, module : moduleItem.ModuleItem):
+    def userSellModuleObj(self, user: basedUser.BasedUser, module: moduleItem.ModuleItem):
         """Buy the given module from the given user,
         adding the appropriate credits to their balance and adding the module to the shop stock.
 
@@ -323,20 +327,20 @@ class GuildShop(Serializable):
         user.inactiveModules.removeItem(module)
 
 
-    def userSellModuleIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellModuleIndex(self, user: basedUser.BasedUser, index: int):
         """Buy the module at the given index in the given user's modules inventory,
         adding the appropriate credits to their balance and adding the module to the shop stock.
 
         :param basedUser user: The user to buy module from
         :param int index: The index of the module to buy from user, in the user's modules inventory's array of keys
         """
-        self.userSellModuleObj(user, user.inactiveModules[index].item)
+        self.userSellModuleObj(user, user.inactiveModules.itemAtIndex(index))
 
 
     ##### TURRET MANAGEMENT #####
 
 
-    def userCanAffordTurretIndex(self, user : basedUser.BasedUser, index : int) -> bool:
+    def userCanAffordTurretIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """Decide whether a user can afford to buy a turret from the shop's stock
 
         :param basedUser user: The user whose credits balance to check
@@ -344,20 +348,20 @@ class GuildShop(Serializable):
         :return: True if user can afford to buy turret number index from the shop's stock, false otherwise
         :rtype: bool
         """
-        return self.userCanAffordItemObj(user, self.turretsStock[index].item)
+        return self.userCanAffordItemObj(user, self.turretsStock.itemAtIndex(index))
 
 
-    def userBuyTurretIndex(self, user : basedUser.BasedUser, index : int):
+    def userBuyTurretIndex(self, user: basedUser.BasedUser, index: int):
         """Sell the turret at the requested index to the given user,
         removing the appropriate balance of credits and adding the item into the user's inventory.
 
         :param basedUser user: The user attempting to buy the turret
         :param int index: The index of the requested turret in the shop's turrets inventory's array of keys
         """
-        self.userBuyTurretObj(user, self.turretsStock[index].item)
+        self.userBuyTurretObj(user, self.turretsStock.itemAtIndex(index))
 
 
-    def userBuyTurretObj(self, user : basedUser.BasedUser, requestedTurret : TurretWeapon):
+    def userBuyTurretObj(self, user: basedUser.BasedUser, requestedTurret: TurretWeapon):
         """Sell the given turret to the given user,
         removing the appropriate balance of credits fromt the user and adding the item into the user's inventory.
 
@@ -374,7 +378,7 @@ class GuildShop(Serializable):
                                 + " but can't afford it: " + str(user.credits) + " < " + str(requestedTurret.getValue()))
 
 
-    def userSellTurretObj(self, user : basedUser.BasedUser, turret : TurretWeapon):
+    def userSellTurretObj(self, user: basedUser.BasedUser, turret: TurretWeapon):
         """Buy the given turret from the given user,
         adding the appropriate credits to their balance and adding the turret to the shop stock.
 
@@ -386,20 +390,20 @@ class GuildShop(Serializable):
         user.inactiveTurrets.removeItem(turret)
 
 
-    def userSellTurretIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellTurretIndex(self, user: basedUser.BasedUser, index: int):
         """Buy the turret at the given index in the given user's turrets inventory,
         adding the appropriate credits to their balance and adding the turret to the shop stock.
 
         :param basedUser user: The user to buy turret from
         :param int index: The index of the turret to buy from user, in the user's turrets inventory's array of keys
         """
-        self.userSellTurretObj(user, user.inactiveTurrets[index].item)
+        self.userSellTurretObj(user, user.inactiveTurrets.itemAtIndex(index))
 
 
     ##### TOOL MANAGEMENT #####
 
 
-    def userCanAffordToolIndex(self, user : basedUser.BasedUser, index : int) -> bool:
+    def userCanAffordToolIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """Decide whether a user can afford to buy a tool from the shop's stock
         :param BasedUser user: The user whose credits balance to check
         :param int index: The index of the tool whose value to check, in the shop's tool Inventory's array of keys
@@ -409,16 +413,16 @@ class GuildShop(Serializable):
         return self.userCanAffordItemObj(user, self.toolsStock[index].item)
 
 
-    def userBuyToolIndex(self, user : basedUser.BasedUser, index : int):
+    def userBuyToolIndex(self, user: basedUser.BasedUser, index: int):
         """Sell the tool at the requested index to the given user,
         removing the appropriate balance of credits and adding the item into the user's inventory.
         :param BasedUser user: The user attempting to buy the tool
         :param int index: The index of the requested tool in the shop's tools Inventory's array of keys
         """
-        self.userBuyToolObj(user, self.toolsStock[index].item)
+        self.userBuyToolObj(user, self.toolsStock.itemAtIndex(index))
 
 
-    def userBuyToolObj(self, user : basedUser.BasedUser, requestedTool : toolItem.ToolItem):
+    def userBuyToolObj(self, user: basedUser.BasedUser, requestedTool: toolItem.ToolItem):
         """Sell the given tool to the given user,
         removing the appropriate balance of credits fromt the user and adding the item into the user's inventory.
         :param BasedUser user: The user attempting to buy the tool
@@ -434,7 +438,7 @@ class GuildShop(Serializable):
                                 + " but can't afford it: " + str(user.credits) + " < " + str(requestedTool.getValue()))
 
 
-    def userSellToolObj(self, user : basedUser.BasedUser, tool : toolItem.ToolItem):
+    def userSellToolObj(self, user: basedUser.BasedUser, tool: toolItem.ToolItem):
         """Buy the given tool from the given user,
         adding the appropriate credits to their balance and adding the tool to the shop stock.
         :param BasedUser user: The user to buy tool from
@@ -445,13 +449,13 @@ class GuildShop(Serializable):
         user.inactiveTools.removeItem(tool)
 
 
-    def userSellToolIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellToolIndex(self, user: basedUser.BasedUser, index: int):
         """Buy the tool at the given index in the given user's tools Inventory,
         adding the appropriate credits to their balance and adding the tool to the shop stock.
         :param BasedUser user: The user to buy tool from
         :param int index: The index of the tool to buy from user, in the user's tools Inventory's array of keys
         """
-        self.userSellToolObj(user, user.inactiveTools[index].item)
+        self.userSellToolObj(user, user.inactiveTools.itemAtIndex(index))
 
 
     ##### SERIALIZING #####
@@ -487,27 +491,30 @@ class GuildShop(Serializable):
 
 
     @classmethod
-    def deserialize(cls, shopDict : dict, **kwargs) -> GuildShop:
+    def deserialize(cls, shopDict: dict, **kwargs) -> GuildShop:
         """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.serialize
 
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new guildShop object as described by shopDict
         :rtype: guildShop
         """
-        shipsStock = TypeRestrictedInventory(Ship)
-        weaponsStock = TypeRestrictedInventory(PrimaryWeapon)
-        modulesStock = TypeRestrictedInventory(moduleItem.ModuleItem)
-        turretsStock = TypeRestrictedInventory(TurretWeapon)
-        toolsStock = TypeRestrictedInventory(toolItem.ToolItem)
+        shipsStock = Inventory(Ship)
+        weaponsStock = Inventory(PrimaryWeapon)
+        modulesStock = Inventory(moduleItem.ModuleItem)
+        turretsStock = Inventory(TurretWeapon)
+        toolsStock = Inventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.deserialize),
-                                        ("weaponsStock", weaponsStock, PrimaryWeapon.deserialize),
-                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
-                                        ("turretsStock", turretsStock, TurretWeapon.deserialize),
-                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, Ship),
+                                        ("weaponsStock", weaponsStock, PrimaryWeapon),
+                                        ("modulesStock", modulesStock, moduleItemFactory.ModuleItemFactory),
+                                        ("turretsStock", turretsStock, TurretWeapon),
+                                        ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
-                    stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
+                    # I can't find a way to convince pyright that each tuple in the the params only contains matching types,
+                    # Even if I cast the items in the tuple!
+                    stock.addItem(deserializer.deserialize(listingDict["item"]), # type: ignore[reportGeneralTypeIssues]
+                                    quantity=listingDict["count"])
 
         return GuildShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
@@ -526,9 +533,9 @@ class TechLeveledShop(GuildShop):
     :vartype maxLevel: int
     """
 
-    def __init__(self, minLevel: int, maxLevel: int, shipsStock : Inventory = None, weaponsStock : Inventory = None,
-                    modulesStock : Inventory = None, turretsStock : Inventory = None, toolsStock : Inventory = None,
-                    currentTechLevel : int = None, noRefresh : bool = False):
+    def __init__(self, minLevel: int, maxLevel: int, shipsStock: Optional[Inventory] = None, weaponsStock: Optional[Inventory] = None,
+                    modulesStock: Optional[Inventory] = None, turretsStock: Optional[Inventory] = None, toolsStock: Optional[Inventory] = None,
+                    currentTechLevel: Optional[int] = None, noRefresh: bool = False):
         """
         :param int currentTechLevel: The current tech level of the shop, influencing the tech levels of the stock generated
                                         upon refresh. (Default empty inventory)
@@ -577,7 +584,7 @@ class TechLeveledShop(GuildShop):
             return newTL
 
 
-    def refreshStock(self, level : int = -1):
+    def refreshStock(self, level: int = -1):
         """Refresh the stock of the shop by picking random items according to the given tech level. All previous stock is deleted.
         If level = -1 is given, a new shop tech level is generated at random.
 
@@ -641,7 +648,8 @@ class TechLeveledShop(GuildShop):
                                 itemTL = list(possibleItems)[0]
                             
                             # Pick an item at the selected tech level with equal likelihood
-                            stock.addItem(random.choice(possibleItems[itemTL]))
+                            # I can't find a way to show pyright that the types from the for loop params tuple match
+                            stock.addItem(random.choice(possibleItems[itemTL])) # type: ignore[reportGeneralTypeIssues]
                 
                 # Take off the number of items spawned from the number of non-essential items to spawn
                 maxCount -= stock.totalItems
@@ -652,7 +660,8 @@ class TechLeveledShop(GuildShop):
                 itemTL = gameMaths.pickRandomItemTL(self.currentTechLevel)
                 # Pick an item at this tech level with equal likelihood. If there aren't any items at this level, then ignore.
                 if len(keys[itemTL - 1]) != 0:
-                    stock.addItem(random.choice(keys[itemTL - 1]))
+                    # I can't find a way to show pyright that the types from the for loop params tuple match
+                    stock.addItem(random.choice(keys[itemTL - 1])) # type: ignore[reportGeneralTypeIssues]
 
         # Do the same as above for ships.
         # This is handled separately because ships are added to the shop by their serialized data, not by existing instances.
@@ -678,27 +687,29 @@ class TechLeveledShop(GuildShop):
 
 
     @classmethod
-    def deserialize(cls, shopDict : dict, **kwargs) -> TechLeveledShop:
+    def deserialize(cls, shopDict: dict, **kwargs) -> TechLeveledShop:
         """Recreate a TechLeveledShop instance from its dictionary-serialized representation - the opposite of TechLeveledShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new TechLeveledShop object as described by shopDict
         :rtype: TechLeveledShop
         """
-        shipsStock = TypeRestrictedInventory(Ship)
-        weaponsStock = TypeRestrictedInventory(PrimaryWeapon)
-        modulesStock = TypeRestrictedInventory(moduleItem.ModuleItem)
-        turretsStock = TypeRestrictedInventory(TurretWeapon)
-        toolsStock = TypeRestrictedInventory(toolItem.ToolItem)
+        shipsStock = Inventory(Ship)
+        weaponsStock = Inventory(PrimaryWeapon)
+        modulesStock = Inventory(moduleItem.ModuleItem)
+        turretsStock = Inventory(TurretWeapon)
+        toolsStock = Inventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, Ship.deserialize),
-                                        ("weaponsStock", weaponsStock, PrimaryWeapon.deserialize),
-                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
-                                        ("turretsStock", turretsStock, TurretWeapon.deserialize),
-                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, Ship),
+                                        ("weaponsStock", weaponsStock, PrimaryWeapon),
+                                        ("modulesStock", modulesStock, moduleItemFactory.ModuleItemFactory),
+                                        ("turretsStock", turretsStock, TurretWeapon),
+                                        ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
-                    stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
+                    # I can't find a way to show pyright that the types from the for loop params tuple match
+                    stock.addItem(deserializer.deserialize(listingDict["item"]), # type: ignore[reportGeneralTypeIssues]
+                                    quantity=listingDict["count"])
 
         return TechLeveledShop(minLevel=shopDict["minLevel"], maxLevel=shopDict["maxLevel"],
                                 currentTechLevel=shopDict.get("currentTechLevel", 1),

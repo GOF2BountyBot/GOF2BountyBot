@@ -5,6 +5,8 @@ from discord import app_commands, Interaction, Colour
 from discord.utils import utcnow
 from ..cfg import cfg
 from ..interactions import basedCommand, basedApp
+from typing import List, cast
+from discord.abc import Snowflake
 
 
 class UserMiscCog(basedApp.BasedCog):
@@ -41,4 +43,6 @@ class UserMiscCog(basedApp.BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    await bot.add_cog(UserMiscCog(bot), guilds=cfg.developmentGuilds)
+    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
+    # even though it extends discord.Object
+    await bot.add_cog(UserMiscCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))

@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from .modules import moduleItem
 
@@ -59,14 +59,14 @@ class Ship(GameItem):
     :vartype skin: ShipSkin
     """
 
-    def __init__(self, name : str, maxPrimaries : int, maxTurrets : int,
-                    maxModules : int, manufacturer : str = "", armour : int = 0,
-                    cargo : int = 0, maxSecondaries : int = 0, handling : int = 0,
-                    value : int = 0, aliases : List[str] = [], weapons : List[PrimaryWeapon] = [],
-                    modules : List[moduleItem.ModuleItem] = [], turrets : List[TurretWeapon] = [],
-                    wiki : str = "", upgradesApplied : List[shipUpgrade.ShipUpgrade] = [], nickname : str = "",
-                    icon : str = "", emoji : BasedEmoji = BasedEmoji.EMPTY, techLevel : int = -1,
-                    shopSpawnRate : float = 0, builtIn : bool = False, skin : "shipSkin.ShipSkin" = None):
+    def __init__(self, name: str, maxPrimaries: int, maxTurrets: int,
+                    maxModules: int, manufacturer: str = "", armour: int = 0,
+                    cargo: int = 0, maxSecondaries: int = 0, handling: int = 0,
+                    value: int = 0, aliases: List[str] = [], weapons: List[PrimaryWeapon] = [],
+                    modules: List[moduleItem.ModuleItem] = [], turrets: List[TurretWeapon] = [],
+                    wiki: str = "", upgradesApplied: List[shipUpgrade.ShipUpgrade] = [], nickname: str = "",
+                    icon: str = "", emoji: BasedEmoji = BasedEmoji.EMPTY, techLevel: int = -1,
+                    shopSpawnRate: float = 0, builtIn: bool = False, skin: Optional["shipSkin.ShipSkin"] = None):
         """
         :param str name: A name to uniquely identify this model of ship.
         :param str nickname: A custom name for this ship, assigned by the owning player
@@ -225,7 +225,7 @@ class Ship(GameItem):
         return self.getNumTurretsEquipped() > 0
 
 
-    def equipWeapon(self, weapon : PrimaryWeapon):
+    def equipWeapon(self, weapon: PrimaryWeapon):
         """Equip the given weapon onto the ship
 
         :param PrimaryWeapon weapon: The weapon object to equip
@@ -236,7 +236,7 @@ class Ship(GameItem):
         self.weapons.append(weapon)
 
 
-    def unequipWeaponObj(self, weapon : PrimaryWeapon):
+    def unequipWeaponObj(self, weapon: PrimaryWeapon):
         """Unequip the given weapon object reference from the ship
 
         :param PrimaryWeapon weapon: The weapon object to unequip
@@ -244,7 +244,7 @@ class Ship(GameItem):
         self.weapons.remove(weapon)
 
 
-    def unequipWeaponIndex(self, index : int):
+    def unequipWeaponIndex(self, index: int):
         """Unequip a weapon by its index in the weapons array.
 
         :param int index: The index of the weapon to unequip from the ship
@@ -252,7 +252,7 @@ class Ship(GameItem):
         self.weapons.pop(index)
 
 
-    def getWeaponAtIndex(self, index : int) -> PrimaryWeapon:
+    def getWeaponAtIndex(self, index: int) -> PrimaryWeapon:
         """Fetch the weapon object equipped at the given index
 
         :param int index: The index of the weapon object to fetch
@@ -262,7 +262,7 @@ class Ship(GameItem):
         return self.weapons[index]
 
 
-    def canEquipModuleType(self, moduleType : type) -> bool:
+    def canEquipModuleType(self, moduleType: type) -> bool:
         """Decide whether or not the ship has space for a module of the given type.
         This also accounts for module type limits, for example only allowing players to equip one shield module at a time.
 
@@ -280,7 +280,7 @@ class Ship(GameItem):
         return True
 
 
-    def equipModule(self, module : moduleItem.ModuleItem):
+    def equipModule(self, module: moduleItem.ModuleItem):
         """Equip the given moduleItem onto the ship.
 
         :param moduleItem module: The moduleItem object to equip
@@ -295,7 +295,7 @@ class Ship(GameItem):
         self.modules.append(module)
 
 
-    def unequipModuleObj(self, module : moduleItem.ModuleItem):
+    def unequipModuleObj(self, module: moduleItem.ModuleItem):
         """Unequip the given module object reference
 
         :param moduleItem module: The module to unequip
@@ -303,7 +303,7 @@ class Ship(GameItem):
         self.modules.remove(module)
 
 
-    def unequipModuleIndex(self, index : int):
+    def unequipModuleIndex(self, index: int):
         """Unequip the module equipped at the given index in the modules array
 
         :param int index: The index of the module to unequip
@@ -311,7 +311,7 @@ class Ship(GameItem):
         self.modules.pop(index)
 
 
-    def getModuleAtIndex(self, index : int) -> moduleItem.ModuleItem:
+    def getModuleAtIndex(self, index: int) -> moduleItem.ModuleItem:
         """Fetch the moduleItem object reference that is equipped at the given index
 
         :param int index: The index of the module to fetch
@@ -321,7 +321,7 @@ class Ship(GameItem):
         return self.modules[index]
 
 
-    def equipTurret(self, turret : TurretWeapon):
+    def equipTurret(self, turret: TurretWeapon):
         """Equip the given turret onto the ship
 
         :param TurretWeapon turret: The turret object to equip
@@ -332,7 +332,7 @@ class Ship(GameItem):
         self.turrets.append(turret)
 
 
-    def unequipTurretObj(self, turret : TurretWeapon):
+    def unequipTurretObj(self, turret: TurretWeapon):
         """Unequip the given turret object reference from the ship
 
         :param TurretWeapon turret: The turret object to unequip
@@ -340,7 +340,7 @@ class Ship(GameItem):
         self.turrets.remove(turret)
 
 
-    def unequipTurretIndex(self, index : int):
+    def unequipTurretIndex(self, index: int):
         """Unequip a turret by its index in the turrets array.
 
         :param int index: The index of the turret to unequip from the ship
@@ -348,7 +348,7 @@ class Ship(GameItem):
         self.turrets.pop(index)
 
 
-    def getTurretAtIndex(self, index : int) -> TurretWeapon:
+    def getTurretAtIndex(self, index: int) -> TurretWeapon:
         """Fetch the turret object equipped at the given index
 
         :param int index: The index of the turret object to fetch
@@ -358,7 +358,7 @@ class Ship(GameItem):
         return self.turrets[index]
 
 
-    def getDPS(self, shipUpgradesOnly : bool = False) -> int:
+    def getDPS(self, shipUpgradesOnly: bool = False) -> float:
         """Get the total DPS provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -383,7 +383,7 @@ class Ship(GameItem):
         return total * multiplier
 
 
-    def getShield(self, shipUpgradesOnly : bool = False) -> int:
+    def getShield(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total Shield provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part
@@ -404,7 +404,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getArmour(self, shipUpgradesOnly : bool = False) -> int:
+    def getArmour(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total Armour provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -428,7 +428,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getCargo(self, shipUpgradesOnly : bool = False) -> int:
+    def getCargo(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total Cargo provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -452,7 +452,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getHandling(self, shipUpgradesOnly : bool = False) -> int:
+    def getHandling(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total Handling provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -476,7 +476,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getMaxSecondaries(self, shipUpgradesOnly : bool = False) -> int:
+    def getMaxSecondaries(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total maxSecondaries provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -497,7 +497,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getMaxPrimaries(self, shipUpgradesOnly : bool = False) -> int:
+    def getMaxPrimaries(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total MaxPrimaries provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -518,7 +518,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getMaxTurrets(self, shipUpgradesOnly : bool = False) -> int:
+    def getMaxTurrets(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total MaxTurrets provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -539,7 +539,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getMaxModules(self, shipUpgradesOnly : bool = False) -> int:
+    def getMaxModules(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total MaxModules provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -559,7 +559,7 @@ class Ship(GameItem):
         return int(total * multiplier)
 
 
-    def getValue(self, shipUpgradesOnly : bool = False) -> int:
+    def getValue(self, shipUpgradesOnly: bool = False) -> int:
         """Get the total Value provided by the equipped items and upgrades.
         If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
         This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
@@ -585,7 +585,7 @@ class Ship(GameItem):
         return total
 
 
-    def applyUpgrade(self, upgrade : shipUpgrade.ShipUpgrade):
+    def applyUpgrade(self, upgrade: shipUpgrade.ShipUpgrade):
         """Apply the given ship upgrade, locking it and its stats into the ship.
         Ship upgrades cannot be removed.
 
@@ -594,7 +594,7 @@ class Ship(GameItem):
         self.upgradesApplied.append(upgrade)
 
 
-    def changeNickname(self, nickname : str):
+    def changeNickname(self, nickname: str):
         """Change the ship's custom nickname.
         giving nickname = "" is equivilent to a call to removeNickname
 
@@ -633,7 +633,7 @@ class Ship(GameItem):
         return self.name if not self.hasNickname else (self.nickname + " (" + self.name + ")")
 
 
-    def transferItemsTo(self, other : Ship):
+    def transferItemsTo(self, other: Ship):
         """Attempt to transfer as many equipped items as possible from this ship to another one.
         If there is not enough space to transfer any items, they will remain on this ship.
 
@@ -660,8 +660,8 @@ class Ship(GameItem):
             other.equipTurret(self.turrets.pop(0))
 
 
-    def getActivesByName(self, item : str) -> Union[PrimaryWeapon, moduleItem.ModuleItem,
-                                                    TurretWeapon]:
+    def getActivesByName(self, item: str) -> Union[List[PrimaryWeapon], List[moduleItem.ModuleItem],
+                                                    List[TurretWeapon]]:
         """Return a requested array of equipped items, specified by string name.
 
         :param str item: one of weapon, module or turret.
@@ -700,7 +700,7 @@ class Ship(GameItem):
         self.turrets = []
 
 
-    def applySkin(self, skin : shipSkin.ShipSkin):
+    def applySkin(self, skin: shipSkin.ShipSkin):
         """Applies the given skin to this ship.
         Must be compatible with this ship.
         This ship must not be skinned already.
@@ -726,8 +726,9 @@ class Ship(GameItem):
         """
         stats = ""
         if self.isSkinned:
-            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[self.skin.rarityLevel]}').sendable
-            stats += f"> {rarityEmoji}`Ship Skin: {self.skin.name.title()}`\n"
+            # Casting here because self.skin being None is checked for with the isSkinned check
+            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[cast(shipSkin.ShipSkin, self.skin).rarityLevel]}').sendable
+            stats += f"> {rarityEmoji}`Ship Skin: {cast(shipSkin.ShipSkin, self.skin).name.title()}`\n"
         stats += "• *Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.armour else "") + "*\n"
         # stats += "Cargo hold: " + str(self.cargo) + ", "
@@ -765,8 +766,9 @@ class Ship(GameItem):
         """
         stats = ""
         if self.isSkinned:
-            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[self.skin.rarityLevel]}').sendable
-            stats += f"> {rarityEmoji}`Ship Skin: {self.skin.name.title()}`\n"
+            # Casting here because self.skin being None is checked for with the isSkinned check
+            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[cast(shipSkin.ShipSkin, self.skin).rarityLevel]}').sendable
+            stats += f"> {rarityEmoji}`Ship Skin: {cast(shipSkin.ShipSkin, self.skin).name.title()}`\n"
         stats += "*Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.armour else "") + ", "
         stats += "Cargo hold: " + str(self.getCargo(shipUpgradesOnly=True)) + ("(+)" \
@@ -778,7 +780,7 @@ class Ship(GameItem):
         return stats + "*"
 
 
-    def fillLoadoutEmbed(self, baseEmbed : Embed, shipEmoji : bool = False):
+    def fillLoadoutEmbed(self, baseEmbed: Embed, shipEmoji: bool = False):
         """Populate a discord.embed with information describing the ship.
         :param discord.Embed baseEmbed: The embed to add fields to
         :param bool shipEmoji: whether or not to use the ship's emoji next to its name.
@@ -828,7 +830,8 @@ class Ship(GameItem):
         itemDict["shipUpgrades"] = upgradesList
         itemDict["nickname"] = self.nickname
         if self.isSkinned:
-            itemDict["skin"] = self.skin.serialize(**kwargs)
+            # Casting here because self.skin being None is checked for with the isSkinned check
+            itemDict["skin"] = cast(shipSkin.ShipSkin, self.skin).serialize(**kwargs)
             itemDict["icon"] = self.icon
 
         if not self.builtIn:
@@ -853,7 +856,7 @@ class Ship(GameItem):
 
 
     @classmethod
-    def deserialize(cls, shipDict : dict, **kwargs) -> Ship:
+    def deserialize(cls, shipDict: dict, **kwargs) -> Ship:
         """Factory function constructing a new shipItem object from the given dictionary representation -
         the opposite of shipItem.serialize
         As with most other item deserialize functions, all missing information for builtIn ships is replaced
@@ -864,7 +867,7 @@ class Ship(GameItem):
         :rtype: shipItem
         """
         weapons = [PrimaryWeapon.deserialize(d) for d in shipDict.get("weapons", [])]
-        modules = [moduleItemFactory.deserialize(d) for d in shipDict.get("modules", [])]
+        modules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in shipDict.get("modules", [])]
         turrets = [TurretWeapon.deserialize(d) for d in shipDict.get("turrets", [])]
         shipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in shipDict.get("shipUpgrades", [])]
         ignoredData = ("model","compatibleSkins", "normSpec", \
@@ -885,7 +888,7 @@ class Ship(GameItem):
             builtInDict = bbData.builtInShipData[shipDict["name"]]
 
             builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])]
-            builtInModules = [moduleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])]
+            builtInModules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])]
             builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])]
             builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])]
 

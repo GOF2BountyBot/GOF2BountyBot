@@ -13,7 +13,7 @@ from os.path import join
 import pathlib
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 CWD = os.getcwd()
@@ -30,7 +30,7 @@ class RenderFailed(Exception):
 
 ##### UTIL FUNCTIONS #####
 
-def trim(im : Image) -> Image:
+def trim(im: Image.Image) -> Image.Image:
     """Crop image to content, written by neouyghur: https://stackoverflow.com/a/48605963/11754606
 
     :param Image im: The image to crop
@@ -46,7 +46,7 @@ def trim(im : Image) -> Image:
     return im
 
 
-def ensureImageMode(tex : Image, mode="RGBA") -> Image:
+def ensureImageMode(tex: Image.Image, mode="RGBA") -> Image.Image:
     """Ensure the passed image is in a given mode. If it is not, convert it.
     https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
 
@@ -58,7 +58,7 @@ def ensureImageMode(tex : Image, mode="RGBA") -> Image:
     return tex if tex.mode == mode else tex.convert(mode)
 
 
-def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str], disabledLayers: List[int]):
+def compositeTextures(outTexPath: str, shipPath: str, textures: Dict[int, str], disabledLayers: List[int]):
     """Combine a list of textures into a single image, with respect to masks provided in shipPath.
 
     :param str outTexPath: Path to which the resulting texture should be saved, including file name and extension
@@ -112,7 +112,7 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
     workingTex.convert("RGB").save(outTexPath)
 
 
-def setRenderArgs(args : List[str]):
+def setRenderArgs(args: List[str]):
     """Pass arguments to the render via the arguments file
 
     :param List[str] args: List of arguments to write to file
@@ -127,8 +127,8 @@ def start_render():
                     shell=True)
 
 
-async def renderShip(skinName : str, shipPath : str, shipModelName : str, textures : Dict[int, str],
-                        disabledLayers: List[int], res_x : int, res_y : int, numSamples: int, full=False):
+async def renderShip(skinName: str, shipPath: str, shipModelName: str, textures: Dict[int, str],
+                        disabledLayers: List[int], res_x: int, res_y: int, numSamples: int, full=False):
     """Render the given ship model with the specified skin layer(s).
     The resulting image is cropped to content and saved in shipPath + "/skins/" + skinName.jpg
     TODO: Add 'useBaseTexture' argument. Pass to render_vars. If true, should bypass skinBase
@@ -209,13 +209,14 @@ class AutoskinArgs:
     shipModelName: str
     textures: Dict[int, str]
     disabledLayers: List[int]
-    res_x : int
-    res_y : int
+    res_x: int
+    res_y: int
     numSamples: int
     full: bool = False
 
+    # Adding these methods to make the class unpackable
     def keys(self) -> List[str]:
-        return self.__dataclass_fields__.keys()
+        return [i.name for i in fields(self)]
 
     def __getitem__(self, k: str) -> Any:
         """Get a config setting by name
@@ -231,4 +232,14 @@ class AutoskinArgs:
 async def renderShipByArgs(args: AutoskinArgs):
     """Call renderShip, using an AutoskinArgs object instead of individual arguments.
     """
-    return await renderShip(**args)
+    return await renderShip(
+        args.skinName,
+        args.shipPath,
+        args.shipModelName,
+        args.textures,
+        args.disabledLayers,
+        args.res_x,
+        args.res_y,
+        args.numSamples,
+        args.full
+    )

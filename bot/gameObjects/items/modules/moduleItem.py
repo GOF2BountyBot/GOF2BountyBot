@@ -2,6 +2,7 @@ from ..gameItem import GameItem, spawnableItem
 from ....cfg import bbData
 from .... import lib
 from typing import List
+from ....baseClasses.serializable import JsonType
 
 
 @spawnableItem
@@ -32,13 +33,13 @@ class ModuleItem(GameItem):
     :vartype handlingMultiplier: float
     """
 
-    def __init__(self, name: str, aliases : List[str], armour : int = 0,
-            armourMultiplier : float = 1.0, shield : int = 0, shieldMultiplier : float = 1.0,
-            dps : int = 0, dpsMultiplier : float = 1.0, cargo : int = 0,
-            cargoMultiplier : float = 1.0, handling : int = 0, handlingMultiplier : float = 1.0,
-            value : int = 0, wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], armour: int = 0,
+            armourMultiplier: float = 1.0, shield: int = 0, shieldMultiplier: float = 1.0,
+            dps: int = 0, dpsMultiplier: float = 1.0, cargo: int = 0,
+            cargoMultiplier: float = 1.0, handling: int = 0, handlingMultiplier: float = 1.0,
+            value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this module may be referred to by.
@@ -139,7 +140,7 @@ class ModuleItem(GameItem):
 
 
     @classmethod
-    def deserialize(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: JsonType, **kwargs):
         """Factory function constructing a new moduleItem object from a dictionary serialised
         representation - the opposite of moduleItem.serialize. This generic module factory function is unlikely
         to ever be called, your module type-specific deserialize should be used instead. Except of course, in the
@@ -149,6 +150,10 @@ class ModuleItem(GameItem):
         :return: A new moduleItem object as described in moduleDict
         :rtype: moduleItem
         """
+        if "emoji" in moduleDict:
+            # ignoring a warning here because pyright can't know the structure of the dict
+            e = lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) # type: ignore[reportGeneralTypeIssues]
+        else:
+            e = lib.emojis.BasedEmoji.EMPTY
         return ModuleItem(**cls._makeDefaults(moduleDict, ignores=("type",),
-                                                emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
-                                                        if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))
+                                                emoji=e))

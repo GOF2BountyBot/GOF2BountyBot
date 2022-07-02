@@ -1,4 +1,4 @@
-class HasRarity:
+class HasRarityMixin:
     """A mixin that simply ensures the existence of the `rarityLevel` attribute.
     """
 

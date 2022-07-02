@@ -6,7 +6,7 @@ from .serializable import Serializable
 
 from abc import abstractmethod
 
-class Aliasable(Serializable):
+class AliasableMixin(Serializable):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
     A great example and common use case is in BountyBot's Criminal class. Criminals are NPCs that each have a unique name.
     These names usually consist of a forename and sirname, for example 'Ganfor Kant'. Providing 'Ganfor' and 'Kant' as aliases
@@ -17,7 +17,7 @@ class Aliasable(Serializable):
     :var aliases: A list of alternative identifiers for the object
     :vartype aliases: list[str]
     """
-    def __init__(self, name : str, aliases : List[str], forceAllowEmpty : bool = False):
+    def __init__(self, name: str, aliases: List[str], *args, forceAllowEmpty: bool = False, **kwargs):
         """
         :param str name: The main identifier for the object
         :param list[str] aliases: A list of alternative identifiers for the object
@@ -36,8 +36,10 @@ class Aliasable(Serializable):
         if name.lower() not in aliases:
             self.aliases += [name.lower()]
 
+        super().__init__(*args, **kwargs)
 
-    def isCalled(self, name : str) -> bool:
+
+    def isCalled(self, name: str) -> bool:
         """Decide whether the provided name is one of this object's aliases.
 
         :param str name: The name to look up in this object's aliases
@@ -47,7 +49,7 @@ class Aliasable(Serializable):
         return name.lower() == self.name.lower() or name.lower() in self.aliases
 
 
-    def removeAlias(self, name : str):
+    def removeAlias(self, name: str):
         """Remove the given name from this object's aliases. This does not affect the object's main name.
 
         :param str name: The alias to remove
@@ -56,7 +58,7 @@ class Aliasable(Serializable):
             self.aliases.remove(name.lower())
 
 
-    def addAlias(self, name : str):
+    def addAlias(self, name: str):
         """Add the given name to this object's aliases.
 
         :param str name: The alias to add

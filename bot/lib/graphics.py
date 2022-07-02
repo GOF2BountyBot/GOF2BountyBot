@@ -1,20 +1,30 @@
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageChops, ImageFilter
-from typing import Dict, Union, Tuple, List
+from typing import Dict, Optional, Union, Tuple, List
 from ..cfg import cfg
 import atexit
 import random
 
 
-XP_BAR_SILHOUETTE: Image.Image = None
-USR_PROF_BACKGROUND: Image.Image = None
+XP_BAR_SILHOUETTE: Optional[Image.Image] = None
+USR_PROF_BACKGROUND: Optional[Image.Image] = None
 XP_BAR_FILLS: Dict[str, Image.Image] = {}
 
 DUEL_RESULTS_BACKGROUNDS: List[Image.Image] = []
-DUEL_RESULTS_OVERLAY: Image.Image = None
+DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 DUEL_WINNER_OVERLAYS: Dict[str, Image.Image] = {}
 
-MAP_IMAGE: Image.Image = None
+MAP_IMAGE: Optional[Image.Image] = None
 
+ColourTuple = Union[
+    Tuple[int, int, int],       # RGB
+    Tuple[int, int, int, int]   # RGBA
+]
+AnyColour = Union[
+    str,        # name
+    int,        # hex
+    ColourTuple # channels
+]
 
 def closeAll():
     """Close all active graphics. Should only be used for shutdown.
@@ -44,8 +54,8 @@ def closeAll():
 atexit.register(closeAll)
 
 
-def paddedScale(baseImage: Image.Image, w: int, h: int, fill: Union[str, int, Tuple[int]], offsetMode: str = "CENTRE",
-                offset: int = 0, newMode: str = None) -> Image.Image:
+def paddedScale(baseImage: Image.Image, w: int, h: int, fill: AnyColour,
+                offsetMode: Optional[str] = "CENTRE", offset: int = 0, newMode: Optional[str] = None) -> Image.Image:
     """Scale `baseImage` down to (`w`, `h`), but without distorting/stretching the image. Instead, if the image is of a
     different aspect ratio, the empty space around it is filled with `fill` - "black bars".
 
@@ -160,8 +170,8 @@ def cropAndScale(baseImage: Image.Image, w: int, h: int) -> Image.Image:
     return newImage.resize((w, h))
 
 
-def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColour: Union[str, int, Tuple[int]],
-        lineColour: Union[str, int, Tuple[int]] = (255, 255, 255), lineWidth: int = 1):
+def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColour: AnyColour,
+        lineColour: AnyColour = (255, 255, 255), lineWidth: int = 1):
     """Apply an outline in the shape of a progress bar, over the given image. The operation is performed on a new image,
     the orignal is not modified. The given image should contain only the bar and nothing else,
     as provided by the progressBar function below.
@@ -188,8 +198,8 @@ def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColo
     return progressBar
 
 
-def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: Union[str, int, Tuple[int]] = 0,
-        barColour: Union[str, int, Tuple[int]] = 1) -> Image.Image:
+def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: AnyColour = 0,
+        barColour: AnyColour = 1) -> Image.Image:
     """Create a simple progress bar with a black background. Background fills the image, not limited to the bar shape.
     The default image mode is "1" - single-bit images intended to be used for creating image masks.
     Changes to this should be reflected in bgColour and colour
@@ -208,7 +218,7 @@ def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: Unio
     """
     im = Image.new(mode, (w, h), bgColour)
     drawObject = ImageDraw.Draw(im)
-    w *= min(1, max(0.01, progress))
+    w = int(w * min(1.0, max(0.01, progress)))
 
     drawObject.ellipse(  ((0, 0),     (h, h)),         fill=barColour)
     drawObject.ellipse(  ((w - h, 0), (w, h)),         fill=barColour)
@@ -287,14 +297,17 @@ def copyRandomDuelResultsBackground() -> Image.Image:
         if cfg.paths.duelResultsUnderlay:
             underlayImg = cropAndScale(Image.open(cfg.paths.duelResultsUnderlay), cfg.duelResultsImageDims[0],
                                         cfg.duelResultsImageDims[1]).convert("RGBA")
-        pathsDone: Dict[str, Image.Image] = {}
+        else:
+            underlayImg = None
+
+        pathsDone: Dict[Union[str, Path], Image.Image] = {}
         for imgPath in cfg.paths.duelResultsBackgrounds:
             if imgPath in pathsDone:
                 DUEL_RESULTS_BACKGROUNDS.append(pathsDone[imgPath])
             else:
                 DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
                                                                 cfg.duelResultsImageDims[1]).convert("RGBA"))
-                if cfg.paths.duelResultsUnderlay:
+                if underlayImg is not None:
                     DUEL_RESULTS_BACKGROUNDS[-1] = Image.composite(underlayImg, DUEL_RESULTS_BACKGROUNDS[-1],
                                                                     underlayImg)
                 pathsDone[imgPath] = DUEL_RESULTS_BACKGROUNDS[-1]
@@ -343,7 +356,7 @@ def copyDuelWinnerOverlay(winner: str) -> Image.Image:
 
 
 def padImage(pil_img: Image.Image, top: int, right: int, bottom: int, left: int,
-        colour: Union[str, int, Tuple[int]]) -> Image.Image:
+        colour: AnyColour) -> Image.Image:
     """Pads an image, placing extra space around it and filling that space with the given colour.
     This is done by creating a new image, the original is not modified.
 

@@ -9,7 +9,7 @@ from ..users import basedUser
 botCommands.addHelpSection(3, "home servers")
 
 
-async def dev_cmd_reset_transfer_cooldown(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_reset_transfer_cooldown(message: discord.Message, args: str, isDM: bool):
     """Reset the requested user's cmd_transfer cooldown.
 
     :param discord.Message message: the discord message calling the command

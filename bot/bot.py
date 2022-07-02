@@ -38,6 +38,7 @@ from .scheduling.timedTaskHeap import TimedTaskHeap
 from .scheduling import timedTaskHeap
 from .reactionMenus import reactionMenu
 from .users.basedGuild import BasedGuild
+from .gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 # register as spawnable
 from .gameObjects.items.tools import creditsTool, throwSnowballTool
@@ -64,12 +65,15 @@ def setHelpEmbedThumbnails():
 async def initializeBountyBoardChannels():
     for guild in botState.client.guildsDB.getGuilds():
         if guild.hasBountyBoardChannels:
-            for div in guild.bountiesDB.divisions.values():
+            # Casting here because the guild is guaranteed to have a BountyDB if hasBountyBaordChannels is true
+            for div in cast(bountyDB.BountyDB, guild.bountiesDB).divisions.values():
                 try:
-                    await div.bountyBoardChannel.init(botState.client)
+                    # Casting here because each division in the db is guaranteed to have a bountyBoardChannel if hasBountyBoardChannels is true at the guild level
+                    await cast(BountyBoardChannel, div.bountyBoardChannel).init(botState.client)
                 except lib.exceptions.NoLongerExists:
                     botState.client.logger.log("main", "initializeBountyBoardChannels",
-                                        f"failed to load bountyboard channel {div.bountyBoardChannel.channelIDToBeLoaded}" \
+                                        # Casting here because each division in the db is guaranteed to have a bountyBoardChannel if hasBountyBoardChannels is true at the guild level
+                                        f"failed to load bountyboard channel {cast(BountyBoardChannel, div.bountyBoardChannel).channelIDToBeLoaded}" \
                                             + f" for guild {guild.id}, division {bountyDB.nameForDivision(div)}. Removing.",
                                         category=LogCategory.bountyBoards, eventType="UKWN_CHAN")
                     div.removeBountyBoardChannel()
@@ -107,7 +111,7 @@ botCommands = commands.loadCommands()
 
 ####### UTIL FUNCTIONS #######
 
-async def announceNewShopStock(guildID : int = -1):
+async def announceNewShopStock(guildID: int = -1):
     """Announce the refreshing of shop stocks to one or all joined guilds.
     Messages will be sent to the playChannels of all guilds in the botState.client.guildsDB, if they have one
 
@@ -148,7 +152,7 @@ async def err_nodm(message: discord.Message, args: str, isDM: bool):
     await message.reply("This command can only be used from inside of a server.", mention_author=False)
 
 
-async def err_tempDisabled(message : discord.Message, args : str, isDM : bool):
+async def err_tempDisabled(message: discord.Message, args: str, isDM: bool):
     """Send an error message when a bounties command is requested - all bounty and shop related behaviour is
     currently disabled.
 
@@ -160,7 +164,7 @@ async def err_tempDisabled(message : discord.Message, args : str, isDM : bool):
                         mention_author=False)
 
 
-async def err_tempPerfDisabled(message : discord.Message, args : str, isDM : bool):
+async def err_tempPerfDisabled(message: discord.Message, args: str, isDM: bool):
     """Send an error message when a command is requested that is disabled for perfornance reasons.
 
     :param discord.Message message: the discord message calling the command
@@ -172,7 +176,7 @@ async def err_tempPerfDisabled(message : discord.Message, args : str, isDM : boo
                         mention_author=False)
 
 
-async def dummy_command(message : discord.Message, args : str, isDM : bool):
+async def dummy_command(message: discord.Message, args: str, isDM: bool):
     """Dummy command doing nothing at all.
     Useful when waiting for commands with client.wait_for from a non-blocking process.
 
@@ -233,8 +237,7 @@ async def on_ready():
 
     ##### SCHEDULING #####
 
-    shopRefreshDelta = timedelta(**cfg.timeouts.shopRefresh)
-    botState.shopRefreshTT = TimedTask(expiryDelta=shopRefreshDelta,
+    botState.shopRefreshTT = TimedTask(expiryDelta=cfg.timeouts.shopRefresh,
                                         autoReschedule=True,
                                         expiryFunction=refreshAndAnnounceAllShopStocks)
                                         
@@ -244,8 +247,8 @@ async def on_ready():
     ##### SCHEDULING CONTINUED #####
     # to be moved
     # Schedule guild activity measurement decaying
-    botState.temperatureDecayTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.guildActivityDecay),
-                                            autoReschedule=True, expiryFunction=botState.client.guildsDB.decayAllTemps)
+    botState.temperatureDecayTT = TimedTask(expiryDelta=cfg.timeouts.guildActivityDecay,
+                                            autoReschedule=True, expiryFunction=botState.client.guildsDB.decayAllTempsAsync)
     botState.client.taskScheduler.scheduleTask(botState.temperatureDecayTT)
 
 

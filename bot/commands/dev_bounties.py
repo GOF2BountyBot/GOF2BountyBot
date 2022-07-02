@@ -1,8 +1,10 @@
+from typing import Optional, cast
 import discord
 from datetime import datetime, timedelta
 import asyncio
 import traceback
 import random
+from carica import SerializableTimedelta
 
 from . import commandsDB as botCommands
 from .. import botState, lib
@@ -11,12 +13,14 @@ from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..gameObjects.items import shipItem
 from ..users import basedGuild, basedUser
-from ..databases.bountyDB import nameForDivision
+from ..databases.bountyDB import nameForDivision, BountyDB
+from ..logging import LogCategory
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 botCommands.addHelpSection(3, "bounties")
 
 
-async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_clear_bounties(message: discord.Message, args: str, isDM: bool):
     """developer command clearing all active bounties. If a guild ID is given, clear bounties in that guild.
     If 'all' is given, clear bounties in all guilds. If nothing is given, clear bounties in the calling guild.
 
@@ -32,11 +36,10 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
     guildStr = argsSplit[0]
     divStr = args[len(guildStr) + 1:]
 
-    allGuilds = False
     if guildStr in ["this", "here"]:
-        callingBBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+        callingBBGuild: Optional[basedGuild.BasedGuild] = botState.client.guildsDB.getGuild(message.guild.id)
     elif guildStr == "all":
-        allGuilds = True
+        callingBBGuild = None
     elif not lib.stringTyping.isInt(guildStr):
         await message.reply(":x: Please provide a guild ID, 'all' or 'this' as your first argument.")
         return
@@ -46,7 +49,7 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
             await message.channel.send(f"Unrecognised guild ID: {guildID}")
             return
         callingBBGuild = botState.client.guildsDB.getGuild(guildID)
-    if not allGuilds and callingBBGuild.bountiesDisabled:
+    if callingBBGuild is not None and callingBBGuild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in " \
                             + "that guild" if callingBBGuild.dcGuild is None else callingBBGuild.dcGuild.name \
                             + "!")
@@ -54,37 +57,40 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
 
     allDivs = False
     if divStr == "all":
+        tl: Optional[int] = None
         allDivs = True
     elif lib.stringTyping.isInt(divStr):
-        useTL = True
         tl = int(divStr)
         if tl < cfg.minTechLevel or tl > cfg.maxTechLevel:
             await message.reply(f":x: Tech level must be between {cfg.minTechLevel} and {cfg.maxTechLevel}")
             return
     else:
-        useTL = False
+        tl = None
         if divStr not in cfg.bountyDivisionNames:
             await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
             
 
-    if allGuilds:
+    if callingBBGuild is None:
         bbcClearTasks = lib.discordUtil.BasicScheduler()
-        currentGuild: basedGuild.BasedGuild = None
         for currentGuild in botState.client.guildsDB.guilds.values():
-            if not callingBBGuild.bountiesDisabled:
+            if not currentGuild.bountiesDisabled:
+                # casting here because guild.bountiesDB cannot be None if bountiesDisabled is False
+                currentBountiesDB = cast(BountyDB, currentGuild.bountiesDB)
                 if allDivs:
-                    currentGuild.bountiesDB.clearAllBounties(includeEscaped=True)
-                    if callingBBGuild.hasBountyBoardChannels:
-                        for div in callingBBGuild.bountiesDB.divisions.values():
-                            bbcClearTasks.add(div.bountyBoardChannel.clear())
-                elif useTL:
-                    currentGuild.bountiesDB.divisionForLevel(tl).clear(includeEscaped=True)
+                    bbcClearTasks.add(currentBountiesDB.clearAllBounties(includeEscaped=True))
+                    if currentGuild.hasBountyBoardChannels:
+                        for div in currentBountiesDB.divisions.values():
+                            # Casting here because if the guild has hasBountyBoardChannels set then
+                            # all divisions are guaranteed to have a bountyBoardChannel
+                            bbcClearTasks.add(cast(BountyBoardChannel, div.bountyBoardChannel).clear())
+                elif tl is not None:
+                    bbcClearTasks.add(currentBountiesDB.divisionForLevel(tl).clear(includeEscaped=True))
                 else:
-                    currentGuild.bountiesDB.divisionForName(divStr).clear(includeEscaped=True)
+                    bbcClearTasks.add(currentBountiesDB.divisionForName(divStr).clear(includeEscaped=True))
         if bbcClearTasks:
             await bbcClearTasks.wait()
-            bbcClearTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_clear_bounties")
+            bbcClearTasks.logExceptions(LogCategory.bountiesDB, "dev_bounties", "dev_cmd_clear_bounties")
         await message.reply(":ballot_box_with_check: Active bounties cleared for all guilds.", mention_author=False)
     else:
         if callingBBGuild.bountiesDisabled:
@@ -92,25 +98,29 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
                                         else "The requested guild ") + " has bounties disabled.",
                                 mention_author=False)
             return
-
+        
+        # casting here because guild.bountiesDB cannot be None if bountiesDisabled is False
+        currentBountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
         if allDivs:
-            divs = callingBBGuild.bountiesDB.divisions.values()
-        elif lib.stringTyping.isInt(divStr):
-            divs = [callingBBGuild.bountiesDB.divisionForLevel(tl)]
+            divs = currentBountiesDB.divisions.values()
+        elif tl is not None:
+            divs = [currentBountiesDB.divisionForLevel(tl)]
         else:
-            divs = [callingBBGuild.bountiesDB.divisionForName(divStr)]
+            divs = [currentBountiesDB.divisionForName(divStr)]
 
         for div in divs:
             if callingBBGuild.hasBountyBoardChannels:
                 bbcTasks = lib.discordUtil.BasicScheduler()
-                bbc = div.bountyBoardChannel
+                # Casting here because if the guild has hasBountyBoardChannels set then
+                # all divisions are guaranteed to have a bountyBoardChannel
+                bbc = cast(BountyBoardChannel, div.bountyBoardChannel)
                 for tlCriminals in div.bounties.values():
                     for crim in tlCriminals:
                         if bbc.hasMessageForCriminal(crim):
                             bbcTasks.add(bbc.removeCriminal(crim))
                 if bbcTasks:
                     await bbcTasks.wait()
-                    bbcTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_clear_bounties")
+                    bbcTasks.logExceptions(LogCategory.bountiesDB, "dev_bounties", "dev_cmd_clear_bounties")
             await div.clear(includeEscaped=True)
 
         await message.reply(":ballot_box_with_check: Active bounties cleared" + ((" for '" + callingBBGuild.dcGuild.name \
@@ -119,7 +129,7 @@ async def dev_cmd_clear_bounties(message : discord.Message, args : str, isDM : b
 botCommands.register("clear-bounties", dev_cmd_clear_bounties, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_get_cooldown(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_get_cooldown(message: discord.Message, args: str, isDM: bool):
     """developer command printing the calling user's checking cooldown
 
     :param discord.Message message: the discord message calling the command
@@ -137,7 +147,7 @@ async def dev_cmd_get_cooldown(message : discord.Message, args : str, isDM : boo
 botCommands.register("get-cool", dev_cmd_get_cooldown, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_reset_cooldown(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_reset_cooldown(message: discord.Message, args: str, isDM: bool):
     """developer command resetting the checking cooldown of the calling user, or the specified user if one is given
 
     :param discord.Message message: the discord message calling the command
@@ -146,18 +156,19 @@ async def dev_cmd_reset_cooldown(message : discord.Message, args : str, isDM : b
     """
     # reset the calling user's cooldown if no user is specified
     if args == "":
-        botState.client.usersDB.getUser(
-            message.author.id).bountyCooldownEnd = datetime.utcnow().timestamp()
+        user = botState.client.usersDB.getUser(message.author.id)
     # otherwise get the specified user's discord object and reset their cooldown.
     # [!] no validation is done.
     else:
-        botState.client.usersDB.getUser(int(args.lstrip("<@!").rstrip(">"))).bountyCooldownEnd = datetime.utcnow().timestamp()
+        user = botState.client.usersDB.getUser(int(args.lstrip("<@!").rstrip(">")))
+        
+    user.bountyCooldownEnd = datetime.utcnow().timestamp()
     await message.reply(mention_author=False, content="Done!")
 
 botCommands.register("reset-cool", dev_cmd_reset_cooldown, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_setcheckcooldown(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_setcheckcooldown(message: discord.Message, args: str, isDM: bool):
     """developer command setting the checking cooldown applied to users
     this does not update cfg and will be reverted on bot restart
 
@@ -174,13 +185,15 @@ async def dev_cmd_setcheckcooldown(message : discord.Message, args : str, isDM :
         await message.reply(mention_author=False, content=":x: that's not a number!")
         return
     # update the checking cooldown amount
-    cfg.timeouts.checkCooldown["minutes"] = int(args)
-    await message.reply(mention_author=True, content="Done! *you still need to update the config file though* ")
+    # Can't do this directly as the properties are write only, so just make a new timedelta
+    newTdDict = cfg.timeouts.checkCooldown.serialize().update({"minutes": int(args)})
+    cfg.timeouts.checkCooldown = SerializableTimedelta.deserialize(newTdDict)
+    await message.reply(mention_author=True, content="Done! **you still need to update the config file though* ")
 
 botCommands.register("setcheckcooldown", dev_cmd_setcheckcooldown, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_setbountyperiodm(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_setbountyperiodm(message: discord.Message, args: str, isDM: bool):
     """developer command setting the number of minutes in the new bounty generation period
     this does not update cfg and will be reverted on bot restart
     this does not affect the numebr of hours in the new bounty generation period
@@ -198,14 +211,16 @@ async def dev_cmd_setbountyperiodm(message : discord.Message, args : str, isDM :
         await message.reply(mention_author=False, content=":x: that's not a number!")
         return
     # update the new bounty generation cooldown
-    cfg.timeouts.newBountyFixedDelta["minutes"] = int(args)
+    # Can't do this directly as the properties are write only, so just make a new timedelta
+    newTdDict = cfg.timeouts.newBountyFixedDelta.serialize().update({"minutes": int(args)})
+    cfg.timeouts.newBountyFixedDelta = SerializableTimedelta.deserialize(newTdDict)
     botState.newBountyFixedDeltaChanged = True
-    await message.reply(mention_author=True, content="Done! *you still need to update the config file though*")
+    await message.reply(mention_author=True, content="Done! **you still need to update the config file though*")
 
 botCommands.register("setbountyperiodm", dev_cmd_setbountyperiodm, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_setbountyperiodh(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_setbountyperiodh(message: discord.Message, args: str, isDM: bool):
     """developer command setting the number of hours in the new bounty generation period
     this does not update cfg and will be reverted on bot restart
     this does not affect the numebr of minutes in the new bounty generation period
@@ -224,13 +239,15 @@ async def dev_cmd_setbountyperiodh(message : discord.Message, args : str, isDM :
         return
     # update the bounty generation period
     botState.newBountyFixedDeltaChanged = True
-    cfg.timeouts.newBountyFixedDelta["hours"] = int(args)
-    await message.reply(mention_author=True, content="Done! *you still need to update the file though*")
+    # Can't do this directly as the properties are write only, so just make a new timedelta
+    newTdDict = cfg.timeouts.newBountyFixedDelta.serialize().update({"hours": int(args)})
+    cfg.timeouts.newBountyFixedDelta = SerializableTimedelta.deserialize(newTdDict)
+    await message.reply(mention_author=True, content="Done! **you still need to update the file though*")
 
 botCommands.register("setbountyperiodh", dev_cmd_setbountyperiodh, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_resetnewbountycool(message: discord.Message, args: str, isDM: bool):
     """developer command resetting the current bounty generation period,
     instantly generating a new bounty
 
@@ -246,11 +263,10 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
     guildStr = argsSplit[0]
     divStr = args[len(guildStr) + 1:]
 
-    allGuilds = False
     if guildStr in ["this", "here"]:
-        callingBBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+        callingBBGuild: Optional[basedGuild.BasedGuild] = botState.client.guildsDB.getGuild(message.guild.id)
     elif guildStr == "all":
-        allGuilds = True
+        callingBBGuild = None
     elif not lib.stringTyping.isInt(guildStr):
         await message.reply(":x: Please provide a guild ID, 'all' or 'this' as your first argument.")
         return
@@ -260,7 +276,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
             await message.reply(mention_author=False, content=f"Unrecognised guild ID: {guildID}")
             return
         callingBBGuild = botState.client.guildsDB.getGuild(guildID)
-    if not allGuilds and callingBBGuild.bountiesDisabled:
+    if callingBBGuild is not None and callingBBGuild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in " \
                             + "that guild" if callingBBGuild.dcGuild is None else callingBBGuild.dcGuild.name \
                             + "!")
@@ -268,57 +284,57 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
 
     allDivs = False
     if divStr == "all":
+        tl = None
         allDivs = True
     elif lib.stringTyping.isInt(divStr):
-        useTL = True
         tl = int(divStr)
         if tl < cfg.minTechLevel or tl > cfg.maxTechLevel:
             await message.reply(f":x: Tech level must be between {cfg.minTechLevel} and {cfg.maxTechLevel}")
             return
     else:
-        useTL = False
+        tl = None
         if divStr not in cfg.bountyDivisionNames:
             await message.reply(f":x: Unknown division name. Must be one of: {', '.join(cfg.bountyDivisionNames)}")
             return
 
-    if allGuilds:
-        cooldownTasks = lib.discordUtil.BasicScheduler()
-        currentGuild: basedGuild.BasedGuild = None
+    if callingBBGuild is None:
         for currentGuild in botState.client.guildsDB.guilds.values():
             if not currentGuild.bountiesDisabled:
+                # Casting here because a guild's BountyDB cannot be None if bountiesDisabled is False
+                currentBountiesDB = cast(BountyDB, currentGuild.bountiesDB)
                 if allDivs:
-                    cooldownTasks.add(currentGuild.bountiesDB.resetAllNewBountyTTs())
-                elif useTL:
-                    div = currentGuild.bountiesDB.divisionForLevel(tl)
+                    currentBountiesDB.resetAllNewBountyTTs()
+                elif tl is not None:
+                    div = currentBountiesDB.divisionForLevel(tl)
                     if not div.isFull() or not div.hasMinTLBounty():
-                        cooldownTasks.add(div.resetNewBountyCool())
+                        div.resetNewBountyCool()
                 else:
-                    div = currentGuild.bountiesDB.divisionForName(divStr)
+                    div = currentBountiesDB.divisionForName(divStr)
                     if not div.isFull() or not div.hasMinTLBounty():
-                        cooldownTasks.add(div.resetNewBountyCool())
-        if cooldownTasks:
-            await cooldownTasks.wait()
-            cooldownTasks.logExceptions("bountiesDB", "dev_bounties", "dev_cmd_resetnewbountycool")
+                        div.resetNewBountyCool()
         await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty cooldowns reset across all guilds!")
     else:
+        # Casting here because a guild's BountyDB cannot be None if bountiesDisabled is False
+        currentBountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
+
         if allDivs:
-            await callingBBGuild.bountiesDB.resetAllNewBountyTTs()
+            currentBountiesDB.resetAllNewBountyTTs()
             await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty cooldowns reset for '" \
                                         + callingBBGuild.dcGuild.name + "'")
-        elif useTL:
-            div = callingBBGuild.bountiesDB.divisionForLevel(tl)
+        elif tl is not None:
+            div = currentBountiesDB.divisionForLevel(tl)
             if div.isFull() and div.hasMinTLBounty():
                 await message.reply(mention_author=False, content=":x: That division is full!")
             else:
-                await div.resetNewBountyCool()
+                div.resetNewBountyCool()
                 await message.reply(mention_author=False, content=":ballot_box_with_check: Division " + nameForDivision(div).title() \
                                             + " bounty cooldown reset for '" + callingBBGuild.dcGuild.name + "'")
         else:
-            div = callingBBGuild.bountiesDB.divisionForName(divStr)
+            div = currentBountiesDB.divisionForName(divStr)
             if div.isFull() and div.hasMinTLBounty():
                 await message.reply(mention_author=False, content=":x: That division is full!")
             else:
-                await div.resetNewBountyCool()
+                div.resetNewBountyCool()
                 await message.reply(mention_author=False, content=":ballot_box_with_check: Division " + divStr.title() \
                                             + " bounty cooldown reset for '" + callingBBGuild.dcGuild.name + "'")
 
@@ -326,7 +342,7 @@ async def dev_cmd_resetnewbountycool(message : discord.Message, args : str, isDM
 botCommands.register("resetnewbountycool", dev_cmd_resetnewbountycool, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_set_temp(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_temp(message: discord.Message, args: str, isDM: bool):
     """developer command setting the activity level for the calling guild at the given tech level
 
     :param discord.Message message: the discord message calling the command
@@ -411,7 +427,7 @@ async def dev_cmd_set_temp(message : discord.Message, args : str, isDM : bool):
 botCommands.register("set-temp", dev_cmd_set_temp, 3, allowDM=False, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_canmakebounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_canmakebounty(message: discord.Message, args: str, isDM: bool):
     """developer command printing whether or not the given faction can accept new bounties
     If no guild ID is given, bounty spawning ability is checked for the calling guild
 
@@ -476,7 +492,7 @@ async def dev_cmd_canmakebounty(message : discord.Message, args : str, isDM : bo
 botCommands.register("canmakebounty", dev_cmd_canmakebounty, 3, allowDM=False, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_make_bounty(message: discord.Message, args: str, isDM: bool):
     """developer command making a new bounty
     args should be separated by a space and then a plus symbol
     if no args except guild are given, generate a new bounty at complete random
@@ -658,7 +674,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
                 if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                     await message.reply(f"The {nameForDivision(div)} division is full in guild {currentGuild.dcGuild.name if currentGuild.dcGuild is not None else ''}#{currentGuild.id}, skipping this guild")
                 else:
-                    newBounty = bounty.Bounty(division=div, config=config.generate(div))
+                    newBounty = bounty.Bounty(division=div, generatedConfig=config.generate(div))
                     currentGuild.bountiesDB.addBounty(newBounty)
                     spawnTasks.add(currentGuild.announceNewBounty(newBounty))
         if spawnTasks:
@@ -675,7 +691,7 @@ async def dev_cmd_make_bounty(message : discord.Message, args : str, isDM : bool
         if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
             await message.reply(f"The {nameForDivision(div)} division is full in that guild!")
         else:
-            newBounty = bounty.Bounty(division=div, config=config.generate(div))
+            newBounty = bounty.Bounty(division=div, generatedConfig=config.generate(div))
             callingBBGuild.bountiesDB.addBounty(newBounty)
             await callingBBGuild.announceNewBounty(newBounty)
             await message.reply(mention_author=False, content=f"Criminal spawned!")
@@ -685,7 +701,7 @@ botCommands.register("make-bounty", dev_cmd_make_bounty, 3, forceKeepArgsCasing=
                     useDoc=True)
 
 
-async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_make_player_bounty(message: discord.Message, args: str, isDM: bool):
     """developer command making a new PLAYER bounty
     args should be separated by a space and then a plus symbol
     the first argument should be a guild, and the second should be a user mention or ID.
@@ -879,7 +895,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
                     if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                         await message.reply(f"The {nameForDivision(div)} division is full in guild {currentGuild.dcGuild.name if currentGuild.dcGuild is not None else ''}#{currentGuild.id}, skipping this guild")
                     else:
-                        newBounty = bounty.Bounty(division=div, config=config.generate(div))
+                        newBounty = bounty.Bounty(division=div, generatedConfig=config.generate(div))
                         currentGuild.bountiesDB.addBounty(newBounty)
                         spawnTasks.add(currentGuild.announceNewBounty(newBounty))
         if spawnTasks:
@@ -894,7 +910,7 @@ async def dev_cmd_make_player_bounty(message : discord.Message, args : str, isDM
             if div.isFull() and (newTL != div.minLevel or (newTL == div.minLevel and div.hasMinTLBounty())):
                 await message.reply(f"The {nameForDivision(div)} division is full in that guild!")
             else:
-                newBounty = bounty.Bounty(division=div, config=config.generate(div))
+                newBounty = bounty.Bounty(division=div, generatedConfig=config.generate(div))
                 callingBBGuild.bountiesDB.addBounty(newBounty)
                 await callingBBGuild.announceNewBounty(newBounty)
                 await message.reply(mention_author=False, content=f"Criminal spawned!")
@@ -904,7 +920,7 @@ botCommands.register("make-player-bounty", dev_cmd_make_player_bounty, 3, forceK
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_bounty_xp(message: discord.Message, args: str, isDM: bool):
     """developer command setting the requested user's bounty hunting xp.
 
     :param discord.Message message: the discord message calling the command
@@ -969,7 +985,7 @@ async def dev_cmd_set_bounty_xp(message : discord.Message, args : str, isDM : bo
 botCommands.register("set-bounty-xp", dev_cmd_set_bounty_xp, 3, allowDM=True, helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_set_bounty_level(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_bounty_level(message: discord.Message, args: str, isDM: bool):
     """developer command setting the requested user's bounty hunting LEVEL.
 
     :param discord.Message message: the discord message calling the command
@@ -999,7 +1015,7 @@ async def dev_cmd_set_bounty_level(message : discord.Message, args : str, isDM :
 botCommands.register("set-bounty-level", dev_cmd_set_bounty_level, 3, allowDM=True, helpSection="bounties", useDoc=True) 
 
 
-async def dev_cmd_measure_temps(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_measure_temps(message: discord.Message, args: str, isDM: bool):
     """developer command fetching the current activity temperatures in the calling guild.
 
     :param discord.Message message: the discord message calling the command
@@ -1037,7 +1053,7 @@ botCommands.register("measure-temps", dev_cmd_measure_temps, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_decay_temps(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_decay_temps(message: discord.Message, args: str, isDM: bool):
     """developer command decaying the activity temperatures of the calling guild
 
     :param discord.Message message: the discord message calling the command
@@ -1117,7 +1133,7 @@ botCommands.register("decay-temps", dev_cmd_decay_temps, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_reset_temps(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_reset_temps(message: discord.Message, args: str, isDM: bool):
     """developer command resetting the activity temperatures of the calling guild
 
     :param discord.Message message: the discord message calling the command
@@ -1197,7 +1213,7 @@ botCommands.register("reset-temps", dev_cmd_reset_temps, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_current_delay(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_current_delay(message: discord.Message, args: str, isDM: bool):
     """developer command DMing the calling user with the current delays on all new bounty TTs for the calling guild
     or if a tl is provided, just the current delay for that TL's TT
 
@@ -1272,7 +1288,7 @@ botCommands.register("current-delay", dev_cmd_current_delay, 3, allowDM=False,
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_current_max_bounties(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_current_max_bounties(message: discord.Message, args: str, isDM: bool):
     """developer command DMing the calling user with the current max bounties for all TLs for the calling guild
     or if a tl is provided, just the current max bounties for that TL
 
@@ -1338,7 +1354,7 @@ botCommands.register("current-max-bounties", dev_cmd_current_max_bounties, 3, al
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_xp_for_level(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_xp_for_level(message: discord.Message, args: str, isDM: bool):
     """Print the amount of bounty hunter xp required to reach a given level.
 
     :param discord.Message message: the discord message calling the command
@@ -1367,7 +1383,7 @@ botCommands.register("xp-for-level", dev_cmd_xp_for_level, 3, forceKeepArgsCasin
                         shortHelp="Get the amount of xp required to reach a given bounty hunter level.")
 
 
-async def dev_cmd_force_expire_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_force_expire_bounty(message: discord.Message, args: str, isDM: bool):
     """Force the named bounty to expire immediately.
 
     :param discord.Message message: the discord message calling the command
@@ -1413,7 +1429,7 @@ botCommands.register("expire-bounty", dev_cmd_force_expire_bounty, 3, forceKeepA
                         shortHelp="Force the immediate expiry of a bounty")
 
 
-async def dev_cmd_force_escape_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_force_escape_bounty(message: discord.Message, args: str, isDM: bool):
     """Force the named bounty to escape immediately.
 
     :param discord.Message message: the discord message calling the command
@@ -1470,7 +1486,7 @@ botCommands.register("escape-bounty", dev_cmd_force_escape_bounty, 3, forceKeepA
                         shortHelp="Force a bounty to escape immediately")
 
 
-async def dev_cmd_force_respawn_bounty(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_force_respawn_bounty(message: discord.Message, args: str, isDM: bool):
     """Force the named bounty to respawn immediately.
 
     :param discord.Message message: the discord message calling the command
@@ -1521,7 +1537,7 @@ botCommands.register("respawn-bounty", dev_cmd_force_respawn_bounty, 3, forceKee
                         shortHelp="Force an escaped bounty to respawn immediately")
 
 
-async def dev_cmd_restart_new_bounty_task(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_restart_new_bounty_task(message: discord.Message, args: str, isDM: bool):
     """developer command that restarts a 'new bounties' timedtask, or all of them for a server if specified
 
     :param discord.Message message: the discord message calling the command
@@ -1570,7 +1586,7 @@ botCommands.register("restart-bounty-task", dev_cmd_restart_new_bounty_task, 3, 
                         helpSection="bounties", useDoc=True)
 
 
-async def dev_cmd_user_can_divup_or_prestige(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_user_can_divup_or_prestige(message: discord.Message, args: str, isDM: bool):
     """Decide whether a user can div-up/prestige
 
     :param discord.Message message: the discord message calling the command
@@ -1599,7 +1615,7 @@ botCommands.register("can-div-up", dev_cmd_user_can_divup_or_prestige, 3, aliase
                         shortHelp="Decide whether a user can div-up/prestige")
 
 
-async def dev_cmd_set_user_divup_surplus(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_user_divup_surplus(message: discord.Message, args: str, isDM: bool):
     """Enable a user's ability to div-up or prestige by setting their xp surplus
 
     :param discord.Message message: the discord message calling the command
@@ -1641,7 +1657,7 @@ botCommands.register("set-xp-surplus", dev_cmd_set_user_divup_surplus, 3, allowD
                                 + "Also enables prestiging, but no xp is awarded after.")
 
 
-async def dev_cmd_disable_user_can_divup_or_prestige(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_disable_user_can_divup_or_prestige(message: discord.Message, args: str, isDM: bool):
     """Disable a user's ability to div-up/prestige
 
     :param discord.Message message: the discord message calling the command

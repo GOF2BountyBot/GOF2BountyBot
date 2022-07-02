@@ -26,7 +26,7 @@ robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 SCROLL_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/scroll_1f4dc.png"
 
 
-async def cmd_map(message : discord.Message, args : str, isDM : bool):
+async def cmd_map(message: discord.Message, args: str, isDM: bool):
     """send the image of the GOF2 starmap. If -g is passed, send the grid image
 
     :param discord.Message message: the discord message calling the command
@@ -45,7 +45,7 @@ botCommands.register("map", cmd_map, 0, aliases=["starmap"], allowDM=True, helpS
                         longHelp="Send the complete GOF2 starmap with jumpgate routes, including all secret and DLC systems.")
 
 
-async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
+async def cmd_make_route(message: discord.Message, args: str, isDM: bool):
     """display the shortest route between two systems
 
     :param discord.Message message: the discord message calling the command
@@ -101,15 +101,15 @@ async def cmd_make_route(message : discord.Message, args : str, isDM : bool):
     # build and print the route, reporting any errors in the route generation process
     routeStr = ""
     route = lib.pathfinding.makeRoute(startSyst, endSyst)
-    routeStr = ", ".join(route)
-
-    if routeStr.startswith("#"):
-        await message.reply(mention_author=False, content=":x: ERR: Processing took too long! :stopwatch:")
-    elif routeStr.startswith("!"):
+    
+    if route is lib.pathfinding.PathfindingError.MAX_LENGTH_REACHED:
+        await message.reply(mention_author=False, content=":x: ERR: The route was too long to compute! :stopwatch:")
+    elif route is lib.pathfinding.PathfindingError.NO_ROUTE_FOUND:
         await message.reply(mention_author=False, content=":x: ERR: No route found! :triangular_flag_on_post:")
     elif startSyst == endSyst:
         await message.reply(mention_author=False, content=":thinking: You're already there, pilot!")
     else:
+        routeStr = ", ".join(route)
         routeImg = bountyBoardChannel.renderRouteMap(route)
         if routeImg is None:
             routeFile = None
@@ -132,7 +132,7 @@ botCommands.register("make-route", cmd_make_route, 0, allowDM=True, helpSection=
                                     + "gates. To find out if a system has a jump gate, use `info`.")
 
 
-async def cmd_info_system(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_system(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified system
 
     :param discord.Message message: the discord message calling the command
@@ -194,7 +194,7 @@ async def cmd_info_system(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-system", 0, cmd_system)
 
 
-async def cmd_info_criminal(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_criminal(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt criminal
 
     :param discord.Message message: the discord message calling the command
@@ -244,7 +244,7 @@ async def cmd_info_criminal(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-criminal", 0, cmd_criminal)
 
 
-async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_ship(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt ship
 
     :param discord.Message message: the discord message calling the command
@@ -345,7 +345,7 @@ async def cmd_info_ship(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-ship", 0, cmd_ship)
 
 
-async def cmd_info_weapon(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_weapon(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt weapon
 
     :param discord.Message message: the discord message calling the command
@@ -403,7 +403,7 @@ async def cmd_info_weapon(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-weapon", 0, cmd_weapon)
 
 
-async def cmd_info_module(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_module(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt module
 
     :param discord.Message message: the discord message calling the command
@@ -462,7 +462,7 @@ async def cmd_info_module(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-module", 0, cmd_module)
 
 
-async def cmd_info_turret(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_turret(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt turret
 
     :param discord.Message message: the discord message calling the command
@@ -520,7 +520,7 @@ async def cmd_info_turret(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("info-turret", 0, cmd_turret)
 
 
-async def cmd_info_commodity(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_commodity(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt commodity
 
     :param discord.Message message: the discord message calling the command
@@ -576,7 +576,7 @@ async def cmd_info_commodity(message : discord.Message, args : str, isDM : bool)
 # botCommands.register("info-commodity", 0, cmd_commodity)
 
 
-async def cmd_info_skin(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_skin(message: discord.Message, args: str, isDM: bool):
     """return statistics about a specified inbuilt skin
 
     :param discord.Message message: the discord message calling the command
@@ -665,7 +665,7 @@ async def cmd_info_skin(message : discord.Message, args : str, isDM : bool):
 # bbCommands.register("info-skin", cmd_info_skin)
 
 
-async def cmd_info_medal(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_medal(message: discord.Message, args: str, isDM: bool):
     """return information about a specified medal
 
     :param discord.Message message: the discord message calling the command
@@ -706,7 +706,7 @@ async def cmd_info_medal(message : discord.Message, args : str, isDM : bool):
 # bbCommands.register("info-medal", cmd_info_medal)
 
 
-async def cmd_info_tool(message : discord.Message, args : str, isDM : bool):
+async def cmd_info_tool(message: discord.Message, args: str, isDM: bool):
     """return information about a specified tool
 
     :param discord.Message message: the discord message calling the command
@@ -773,7 +773,7 @@ INFO_CMDS = {"system": cmd_info_system,
                 "tool": cmd_info_tool}
 
 
-async def cmd_info(message : discord.Message, args : str, isDM : bool):
+async def cmd_info(message: discord.Message, args: str, isDM: bool):
     """Return statistics about a named game object, of a specified type.
     The named used to reference the object may be an alias.
 
@@ -803,7 +803,7 @@ botCommands.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info",
                                     + "to refer to your object in commands.")
 
 
-async def cmd_showme_criminal(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_criminal(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt criminal
 
     :param discord.Message message: the discord message calling the command
@@ -838,7 +838,7 @@ async def cmd_showme_criminal(message : discord.Message, args : str, isDM : bool
 # botCommands.register("showme-criminal", cmd_showme_criminal)
 
 
-async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_ship(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt ship
 
     :param discord.Message message: the discord message calling the command
@@ -940,7 +940,7 @@ async def cmd_showme_ship(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("showme-ship", cmd_showme_ship)
 
 
-async def cmd_showme_weapon(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_weapon(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt weapon
 
     :param discord.Message message: the discord message calling the command
@@ -978,7 +978,7 @@ async def cmd_showme_weapon(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("showme-weapon", cmd_showme_weapon)
 
 
-async def cmd_showme_module(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_module(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt module
 
     :param discord.Message message: the discord message calling the command
@@ -1016,7 +1016,7 @@ async def cmd_showme_module(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("showme-module", cmd_showme_module)
 
 
-async def cmd_showme_turret(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_turret(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt turret
     :param discord.Message message: the discord message calling the command
     :param str args: string containing a turret name
@@ -1053,7 +1053,7 @@ async def cmd_showme_turret(message : discord.Message, args : str, isDM : bool):
 # botCommands.register("showme-turret", cmd_showme_turret)
 
 
-async def cmd_showme_commodity(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme_commodity(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt commodity
     :param discord.Message message: the discord message calling the command
     :param str args: string containing a commodity name
@@ -1100,7 +1100,7 @@ SHOWME_CMDS = {"criminal": cmd_showme_criminal,
                 }
 
 
-async def cmd_showme(message : discord.Message, args : str, isDM : bool):
+async def cmd_showme(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the named game object, of a specified type.
     The named used to reference the object may be an alias.
 
@@ -1131,10 +1131,10 @@ botCommands.register("showme", cmd_showme, 0, allowDM=True, aliases=["show", "re
 
 
 LIST_FACTION_OBJS = {"system": bbData.builtInSystemObjs, "criminal": bbData.builtInCriminalObjs}
-LIST_MANUFACTURER_OBJS = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
-                    "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
-LIST_TL_OBJS = {"weapon" : bbData.builtInWeaponObjs, "module" : bbData.builtInModuleObjs,
-            "turret" : bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
+LIST_MANUFACTURER_OBJS = {"weapon": bbData.builtInWeaponObjs, "module": bbData.builtInModuleObjs,
+                    "turret": bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
+LIST_TL_OBJS = {"weapon": bbData.builtInWeaponObjs, "module": bbData.builtInModuleObjs,
+            "turret": bbData.builtInTurretObjs, "ship": bbData.builtInShipData}
 LIST_DICT_OBJS = {"ship": bbData.builtInShipData}
 
 LIST_ALL_OBJ_TYPES: Set[str] = set()
@@ -1144,7 +1144,7 @@ LIST_ALL_OBJ_TYPES.update(LIST_TL_OBJS)
 LIST_ALL_OBJ_TYPES.update(LIST_DICT_OBJS)
 
 
-async def cmd_list(message : discord.Message, args : str, isDM : bool):	
+async def cmd_list(message: discord.Message, args: str, isDM: bool):	
     """List all items in the game that match a set of criteria.
     criteria must include an item type
     can optionally include:
@@ -1295,7 +1295,7 @@ botCommands.register("list", cmd_list, 0, allowDM=True, helpSection="gof2 info",
                             + f"Valid object types: {'/'.join(LIST_ALL_OBJ_TYPES)}")
 
 
-async def cmd_texture(message : discord.Message, args : str, isDM : bool):	
+async def cmd_texture(message: discord.Message, args: str, isDM: bool):	
     """Perform autoskin image compositing, and return the resulting texture.
     TODO: When allowing built in skin textures, update all docstrings and message sends
     

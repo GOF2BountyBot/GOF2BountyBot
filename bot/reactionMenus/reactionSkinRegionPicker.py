@@ -7,10 +7,10 @@ from typing import Union, List
 class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu):
     """An unsaveable menu allowing users to choose autoskin layer indices that they want to provide.
     """
-    def __init__(self, msg : Message, owningUser : Union[User, Member], timeoutSeconds : int,
-                    numRegions : int = 0, possibleRegions : List[int] = [], titleTxt : str = "",
-                    desc : str = "", col : Colour = Colour.blue(), footerTxt : str = "", img : str = "",
-                    thumb : str = "", icon : str = cfg.defaultShipSkinToolIcon, authorName : str = ""):
+    def __init__(self, msg: Message, owningUser: Union[User, Member], timeoutSeconds: int,
+                    numRegions: int = 0, possibleRegions: List[int] = [], titleTxt: str = "",
+                    desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+                    thumb: str = "", icon: str = cfg.defaultShipSkinToolIcon, authorName: str = ""):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param owningUser: The user choosing skin layers

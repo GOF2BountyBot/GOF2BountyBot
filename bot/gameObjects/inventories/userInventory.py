@@ -1,5 +1,5 @@
-from .inventory import TypeRestrictedInventory
-from typing import TYPE_CHECKING
+from .inventory import Inventory
+from typing import TYPE_CHECKING, Generic, TypeVar
 if TYPE_CHECKING:
     from ...users import basedUser
 from typing import Type, Union
@@ -10,19 +10,21 @@ import asyncio
 class USER_PLACEHOLDER:
     pass
 
-class UserToolInventory(TypeRestrictedInventory):
+
+TItemType = TypeVar("TItemType", bound=toolItem.ToolItem)
+class UserToolInventory(Inventory[TItemType]):
     """A tool inventory for use by users.
     This inventory type will automatically schedule a tool's use coroutine upon being added to the inventory,
     but only if added through `addItem`, and only if the tool has `autoUse` set.
     """
 
     def __init__(self, owningBUser: Union["basedUser.BasedUser", Type[USER_PLACEHOLDER]],
-                    itemType: Type[toolItem.ToolItem] = toolItem.ToolItem):
+                    itemType: Type[TItemType] = toolItem.ToolItem):
         super().__init__(itemType)
         self.owningBUser = owningBUser
 
 
-    def addItem(self, item: toolItem.ToolItem, quantity : int = 1):
+    def addItem(self, item: TItemType, quantity: int = 1):
         super().addItem(item, quantity=quantity)
         if item.autoUse and self.owningBUser is not USER_PLACEHOLDER:
             # TODO: schedule this with logging with lib.discordUtil

@@ -1,55 +1,49 @@
 from __future__ import annotations
 from discord.member import Member
-from . import reactionMenu
+from . import reactionMenu, expiryFunctions
 from .. import botState, lib
 from ..lib.emojis import BasedEmoji
 from discord import Colour, Guild, Role, Message, User
 from datetime import datetime
 from ..scheduling import timedTask
-from typing import List, Union, Dict
+from typing import List, Optional, Tuple, Union, Dict
 
 
-async def giveRole(args : List[Union[Guild, Role, int]], reactingUser : Union[User, Member] = None) -> bool:
+async def giveRole(args: Tuple[Guild, Role, int], reactingUser: Union[User, Member]):
     """Grant the given user the role described in args.
     if reactingUser already has the requested role, do nothing.
 
     :param dict args: A list containing the guild to grant the role in, the role to grant, and finally the message ID that
                         triggered the role addition.
     :param discord.User reactingUser: The user to grant the role to (Default None)
-    :return: The new state of role ownership; always True
-    :rtype: bool
     """
-    dcGuild = args[0]
+    dcGuild, role, msgID = args
     dcMember = dcGuild.get_member(reactingUser.id)
-    role = args[1]
-    msgID = args[2]
+    if dcMember is None:
+        return
 
     if role not in dcMember.roles:
         await dcMember.add_roles(role, reason="User requested role toggle via BB reaction menu " + str(msgID))
-    return True
 
 
-async def removeRole(args : List[Union[Guild, Role, int]], reactingUser : Union[User, Member] = None) -> bool:
+async def removeRole(args: Tuple[Guild, Role, int], reactingUser: Union[User, Member]):
     """remove the role described in args from the given user.
     if reactingUser already lacks the requested role, do nothing.
 
     :param dict args: A list containing the guild to remove the role in, the role to grant, and finally the message ID that
                         triggered the role addition.
     :param discord.User reactingUser: The user to remove the role from (Default None)
-    :return: The new state of role ownership; always False
-    :rtype: bool
     """
-    dcGuild = args[0]
+    dcGuild, role, msgID = args
     dcMember = dcGuild.get_member(reactingUser.id)
-    role = args[1]
-    msgID = args[2]
+    if dcMember is None:
+        return
 
     if role in dcMember.roles:
         await dcMember.remove_roles(role, reason="User requested role toggle via BB reaction menu " + str(msgID))
-    return False
 
 
-async def markExpiredRoleMenu(menuID : int):
+async def markExpiredRoleMenu(menuID: int):
     """Decrement the owning bbGuild's role menus counter, and call reactionMenu.markExpiredMenu.
 
     :param int menuID: The message ID of the menu to expire
@@ -57,7 +51,7 @@ async def markExpiredRoleMenu(menuID : int):
     menu = botState.client.reactionMenusDB[menuID]
     if botState.client.guildsDB.idExists(menu.msg.guild.id):
         botState.client.guildsDB.getGuild(menu.msg.guild.id).ownedRoleMenus -= 1
-    await reactionMenu.markExpiredMenu(menuID)
+    await expiryFunctions.markExpiredMenu(menuID)
 
 
 class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
@@ -68,7 +62,7 @@ class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
     :vartype role: discord.Role
     """
 
-    def __init__(self, emoji : BasedEmoji, role : Role, menu : reactionMenu.ReactionMenu):
+    def __init__(self, emoji: BasedEmoji, role: Role, menu: "ReactionRolePicker"):
         self.role = role
         super(ReactionRolePickerOption, self).__init__(self.role.name, emoji, addFunc=giveRole,
                                                         addArgs=(menu.dcGuild, self.role, menu.msg.id),
@@ -93,15 +87,15 @@ class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
 
 
 @reactionMenu.saveableMenu
-class ReactionRolePicker(reactionMenu.ReactionMenu):
+class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
     """A reaction menu that grants and removes roles when interacted with.
     TODO: replace dcGuild param with extracting msg.guild
     """
 
-    def __init__(self, msg : Message, reactionRoles : Dict[BasedEmoji, Role], dcGuild : Guild,
-            titleTxt : str = "", desc : str = "", col : Colour = Colour.blue(), timeout : timedTask.TimedTask = None,
-            footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "", authorName : str = "",
-            targetMember : Member = None, targetRole : Role = None):
+    def __init__(self, msg: Message, reactionRoles: Dict[BasedEmoji, Role], dcGuild: Guild,
+            titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None,
+            footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+            targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         # TODO: Stop taking dcGuild, and instead extract dcGuild from msg.guild
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -156,7 +150,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu):
 
 
     @classmethod
-    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionRolePicker:
+    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionRolePicker:
         """Reconstruct a ReactionRolePicker from its dictionary-serialized representation.
 
         :param dict rmDict: A dictionary containing all information needed to construct the desired ReactionRolePicker
@@ -175,7 +169,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu):
         if "timeout" in rmDict:
             expiryTime = datetime.utcfromtimestamp(rmDict["timeout"])
             timeoutTT = timedTask.TimedTask(expiryTime=expiryTime,
-                                            expiryFunction=reactionMenu.markExpiredMenu,
+                                            expiryFunction=expiryFunctions.markExpiredMenu,
                                             expiryFunctionArgs=msg.id)
             botState.client.taskScheduler.scheduleTask(timeoutTT)
 

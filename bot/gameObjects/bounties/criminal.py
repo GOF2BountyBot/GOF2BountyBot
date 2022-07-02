@@ -4,9 +4,10 @@ from typing import List
 
 from ...cfg import bbData
 from ...baseClasses import aliasable
+from ..gameObject import LoadedObject
 
 
-class Criminal(aliasable.Aliasable):
+class Criminal(aliasable.AliasableMixin, LoadedObject):
     """A criminal to be wanted in bounties.
 
     :var name: The name of the criminal
@@ -25,8 +26,8 @@ class Criminal(aliasable.Aliasable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, faction : str, icon : str, builtIn : bool = False,
-                    isPlayer : bool = False, aliases : List[str] = [], wiki : str = ""):
+    def __init__(self, name: str, faction: str, icon: str, builtIn: bool = False,
+                    isPlayer: bool = False, aliases: List[str] = [], wiki: str = ""):
         """
         :param str name: The name of the criminal
         :param str faction: the faction that this criminal is wanted by
@@ -67,7 +68,7 @@ class Criminal(aliasable.Aliasable):
 
 
     @classmethod
-    def deserialize(cls, crimDict : dict, **kwargs) -> Criminal:
+    def deserialize(cls, crimDict: dict, **kwargs) -> Criminal:
         """Factory function that will either provide a reference to a builtIn criminal if a builtIn criminal is requested,
         or construct a new criminal object from the provided data.
 

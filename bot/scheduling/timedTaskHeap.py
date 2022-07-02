@@ -22,7 +22,7 @@ class TimedTaskHeap:
     :vartype hasExpiryFunctionArgs: bool
     """
 
-    def __init__(self, expiryFunction : Optional[timedTask.TTCallbackType] = None, expiryFunctionArgs : Any = None):
+    def __init__(self, expiryFunction: Optional[timedTask.TTCallbackType] = None, expiryFunctionArgs: Any = None):
         """
         :param function expiryFunction: function reference to call upon the expiry of any
                                         TimedTask managed by this heap. (Default None)

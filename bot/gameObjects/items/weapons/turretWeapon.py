@@ -11,7 +11,7 @@ class TurretWeapon(Weapon):
     """
 
     @classmethod
-    def deserialize(cls, turretDict : dict, **kwargs) -> TurretWeapon:
+    def deserialize(cls, turretDict: dict, **kwargs) -> TurretWeapon:
         """Factory function constructing a new turretWeapon object from a dictionary serialised representation -
         the opposite of turretWeapon.serialize.
 

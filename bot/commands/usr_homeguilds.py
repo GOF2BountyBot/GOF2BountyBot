@@ -10,7 +10,7 @@ from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 botCommands.addHelpSection(0, "home servers")
 
 
-async def cmd_transfer(message : discord.Message, args : str, isDM : bool):
+async def cmd_transfer(message: discord.Message, args: str, isDM: bool):
     """Transfer the calling user's home guild to the guild where the message was sent.
 
     :param discord.Message message: the discord message calling the command
@@ -43,7 +43,7 @@ botCommands.register("transfer", cmd_transfer, 0, allowDM=False, helpSection="ho
                                 + "confirmation first, since this command has a long cooldown!")
 
 
-async def cmd_home(message : discord.Message, args : str, isDM : bool):
+async def cmd_home(message: discord.Message, args: str, isDM: bool):
     """Display the name of the calling user's home guild, if they have one.
 
     :param discord.Message message: the discord message calling the command

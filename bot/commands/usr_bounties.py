@@ -96,7 +96,7 @@ botCommands.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "c
 
 
 
-async def cmd_check(message : discord.Message, args : str, isDM : bool):
+async def cmd_check(message: discord.Message, args: str, isDM: bool):
     """Check a system for bounties and handle rewards
 
     :param discord.Message message: the discord message calling the command
@@ -239,7 +239,7 @@ async def cmd_check(message : discord.Message, args : str, isDM : bool):
                         rewards = bounty.calcRewards(classicModeUserIDs)
                         rewardsMeta = {i: RewardsMeta.NONE for i in rewards}
 
-                        # userID : reward
+                        # userID: reward
                         distributeRewards: Dict[int, int] = {}
                         guildMaxDiv = callingGuild.bountiesDB.divisionForLevel(cfg.maxTechLevel)
 
@@ -501,7 +501,7 @@ botCommands.register("bounties", cmd_bounties, 0, allowDM=False, helpSection="bo
                                     + "Division can be given either as a name, or as a difficulty level in that division.")
 
 
-async def cmd_route(message : discord.Message, args : str, isDM : bool):
+async def cmd_route(message: discord.Message, args: str, isDM: bool):
     """Display the current route of the requested criminal
 
     :param discord.Message message: the discord message calling the command
@@ -548,7 +548,7 @@ botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty h
                                     + "For a list of aliases for a given criminal, see `info criminal`.")
 
 
-async def cmd_duel(message : discord.Message, args : str, isDM : bool):
+async def cmd_duel(message: discord.Message, args: str, isDM: bool):
     """⚠ WARNING: MARKED FOR CHANGE ⚠
     The following function is provisional and marked as planned for overhaul.
     Details: Overhaul is part-way complete, with a few fighting algorithm provided in gameObjects.items.battles.
@@ -756,7 +756,7 @@ botCommands.register("duel", cmd_duel, 0, forceKeepArgsCasing=True, allowDM=Fals
                                     + "you will win - the 'stakes'.")
 
 
-async def cmd_use(message : discord.Message, args : str, isDM : bool):
+async def cmd_use(message: discord.Message, args: str, isDM: bool):
     """Use the specified tool from the user's inventory.
 
     :param discord.Message message: the discord message calling the command
@@ -804,7 +804,7 @@ botCommands.register("use", cmd_use, 0, allowDM=False, helpSection="bounty hunti
                                     + " apply the skin to your active ship.")
 
 
-async def cmd_prestige(message : discord.Message, args : str, isDM : bool):
+async def cmd_prestige(message: discord.Message, args: str, isDM: bool):
     """Reset the calling user's bounty hunter xp to zero and remove all of their items.
     Can only be used by level 10 bounty hunters.
 
@@ -900,7 +900,7 @@ botCommands.register("prestige", cmd_prestige, 0, helpSection="bounty hunting", 
                             + "`Kaamo` will be made accessible again once you reach level 10!")
 
 
-async def cmd_div_up(message : discord.Message, args : str, isDM : bool):
+async def cmd_div_up(message: discord.Message, args: str, isDM: bool):
     """Ascend to the next division.
 
     :param discord.Message message: the discord message calling the command
@@ -992,7 +992,7 @@ botCommands.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", sign
                                 + "work your way back up again.")
 
 
-async def cmd_div_down(message : discord.Message, args : str, isDM : bool):
+async def cmd_div_down(message: discord.Message, args: str, isDM: bool):
     """Descend a division.
 
     :param discord.Message message: the discord message calling the command

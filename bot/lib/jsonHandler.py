@@ -62,7 +62,7 @@ def saveObject(filePath: Union[Path, str], o: SerializesToJson, **kwargs):
     writeJSON(filePath, o.serialize(**kwargs))
 
 
-def depthLimitedWalk(top: str, maxDepth: int):
+def depthLimitedWalk(top: Union[str, Path], maxDepth: int):
     """os.walk but with a limited recursion depth.
     Written by Kishan Patel:
     https://www.semicolonworld.com/question/57766/python-3-travel-directory-tree-with-limited-recursion-depth

@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Dict, Any, Optional, Tuple, List
+from typing import Callable, Dict, Any, Optional, Tuple, List, Mapping
 
 
 def get_default_args(func: Callable) -> Dict[str, Any]:
@@ -34,7 +34,7 @@ class DefaultableMixin:
 
 
     @classmethod
-    def _makeDefaults(cls, args : Dict[str, Any] = {}, ignores : Tuple[str, ...] = (), **overrides) -> Dict[str, Any]:
+    def _makeDefaults(cls, args: Mapping[str, Any] = {}, ignores: Tuple[str, ...] = (), **overrides) -> Dict[str, Any]:
         """Creates a dictionary addressing each KEYWORD argument of this class's constructor.
         Does not address positional arguments.
 
@@ -55,7 +55,7 @@ class DefaultableMixin:
             cls._defaults = get_default_args(cls.__init__)
         newArgs = cls._defaults.copy()
         if ignores:
-            workingArgs = args.copy()
+            workingArgs = {k: v for k, v in args.items()}
             for argName in ignores:
                 if argName in workingArgs:
                     del workingArgs[argName]

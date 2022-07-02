@@ -76,7 +76,7 @@ def getIssueByNumber(issueNumber: int) -> Union[Issue, None]:
 #             issueData[templateName]
 
 
-async def cmd_issue_search(message : discord.Message, args : str, isDM : bool):
+async def cmd_issue_search(message: discord.Message, args: str, isDM: bool):
     """Search for github issues with the given title.
 
     :param discord.Message message: the discord message calling the command
@@ -121,7 +121,7 @@ botCommands.register("issue search", cmd_issue_search, 0, forceKeepArgsCasing=Tr
                                     + str(cfg.githubIssueSearchNumResults) + " most similar issues.")
 
 
-async def cmd_issue_get(message : discord.Message, args : str, isDM : bool):
+async def cmd_issue_get(message: discord.Message, args: str, isDM: bool):
     """Get the GitHub issue with the given number.
 
     :param discord.Message message: the discord message calling the command
@@ -169,7 +169,7 @@ botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, al
                         shortHelp="Get the GitHub issue with the given number.")
 
 
-# async def cmd_issue_submit(message : discord.Message, args : str, isDM : bool):
+# async def cmd_issue_submit(message: discord.Message, args: str, isDM: bool):
 #     """Submit a new GitHub issue.
 
 #     :param discord.Message message: the discord message calling the command
@@ -215,7 +215,7 @@ botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, al
 #                                     + "submit your issue directly through GitHub, with the URL found in `source`.")
 
 
-async def cmd_issue(message : discord.Message, args : str, isDM : bool):
+async def cmd_issue(message: discord.Message, args: str, isDM: bool):
     """Various github issues actions
 
     :param discord.Message message: the discord message calling the command

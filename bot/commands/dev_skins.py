@@ -19,7 +19,7 @@ PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/th
 botCommands.addHelpSection(3, "skins")
 
 
-async def dev_cmd_addSkin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_addSkin(message: discord.Message, args: str, isDM: bool):
     """Make the specified ship compatible with the specified skin.
 
     :param discord.Message message: the discord message calling the command
@@ -82,7 +82,7 @@ async def dev_cmd_addSkin(message : discord.Message, args : str, isDM : bool):
 botCommands.register("addSkin", dev_cmd_addSkin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_delSkin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_delSkin(message: discord.Message, args: str, isDM: bool):
     """Remove the specified ship's compatibility with the specified skin.
 
     :param discord.Message message: the discord message calling the command
@@ -143,7 +143,7 @@ async def dev_cmd_delSkin(message : discord.Message, args : str, isDM : bool):
 botCommands.register("delSkin", dev_cmd_delSkin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_makeSkin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_makeSkin(message: discord.Message, args: str, isDM: bool):
     """Make the specified ship compatible with the specified skin.
 
     :param discord.Message message: the discord message calling the command
@@ -204,7 +204,7 @@ async def dev_cmd_makeSkin(message : discord.Message, args : str, isDM : bool):
 botCommands.register("makeSkin", dev_cmd_makeSkin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_applySkin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_applySkin(message: discord.Message, args: str, isDM: bool):
     """Apply the specified ship skin to the equipped ship.
 
     :param discord.Message message: the discord message calling the command
@@ -239,7 +239,7 @@ async def dev_cmd_applySkin(message : discord.Message, args : str, isDM : bool):
 botCommands.register("applySkin", dev_cmd_applySkin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_unapplySkin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_unapplySkin(message: discord.Message, args: str, isDM: bool):
     """Remove the applied skin from the active ship.
 
     :param discord.Message message: the discord message calling the command
@@ -261,7 +261,7 @@ async def dev_cmd_unapplySkin(message : discord.Message, args : str, isDM : bool
 botCommands.register("unApplySkin", dev_cmd_unapplySkin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_add_skin_to_all_ships(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_add_skin_to_all_ships(message: discord.Message, args: str, isDM: bool):
     """Make all ships in the game compatible with the specified skin.
 
     :param discord.Message message: the discord message calling the command
@@ -296,7 +296,7 @@ async def dev_cmd_add_skin_to_all_ships(message : discord.Message, args : str, i
 botCommands.register("add-skin-to-all-ships", dev_cmd_add_skin_to_all_ships, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_del_skin_from_all_ships(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_skin_from_all_ships(message: discord.Message, args: str, isDM: bool):
     """Make all ships in the game incompatible with the specified skin.
 
     :param discord.Message message: the discord message calling the command
@@ -327,7 +327,7 @@ async def dev_cmd_del_skin_from_all_ships(message : discord.Message, args : str,
 botCommands.register("del-skin-from-all-ships", dev_cmd_del_skin_from_all_ships, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_show_incompatible_skin(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_show_incompatible_skin(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt ship
 
     :param discord.Message message: the discord message calling the command
@@ -400,7 +400,7 @@ async def dev_cmd_show_incompatible_skin(message : discord.Message, args : str, 
 botCommands.register("show-incompatible-skin", dev_cmd_show_incompatible_skin, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_try_all_skins(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_try_all_skins(message: discord.Message, args: str, isDM: bool):
     """Return the URL of the image bountybot uses to represent the specified inbuilt ship
     :param discord.Message message: the discord message calling the command
     :param str args: string containing a ship name and optionally a skin, prefaced with a + character.
@@ -458,7 +458,7 @@ async def dev_cmd_try_all_skins(message : discord.Message, args : str, isDM : bo
 botCommands.register("try-all-skins", dev_cmd_try_all_skins, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_set_autoskin_resolution(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_autoskin_resolution(message: discord.Message, args: str, isDM: bool):
     """Configure the resolution that cmd_showme_ship will render to.
 
     :param discord.Message message: the discord message calling the command
@@ -484,7 +484,7 @@ async def dev_cmd_set_autoskin_resolution(message : discord.Message, args : str,
 botCommands.register("set-showme-res", dev_cmd_set_autoskin_resolution, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_set_autoskin_samples(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_set_autoskin_samples(message: discord.Message, args: str, isDM: bool):
     """Configure the samples that cmd_showme_ship will render to.
 
     :param discord.Message message: the discord message calling the command
@@ -501,7 +501,7 @@ async def dev_cmd_set_autoskin_samples(message : discord.Message, args : str, is
 botCommands.register("set-showme-samples", dev_cmd_set_autoskin_samples, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_get_autoskin_configuration(message: discord.Message, args: str, isDM: bool):
     """Get the current configuration for rendering with cmd_showme_ship
 
     :param discord.Message message: the discord message calling the command
@@ -518,7 +518,7 @@ async def dev_cmd_get_autoskin_configuration(message : discord.Message, args : s
 botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
 
 
-async def dev_cmd_timed_showme_ship(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_timed_showme_ship(message: discord.Message, args: str, isDM: bool):
     """Perform cmd_showme_ship, but also send the amount of time taken to execute
 
     :param discord.Message message: the discord message calling the command

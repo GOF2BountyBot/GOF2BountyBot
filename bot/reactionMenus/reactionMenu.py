@@ -10,7 +10,7 @@ from discord.abc import GuildChannel
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Optional, Type, TypeVar, Union, Dict, List, cast
+from typing import Any, Awaitable, Callable, Generic, Optional, Type, TypeVar, Union, Dict, List, cast
 import asyncio
 from ..baseClasses.serializable import SerializesToJson, JsonType
 from . import expiryFunctions
@@ -249,7 +249,9 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.deserialize(data["emoji"], **kwargs))
 
 
-class ReactionMenu(SerializesToJson):
+TMenuOptionType = TypeVar("TMenuOptionType", bound=ReactionMenuOption)
+
+class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
     ReactionMenu need only be extended in the following cases:
@@ -313,7 +315,7 @@ class ReactionMenu(SerializesToJson):
     :vartype targetRole: discord.Role
     """
 
-    def __init__(self, msg: Message, options: Optional[Dict[lib.emojis.BasedEmoji, ReactionMenuOption]] = None,
+    def __init__(self, msg: Message, options: Optional[Dict[lib.emojis.BasedEmoji, TMenuOptionType]] = None,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
                  footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
                  authorName: str = "", targetMember: Optional[Union[User, Member]] = None, targetRole: Optional[Role] = None):
@@ -435,7 +437,7 @@ class ReactionMenu(SerializesToJson):
             menuEmbed.set_author(name=self.authorName, icon_url=self.icon)
 
         for option in self.options:
-            menuEmbed.add_field(name=option + " : " + self.options[option].name, value="‎", inline=False)
+            menuEmbed.add_field(name=option + ": " + self.options[option].name, value="‎", inline=False)
 
         return menuEmbed
 
@@ -538,7 +540,7 @@ class ReactionMenu(SerializesToJson):
         raise NotImplementedError("Attempted to deserialize an unserializable menu type: " + cls.__name__)
 
 
-class CancellableReactionMenu(ReactionMenu):
+class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
     """A simple ReactionMenu extension that adds an extra 'cancel' option to your given options dictionary.
     The 'cancel' option will call the menu's delete method. No extra restrictions beyond targetMember/targetRole are placed
     on members who may cancel the menu.
@@ -553,7 +555,7 @@ class CancellableReactionMenu(ReactionMenu):
     :vartype cancelEmoji: lib.emojis.BasedEmoji
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, ReactionMenuOption],
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, NonSaveableReactionMenuOption]],
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
                     footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
@@ -607,7 +609,7 @@ class CancellableReactionMenu(ReactionMenu):
         return baseDict
 
 
-class SingleUserReactionMenu(ReactionMenu):
+class SingleUserReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
     """An in-place menu solution.
 
     InlineReactionMenus do not need to be recorded in the reactionMenusDB, but instead have a
@@ -624,7 +626,7 @@ class SingleUserReactionMenu(ReactionMenu):
     """
 
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 options: Optional[Dict[lib.emojis.BasedEmoji, ReactionMenuOption]] = None,
+                 options: Optional[Dict[lib.emojis.BasedEmoji, TMenuOptionType]] = None,
                  returnTriggers: List[lib.emojis.BasedEmoji] = [], titleTxt: str = "", desc: str = "",
                  col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):

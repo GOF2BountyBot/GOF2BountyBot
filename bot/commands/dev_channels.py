@@ -7,7 +7,7 @@ from .. import botState
 botCommands.addHelpSection(3, "channels")
 
 
-async def dev_cmd_has_announce(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_has_announce(message: discord.Message, args: str, isDM: bool):
     """developer command printing whether or not the current guild has an announcements channel set
 
     :param discord.Message message: the discord message calling the command
@@ -20,7 +20,7 @@ async def dev_cmd_has_announce(message : discord.Message, args : str, isDM : boo
 botCommands.register("has-announce", dev_cmd_has_announce, 3, allowDM=False, helpSection="channels", useDoc=True)
 
 
-async def dev_cmd_get_announce(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_get_announce(message: discord.Message, args: str, isDM: bool):
     """developer command printing the current guild's announcements channel if one is set
 
     :param discord.Message message: the discord message calling the command
@@ -32,7 +32,7 @@ async def dev_cmd_get_announce(message : discord.Message, args : str, isDM : boo
 botCommands.register("get-announce", dev_cmd_get_announce, 3, allowDM=False, helpSection="channels", useDoc=True)
 
 
-async def dev_cmd_has_play(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_has_play(message: discord.Message, args: str, isDM: bool):
     """developer command printing whether or not the current guild has a play channel set
 
     :param discord.Message message: the discord message calling the command
@@ -45,7 +45,7 @@ async def dev_cmd_has_play(message : discord.Message, args : str, isDM : bool):
 botCommands.register("has-play", dev_cmd_has_play, 3, allowDM=False, helpSection="channels", useDoc=True)
 
 
-async def dev_cmd_get_play(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_get_play(message: discord.Message, args: str, isDM: bool):
     """developer command printing the current guild's play channel if one is set
 
     :param discord.Message message: the discord message calling the command

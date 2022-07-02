@@ -1,3 +1,4 @@
+from typing import Optional, cast
 import discord
 import time
 from datetime import timedelta
@@ -21,7 +22,8 @@ async def admin_cmd_admin_help(message: discord.Message, args: str, isDM: bool):
     """
     await util_help.util_autohelp(message, args, isDM, 2)
 
-botCommands.register("admin-help", admin_cmd_admin_help, 2, signatureStr="**admin-help** *[page number, section or command]*",
+botCommands.register("admin-help", admin_cmd_admin_help, 2, allowDM=False,
+                     signatureStr="**admin-help** *[page number, section or command]*",
                      shortHelp="Display information about admin-only commands.\nGive a specific command for detailed " \
                                 + "info about it, or give a page number or give a section name for brief info.",
                      longHelp="Display information about admin-only commands.\nGive a specific command for detailed " \
@@ -37,7 +39,8 @@ async def admin_cmd_set_prefix(message: discord.Message, args: str, isDM: bool):
     :param str args: the command prefix to use
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    callingBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    callingBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
 
     if not args:
         await message.reply(mention_author=False, content="Please provide the command prefix you would like to set. E.g: `" \
@@ -46,7 +49,8 @@ async def admin_cmd_set_prefix(message: discord.Message, args: str, isDM: bool):
         callingBGuild.commandPrefix = args
         await message.reply(mention_author=False, content="Command prefix set.")
 
-botCommands.register("set-prefix", admin_cmd_set_prefix, 2, signatureStr="**set-prefix <prefix>**",
+botCommands.register("set-prefix", admin_cmd_set_prefix, 2, allowDM=False,
+                     signatureStr="**set-prefix <prefix>**",
                      shortHelp="Set the prefix you would like to use for bot commands in this server.")
 
 
@@ -63,11 +67,11 @@ async def admin_cmd_ping(message: discord.Message, args: str, isDM: bool):
     duration = (end - start) * 1000
     await msg.edit(content='Pong! {:.2f}ms'.format(duration))
 
-botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**",
+botCommands.register("ping", admin_cmd_ping, 2, signatureStr="**ping**", allowDM=False,
                      shortHelp="Test the bot's response latency in milliseconds.")
 
 
-async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_config(message: discord.Message, args: str, isDM: bool):
     """Apply various bountybot configuration settings for the calling guild.
     TODO: Refactor!
 
@@ -76,10 +80,10 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     argsSplit = args.split(" ")
-    if isDM:
-        prefix = cfg.defaultCommandPrefix
-    else:
-        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    callingBBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
+
+    prefix = callingBBGuild.commandPrefix
 
     if len(argsSplit) < 2 or not (argsSplit[0] and argsSplit[1]):
         await message.reply(mention_author=False, content=":x: Please provide both a setting and a value! e.g: `" + prefix \
@@ -90,7 +94,6 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
 
     trueStrings = ["yes", "true", "on", "enable", "enabled"]
     falseStrings = ["no", "false", "off", "disable", "disabled"]
-    callingBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
 
     if setting in ["bounty", "bounties"]:
         if value in trueStrings:
@@ -127,7 +130,7 @@ async def admin_cmd_config(message : discord.Message, args : str, isDM : bool):
     else:
         await message.reply(mention_author=False, content=":x: Unknown setting!")
 
-botCommands.register("config", admin_cmd_config, 2, signatureStr="**config <setting> <value>**",
+botCommands.register("config", admin_cmd_config, 2, allowDM=False, signatureStr="**config <setting> <value>**",
                         shortHelp="Set various settings for how bountybot will function in this server.",
                         longHelp="Set various settings for how bountybot will function in this server. Currently, " \
                                     + "`setting` can be either 'bounties' or 'shop', and `value` can either " \
@@ -135,7 +138,7 @@ botCommands.register("config", admin_cmd_config, 2, signatureStr="**config <sett
                                     + "or disable large amounts of functionality all together.")
 
 
-async def admin_cmd_del_reaction_menu(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_del_reaction_menu(message: discord.Message, args: str, isDM: bool):
     """Force the expiry of the specified reaction menu message, regardless of reaction menu type.
 
     :param discord.Message message: the discord message calling the command
@@ -148,13 +151,14 @@ async def admin_cmd_del_reaction_menu(message : discord.Message, args : str, isD
     else:
         await message.reply(mention_author=False, content=":x: Unrecognised reaction menu!")
 
-botCommands.register("del-reaction-menu", admin_cmd_del_reaction_menu, 2, signatureStr="**del-reaction-menu <id>**",
+botCommands.register("del-reaction-menu", admin_cmd_del_reaction_menu, 2, allowDM=False,
+                        signatureStr="**del-reaction-menu <id>**",
                         longHelp="Remove the specified reaction menu. You can also just delete the message," \
                                     + " if you have permissions.\nTo get the ID of a reaction menu, enable discord's " \
                                     + "developer mode, right click on the menu, and click Copy ID.")
 
 
-async def admin_cmd_set_notify_role(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_set_notify_role(message: discord.Message, args: str, isDM: bool):
     """For the current guild, set a role to mention when certain events occur.
 
     can take either a role mention or ID.
@@ -171,7 +175,9 @@ async def admin_cmd_set_notify_role(message : discord.Message, args : str, isDM 
         await message.reply(mention_author=False, content=":x: Invalid role! Please give either a role mention or ID!")
         return
 
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    dcGuild = cast(discord.Guild, message.guild)
+    requestedBBGuild = botState.client.guildsDB.getGuild(dcGuild.id)
     alertsToSet = userAlerts.getAlertIDFromHeirarchicalAliases(argsSplit)
     if alertsToSet[0] == "ERR":
         await message.reply(alertsToSet[1].replace("$COMMANDPREFIX$", requestedBBGuild.commandPrefix),
@@ -179,9 +185,9 @@ async def admin_cmd_set_notify_role(message : discord.Message, args : str, isDM 
         return
 
     if lib.stringTyping.isRoleMention(argsSplit[-1]):
-        requestedRole = message.guild.get_role(int(argsSplit[-1][3:-1]))
+        requestedRole = dcGuild.get_role(int(argsSplit[-1][3:-1]))
     else:
-        requestedRole = message.guild.get_role(int(argsSplit[-1]))
+        requestedRole = dcGuild.get_role(int(argsSplit[-1]))
 
     if requestedRole is None:
         await message.reply(mention_author=False, content=":x: Role not found!")
@@ -193,7 +199,7 @@ async def admin_cmd_set_notify_role(message : discord.Message, args : str, isDM 
         await message.reply(mention_author=False, content=":white_check_mark: Role set for " + userAlerts.userAlertsTypesNames[alertType] \
                                     + " notifications!")
 
-botCommands.register("set-notify-role", admin_cmd_set_notify_role, 2,
+botCommands.register("set-notify-role", admin_cmd_set_notify_role, 2, allowDM=False,
                         signatureStr="**set-notify-role <type>** *[alert]* **<role>**",
                         shortHelp="Set a role to ping when various events occur. For valid notification types, " \
                                     + "see `help notify`.", longHelp="Set a role to ping when various events occur. " \
@@ -201,7 +207,7 @@ botCommands.register("set-notify-role", admin_cmd_set_notify_role, 2,
                                     + "either a role mention, or a role ID. For valid notification types, see `help notify`.")
 
 
-async def admin_cmd_remove_notify_role(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_remove_notify_role(message: discord.Message, args: str, isDM: bool):
     """For the current guild, remove role mentioning when certain events occur.
     Takes only a UserAlert ID.
 
@@ -213,7 +219,8 @@ async def admin_cmd_remove_notify_role(message : discord.Message, args : str, is
         await message.reply(mention_author=False, content=":x: Please provide both a notification type!")
         return
 
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    requestedBBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     alertsToSet = userAlerts.getAlertIDFromHeirarchicalAliases(args)
     if alertsToSet[0] == "ERR":
         await message.reply(alertsToSet[1].replace("$COMMANDPREFIX$", requestedBBGuild.commandPrefix),
@@ -226,14 +233,14 @@ async def admin_cmd_remove_notify_role(message : discord.Message, args : str, is
         await message.reply(mention_author=False, content=":white_check_mark: Role pings disabled for " \
                                     + userAlerts.userAlertsTypesNames[alertType] + " notifications.")
 
-botCommands.register("remove-notify-role", admin_cmd_remove_notify_role, 2,
+botCommands.register("remove-notify-role", admin_cmd_remove_notify_role, 2, allowDM=False,
                         signatureStr="**remove-notify-role <type>** *[alert]*",
                         shortHelp="Disable role pings for various events. For valid notification types, see `help notify`.",
                         longHelp="Disable role pings for various events. **<type>** and/or *[alert]* must specify a type of " \
                                     + "notification. For valid notification types, see `help notify`.")
 
 
-async def admin_cmd_make_bounty_notify_roles(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_make_bounty_notify_roles(message: discord.Message, args: str, isDM: bool):
     """For the current guild, create 10 notify-able roles, one for each user tech level.
     These roles will be used to alert users when new bounties spawn at each tech level.
 
@@ -241,18 +248,20 @@ async def admin_cmd_make_bounty_notify_roles(message : discord.Message, args : s
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    dcGuild = cast(discord.Guild, message.guild)
+    requestedBBGuild = botState.client.guildsDB.getGuild(dcGuild.id)
     if requestedBBGuild.hasBountyAlertRoles:
         await message.reply(":x: This server already has new bounty alert roles!")
     elif requestedBBGuild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server!")
-    elif not message.guild.me.guild_permissions.manage_roles:
+    elif not dcGuild.me.guild_permissions.manage_roles:
         await message.channel.send(":x: I do not have the 'Manage Roles' permission in this server!")
     else:
         await requestedBBGuild.makeBountyAlertRoles()
         await message.channel.send(":white_check_mark: New roles have been created for new bounties notifications!")
 
-botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_roles, 2,
+botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_roles, 2, allowDM=False,
                         signatureStr="**make-bounty-notify-roles**",
                         shortHelp=f"Make {len(cfg.bountyDivisionNames)} roles, one for each tech levle users can be, " \
                                     + "which the bot will ping when new bounties are spawned.",
@@ -264,28 +273,30 @@ botCommands.register("make-bounty-notify-roles", admin_cmd_make_bounty_notify_ro
                                     + "and they must remain pingable by the bot.")
 
 
-async def admin_cmd_remove_bounty_notify_roles(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_remove_bounty_notify_roles(message: discord.Message, args: str, isDM: bool):
     """Remove all new bounty alert roles in the calling guild.
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    dcGuild = cast(discord.Guild, message.guild)
+    requestedBBGuild = botState.client.guildsDB.getGuild(dcGuild.id)
     if not requestedBBGuild.hasBountyAlertRoles:
         await message.reply(":x: This server does not have new bounty alert roles!")
-    elif not message.guild.me.guild_permissions.manage_roles:
+    elif not dcGuild.me.guild_permissions.manage_roles:
         await message.channel.send(":x: I do not have the 'Manage Roles' permission in this server!")
     else:
         await requestedBBGuild.deleteBountyAlertRoles()
         await message.channel.send(":white_check_mark: New bounties notifications have been disabled, and their roles removed!")
 
-botCommands.register("remove-bounty-notify-roles", admin_cmd_remove_bounty_notify_roles, 2,
+botCommands.register("remove-bounty-notify-roles", admin_cmd_remove_bounty_notify_roles, 2, allowDM=False,
                         signatureStr="**remove-bounty-notify-roles**",
                         shortHelp="Disable new bounty notifications, and remove all new bounty alert roles from the server.")
 
 
-async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_make_role_menu(message: discord.Message, args: str, isDM: bool):
     """Create a reaction role menu, allowing users to self-assign or remove roles by adding and removing reactions.
     Each guild may have a maximum of cfg.maxRoleMenusPerGuild role menus active at any one time.
     Option reactions must be either unicode, or custom to the server where the menu is being created.
@@ -300,11 +311,11 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
     The menu subject is optional. To not provide a subject, simply start args with a new line.
 
     args may also optionally contain the following keyword arguments, given as argname=value
-    - target         : A role or user to restrict participants by. Must be a user or role mention, not ID.
-    - days           : The number of days that the menu should run for. Must be at least one, or unspecified.
-    - hours          : The number of hours that the menu should run for. Must be at least one, or unspecified.
-    - minutes        : The number of minutes that the menu should run for. Must be at least one, or unspecified.
-    - seconds        : The number of seconds that the menu should run for. Must be at least one, or unspecified.
+    - target        : A role or user to restrict participants by. Must be a user or role mention, not ID.
+    - days          : The number of days that the menu should run for. Must be at least one, or unspecified.
+    - hours         : The number of hours that the menu should run for. Must be at least one, or unspecified.
+    - minutes       : The number of minutes that the menu should run for. Must be at least one, or unspecified.
+    - seconds       : The number of seconds that the menu should run for. Must be at least one, or unspecified.
 
     Reaction menus can be forced to run forever. To do this, specify ALL run time kwargs as 'off'.
 
@@ -318,7 +329,9 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
                         as specified in this function's docstring
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    dcGuild = cast(discord.Guild, message.guild)
+    requestedBBGuild = botState.client.guildsDB.getGuild(dcGuild.id)
     if requestedBBGuild.ownedRoleMenus >= cfg.maxRoleMenusPerGuild:
         await message.reply(mention_author=False, content=":x: Guilds can have at most " + str(cfg.maxRoleMenusPerGuild) + " role menus!")
         return
@@ -326,12 +339,12 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
 
     botRole = None
     potentialRoles = []
-    for currRole in message.guild.me.roles:
-        if currRole.name == message.guild.me.name and currRole.managed:
+    for currRole in dcGuild.me.roles:
+        if currRole.name == dcGuild.me.name and currRole.managed:
             potentialRoles.append(currRole)
 
     if potentialRoles == []:
-        await message.reply(mention_author=False, content=":x: I can't find my '" + message.guild.me.name + "' role! Have you renamed it?")
+        await message.reply(mention_author=False, content=":x: I can't find my '" + dcGuild.me.name + "' role! Have you renamed it?")
         return
     botRole = potentialRoles[-1]
 
@@ -375,7 +388,7 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
                 return
             elif dumbReact.isID:
                 localEmoji = False
-                for localEmoji in message.guild.emojis:
+                for localEmoji in dcGuild.emojis:
                     if localEmoji.id == dumbReact.id:
                         localEmoji = True
                         break
@@ -391,7 +404,7 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
                 return
 
 
-            role = message.guild.get_role(int(roleStr.lstrip("<@&").rstrip(">")))
+            role = dcGuild.get_role(int(roleStr.lstrip("<@&").rstrip(">")))
             if role is None:
                 await message.reply(mention_author=False, content=":x: Unrecognised role: " + roleStr)
                 return
@@ -404,17 +417,17 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
         await message.reply(mention_author=False, content=":x: No roles given!")
         return
 
-    targetRole = None
-    targetMember = None
+    targetRole: Optional[discord.Role] = None
+    targetMember: Optional[discord.Member] = None
     if "target" in kwArgs:
         if lib.stringTyping.isRoleMention(kwArgs["target"]):
-            targetRole = message.guild.get_role(int(kwArgs["target"].lstrip("<@&").rstrip(">")))
+            targetRole = dcGuild.get_role(int(kwArgs["target"].lstrip("<@&").rstrip(">")))
             if targetRole is None:
                 await message.reply(mention_author=False, content=":x: Unknown target role!")
                 return
 
         elif lib.stringTyping.isMention(kwArgs["target"]):
-            targetMember = message.guild.get_member(int(kwArgs["target"].lstrip("<@!").rstrip(">")))
+            targetMember = dcGuild.get_member(int(kwArgs["target"].lstrip("<@!").rstrip(">")))
             if targetMember is None:
                 await message.reply(mention_author=False, content=":x: Unknown target user!")
                 return
@@ -445,7 +458,7 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
     menuMsg = await message.reply(mention_author=False, content="‎")
 
     if timeoutExists:
-        timeoutDelta = timedelta(**cfg.timeouts.roleMenuExpiry if timeoutDict == {} else timeoutDict)
+        timeoutDelta = cfg.timeouts.roleMenuExpiry if timeoutDict == {} else timedelta(**timeoutDict)
         timeoutTT = timedTask.TimedTask(expiryDelta=timeoutDelta, expiryFunction=reactionRolePicker.markExpiredRoleMenu,
                                         expiryFunctionArgs=menuMsg.id)
         botState.client.taskScheduler.scheduleTask(timeoutTT)
@@ -453,14 +466,14 @@ async def admin_cmd_make_role_menu(message : discord.Message, args : str, isDM :
     else:
         timeoutTT = None
 
-    menu = reactionRolePicker.ReactionRolePicker(menuMsg, reactionRoles, message.guild, targetRole=targetRole,
+    menu = reactionRolePicker.ReactionRolePicker(menuMsg, reactionRoles, dcGuild, targetRole=targetRole,
                                                     targetMember=targetMember, timeout=timeoutTT, titleTxt=menuSubject)
     await menu.updateMessage()
     botState.client.reactionMenusDB[menuMsg.id] = menu
 
 botCommands.register("make-role-menu", admin_cmd_make_role_menu, 2, forceKeepArgsCasing=True,
                         signatureStr="**make-role-menu** *<title>*\n**<option1 emoji> <@option1 role>**\n" \
-                                        + "...    ...\n*[kwargs]*",
+                                        + "...    ...\n*[kwargs]*", allowDM=False,
                         shortHelp="Create a reaction role menu. Each option must be on its own new line, as an emoji, " \
                                     + "followed by a space, followed by a mention of the role to grant.",
                         longHelp="Create a reaction role menu. Each option must be on its own new line, as an emoji, " \
@@ -473,7 +486,7 @@ botCommands.register("make-role-menu", admin_cmd_make_role_menu, 2, forceKeepArg
                                     + "`off`.(default: minutes=5)")
 
 
-async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_showmeHD(message: discord.Message, args: str, isDM: bool):
     """Render the attached image file onto the specified ship, in high definition.
 
     :param discord.Message message: the discord message calling the command
@@ -483,7 +496,8 @@ async def admin_cmd_showmeHD(message : discord.Message, args : str, isDM : bool)
     if isDM:
         prefix: str = cfg.defaultCommandPrefix
     else:
-        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
+        # Casting here because message.guild can be none, but it cannot be None here because we know that isDM is False
+        prefix = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id).commandPrefix
 
     # verify a item was given
     if args == "":

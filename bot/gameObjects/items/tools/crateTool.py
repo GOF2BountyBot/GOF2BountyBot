@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
     from ....users import basedUser
 import random
@@ -13,7 +13,7 @@ from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
-from ....baseClasses.hasRarity import HasRarity
+from ....baseClasses.hasRarity import HasRarityMixin
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
@@ -32,8 +32,9 @@ def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     return dec_register
 
 
+TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
 @gameItem.spawnableItem
-class CrateTool(toolItem.ToolItem):
+class CrateTool(toolItem.ToolItem, Generic[TItemType]):
     """A tool containing a pool of GameItems which, when used, gives the user a single random item from the pool.
     Also automatically removes itself from the user's inventory upon use.
 
@@ -48,9 +49,9 @@ class CrateTool(toolItem.ToolItem):
     :vartype useRarities: bool
     """
 
-    def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
+    def __init__(self, itemPool: List[TItemType], name: str = "", value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = cfg.defaultCrateIcon, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, crateType: str = "", typeNum: int = 0,
             autoUse: bool = False):
         """
         :param List[gameItem.GameItem] itemPool: List of potential items to win. May contain duplicates.
@@ -92,18 +93,20 @@ class CrateTool(toolItem.ToolItem):
         self.useRarities = False
         for index, item in enumerate(self.itemPool):
             # Make sure all items have rarity
-            if not isinstance(item, HasRarity):
+            if not isinstance(item, HasRarityMixin):
                 self.useRarities = False
                 break
             # Make sure there are at least two rarity levels
+            # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True due to the above check
             if not self.useRarities \
                     and index != len(self.itemPool) - 1 \
-                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel:
+                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel: # type: ignore[reportGeneralTypeIssues]
                 self.useRarities = True
 
         if self.useRarities:
             self._itemPoolByRarity = [
-                [i for i in self.itemPool if i.rarityLevel == rarityLevel]
+                # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True due to the above check
+                [i for i in self.itemPool if i.rarityLevel == rarityLevel] # type: ignore[reportGeneralTypeIssues]
                 for rarityLevel in range(len(cfg.itemRarities))
             ]
         else:
@@ -111,7 +114,7 @@ class CrateTool(toolItem.ToolItem):
 
 
     @property
-    def itemPoolByRarity(self) -> List[List[gameItem.GameItem]]:
+    def itemPoolByRarity(self) -> List[List[TItemType]]:
         """A read-only list, with lists containing the items in the crates item pool for each rarity level
         defined in `cfg.itemRarities`. This property is only valid when `self.useRarities` is `True`.
 
@@ -120,10 +123,10 @@ class CrateTool(toolItem.ToolItem):
         """
         if not self.useRarities:
             raise ValueError("itemPoolByRarity is not valid for this crate, as useRarities = False")
-        return self._itemPoolByRarity
+        return cast(List[List[TItemType]], self._itemPoolByRarity)
 
 
-    def pickItem(self) -> gameItem.GameItem:
+    def pickItem(self) -> TItemType:
         """Select an item from the crate, accounting for self.useRarities
 
         :return: A randomly selected item from the item pool
@@ -133,7 +136,8 @@ class CrateTool(toolItem.ToolItem):
             return random.choice(self.itemPool)
 
         rarityLevel = gameMaths.pickRandomItemRarityLevel()
-        while not any(i.rarityLevel == rarityLevel for i in self.itemPool):
+        # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True
+        while not any(i.rarityLevel == rarityLevel for i in self.itemPool): # type: ignore[reportGeneralTypeIssues]
             rarityLevel = gameMaths.pickRandomItemRarityLevel()
 
         return random.choice(self.itemPoolByRarity[rarityLevel])
@@ -153,7 +157,9 @@ class CrateTool(toolItem.ToolItem):
 
         callingBUser = kwargs["callingBUser"]
         newItem = self.pickItem()
-        callingBUser.getInventoryForItem(newItem).addItem(newItem)
+        # Ignoring a warning here because pyright is complaining about potentially adding a GameItem to a UserToolInventory
+        # But this can only happen if newItem is in fact a tool, due to the getInventoryForItem check
+        callingBUser.getInventoryForItem(newItem).addItem(newItem) # type: ignore[reportGeneralTypeIssues]
         callingBUser.inactiveTools.removeItem(self)
 
 
@@ -328,14 +334,14 @@ class CrateTool(toolItem.ToolItem):
 
 @gameItem.spawnableItem
 @singleTypeCrate(shipSkinTool.ShipSkinTool)
-class ShipSkinCrateTool(CrateTool):
+class ShipSkinCrateTool(CrateTool[shipSkinTool.ShipSkinTool]):
     """A crate that only contains ShipSkinTools.
     Has a custom statsStringLong.
     """
     
-    def __init__(self, itemPool: List[shipSkinTool.ShipSkinTool], name : str = "", value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
+    def __init__(self, itemPool: List[shipSkinTool.ShipSkinTool], name: str = "", value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = cfg.defaultCrateIcon, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, crateType: str = "", typeNum: int = 0,
             autoUse: bool = False):
         """
         :param List[shipSkinTool.ShipSkinTool] itemPool: List of potential items to win. May contain duplicates.
@@ -356,7 +362,9 @@ class ShipSkinCrateTool(CrateTool):
         """
         if any(not isinstance(i, shipSkinTool.ShipSkinTool) for i in itemPool):
             raise TypeError(f"all items in itemPool must be of type {shipSkinTool.ShipSkinTool.__name__}")
-        super().__init__(itemPool, name=name, value=value, wiki=wiki,
+        
+        # ignoring a warning here - pyright thinks ShipSkinTool is not a GameItem, but ShipSkinTool extends ToolItem, which extends GameItem
+        super().__init__(itemPool, name=name, value=value, wiki=wiki, # type: ignore[reportGeneralTypeIssues]
             manufacturer=manufacturer, icon=icon, emoji=emoji,
             techLevel=techLevel, builtIn=builtIn, crateType=crateType, typeNum=typeNum, autoUse=autoUse)
 

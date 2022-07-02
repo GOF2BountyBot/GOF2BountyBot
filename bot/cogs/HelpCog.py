@@ -14,6 +14,8 @@ from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
 from .helpUtil import *
+from typing import List, cast
+from discord.abc import Snowflake
 
 
 def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild]) -> Optional[Union[app_commands.Command, app_commands.Group]]:
@@ -365,4 +367,6 @@ class HelpCog(basedApp.BasedCog):
 
 async def setup(bot: client.BasedClient):
     bot.remove_command("help")
-    await bot.add_cog(HelpCog(bot), guilds=cfg.developmentGuilds)
+    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
+    # even though it extends discord.Object
+    await bot.add_cog(HelpCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))

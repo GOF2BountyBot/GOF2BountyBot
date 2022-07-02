@@ -1,22 +1,26 @@
+from typing import cast
 import discord
+from discord.abc import GuildChannel
 
 from . import commandsDB as botCommands
 from .. import botState, lib
 from ..cfg import bbData, cfg
 from ..users.basedGuild import BasedGuild
-from ..databases.bountyDB import nameForDivision
+from ..databases.bountyDB import nameForDivision, BountyDB
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 botCommands.addHelpSection(2, "channels")
 
 
-async def admin_cmd_set_announce_channel(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_set_announce_channel(message: discord.Message, args: str, isDM: bool):
     """admin command for setting the current guild's announcements channel
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    requestedBBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     if args == "off":
         if requestedBBGuild.hasAnnounceChannel():
             requestedBBGuild.removeAnnounceChannel()
@@ -29,6 +33,9 @@ async def admin_cmd_set_announce_channel(message : discord.Message, args : str, 
         await message.reply(":x: Invalid arguments! Can only be `off` to disable this server's announce channel, " \
                                     + "or no args to use this channel as the announce channel.",
                             mention_author=False)
+    elif not isinstance(message.channel, discord.TextChannel):
+        await message.reply(":x: Invalid channel. Only text channels are accepted.",
+                            mention_author=False)
     else:
         requestedBBGuild.setAnnounceChannel(message.channel)
         await message.reply(":ballot_box_with_check: Announcements channel set!",
@@ -40,14 +47,15 @@ botCommands.register("set-announce-channel", admin_cmd_set_announce_channel, 2, 
                                 + "> Use `set-announce-channel off` to disable announcements.")
 
 
-async def admin_cmd_set_play_channel(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_set_play_channel(message: discord.Message, args: str, isDM: bool):
     """admin command for setting the current guild's play channel
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    requestedBBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     if args == "off":
         if requestedBBGuild.hasPlayChannel():
             requestedBBGuild.removePlayChannel()
@@ -57,6 +65,9 @@ async def admin_cmd_set_play_channel(message : discord.Message, args : str, isDM
     elif args != "":
         await message.reply(mention_author=False, content=":x: Invalid arguments! Can only be `off` to disable this server's play channel, " \
                                     + "or no args to use this channel as the play channel.")
+    elif not isinstance(message.channel, discord.TextChannel):
+        await message.reply(":x: Invalid channel. Only text channels are accepted.",
+                            mention_author=False)
     else:
         requestedBBGuild.setPlayChannel(message.channel)
         await message.reply(mention_author=False, content=":ballot_box_with_check: Bounty play channel set!")
@@ -67,14 +78,15 @@ botCommands.register("set-play-channel", admin_cmd_set_play_channel, 2, allowDM=
                         + "> Use `set-play-channel off` to disable completed bounty announcements.")
 
 
-async def admin_cmd_set_renders_channel(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_set_renders_channel(message: discord.Message, args: str, isDM: bool):
     """admin command for setting the current guild's autoskin renders channel
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    requestedBBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    requestedBBGuild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     if args == "off":
         if requestedBBGuild.hasRendersChannel():
             requestedBBGuild.removeRendersChannel()
@@ -87,6 +99,9 @@ async def admin_cmd_set_renders_channel(message : discord.Message, args : str, i
         await message.reply(":x: Invalid arguments! Can only be `off` to disable this server's renders channel, " \
                                     + "or no args to use this channel as the renders channel.",
                             mention_author=False)
+    elif not isinstance(message.channel, discord.TextChannel):
+        await message.reply(":x: Invalid channel. Only text channels are accepted.",
+                            mention_author=False)
     else:
         requestedBBGuild.setRendersChannel(message.channel)
         await message.reply(":ballot_box_with_check: Renders channel set!",
@@ -98,47 +113,57 @@ botCommands.register("set-renders-channel", admin_cmd_set_renders_channel, 2, al
                                 + "> Use `set-renders-channel off` to disable this restriction again.")
 
 
-async def admin_cmd_make_bounty_board_channels(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_make_bounty_board_channels(message: discord.Message, args: str, isDM: bool):
     """admin command for creating and activating new channels for each division, as bounty board channels
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     """
-    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    dcGuild = cast(discord.Guild, message.guild)
+    guild = botState.client.guildsDB.getGuild(dcGuild.id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")
         return
+        
+    # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
+    bountiesDB = cast(BountyDB, guild.bountiesDB)
+
     if guild.hasBountyBoardChannels:
         await message.reply(mention_author=False,
                             content=":x: This server already has bounty board channels! Use `" + guild.commandPrefix \
                                     + "remove-bounty-board-channels` to remove them.")
         return
     
-    if category := message.channel.category:
-        if not message.guild.me.permissions_in(category).manage_channels:
+    if isinstance(message.channel, GuildChannel) and (category := message.channel.category):
+        if not category.permissions_for(dcGuild.me).manage_channels:
             await message.reply(mention_author=False, content=":x: I don't have permission to create new channels here!")
             return
-    elif not message.guild.me.guild_permissions.manage_channels:
-        await message.reply(mention_author=False, content=":x: I don't have permission to create new channels here!")
-        return
+    else:
+        category = None
+        if not dcGuild.me.guild_permissions.manage_channels:
+            await message.reply(mention_author=False, content=":x: I don't have permission to create new channels here!")
+            return
     
     try:
-        for div in guild.bountiesDB.divisions.values():
-            divChannel = await message.guild.create_text_channel(nameForDivision(div) + "-bounty-board", category=category,
+        for div in bountiesDB.divisions.values():
+            divChannel = await dcGuild.create_text_channel(nameForDivision(div) + "-bounty-board", category=category,
                                                                     reason="admin requested creation of bountyboard channels")
             await div.addBountyBoardChannel(divChannel, botState.client)
     except (discord.Forbidden, discord.HTTPException, lib.exceptions.NoLongerExists):
         await message.channel.send(":woozy_face: Creation of a channel failed. " \
                                     + "Please make sure I've got permission to make channels, and try again.")
-        for div in guild.bountiesDB.divisions.values():
+        for div in bountiesDB.divisions.values():
             if div.bountyBoardChannel is not None:
                 div.removeBountyBoardChannel()
     else:
         await message.reply(mention_author=False,
                             content=":ballot_box_with_check: Bounty board channels created and activated:\n" \
-                                + ", ".join(div.bountyBoardChannel.channel.mention
-                                            for div in guild.bountiesDB.divisions.values()))
+                                # Casting here because division.bountyBoardChannel can be None, but this is checked for with the
+                                # guild.hasBountyBoardChannels check above.
+                                + ", ".join(cast(BountyBoardChannel, div.bountyBoardChannel).channel.mention
+                                            for div in bountiesDB.divisions.values()))
         guild.hasBountyBoardChannels = True
 
 botCommands.register("make-bounty-board-channels", admin_cmd_make_bounty_board_channels, 2, allowDM=False,
@@ -149,21 +174,23 @@ botCommands.register("make-bounty-board-channels", admin_cmd_make_bounty_board_c
                                 + "(listings for located bounties are removed).")
 
 
-async def admin_cmd_remove_bounty_board_channels(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_remove_bounty_board_channels(message: discord.Message, args: str, isDM: bool):
     """admin command for removing the current guild's bounty board channels
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    guild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")
     elif not guild.hasBountyBoardChannels:
         await message.reply(":x: This server does not have bounty board channels!")
     else:
-        for div in guild.bountiesDB.divisions.values():
+        # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
+        for div in cast(BountyDB, guild.bountiesDB).divisions.values():
             div.removeBountyBoardChannel()
         guild.hasBountyBoardChannels = False
         await message.reply(mention_author=False, content=":ballot_box_with_check: All bounty board channels disabled!")
@@ -173,14 +200,15 @@ botCommands.register("disable-bounty-board-channels", admin_cmd_remove_bounty_bo
                     shortHelp="Send from any channel to disable the server's bountyboard channels, without deleting them.")
 
 
-async def admin_cmd_rebuild_bounty_board_channel(message : discord.Message, args : str, isDM : bool):
+async def admin_cmd_rebuild_bounty_board_channel(message: discord.Message, args: str, isDM: bool):
     """admin command to rebuild bounty board channel where the message was sent
 
     :param discord.Message message: the discord message calling the command
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    guild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
+    # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+    guild = botState.client.guildsDB.getGuild(cast(discord.Guild, message.guild).id)
     if guild.bountiesDisabled:
         await message.reply(":x: Bounties are disabled in this server! You can re-enable them with: " \
                             + f"`{guild.commandPrefix}config bounties enable`")
@@ -188,10 +216,13 @@ async def admin_cmd_rebuild_bounty_board_channel(message : discord.Message, args
         await message.reply(":x: This server does not have bounty board channels!")
     else:
         found = False
-        for div in guild.bountiesDB.divisions.values():
-            if div.bountyBoardChannel.channel == message.channel:
+        # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
+        for div in cast(BountyDB, guild.bountiesDB).divisions.values():
+            # Casting here because division.bountyBoardChannel can be None, but this is checked for with the
+            # guild.hasBountyBoardChannels check above.
+            if cast(BountyBoardChannel, div.bountyBoardChannel).channel == message.channel:
                 found = True
-                await div.bountyBoardChannel.rebuild()
+                await cast(BountyBoardChannel, div.bountyBoardChannel).rebuild()
                 break
         if found:
             await message.reply(mention_author=False, content=":ballot_box_with_check: Bounty board rebuilt!")

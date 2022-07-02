@@ -7,21 +7,14 @@ from pathlib import PosixPath, WindowsPath, Path
 
 from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
 
-
-class UnpackableSerializableTimedelta(SerializableTimedelta):
-    def keys(self):
-        return ["weeks", "days", "hours", "minutes", "seconds", "milliseconds", "microseconds"]
-
-    def __getitem__(self, key):
-        return self.serialize()[key]
-
 T = TypeVar("T", bound=Path)
 
 class ConcatenatableSerializablePath(SerializablePath):
     def __new__(cls, *args, **kwargs):
         if cls is ConcatenatableSerializablePath:
             cls = ConcatenatableSerializableWindowsPath if os.name == 'nt' else ConcatenatableSerializablePosixPath
-        self = cls._from_parts(args, init=False)
+        # Ignoring a warning here because pyright can't see the private member _from_parts. It's there if you look at the class
+        self = cls._from_parts(args, init=False) # type: ignore[reportGeneralTypeIssues]
         if not self._flavour.is_supported:
             raise NotImplementedError("cannot instantiate %r on your system"
                                       % (cls.__name__,))
@@ -30,7 +23,9 @@ class ConcatenatableSerializablePath(SerializablePath):
 
     def __add__(self, o: T) -> Union[T, str]:
         if isinstance(o, Path):
-            return self.joinpath(o)
+            # Ignoring a warning here because pyright thinks that joinpath takes a StrPath, but if you look inside
+            # of the source, the args are parsed with os.fspath which takes any PathLike.
+            return self.joinpath(o) # type: ignore[reportGeneralTypeIssues]
         elif isinstance(o, str):
             return str(self) + o
         raise TypeError(f"Can only add Path or str to {type(self).__name__}, not {type(o).__name__}")
@@ -133,52 +128,52 @@ class EmojisConfig(SerializableDataClass):
 
 @dataclass
 class TimeoutsConfig(SerializableDataClass):
-    helpMenu: UnpackableSerializableTimedelta
-    BASED_updateCheckFrequency: UnpackableSerializableTimedelta
-    dataSaveFrequency: UnpackableSerializableTimedelta
+    helpMenu: SerializableTimedelta
+    BASED_updateCheckFrequency: SerializableTimedelta
+    dataSaveFrequency: SerializableTimedelta
 
     # Amount of time before a duel request expires
-    duelRequest: UnpackableSerializableTimedelta
+    duelRequest: SerializableTimedelta
 
     # Amount of time to wait between refreshing stock of all shops
-    shopRefresh: UnpackableSerializableTimedelta
+    shopRefresh: SerializableTimedelta
 
     # time to put users on cooldown between using !bb check
-    checkCooldown: UnpackableSerializableTimedelta
+    checkCooldown: SerializableTimedelta
 
     # Default amount of time reaction menus should be active for
-    roleMenuExpiry: UnpackableSerializableTimedelta
-    duelChallengeMenuExpiry: UnpackableSerializableTimedelta
-    pollMenuExpiry: UnpackableSerializableTimedelta
+    roleMenuExpiry: SerializableTimedelta
+    duelChallengeMenuExpiry: SerializableTimedelta
+    pollMenuExpiry: SerializableTimedelta
 
     # The time between decrements to the guild activity temperatures of each tech level
-    guildActivityDecay: UnpackableSerializableTimedelta
+    guildActivityDecay: SerializableTimedelta
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    newBountyDelayRandomMin: UnpackableSerializableTimedelta
-    newBountyDelayRandomMax: UnpackableSerializableTimedelta
+    newBountyDelayRandomMin: SerializableTimedelta
+    newBountyDelayRandomMax: SerializableTimedelta
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    githubIssueSubmitDelay: UnpackableSerializableTimedelta
+    githubIssueSubmitDelay: SerializableTimedelta
 
     # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
-    selectImageSizeHandling: UnpackableSerializableTimedelta
+    selectImageSizeHandling: SerializableTimedelta
 
-    toggleClassicMode: UnpackableSerializableTimedelta
+    toggleClassicMode: SerializableTimedelta
 
     # The termination signal checking period.
-    shutdownCheckPeriod: UnpackableSerializableTimedelta
+    shutdownCheckPeriod: SerializableTimedelta
 
     # The cooldown between uses of the transfer command.
-    homeGuildTransferCooldown: UnpackableSerializableTimedelta
+    homeGuildTransferCooldown: SerializableTimedelta
 
     # time to wait inbetween spawning bounties, when newBountyDelayType starts with 'fixed'
     # when using fixed-routeScale generation, use this for bounties of route length 1
-    newBountyFixedDelta: UnpackableSerializableTimedelta
+    newBountyFixedDelta: SerializableTimedelta
 
 
-def _fixPath(val: str) -> str:
+def _fixPath(val: Union[str, Path]) -> str:
     # Normalize path
     normalized = os.path.normpath(val)
     
@@ -247,11 +242,13 @@ class PathsConfig(SerializableDataClass):
 
     def createMissingDirectories(self):
         # Normalize all paths and create missing directories
-        for varname, varvalue in self._fieldItems().items():
+        for varname, varvalue in self._fieldItems():
             if isinstance(varvalue, Path):
-                newVal = _fixPath()
+                newVal = _fixPath(varvalue)
             elif isinstance(varvalue, list):
                 newVal = [_fixPath(p) for p in varvalue]
+            else:
+                raise TypeError(f"Unsupported type in config for path {varname}: {type(varvalue).__name__}")
             setattr(self, varname, newVal)
 
 

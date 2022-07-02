@@ -11,6 +11,7 @@ from .. import lib
 from ..logging import LogCategory
 from ..baseClasses.serializable import SerializesToJson, JsonType
 from ..logging import LogCategory
+from ..gameObjects import guildShop
 
 
 _minGuildsToParallelize = os.cpu_count()
@@ -109,10 +110,10 @@ class GuildDB(SerializesToJson):
         """
         # Ensure the requested guild does not yet exist in the database
         if self.idExists(dcGuild.id):
-            raise KeyError("Attempted to add a guild that already exists: " + dcGuild.id)
+            raise KeyError(f"Attempted to add a guild that already exists: {dcGuild.id}")
         # Create and return a BasedGuild for the requested ID
-        self.guilds[dcGuild.id] = basedGuild.BasedGuild(dcGuild.id, dcGuild, bountyDB.BountyDB(None, dummy=True))
-        self.guilds[dcGuild.id].bountiesDB = bountyDB.BountyDB(self.guilds[dcGuild.id])
+        basedGuild.BasedGuild.deserialize({}, guildID=dcGuild.id)
+        self.guilds[dcGuild.id] = basedGuild.BasedGuild.deserialize({}, guildID=dcGuild.id)
         return self.guilds[dcGuild.id]
 
 
@@ -138,7 +139,8 @@ class GuildDB(SerializesToJson):
         """
         for guild in self.guilds.values():
             if not guild.shopsDisabled:
-                for shop in guild.divisionShops.values():
+                # Casting here because any guild that has shopsDisabled set to False must have divisionShops
+                for shop in cast(Dict[str, guildShop.TechLeveledShop], guild.divisionShops).values():
                     shop.refreshStock()
 
 
@@ -149,7 +151,8 @@ class GuildDB(SerializesToJson):
         :param BasedGuild g: The guild whose temperatures to decay
         """
         if not g.bountiesDisabled:
-            for div in g.bountiesDB.divisions.values():
+            # Casting here because any guild that has bountiesDisabled set to False must have a bountyDB
+            for div in cast(bountyDB.BountyDB, g.bountiesDB).divisions.values():
                 if div.isActive:
                     div.decayTemp()
 
@@ -169,6 +172,12 @@ class GuildDB(SerializesToJson):
                 self._decayGuildTemps(g)
         botState.client.logger.log("GuildDB", "decayAllTemps", "All guild activity temperatures decayed successfuly.",
                             category=LogCategory.bountiesDB, eventType="TEMPS_DECAY")
+
+    
+    async def decayAllTempsAsync(self):
+        """Wraps decayAllTemps in a coroutine, so it can be used with taskSchedulers.
+        """
+        self.decayAllTemps()
 
 
     def serialize(self, **kwargs) -> JsonType:

@@ -1,6 +1,6 @@
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
-from .schema import BasicAccessLevelNames, EmojisConfig, UnpackableSerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
 from typing import Dict, List, Tuple, cast
 
 # All emojis used by the bot
@@ -67,50 +67,50 @@ defaultEmojis = EmojisConfig(
 )
 
 timeouts = TimeoutsConfig(
-    helpMenu = UnpackableSerializableTimedelta(minutes=3),
-    BASED_updateCheckFrequency = UnpackableSerializableTimedelta(days=1),
+    helpMenu = SerializableTimedelta(minutes=3),
+    BASED_updateCheckFrequency = SerializableTimedelta(days=1),
     # The time to wait inbetween database autosaves.
-    dataSaveFrequency = UnpackableSerializableTimedelta(hours=1),
+    dataSaveFrequency = SerializableTimedelta(hours=1),
 
     # Amount of time before a duel request expires
-    duelRequest = UnpackableSerializableTimedelta(days=1),
+    duelRequest = SerializableTimedelta(days=1),
 
     # Amount of time to wait between refreshing stock of all shops
-    shopRefresh = UnpackableSerializableTimedelta(hours=6),
+    shopRefresh = SerializableTimedelta(hours=6),
 
     # time to put users on cooldown between using !bb check
-    checkCooldown = UnpackableSerializableTimedelta(minutes=3),
+    checkCooldown = SerializableTimedelta(minutes=3),
 
     # Default amount of time reaction menus should be active for
-    roleMenuExpiry = UnpackableSerializableTimedelta(days=1),
-    duelChallengeMenuExpiry = UnpackableSerializableTimedelta(hours=2),
-    pollMenuExpiry = UnpackableSerializableTimedelta(minutes=5),
+    roleMenuExpiry = SerializableTimedelta(days=1),
+    duelChallengeMenuExpiry = SerializableTimedelta(hours=2),
+    pollMenuExpiry = SerializableTimedelta(minutes=5),
 
     # The time between decrements to the guild activity temperatures of each tech level
-    guildActivityDecay = UnpackableSerializableTimedelta(hours=1),
+    guildActivityDecay = SerializableTimedelta(hours=1),
 
     # when using random bounty delay generation, use these min and max points
     # when using random-routeScale generation, use these min and max points for bounties of route length 1
-    newBountyDelayRandomMin = UnpackableSerializableTimedelta(minutes=5),
-    newBountyDelayRandomMax = UnpackableSerializableTimedelta(minutes=7),
+    newBountyDelayRandomMin = SerializableTimedelta(minutes=5),
+    newBountyDelayRandomMax = SerializableTimedelta(minutes=7),
 
     # The amount of time a user must wait before they are allowed to submit a new github issue
-    githubIssueSubmitDelay = UnpackableSerializableTimedelta(minutes=5),
+    githubIssueSubmitDelay = SerializableTimedelta(minutes=5),
 
     # Time allowed to select 'crop' or 'stretch' for incorrectly shaped autoskin input images
-    selectImageSizeHandling = UnpackableSerializableTimedelta(minutes=1),
+    selectImageSizeHandling = SerializableTimedelta(minutes=1),
 
-    toggleClassicMode = UnpackableSerializableTimedelta(minutes=2),
+    toggleClassicMode = SerializableTimedelta(minutes=2),
 
     # The termination signal checking period.
-    shutdownCheckPeriod = UnpackableSerializableTimedelta(seconds=10),
+    shutdownCheckPeriod = SerializableTimedelta(seconds=10),
 
     # The cooldown between uses of the transfer command.
-    homeGuildTransferCooldown = UnpackableSerializableTimedelta(weeks=1),
+    homeGuildTransferCooldown = SerializableTimedelta(weeks=1),
 
     # time to wait inbetween spawning bounties, when newBountyDelayType starts with 'fixed'
     # when using fixed-routeScale generation, use this for bounties of route length 1
-    newBountyFixedDelta = UnpackableSerializableTimedelta(minutes=1)
+    newBountyFixedDelta = SerializableTimedelta(minutes=1)
 )
 
 paths = PathsConfig(

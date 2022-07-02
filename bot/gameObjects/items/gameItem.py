@@ -1,17 +1,18 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, List, Type, TypeVar, cast
+from typing import Dict, List, Optional, Type, TypeVar, cast
 
 from ...baseClasses import aliasable
 from abc import abstractmethod
 from ... import lib
+from..gameObject import LoadedObject
 
 
 subClassNames: Dict[str, Type["GameItem"]] = {}
 nameSubClasses: Dict[Type["GameItem"], str] = {}
 
 
-class GameItem(aliasable.Aliasable):
+class GameItem(aliasable.AliasableMixin, LoadedObject):
     """A game item, with a value, a manufacturer, a wiki page, an icon, an emoji, and a tech level.
 
     :var wiki: A web page to represent as the item's wikipedia article in its info page
@@ -44,10 +45,10 @@ class GameItem(aliasable.Aliasable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, aliases : List[str], value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -61,7 +62,7 @@ class GameItem(aliasable.Aliasable):
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData)
                                 or a custom spawned item (Default False)
         """
-        super(GameItem, self).__init__(name, aliases)
+        super(GameItem, self).__init__(name, aliases, builtIn=builtIn)
         self.wiki = wiki
         self.hasWiki = wiki != ""
 
@@ -79,8 +80,6 @@ class GameItem(aliasable.Aliasable):
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
-
-        self.builtIn = builtIn
 
 
     @abstractmethod
@@ -103,7 +102,7 @@ class GameItem(aliasable.Aliasable):
 
 
     @abstractmethod
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, saveType: Optional[bool] = False, **kwargs) -> dict:
         """Serialize this item into dictionary format, for saving to file.
         This base implementation should be used in gameItem implementations, and custom attributes saved into it.
 
@@ -112,8 +111,6 @@ class GameItem(aliasable.Aliasable):
                     If the item is builtIn, this is only its name.
         :rtype: dict
         """
-        saveType = kwargs.pop("saveType") if "saveType" in kwargs else False
-
         if self.builtIn:
             data = {"name": self.name, "builtIn": True}
         else:
@@ -132,7 +129,7 @@ class GameItem(aliasable.Aliasable):
         return data
 
 
-TClass = TypeVar("TClass", bound=GameItem)
+TClass = TypeVar("TClass", bound=Type[GameItem])
 
 
 def spawnableItem(cls: TClass) -> TClass:
@@ -144,10 +141,10 @@ def spawnableItem(cls: TClass) -> TClass:
         nameSubClasses[cls] = cls.__name__
     if cls.__name__ not in subClassNames:
         subClassNames[cls.__name__] = cls
-    return cast(TClass, cls)
+    return cls
 
 
-def spawnItem(data : dict) -> GameItem:
+def spawnItem(data: dict) -> GameItem:
     if "type" not in data or data["type"] == "":
         raise NameError("Not given a type")
     elif data["type"] not in subClassNames:

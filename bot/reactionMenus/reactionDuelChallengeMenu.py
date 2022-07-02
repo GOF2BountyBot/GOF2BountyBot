@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Generic, Optional, TypeVar, Union
 from . import reactionMenu
 from ..cfg import cfg
 from .. import botState
@@ -10,16 +11,16 @@ from..gameObjects.battles import duelRequest
 defaultMenuIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/crossed-swords_2694.png"
 
 
-class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
+class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveableReactionMenuOption]):
     """A ReactionMenu allowing the recipient of a duel challenge to accept or reject the challenge through reactions.
     TODO: Make this an inline reaction menu (base class in another branch currently)
 
     :var duelChallenge: The duelRequest that this menu controls
     :vartype duelChallenge: duelRequest
     """
-    def __init__(self, msg : Message, duelChallenge : duelRequest.DuelRequest, titleTxt : str = "", desc : str = "",
-            col : Colour = None, timeout : timedTask.TimedTask = None, footerTxt : str = "", img : str = "", thumb : str = "",
-            icon : str = defaultMenuIcon, authorName : str = "", targetMember : Member = None, targetRole : Role = None):
+    def __init__(self, msg: Message, duelChallenge: duelRequest.DuelRequest, titleTxt: str = "", desc: str = "",
+            col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None, footerTxt: str = "", img: str = "", thumb: str = "",
+            icon: str = defaultMenuIcon, authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: The discord message where this menu should be embedded
         :param duelRequest duelChallenge: The duelRequest that this menu controls
@@ -38,6 +39,8 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
                                         All other reactions are ignored (Default None)
         """
+        if msg.guild is None:
+            raise ValueError(f"{ReactionDuelChallengeMenu.__name__} can only be used from a guild context")
 
         # if desc == "":
         #     desc = botState.client.get_user(duelChallenge.sourceBasedUser.id).mention + " challenged " \
@@ -71,7 +74,7 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
         return baseEmbed
 
 
-    async def acceptChallenge(self):
+    async def acceptChallenge(self, reactingUser: Member):
         """Accept a duel challenge on behalf of a user.
         This method is called when the challenge recipient adds the 'accept' reaction to this menu.
         """
@@ -79,14 +82,20 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu):
             await self.msg.channel.send(":x: You do not have enough credits to accept this duel request! (" \
                                         + str(self.duelChallenge.stakes) + ")")
             return
+
+        source = botState.client.get_user(self.duelChallenge.sourceBasedUser.id)
+        if source is None:
+            await self.msg.channel.send(":x: I can't find the user that issued this duel, they may have deleted their account.")
+            await self.delete()
+            return
+
         if self.duelChallenge.sourceBasedUser.credits < self.duelChallenge.stakes:
-            await self.msg.channel.send(":x:" + botState.client.get_user(self.duelChallenge.sourceBasedUser.id).display_name \
+            await self.msg.channel.send(":x:" + source.display_name \
                                         + " does not have enough credits to fight this duel! (" \
                                         + str(self.duelChallenge.stakes) + ")")
             return
 
-        await duelRequest.fightDuel(botState.client.get_user(self.duelChallenge.sourceBasedUser.id), \
-                                    botState.client.get_user(self.duelChallenge.targetBasedUser.id), \
+        await duelRequest.fightDuel(source, reactingUser, \
                                     self.duelChallenge, self.msg)
 
 

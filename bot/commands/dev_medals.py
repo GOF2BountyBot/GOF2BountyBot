@@ -15,7 +15,7 @@ from ..reactionMenus import confirmationReactionMenu
 botCommands.addHelpSection(3, "medals")
 
 
-async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_create_medal(message: discord.Message, args: str, isDM: bool):
     """developer command creating a new medal.
     Args must contain the name of the medal, followed by a new line, followed by the medal description.
     To include new line characters in the medal description, use the keyword `{NL}`.
@@ -207,7 +207,7 @@ async def dev_cmd_create_medal(message : discord.Message, args : str, isDM : boo
 botCommands.register("create-medal", dev_cmd_create_medal, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="medals", useDoc=True)
 
 
-async def dev_cmd_give_medal(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_give_medal(message: discord.Message, args: str, isDM: bool):
     """Developer command adding a medal to a user's profile
     Provide a user ID or mention followed by the medal name
 
@@ -247,7 +247,7 @@ async def dev_cmd_give_medal(message : discord.Message, args : str, isDM : bool)
 botCommands.register("give-medal", dev_cmd_give_medal, 3, allowDM=True, helpSection="medals", useDoc=True)
 
 
-async def dev_cmd_take_medal(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_take_medal(message: discord.Message, args: str, isDM: bool):
     """Developer command removing a medal from a user's profile
     Provide a user ID or mention followed by the medal name
 
@@ -287,7 +287,7 @@ async def dev_cmd_take_medal(message : discord.Message, args : str, isDM : bool)
 botCommands.register("take-medal", dev_cmd_take_medal, 3, allowDM=True, helpSection="medals", useDoc=True)
 
 
-async def dev_cmd_delete_medal(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_delete_medal(message: discord.Message, args: str, isDM: bool):
     """Developer command deleting a medal from the game.
 
     :param discord.Message message: the discord message calling the command

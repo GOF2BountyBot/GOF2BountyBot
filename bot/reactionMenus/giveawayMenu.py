@@ -1,15 +1,16 @@
 from datetime import timedelta
-from typing import Set, List
+from typing import Optional, Set, List
 from discord import Member, Message, Colour, Role
 from . import reactionMenu, expiryFunctions
 from ..gameObjects.items import gameItem
 from .. import botState
 from ..users import basedUser
 from ..scheduling import timedTask
+from ..gameObjects.guildShop import StoredItemType
 
 
-class GiveawayMenu(reactionMenu.ReactionMenu):
-    def __init__(self, msg: Message, items: List[gameItem.GameItem], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = None, footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Member = None, targetRole: Role = None):
+class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption"]):
+    def __init__(self, msg: Message, items: List[StoredItemType], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         options = {i.emoji: GiveawayMenuOption(self, i) for i in items}
         timeout = timedTask.TimedTask(expiryDelta=activeTime, expiryFunction=expiryFunctions.markExpiredMenu, expiryFunctionArgs=msg.id, rescheduleOnExpiryFuncFailure=True)
         botState.client.taskScheduler.scheduleTask(timeout)
@@ -23,6 +24,7 @@ class GiveawayMenu(reactionMenu.ReactionMenu):
 
 
     async def addGivenUser(self, user: Member):
+        self.givenUsers.add(user)
         self.desc = f"{self.originalDesc}\n\nNumber of users given to: {len(self.givenUsers)}"
         await self.updateMessage(noRefreshOptions=True)
 
@@ -37,7 +39,7 @@ class GiveawayMenu(reactionMenu.ReactionMenu):
 
 
 class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
-    def __init__(self, menu: GiveawayMenu, item: gameItem.GameItem):
+    def __init__(self, menu: GiveawayMenu, item: StoredItemType):
         super().__init__(item.name, item.emoji, addFunc=self.award)
         self.item = item
         self.menu = menu
@@ -48,6 +50,7 @@ class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
             bUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(reactingUser.id)
             # de-serializing and re-serializing here in order to get a copy (if appropriate)
             itemCopy = type(self.item).deserialize(self.item.serialize(saveType=True))
-            bUser.getInventoryForItem(self.item).addItem(itemCopy)
-            self.menu.givenUsers.add(reactingUser)
+            # itemCopy is StoredItemType here. getInventoryForItem is guaranteed to return the inventory that stores a StoredItemType.
+            # Therefore, itemCopy is guaranteed to be compatible with the inventory's addItem method.
+            bUser.getInventoryForItem(self.item).addItem(itemCopy) # type: ignore[reportGeneralTypeIssues]
             await self.menu.addGivenUser(reactingUser)

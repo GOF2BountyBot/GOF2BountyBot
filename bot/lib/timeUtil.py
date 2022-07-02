@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-from typing import Dict
+from typing import Dict, Optional
 import random
 
 
@@ -44,10 +44,10 @@ def getRandomDelay(minmaxDict: Dict[str, timedelta]) -> timedelta:
     :return: A timedelta randomly placed between the given min and max
     :rtype: timedelta
     """
-    return timedelta(seconds=random.randint(minmaxDict["min"].total_seconds(), minmaxDict["max"].total_seconds()))
+    return timedelta(seconds=random.randint(int(minmaxDict["min"].total_seconds()), int(minmaxDict["max"].total_seconds())))
 
 
-def tomorrow(today : datetime = None) -> datetime:
+def tomorrow(today: Optional[datetime] = None) -> datetime:
     """Make a new timestamp at 12am tomorrow. Or edit the provided one, to be one day later.
 
     :param datetime today: A timestamp whose day to increment by one, and all other time attributes to zero out (default now)

@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Union, TYPE_CHECKING, Dict, List, MutableSet
+from typing import Optional, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
@@ -108,19 +108,19 @@ class BasedUser(SerializesToJson):
     :vartype bountyHuntingXpSurplus: int
     """
 
-    def __init__(self, userID: int, credits : int = 0, lifetimeBountyCreditsWon : int = 0,
-                    bountyHuntingXP : int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd : int = -1,
-                    systemsChecked : int = 0, bountyWins : int = 0, activeShip : shipItem.Ship = None,
-                    inactiveShips : inventory.Inventory = None,
-                    inactiveModules : inventory.Inventory = None,
-                    inactiveWeapons : inventory.Inventory = None,
-                    inactiveTurrets : inventory.Inventory = None,
-                    inactiveTools : userInventory.UserToolInventory = None,
-                    duelWins : int = 0, duelLosses : int = 0, duelCreditsWins : int = 0,
-                    duelCreditsLosses : int = 0, alerts : dict[Union[type, str], Union[userAlerts.UABase, bool]] = {},
-                    homeGuildID : int = -1, guildTransferCooldownEnd : datetime = None, prestiges : int = 0,
-                    kaamo : Union[kaamoShop.KaamoShop, None] = None, loma : Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus : Dict[str, MutableSet[int]] = {}, medals: MutableSet[Medal] = None,
+    def __init__(self, userID: int, activeShip: shipItem.Ship, credits: int = 0, lifetimeBountyCreditsWon: int = 0,
+                    bountyHuntingXP: int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd: float = -1.0,
+                    systemsChecked: int = 0, bountyWins: int = 0,
+                    inactiveShips: Optional[inventory.Inventory[shipItem.Ship]] = None,
+                    inactiveModules: Optional[inventory.Inventory[moduleItem.ModuleItem]] = None,
+                    inactiveWeapons: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon]] = None,
+                    inactiveTurrets: Optional[inventory.Inventory[turretWeapon.TurretWeapon]] = None,
+                    inactiveTools: Optional[userInventory.UserToolInventory[toolItem.ToolItem]] = None,
+                    duelWins: int = 0, duelLosses: int = 0, duelCreditsWins: int = 0,
+                    duelCreditsLosses: int = 0, alerts: Dict[Union[Type[userAlerts.UABase], str], Union[userAlerts.UABase, bool]] = {},
+                    homeGuildID: int = -1, guildTransferCooldownEnd: Optional[datetime] = None, prestiges: int = 0,
+                    kaamo: Union[kaamoShop.KaamoShop, None] = None, loma: Union[lomaShop.LomaShop, None] = None,
+                    ownedMenus: Dict[str, MutableSet[int]] = {}, medals: Optional[MutableSet[Medal]] = None,
                     classicModeEnabled: bool = False, bountyHuntingXpSurplus: int = -1):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
@@ -212,15 +212,15 @@ class BasedUser(SerializesToJson):
         self.systemsChecked = systemsChecked
         self.bountyWins = bountyWins
 
-        self.activeShip = activeShip
+        self.activeShip: shipItem.Ship = activeShip
         self.inactiveShips = inactiveShips if inactiveShips is not None else \
-                                inventory.TypeRestrictedInventory(shipItem.Ship)
+                                inventory.Inventory(shipItem.Ship)
         self.inactiveModules = inactiveModules if inactiveModules is not None else \
-                                inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
+                                inventory.Inventory(moduleItem.ModuleItem)
         self.inactiveWeapons = inactiveWeapons if inactiveWeapons is not None else \
-                                inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
+                                inventory.Inventory(primaryWeapon.PrimaryWeapon)
         self.inactiveTurrets = inactiveTurrets if inactiveTurrets is not None else \
-                                inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
+                                inventory.Inventory(turretWeapon.TurretWeapon)
         self.inactiveTools = inactiveTools if inactiveTools is not None else \
                                 userInventory.UserToolInventory(self)
 
@@ -240,7 +240,8 @@ class BasedUser(SerializesToJson):
                 if isinstance(alerts[alertType], userAlerts.UABase):
                     self.userAlerts[alertType] = alerts[alertType]
                 elif isinstance(alerts[alertType], bool):
-                    self.userAlerts[alertType] = alertType(alerts[alertType])
+                    # I've just checked that this is a bool!
+                    self.userAlerts[alertType] = alertType(alerts[alertType]) # type: ignore[reportGeneralTypeIssues]
                 else:
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertType]).__name__ \
@@ -251,7 +252,8 @@ class BasedUser(SerializesToJson):
                 if isinstance(alerts[alertID], userAlerts.UABase):
                     self.userAlerts[alertType] = alerts[alertID]
                 elif isinstance(alerts[alertID], bool):
-                    self.userAlerts[alertType] = alertType(alerts[alertID])
+                    # I've just checked that this is a bool!
+                    self.userAlerts[alertType] = alertType(alerts[alertID]) # type: ignore[reportGeneralTypeIssues]
                 else:
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
                         + ". Must be either UABase or bool, given " + type(alerts[alertID]).__name__ \
@@ -285,7 +287,7 @@ class BasedUser(SerializesToJson):
         self.classicModeEnabled = False
         self.credits = 0
         self.lifetimeBountyCreditsWon = 0
-        self.bountyCooldownEnd = -1
+        self.bountyCooldownEnd = -1.0
         self.systemsChecked = 0
         self.bountyWins = 0
         self.activeShip = shipItem.Ship.deserialize(defaultShipLoadoutDict)
@@ -307,7 +309,7 @@ class BasedUser(SerializesToJson):
         self.prestiges = 0
 
 
-    def numInventoryPages(self, item : str, maxPerPage : int) -> int:
+    def numInventoryPages(self, item: str, maxPerPage: int) -> int:
         """Get the number of pages required to display all of the user's unequipped items of the named type,
         displaying the given number of items per page
 
@@ -347,7 +349,7 @@ class BasedUser(SerializesToJson):
         return int(itemsNum / maxPerPage) + (0 if itemsNum % maxPerPage == 0 else 1)
 
 
-    def lastItemNumberOnPage(self, item : str, pageNum : int, maxPerPage : int) -> int:
+    def lastItemNumberOnPage(self, item: str, pageNum: int, maxPerPage: int) -> int:
         """Get index of the last item on the given page number, where page numbers are of size maxPerPage.
         This is an absolute index from the start of the inventory, not a relative index from the start of the page.
 
@@ -377,7 +379,7 @@ class BasedUser(SerializesToJson):
             raise NotImplementedError("Valid but unsupported item name: " + item)
 
 
-    def unequipAll(self, ship : shipItem.Ship):
+    def unequipAll(self, ship: shipItem.Ship):
         """Unequip all items from the given shipItem, and move them into the user's inactive items ('hangar')
         The user must own ship.
 
@@ -426,7 +428,7 @@ class BasedUser(SerializesToJson):
             self.inactiveModules.addItem(currentModule)
 
 
-    def ownsShip(self, ship : shipItem.Ship):
+    def ownsShip(self, ship: shipItem.Ship):
         """Decide whether or not this user owns the given shipItem.
 
         :param shipItem ship: The ship to test for ownership
@@ -436,7 +438,7 @@ class BasedUser(SerializesToJson):
         return self.activeShip is ship or ship in self.inactiveShips
 
 
-    def equipShipObj(self, ship : shipItem.Ship, noSaveActive : bool = False):
+    def equipShipObj(self, ship: shipItem.Ship, noSaveActive: bool = False):
         """Equip the given ship, replacing the active ship.
         Give noSaveActive=True to delete the currently equipped ship.
 
@@ -454,7 +456,7 @@ class BasedUser(SerializesToJson):
         self.activeShip = ship
 
 
-    def equipShipIndex(self, index : int):
+    def equipShipIndex(self, index: int):
         """Equip the ship at the given index in the user's inactive ships
 
         :param int index: The index from the user's inactive ships of the requested ship
@@ -464,7 +466,7 @@ class BasedUser(SerializesToJson):
             raise IndexError("Index out of range")
         if self.activeShip is not None:
             self.inactiveShips.addItem(self.activeShip)
-        self.activeShip = self.inactiveShips[index].getItem()
+        self.activeShip = self.inactiveShips.itemAtIndex(index)
         self.inactiveShips.removeItem(self.activeShip)
 
 
@@ -538,7 +540,7 @@ class BasedUser(SerializesToJson):
         return data[:-1]
 
 
-    def getStatByName(self, stat : str) -> Union[int, float]:
+    def getStatByName(self, stat: str) -> Union[int, float]:
         """Get a user attribute by its string name. This method is primarily used in leaderboard generation.
 
         :param str stat: One of id, credits, lifetimeBountyCreditsWon, bountyCooldownEnd, systemsChecked, bountyWins or value
@@ -553,7 +555,8 @@ class BasedUser(SerializesToJson):
         elif stat == "lifetimeBountyCreditsWon":
             return self.lifetimeBountyCreditsWon
         elif stat == "lifetimeBountyHuntingXP":
-            return (0 if self.classicModeEnabled else self.bountyHuntingXP) \
+            # Casting here because bountyHuntingXP is guaranteed if classic mode is disabled
+            return (0 if self.classicModeEnabled else cast(int, self.bountyHuntingXP)) \
                     + self.prestiges * gameMaths.bountyHuntingXPForLevel(cfg.maxTechLevel)
         elif stat == "bountyCooldownEnd":
             return self.bountyCooldownEnd
@@ -585,7 +588,7 @@ class BasedUser(SerializesToJson):
             raise ValueError("Unknown stat name: " + str(stat))
 
 
-    def getInactivesByName(self, item : str) -> inventory:
+    def getInactivesByName(self, item: str):
         """Get the all of the user's inactive (hangar) items of the named type.
         The given inventory is mutable, and can alter the contents of the user's inventory.
 
@@ -611,7 +614,7 @@ class BasedUser(SerializesToJson):
             raise NotImplementedError("Valid, but unrecognised item type: " + item)
 
 
-    def hasDuelChallengeFor(self, targetBasedUser : BasedUser) -> bool:
+    def hasDuelChallengeFor(self, targetBasedUser: BasedUser) -> bool:
         """Decide whether or not this user has an active duel request targetted at the given BasedUser
 
         :param BasedUser targetBasedUser: The user to check for duel request existence
@@ -621,7 +624,7 @@ class BasedUser(SerializesToJson):
         return targetBasedUser in self.duelRequests
 
 
-    def addDuelChallenge(self, duelReq : duelRequest.DuelRequest):
+    def addDuelChallenge(self, duelReq: duelRequest.DuelRequest):
         """Store a new duel request from this user to another.
         The duel request must still be active (TODO: Add validation), the source user must be this user,
         the target user must not be this user, and this user must not already have a duel challenge for the target user.
@@ -640,7 +643,7 @@ class BasedUser(SerializesToJson):
         self.duelRequests[duelReq.targetBasedUser] = duelReq
 
 
-    def removeDuelChallengeObj(self, duelReq : duelRequest.DuelRequest):
+    def removeDuelChallengeObj(self, duelReq: duelRequest.DuelRequest):
         """Remove the given duel request object from this user's storage.
 
         :param DuelRequest duelReq: The DuelRequest to remove
@@ -652,7 +655,7 @@ class BasedUser(SerializesToJson):
         del self.duelRequests[duelReq.targetBasedUser]
 
 
-    def removeDuelChallengeTarget(self, duelTarget : BasedUser):
+    def removeDuelChallengeTarget(self, duelTarget: BasedUser):
         """Remove this user's duel request that is targetted at the given user.
 
         :param BasedUser duelTarget: The target user whose duel request to remove
@@ -660,8 +663,8 @@ class BasedUser(SerializesToJson):
         self.removeDuelChallengeObj(self.duelRequests[duelTarget])
 
 
-    async def setAlertByType(self, alertType : type, dcGuild : Guild, bbGuild : basedGuild.BasedGuild, dcMember : Member,
-            newState : bool) -> bool:
+    async def setAlertByType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member,
+            newState: bool) -> bool:
         """Set the state of one of this users's userAlerts, identifying the alert by its class.
 
         :param type alertType: The class of the alert whose state to set. Must be a subclass of userAlerts.UABase
@@ -676,7 +679,7 @@ class BasedUser(SerializesToJson):
         return newState
 
 
-    async def setAlertByID(self, alertID : str, dcGuild : Guild, bbGuild : basedGuild.BasedGuild, dcMember : Member,
+    async def setAlertByID(self, alertID: str, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member,
                             newState) -> bool:
         """Set the state of one of this users's userAlerts, identifying the alert by its ID as given by
         userAlerts.userAlertsIDsTypes.
@@ -689,11 +692,11 @@ class BasedUser(SerializesToJson):
         :param discord.Member dcMember: This user's member object in dcGuild (TODO: Just grab dcMember from dcGuild in here)
         :param bool newState: The new desired of the alert
         """
-        return await self.setAlertType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember, newState)
+        return await self.setAlertByType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember, newState)
 
 
-    async def toggleAlertType(self, alertType : type, dcGuild : Guild, bbGuild : basedGuild.BasedGuild,
-            dcMember : Member) -> bool:
+    async def toggleAlertType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild,
+            dcMember: Member) -> bool:
         """Toggle the state of one of this users's userAlerts, identifying the alert by its class.
 
         :param type alertType: The class of the alert whose state to toggle. Must be a subclass of userAlerts.UABase
@@ -706,7 +709,7 @@ class BasedUser(SerializesToJson):
         return await self.userAlerts[alertType].toggle(dcGuild, bbGuild, dcMember)
 
 
-    async def toggleAlertID(self, alertID : str, dcGuild : Guild, bbGuild : basedGuild.BasedGuild, dcMember : Member) -> bool:
+    async def toggleAlertID(self, alertID: str, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member) -> bool:
         """Toggle the state of one of this users's userAlerts, identifying the alert by its ID as given by
         userAlerts.userAlertsIDsTypes.
 
@@ -720,7 +723,7 @@ class BasedUser(SerializesToJson):
         return await self.toggleAlertType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember)
 
 
-    def isAlertedForType(self, alertType : type, dcGuild : Guild, bbGuild : basedGuild.BasedGuild, dcMember : Member) -> bool:
+    def isAlertedForType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member) -> bool:
         """Get the state of one of this users's userAlerts, identifying the alert by its class.
 
         :param type alertType: The class of the alert whose state to get. Must be a subclass of userAlerts.UABase
@@ -733,7 +736,7 @@ class BasedUser(SerializesToJson):
         return self.userAlerts[alertType].getState(dcGuild, bbGuild, dcMember)
 
 
-    def isAlertedForID(self, alertID : str, dcGuild : Guild, bbGuild : basedGuild.BasedGuild, dcMember : Member) -> bool:
+    def isAlertedForID(self, alertID: str, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member) -> bool:
         """Get the state of one of this user's userAlerts, identifying the alert by its ID as given by
         userAlerts.userAlertsIDsTypes.
 
@@ -756,7 +759,7 @@ class BasedUser(SerializesToJson):
         return self.homeGuildID != -1
 
 
-    def canTransferGuild(self, now : datetime = None) -> bool:
+    def canTransferGuild(self, now: Optional[datetime] = None) -> bool:
         """Decide whether this user is allowed to transfer their homeGuildID.
         This is decided based on the time passed since their last guild transfer.
 
@@ -770,7 +773,7 @@ class BasedUser(SerializesToJson):
         return (not self.hasHomeGuild()) or now > self.guildTransferCooldownEnd
 
 
-    async def transferGuild(self, newGuild : Guild):
+    async def transferGuild(self, newGuild: Guild):
         """Transfer the user's homeGuildID to the given guild.
         The user must not be on guild transfer cooldown.
 
@@ -782,7 +785,7 @@ class BasedUser(SerializesToJson):
         now = datetime.utcnow()
         if not self.canTransferGuild(now=now):
             raise ValueError("This user cannot transfer guild again yet (" \
-                                + lib.timeUtil.td_format_noYM(self.guildTransferCooldownEnd) + " remaining)")
+                                + lib.timeUtil.td_format_noYM(now - self.guildTransferCooldownEnd) + " remaining)")
         if await newGuild.fetch_member(self.id) is None:
             raise NameError("This user is not a member of the given guild '" + newGuild.name + "#" + str(newGuild.id) + "'")
 
@@ -801,6 +804,7 @@ class BasedUser(SerializesToJson):
             return self.inactiveTools
         elif isinstance(item, moduleItem.ModuleItem):
             return self.inactiveModules
+        raise ValueError(f"No inventory is stored for item type {type(item).__name__}")
 
 
     def hasMenuOfTypeID(self, menuTypeID: str) -> bool:
@@ -811,7 +815,7 @@ class BasedUser(SerializesToJson):
         :return: True if the user has at least one menu with the given type ID, False otherwise
         :rtype: bool
         """
-        return menuTypeID in self.ownedMenus and self.ownedMenus[menuTypeID]
+        return (menuTypeID in self.ownedMenus) and len(self.ownedMenus[menuTypeID]) != 0
 
 
     def addOwnedMenu(self, menuTypeID: str, menu: reactionMenu.ReactionMenu):
@@ -911,24 +915,29 @@ class BasedUser(SerializesToJson):
             raise NameError("Required kwarg not given: id")
         userID = kwargs["id"]
 
-        activeShip = shipItem.Ship.deserialize(userDict["activeShip"])
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        activeShip = shipItem.Ship.deserialize(cast(dict, userDict["activeShip"]))
 
-        inactiveShips = inventory.TypeRestrictedInventory(shipItem.Ship)
-        inactiveWeapons = inventory.TypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
-        inactiveModules = inventory.TypeRestrictedInventory(moduleItem.ModuleItem)
-        inactiveTurrets = inventory.TypeRestrictedInventory(turretWeapon.TurretWeapon)
+        inactiveShips = inventory.Inventory(shipItem.Ship)
+        inactiveWeapons = inventory.Inventory(primaryWeapon.PrimaryWeapon)
+        inactiveModules = inventory.Inventory(moduleItem.ModuleItem)
+        inactiveTurrets = inventory.Inventory(turretWeapon.TurretWeapon)
         inactiveTools = userInventory.UserToolInventory(userInventory.USER_PLACEHOLDER)
 
-        for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship.deserialize),
-                                        ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon.deserialize),
-                                        ("inactiveModules", inactiveModules, moduleItemFactory.deserialize),
-                                        ("inactiveTurrets", inactiveTurrets, turretWeapon.TurretWeapon.deserialize),
-                                        ("inactiveTools", inactiveTools, toolItemFactory.deserialize)):
+        for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship),
+                                        ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon),
+                                        ("inactiveModules", inactiveModules, moduleItemFactory.ModuleItemFactory),
+                                        ("inactiveTurrets", inactiveTurrets, turretWeapon.TurretWeapon),
+                                        ("inactiveTools", inactiveTools, toolItemFactory.ToolItemFactory)):
             if key in userDict:
-                for listingDict in userDict[key]:
-                    stock.addItem(deserializer(listingDict["item"]), quantity=listingDict["count"])
+                # Casting here because pyright doesn't know the structure of a serialized baseduser
+                for listingDict in cast(List[dict], userDict[key]):
+                # Casting here because I can't convince pyright that the types in the for loop args tuple match up
+                    stock.addItem(deserializer.deserialize(listingDict["item"]), # type: ignore[reportGeneralTypeIssues]
+                                    quantity=listingDict["count"])
 
-        lifetimeBountyCreditsWon = userDict.get("lifetimeBountyCreditsWon", userDict.get("lifetimeCredits", 0))
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        lifetimeBountyCreditsWon = cast(int, userDict.get("lifetimeBountyCreditsWon", userDict.get("lifetimeCredits", 0)))
 
         if "bountyHuntingXP" in userDict:
             bountyHuntingXP = userDict["bountyHuntingXP"]
@@ -939,26 +948,32 @@ class BasedUser(SerializesToJson):
             else:
                 bountyHuntingXP = int(lifetimeBountyCreditsWon * cfg.bountyRewardToXPGainMult)
 
-        kaamo = kaamoShop.KaamoShop.deserialize(userDict["kaamo"]) if "kaamo" in userDict else None
-        loma = lomaShop.LomaShop.deserialize(userDict["loma"]) if "loma" in userDict else None
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        kaamo = kaamoShop.KaamoShop.deserialize(cast(dict, userDict["kaamo"])) if "kaamo" in userDict else None
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        loma = lomaShop.LomaShop.deserialize(cast(dict, userDict["loma"])) if "loma" in userDict else None
 
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        serializedOwnedMenus = cast(Dict[str, List[int]], userDict["ownedMenus"])
         ownedMenus = {}
         if "ownedMenus" in userDict:
-            for menuType in userDict["ownedMenus"]:
+            for menuType in serializedOwnedMenus:
                 ownedMenus[menuType] = []
-                for menuID in userDict["ownedMenus"][menuType]:
+                for menuID in serializedOwnedMenus[menuType]:
                     ownedMenus[menuType].append(menuID)
         
         medals = set()
         if "medals" in userDict and userDict["medals"]:
-            for name in userDict["medals"]:
+            # Casting here because pyright doesn't know the structure of a serialized baseduser
+            for name in cast(List[str], userDict["medals"]):
                 if name in bbData.medalObjs:
                     medals.add(bbData.medalObjs[name])
 
         kwargIgnores = ("lifetimeBountyCreditsWon", "lifetimeCredits", "pollOwned",
                         "bountyWinsToday", "dailyBountyWinsReset", "lastSeenGuildId")
                         
-        guildTransferCooldownEnd = datetime.utcfromtimestamp(userDict["guildTransferCooldownEnd"]) \
+        # Casting here because pyright doesn't know the structure of a serialized baseduser
+        guildTransferCooldownEnd = datetime.utcfromtimestamp(cast(int, userDict["guildTransferCooldownEnd"])) \
                                     if "guildTransferCooldownEnd" in userDict else None
 
         newUser = BasedUser(**cls._makeDefaults(userDict, kwargIgnores,

@@ -81,7 +81,7 @@ botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**sour
                                 + "people behind BountyBot.")
 
 
-async def cmd_how_to_play(message : discord.Message, args : str, isDM : bool):
+async def cmd_how_to_play(message: discord.Message, args: str, isDM: bool):
     """Print a short guide, teaching users how to play bounties.
 
     :param discord.Message message: the discord message calling the command
@@ -159,7 +159,7 @@ botCommands.register("how-to-play", cmd_how_to_play, 0, aliases=["guide"], allow
                         shortHelp="Get a short introduction on how to play bounties!")
 
 
-async def cmd_hello(message : discord.Message, args : str, isDM : bool):
+async def cmd_hello(message: discord.Message, args: str, isDM: bool):
     """say hello!
 
     :param discord.Message message: the discord message calling the command
@@ -171,7 +171,7 @@ async def cmd_hello(message : discord.Message, args : str, isDM : bool):
 botCommands.register("hello", cmd_hello, 0, allowDM=True, noHelp=True)
 
 
-async def cmd_stats(message : discord.Message, args : str, isDM : bool):
+async def cmd_stats(message: discord.Message, args: str, isDM: bool):
     """print the stats of the specified user, use the calling user if no user is specified.
 
     :param discord.Message message: the discord message calling the command
@@ -412,7 +412,7 @@ botCommands.register("stats", cmd_stats, 0, aliases=["profile"], forceKeepArgsCa
                         shortHelp="Get various credits and bounty statistics about yourself, or another user.")
 
 
-async def cmd_leaderboard(message : discord.Message, args : str, isDM : bool):
+async def cmd_leaderboard(message: discord.Message, args: str, isDM: bool):
     """display leaderboards for different statistics
     if no arguments are given, display the local leaderboard for pilot value (value of loadout, hangar and balance, summed)
     if 'g' or 'global' is given, display the appropriate leaderbaord across all guilds
@@ -551,7 +551,7 @@ botCommands.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signature
                                         for boardType in range(len(cfg.leaderboardHelpDescriptions)))))
 
 
-async def cmd_notify(message : discord.Message, args : str, isDM : bool):
+async def cmd_notify(message: discord.Message, args: str, isDM: bool):
     """⚠ WARNING: MARKED FOR CHANGE ⚠
     The following function is provisional and marked as planned for overhaul.
     Details: Notifications for shop items have yet to be implemented.
@@ -688,7 +688,7 @@ botCommands.register("notify", cmd_notify, 0, allowDM=False, signatureStr="**not
                             + "> `bot updates` must be `major` or `minor`.")
 
 
-async def cmd_poll(message : discord.Message, args : str, isDM : bool):
+async def cmd_poll(message: discord.Message, args: str, isDM: bool):
     """Run a reaction-based poll, allowing users to choose between several named options.
     Users may not create more than one poll at a time, anywhere.
     Option reactions must be either unicode, or custom to the server where the poll is being created.
@@ -703,12 +703,12 @@ async def cmd_poll(message : discord.Message, args : str, isDM : bool):
     The poll subject is optional. To not provide a subject, simply begin args with a new line.
 
     args may also optionally contain the following keyword arguments, given as argname=value
-    - target         : A role to restrict participants by. Must be a role mention, not ID.
-    - multiplechoice : Whether or not to allow participants to vote for multiple poll options. Must be true or false.
-    - days           : The number of days that the poll should run for. Must be at least one, or unspecified.
-    - hours          : The number of hours that the poll should run for. Must be at least one, or unspecified.
-    - minutes        : The number of minutes that the poll should run for. Must be at least one, or unspecified.
-    - seconds        : The number of seconds that the poll should run for. Must be at least one, or unspecified.
+    - target        : A role to restrict participants by. Must be a role mention, not ID.
+    - multiplechoice: Whether or not to allow participants to vote for multiple poll options. Must be true or false.
+    - days          : The number of days that the poll should run for. Must be at least one, or unspecified.
+    - hours         : The number of hours that the poll should run for. Must be at least one, or unspecified.
+    - minutes       : The number of minutes that the poll should run for. Must be at least one, or unspecified.
+    - seconds       : The number of seconds that the poll should run for. Must be at least one, or unspecified.
 
     Polls must have a run length. That is, specifying ALL run time kwargs as 'off' will return an error.
 
@@ -865,7 +865,7 @@ botCommands.register("poll", cmd_poll, 0, forceKeepArgsCasing=True, allowDM=Fals
                                 + "time divisions are: `seconds`, `minutes`, `hours`, `days`. (default: minutes=5)")
 
 
-async def cmd_drink(message : discord.Message, args : str, isDM : bool):
+async def cmd_drink(message: discord.Message, args: str, isDM: bool):
     """Show a random drink message.
 
     :param discord.Message message: the discord message calling the command
@@ -878,7 +878,7 @@ botCommands.register("drink", cmd_drink, 0, allowDM=True, signatureStr="**drink*
                         shortHelp="Order a refreshing drink from the bar.")
 
 
-async def cmd_drink_premium(message : discord.Message, args : str, isDM : bool):
+async def cmd_drink_premium(message: discord.Message, args: str, isDM: bool):
     """Show a random premium drink message, with a global cooldown.
 
     :param discord.Message message: the discord message calling the command

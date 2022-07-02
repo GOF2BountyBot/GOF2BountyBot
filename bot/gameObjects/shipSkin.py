@@ -5,9 +5,11 @@ from .. import lib
 from discord import File
 from typing import Dict, List
 from ..baseClasses.serializable import Serializable
-from ..baseClasses.hasRarity import HasRarity
+from ..baseClasses.hasRarity import HasRarityMixin
 from .items import shipItem
 from os.path import join
+from .gameObject import LoadedObject
+from ..baseClasses.serializable import JsonType
 
 
 def _saveShip(ship):
@@ -24,12 +26,12 @@ def _saveShip(ship):
     shipData["path"] = shipPath
 
 
-class ShipSkin(HasRarity, Serializable):
-    def __init__(self, name : str, textureRegions : List[int], shipRenders : Dict[str, str],
-                    path : str, designer : str, wiki : str = "", disabledRegions : List[int] = [],
-                    allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False):
+class ShipSkin(HasRarityMixin, LoadedObject):
+    def __init__(self, name: str, textureRegions: List[int], shipRenders: Dict[str, str],
+                    path: str, designer: str, wiki: str = "", disabledRegions: List[int] = [],
+                    allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False,
+                    designerId: int = -1):
 
-        self.builtIn = builtIn
         self.allShips = allShips
         self.name = name
         self.textureRegions = textureRegions
@@ -46,6 +48,7 @@ class ShipSkin(HasRarity, Serializable):
             self.averageTL = -1
 
         self.designer = designer
+        self.designerId = designerId
         self.wiki = wiki
         self.hasWiki = wiki != ""
         self.disabledRegions = disabledRegions
@@ -53,10 +56,10 @@ class ShipSkin(HasRarity, Serializable):
             if region < 1:
                 raise ValueError("Attempted to disable an invalid region number: " + str(region) + ", skin " + name)
         
-        super().__init__(rarityLevel)
+        super().__init__(rarityLevel, builtIn=builtIn)
 
 
-    def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> dict:
+    def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> JsonType:
         """Serialize this ship skin to dictionary.
 
         :param bool ignoreBuiltIn: When True, the serializer will serialize fully, ignoring
@@ -66,7 +69,11 @@ class ShipSkin(HasRarity, Serializable):
         """
         if ignoreBuiltIn:
             data = {"name": self.name, "textureRegions": self.textureRegions,
-                    "ships": self.shipRenders, "designer": self.designer, "rarityLevel": self.rarityLevel}
+                    "ships": self.shipRenders, "rarityLevel": self.rarityLevel}
+            if self.designer:
+                data["designer"] = self.designer
+            if self.designerId != -1:
+                data["designerId"] = self.designerId
         else:
             data = {"name": self.name, "builtIn": self.builtIn}
 
@@ -130,7 +137,7 @@ class ShipSkin(HasRarity, Serializable):
                         regionsToDisable.append(disabledRegionNum)
 
             await shipRenderer.renderShip(self.name, shipData["path"], shipData["model"], textureFiles, regionsToDisable,
-                                            cfg.skinRenderIconResolution[0], cfg.skinRenderIconResolution[1])
+                                            cfg.skinRenderIconResolution[0], cfg.skinRenderIconResolution[1], cfg.skinRenderIconSamples)
 
             # == Scrapped code for creating custom emojis for each ship reskin ==
             # await shipRenderer.renderShip(self.name + "_emoji", shipData["path"], shipData["model"], [texPath],
@@ -145,7 +152,7 @@ class ShipSkin(HasRarity, Serializable):
             with open(renderPath, "rb") as f:
                 renderMsg = await rendersChannel.send(ship + " +" + self.name, file=File(f))
                 # If saving emoji renders of skins, also save the emoji in here: str(newEmoji)
-                self.shipRenders[ship] = [renderMsg.attachments[0].url, renderMsg.id]
+                self.shipRenders[ship] = renderMsg.attachments[0].url
             os.remove(renderPath)
             os.remove(texPath)
 

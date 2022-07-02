@@ -12,7 +12,7 @@ from ..gameObjects.inventories import inventory
 botCommands.addHelpSection(0, "loadout")
 
 
-async def cmd_hangar(message : discord.Message, args : str, isDM : bool):
+async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
     """return a page listing the calling user's items. Administrators may view the hangar of any user.
     can apply to a specified user, or the calling user if none is specified.
     can apply to a type of item (ships, modules, turrets or weapons), or all items if none is specified.
@@ -262,7 +262,7 @@ botCommands.register("hangar", cmd_hangar, 2, aliases=["hanger"], forceKeepArgsC
                                     + "Administrators have permission to view the hangars of other users.")
 
 
-async def cmd_loadout(message : discord.Message, args : str, isDM : bool):
+async def cmd_loadout(message: discord.Message, args: str, isDM: bool):
     """list the requested user or criminal's currently equipped items.
 
     :param discord.Message message: the discord message calling the command
@@ -364,7 +364,7 @@ botCommands.register("loadout", cmd_loadout, 0, forceKeepArgsCasing=True, allowD
                                 + "or those equipped by another player.")
 
 
-async def cmd_equip(message : discord.Message, args : str, isDM : bool):
+async def cmd_equip(message: discord.Message, args: str, isDM: bool):
     """Equip the item of the given item type, at the given index, from the user's inactive items.
     if "transfer" is specified, the new ship's items are cleared, and the old ship's items attempt to fill new ship.
     "transfer" is only valid when equipping a ship.
@@ -583,7 +583,7 @@ botCommands.register("equip", cmd_equip, 0, allowDM=True, helpSection="loadout",
                                 + "to the new ship.")
 
 
-async def cmd_unequip(message : discord.Message, args : str, isDM : bool):
+async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
     """Unequip the item of the given item type, at the given index, from the user's active ship.
 
     :param discord.Message message: the discord message calling the command
@@ -702,7 +702,7 @@ botCommands.register("unequip", cmd_unequip, 0, allowDM=True, helpSection="loado
                                 + "next to items in your `loadout`.")
 
 
-async def cmd_nameship(message : discord.Message, args : str, isDM : bool):
+async def cmd_nameship(message: discord.Message, args: str, isDM: bool):
     """Set the nickname of the active ship.
 
     :param discord.Message message: the discord message calling the command
@@ -735,7 +735,7 @@ botCommands.register("nameship", cmd_nameship, 0, forceKeepArgsCasing=True, allo
                     longHelp="Give your active ship a nickname! The character limit for ship nicknames is 30.")
 
 
-async def cmd_unnameship(message : discord.Message, args : str, isDM : bool):
+async def cmd_unnameship(message: discord.Message, args: str, isDM: bool):
     """Remove the nickname of the active ship.
 
     :param discord.Message message: the discord message calling the command

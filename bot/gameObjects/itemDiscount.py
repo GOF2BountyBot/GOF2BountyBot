@@ -15,7 +15,7 @@ class ItemDiscount(Serializable):
     :var desc: A short description of the discount.
     :vartype desc: str
     """
-    def __init__(self, mult : float, desc : str):
+    def __init__(self, mult: float, desc: str):
         """
         :param float mult: Scalar to multiply the discounted item's value by. E.g 0.5 to decrease the item's value (discount) by 50%
         :param str desc: A short description of the discount.
@@ -24,7 +24,7 @@ class ItemDiscount(Serializable):
         self.desc = desc
 
 
-    def __eq__(self, o : ItemDiscount) -> bool:
+    def __eq__(self, o: ItemDiscount) -> bool:
         if not isinstance(o, ItemDiscount):
             raise TypeError(f"Cannot compare {ItemDiscount.__name__} to {type(o).__name__}")
         return self.mult == o.mult

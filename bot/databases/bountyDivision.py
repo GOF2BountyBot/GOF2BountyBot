@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING, Tuple
+from typing import Dict, TYPE_CHECKING, Optional, Tuple, cast
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
 
@@ -56,12 +56,12 @@ class BountyDivision(Serializable):
     :var newBountyTT: The timedtask responsible for spawning this division's bounties. If the division is full, this is None.
     :vartype newBountyTT: Union[None, TimedTask]
     """
-    delayRandRange = {"min": timedelta(**cfg.timeouts.newBountyDelayRandomMin),
-                        "max": timedelta(**cfg.timeouts.newBountyDelayRandomMax)}
+    delayRandRange = {"min": cfg.timeouts.newBountyDelayRandomMin,
+                        "max": cfg.timeouts.newBountyDelayRandomMax}
 
-    def __init__(self, owningDB: "BountyDB", minLevel: int, maxLevel: int, temperature: int = cfg.minGuildActivity,
-                bounties: Dict[int, AliasableDict[Criminal, Bounty]] = None, bountyBoardChannel: BountyBoardChannel = None,
-                escapedBounties: Dict[int, AliasableDict[Criminal, Bounty]] = None, alertRoleID: int = -1) -> None:
+    def __init__(self, owningDB: "BountyDB", minLevel: int, maxLevel: int, temperature: float = cfg.minGuildActivity,
+                bounties: Optional[Dict[int, AliasableDict[Criminal, Bounty]]] = None, bountyBoardChannel: Optional[BountyBoardChannel] = None,
+                escapedBounties: Optional[Dict[int, AliasableDict[Criminal, Bounty]]] = None, alertRoleID: int = -1) -> None:
         """
         :param BountyDB owningDB: The BountyDB that owns this division
         :param int minLevel: The lowest level of bounties available in this division
@@ -76,10 +76,10 @@ class BountyDivision(Serializable):
         self.temperature = temperature
         self.isActive = False
         self.updateIsActive()
-        self.latestBounty: Bounty = None
+        self.latestBounty: Optional[Bounty] = None
         self.bountyBoardChannel = bountyBoardChannel
         self.alertRoleID = alertRoleID
-        # Dictionary of tech level : dict of criminal : bounty
+        # Dictionary of tech level: dict of criminal: bounty
         if bounties is None:
             self.bounties: Dict[int, AliasableDict[Criminal, Bounty]] = {l: AliasableDict()
                                                                         for l in range(self.minLevel, self.maxLevel + 1)}
@@ -90,7 +90,7 @@ class BountyDivision(Serializable):
                     if self.latestBounty is None or bty.issueTime > self.latestBounty.issueTime:
                         self.latestBounty = bty
 
-        # Dictionary of tech level : dict of criminal : bounty
+        # Dictionary of tech level: dict of criminal: bounty
         if escapedBounties is None:
             self.escapedBounties: Dict[int, AliasableDict[Criminal, Bounty]] = {l: AliasableDict()
                                                                         for l in range(self.minLevel, self.maxLevel + 1)}
@@ -125,10 +125,10 @@ class BountyDivision(Serializable):
         """
         if self.newBountyTT is not None:
             botState.client.logger.log("BountyDivision", "tryStartBountySpawner", "Attempted to tryStartBountySpawner when a newBountyTT already exists",
-                                "newBounties", "TT_EXISTS", "\n".join(format_stack()))
+                                LogCategory.newBounties, "TT_EXISTS", "\n".join(format_stack()))
         elif self.isFull() and self.hasMinTLBounty():
             botState.client.logger.log("BountyDivision", "tryStartBountySpawner", "Attempted to tryStartBountySpawner when the division is already full",
-                                "newBounties", "DIV_FULL", "\n".join(format_stack()))
+                                LogCategory.newBounties, "DIV_FULL", "\n".join(format_stack()))
         else:
             bountyDelayGenerators = {"random": lib.timeUtil.getRandomDelay,
                                     "fixed-routeScale": self.getRouteScaledBountyDelayFixed,
@@ -141,7 +141,7 @@ class BountyDivision(Serializable):
                                         "random-routeScale-tempScale": self.delayRandRange}
 
             if cfg.newBountyDelayType == "fixed":
-                self.newBountyTT = TimedTask(expiryDelta=timedelta(**cfg.timeouts.newBountyFixedDelta),
+                self.newBountyTT = TimedTask(expiryDelta=cfg.timeouts.newBountyFixedDelta,
                                             expiryFunction=self.spawnNewBounty, autoReschedule=True,
                                             rescheduleOnExpiryFuncFailure=True)
             else:
@@ -172,7 +172,7 @@ class BountyDivision(Serializable):
         self.isActive = self.temperature != cfg.minGuildActivity
 
 
-    def getNumBounties(self, level : int = -1, includeEscaped : bool = True) -> int:
+    def getNumBounties(self, level: int = -1, includeEscaped: bool = True) -> int:
         """Decide the number of bounties currently stored in this division.
         Give a tech level for the number of bounties at that level, or -1 for a count across all levels.
         If includeEscaped is given as true, escaped bounties will also be counted.
@@ -192,7 +192,7 @@ class BountyDivision(Serializable):
         return len(self.bounties[level])
 
 
-    def bountyObjExists(self, bounty : Bounty) -> bool:
+    def bountyObjExists(self, bounty: Bounty) -> bool:
         """Check whether a given bounty object exists in the division.
         Existence is checked by checking if the bounty's criminal is in the division at the bounty's level.
 
@@ -203,7 +203,7 @@ class BountyDivision(Serializable):
         return bounty.criminal in self.bounties[bounty.techLevel]
 
 
-    def criminalObjExists(self, crim : Criminal) -> bool:
+    def criminalObjExists(self, crim: Criminal) -> bool:
         """Check whether a given criminal object exists in the division.
         Existence is checked across all levels.
 
@@ -231,7 +231,7 @@ class BountyDivision(Serializable):
         :return: The maximum number of bounties the division can currently contain
         :rtype: int
         """
-        return min(cfg.maxBountiesPerDivision, max(1, self.temperature))
+        return min(cfg.maxBountiesPerDivision, max(1, int(self.temperature)))
 
 
     def pickNewTL(self) -> int:
@@ -279,6 +279,7 @@ class BountyDivision(Serializable):
             self.stopBountySpawner()
 
         await self.owningDB.owningBasedGuild.announceNewBounty(newBounty)
+        return newBounty
 
 
     async def respawnBounty(self, bounty: Bounty):
@@ -299,7 +300,7 @@ class BountyDivision(Serializable):
                                 + bounty.criminal.name + " (" + str(bounty.techLevel) + ")")
 
         del self.escapedBounties[bounty.techLevel][bounty.criminal]
-        bounty.__init__(config=bounty.makeRespawnConfig().generate(self))
+        bounty.__init__(self, config=bounty.makeRespawnConfig().generate(self))
         self.bounties[bounty.techLevel][bounty.criminal] = bounty
 
         if self.isFull() and self.hasMinTLBounty():
@@ -357,7 +358,7 @@ class BountyDivision(Serializable):
             self.tryStartBountySpawner()
 
 
-    def decayTemp(self, updateActive : bool = True):
+    def decayTemp(self, updateActive: bool = True):
         """Multiplies the activity temperature by cfg.guildActivityDecayRate,
         with a lower temperature bound of cfg.minGuildActivity.
 
@@ -501,7 +502,8 @@ class BountyDivision(Serializable):
         if includeEscaped:
             for tlBounties in self.escapedBounties.values():
                 for bty in tlBounties.values():
-                    await bty.respawnTT.forceExpire(callExpiryFunc=False)
+                    # Casting here because escapedBounties only contains bounties with an active respawn TT
+                    cast(TimedTask, bty.respawnTT).forceExpire(callExpiryFunc=False)
                 tlBounties.clear()
         if wasFull or not self.hasMinTLBounty():
             self.tryStartBountySpawner()
@@ -509,7 +511,7 @@ class BountyDivision(Serializable):
             await self.bountyBoardChannel.updateEscapedBountiesMessage()
 
 
-    async def resetNewBountyCool(self):
+    def resetNewBountyCool(self):
         """Force expiry on the new bounty TimedTask, immediately triggering a new bounty spawn.
         
         :raise OverflowError: If the division is full
@@ -517,10 +519,12 @@ class BountyDivision(Serializable):
         if self.isFull() and self.hasMinTLBounty():
             raise OverflowError("Attempted to resetNewBountyCool but the division is full")
         else:
-            await self.newBountyTT.forceExpire(callExpiryFunc=True)
+            # Casting here because newBountyTT can be None, but this can only happen if the division is ful
+            # and has a minimum TL bounty, both of which are checked above
+            cast(TimedTask, self.newBountyTT).forceExpire(callExpiryFunc=True)
 
     
-    async def addBountyBoardChannel(self, channel : TextChannel, client : Client):
+    async def addBountyBoardChannel(self, channel: TextChannel, client: Client):
         """Set this division's bounty board channel.
 
         :param discord.Channel channel: The channel where bounty listings should be posted
@@ -545,7 +549,7 @@ class BountyDivision(Serializable):
         self.bountyBoardChannel = None
 
 
-    def _addBounty(self, bounty : Bounty, dbReload=False, isRespawn=False):
+    def _addBounty(self, bounty: Bounty, dbReload=False, isRespawn=False):
         """This is a private method. To ensure unique criminal names across a bountyDB, you should instead call
         BountyDB.addBounty. The BountyDB that owns this division can be accessed through the owningDB attribute. 
 
@@ -574,7 +578,7 @@ class BountyDivision(Serializable):
                     raise e
 
 
-    def _addEscapedBounty(self, bounty : Bounty, dbReload: bool = False, ignoreFull: bool = False):
+    def _addEscapedBounty(self, bounty: Bounty, dbReload: bool = False, ignoreFull: bool = False):
         """This is a private method. To ensure unique criminal names across a bountyDB, you should instead call
         BountyDB.addEscapedBounty. The BountyDB that owns this division can be accessed through the owningDB attribute. 
 
@@ -602,7 +606,7 @@ class BountyDivision(Serializable):
                     raise e
 
 
-    def removeBountyObj(self, bounty : Bounty):
+    def removeBountyObj(self, bounty: Bounty):
         """Remove a given bounty object from the division.
         If the division was full before, restart the new bounty spawner
 
@@ -617,7 +621,7 @@ class BountyDivision(Serializable):
             self.tryStartBountySpawner()
     
 
-    def removeEscapedBountyObj(self, bounty : Bounty):
+    def removeEscapedBountyObj(self, bounty: Bounty):
         """Remove a given escaped bounty object from the division.
         If the division was full before, restart the new bounty spawner
 
@@ -660,15 +664,15 @@ class BountyDivision(Serializable):
 
 
     @classmethod
-    def deserialize(cls, data: dict, owningDB : "BountyDB" = None, **kwargs) -> BountyDivision:
+    def deserialize(cls, data: dict, owningDB: Optional["BountyDB"] = None, **kwargs) -> BountyDivision:
         """Recreate a dictionary-serialized BountyDivision
 
         :param dict data: A dictionary containing all of the current bounties and the current activity temperature
         :return: A BountyDivision object as specified by the attributes in data
         :rtype: BountyDivision
         """
-        if type(owningDB) != BountyDB:
-            raise ValueError(f"Expected type BountyDB for kwarg owningDB but received {type(owningDB.__name__)}")
+        if not isinstance(owningDB, BountyDB):
+            raise ValueError(f"Expected type BountyDB for kwarg owningDB but received {type(owningDB).__name__}")
         crims = set()
 
         bounties = {l: AliasableDict() for l in range(data["minLevel"], data["maxLevel"] + 1)}

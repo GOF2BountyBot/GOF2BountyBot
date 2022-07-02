@@ -225,7 +225,7 @@ class BasedClient(ClientBaseClass):
         showInHelp: bool = True,
         helpSection: Optional[str] = None,
         formattedDesc: Optional[str] = None,
-        formattedParamDescs : Optional[Dict[str, str]] = None
+        formattedParamDescs: Optional[Dict[str, str]] = None
     ):
         """Decorator that marks a discord app command as a BASED command.
 
@@ -451,7 +451,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.skinStorageChannel is only available after on_ready.")
-        return self._skinStorageChannel
+        return cast(TextChannel, self._skinStorageChannel)
 
 
     @property
@@ -465,7 +465,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.bountyRouteImagesChannel is only available after on_ready.")
-        return self._bountyRouteImagesChannel
+        return cast(TextChannel, self._bountyRouteImagesChannel)
 
 
     @property
@@ -479,7 +479,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.githubRepo is only available after on_ready.")
-        return self._githubRepo
+        return cast(Repository, self._githubRepo)
 
 
     @property
@@ -493,7 +493,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.githubClient is only available after on_ready.")
-        return self._githubClient
+        return cast(Github, self._githubClient)
 
         
     def taskScheduler(self):
@@ -604,8 +604,20 @@ class BasedClient(ClientBaseClass):
         gameConfigurator.loadAllGameObjects()
 
         mediaServer = self.get_guild(cfg.mediaServer)
-        self._skinStorageChannel = mediaServer.get_channel(cfg.skinRendersChannel)
-        self._bountyRouteImagesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
+        if mediaServer is None:
+            raise ValueError(f"Unknown guild ID for cfg.mediaServer: {cfg.mediaServer}")
+        skinsChannel = mediaServer.get_channel(cfg.skinRendersChannel)
+        if skinsChannel is None:
+            raise ValueError(f"Unknown channel ID for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
+        if not isinstance(skinsChannel, TextChannel):
+            raise ValueError(f"Channel is not a TextChannel for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
+        self._skinStorageChannel = skinsChannel
+        routesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
+        if routesChannel is None:
+            raise ValueError(f"Unknown channel ID for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
+        if not isinstance(routesChannel, TextChannel):
+            raise ValueError(f"Channel is not a TextChannel for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
+        self._bountyRouteImagesChannel = routesChannel
         self._mediaServersLoaded = True
 
         if not self._schedulerLoaded:
@@ -626,12 +638,12 @@ class BasedClient(ClientBaseClass):
 
         if cfg.githubAccessToken and cfg.githubIssuesRepo:
             try:
-                self.githubClient = Github(cfg.githubAccessToken)
+                self._githubClient = Github(cfg.githubAccessToken)
             except Exception as e:
                 self.logger.log("BasedClient", "on_ready", "", exception=e)
             else:
                 try:
-                    self.githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
+                    self._githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
                 except Exception as e:
                     self.logger.log("BasedClient", "on_ready", "", exception=e)
                 else:

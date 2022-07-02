@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from . import reactionMenu
 from ..cfg import cfg
 from ..gameObjects.items import gameItem
@@ -19,8 +20,8 @@ class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
     :vartype item: gameItem
     """
 
-    def __init__(self, item : gameItem.GameItem, menu : "ReactionInventoryPicker", emoji : lib.emojis.BasedEmoji = None,
-            name : str = None):
+    def __init__(self, item: gameItem.GameItem, menu: "ReactionInventoryPicker", emoji: Optional[lib.emojis.BasedEmoji] = None,
+            name: Optional[str] = None):
         """
         :param gameItem item: The gameItem that this option represents
         :param ReactionInventoryPicker menu: The ReactionMenu where this option is active
@@ -74,10 +75,10 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
     :vartype page: int
     """
 
-    def __init__(self, msg : Message, inventory : inventory.Inventory, itemsPerPage : int = maxItemsPerPage,
-            titleTxt : str = "", desc : str = "", col : Colour = None, timeout : timedTask.TimedTask = None,
-            footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "", authorName : str = "",
-            targetMember : Member = None, targetRole : Role = None):
+    def __init__(self, msg: Message, inventory: inventory.Inventory, itemsPerPage: int = maxItemsPerPage,
+            titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None,
+            footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+            targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: The discord message where this menu should be embedded
         :param inventory inventory: The inventory to display and select from (TODO: Rename)
@@ -121,7 +122,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
                                                         targetRole=targetRole)
 
 
-    def selectItem(self, item : gameItem.GameItem) -> gameItem.GameItem:
+    def selectItem(self, item: gameItem.GameItem) -> gameItem.GameItem:
         """Pass back the selected gameItem to the calling function.
         This method is called on reaction add that corresponds to a gameItem currently on display
 
@@ -133,7 +134,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         return item
 
 
-    def deselectItem(self, item : gameItem.GameItem) -> gameItem.GameItem:
+    def deselectItem(self, item: gameItem.GameItem) -> gameItem.GameItem:
         """Pass back the deselected gameItem to the calling function.
         This method is called on reaction remove that corresponds to a gameItem currently on display
 
@@ -158,7 +159,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
 
 
     @classmethod
-    def deserialize(cls, rmDict : dict, **kwargs) -> ReactionInventoryPicker:
+    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionInventoryPicker:
         """⚠ ReactionInventoryPickers are not currently saveable. Do not use this method.
         When implemented, this function will construct a new ReactionInventoryPicker from a dictionary-serialized
         representation - The opposite of ReactionInventoryPicker.serialize.

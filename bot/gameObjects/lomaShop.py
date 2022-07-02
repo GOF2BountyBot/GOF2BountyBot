@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 if TYPE_CHECKING:
     from ..users import basedUser
 
@@ -17,34 +17,34 @@ class LomaShop(guildShop.GuildShop):
     Items cannot be sold to Loma.
     """
 
-    def __init__(self, shipsStock: inventory.DiscountableTypeRestrictedInventory = None,
-                    weaponsStock: inventory.DiscountableTypeRestrictedInventory = None,
-                    modulesStock: inventory.DiscountableTypeRestrictedInventory = None,
-                    turretsStock: inventory.DiscountableTypeRestrictedInventory = None,
-                    toolsStock: inventory.DiscountableTypeRestrictedInventory = None):
+    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship]] = None,
+                    weaponsStock: Optional[inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon]] = None,
+                    modulesStock: Optional[inventory.DiscountableInventory[moduleItem.ModuleItem]] = None,
+                    turretsStock: Optional[inventory.DiscountableInventory[turretWeapon.TurretWeapon]] = None,
+                    toolsStock: Optional[inventory.DiscountableInventory[toolItem.ToolItem]] = None):
         """
-        :param shipsStock: The shop's current stock of ships (Default empty inventory.DiscountableTypeRestrictedInventory)
-        :type shipsStock: inventory.DiscountableTypeRestrictedInventory
-        :param weaponsStock: The shop's current stock of weapons (Default empty inventory.DiscountableTypeRestrictedInventory)
-        :type weaponsStock: inventory.DiscountableTypeRestrictedInventory
-        :param modulesStock: The shop's current stock of modules (Default empty inventory.DiscountableTypeRestrictedInventory)
-        :type modulesStock: inventory.DiscountableTypeRestrictedInventory
-        :param turretsStock: The shop's current stock of turrets (Default empty inventory.DiscountableTypeRestrictedInventory)
-        :type turretsStock: inventory.DiscountableTypeRestrictedInventory
-        :param toolsStock: The shop's current stock of tools (Default empty inventory.DiscountableTypeRestrictedInventory)
-        :type toolsStock: inventory.DiscountableTypeRestrictedInventory
+        :param shipsStock: The shop's current stock of ships (Default empty inventory.DiscountableInventory)
+        :type shipsStock: inventory.DiscountableInventory
+        :param weaponsStock: The shop's current stock of weapons (Default empty inventory.DiscountableInventory)
+        :type weaponsStock: inventory.DiscountableInventory
+        :param modulesStock: The shop's current stock of modules (Default empty inventory.DiscountableInventory)
+        :type modulesStock: inventory.DiscountableInventory
+        :param turretsStock: The shop's current stock of turrets (Default empty inventory.DiscountableInventory)
+        :type turretsStock: inventory.DiscountableInventory
+        :param toolsStock: The shop's current stock of tools (Default empty inventory.DiscountableInventory)
+        :type toolsStock: inventory.DiscountableInventory
         """
-        shipsStock = shipsStock or inventory.DiscountableTypeRestrictedInventory(shipItem.Ship)
-        weaponsStock = weaponsStock or inventory.DiscountableTypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
-        modulesStock = modulesStock or inventory.DiscountableTypeRestrictedInventory(moduleItem.ModuleItem)
-        turretsStock = turretsStock or inventory.DiscountableTypeRestrictedInventory(turretWeapon.TurretWeapon)
-        toolsStock = toolsStock or inventory.DiscountableTypeRestrictedInventory(toolItem.ToolItem)
+        shipsStock = shipsStock or inventory.DiscountableInventory(shipItem.Ship)
+        weaponsStock = weaponsStock or inventory.DiscountableInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = modulesStock or inventory.DiscountableInventory(moduleItem.ModuleItem)
+        turretsStock = turretsStock or inventory.DiscountableInventory(turretWeapon.TurretWeapon)
+        toolsStock = toolsStock or inventory.DiscountableInventory(toolItem.ToolItem)
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
 
 
-    def userCanAffordItemObj(self, user : basedUser.BasedUser, item : gameItem.GameItem) -> bool:
+    def userCanAffordItemObj(self, user: basedUser.BasedUser, item: guildShop.StoredItemType) -> bool:
         """Decide whether a user has enough credits to buy an item, taking into account any available discounts
 
         :param basedUser user: The user whose credits balance to check
@@ -58,86 +58,88 @@ class LomaShop(guildShop.GuildShop):
 
 
 
-    def userSellShipObj(self, user : basedUser.BasedUser, ship : shipItem.Ship):
+    def userSellShipObj(self, user: basedUser.BasedUser, ship: shipItem.Ship):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
-    def userSellShipIndex(self, user : basedUser.BasedUser, index : int):
-        """Selling items to Loma is not allowed."""
-        raise NotImplementedError("Attempted to sell an item to a Loma shop")
-
-
-
-    def userSellWeaponObj(self, user : basedUser.BasedUser, weapon : primaryWeapon.PrimaryWeapon):
-        """Selling items to Loma is not allowed."""
-        raise NotImplementedError("Attempted to sell an item to a Loma shop")
-
-
-    def userSellWeaponIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellShipIndex(self, user: basedUser.BasedUser, index: int):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
 
-    def userSellModuleObj(self, user : basedUser.BasedUser, module : moduleItem.ModuleItem):
+    def userSellWeaponObj(self, user: basedUser.BasedUser, weapon: primaryWeapon.PrimaryWeapon):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
-    def userSellModuleIndex(self, user : basedUser.BasedUser, index : int):
-        """Selling items to Loma is not allowed."""
-        raise NotImplementedError("Attempted to sell an item to a Loma shop")
-
-
-
-    def userSellTurretObj(self, user : basedUser.BasedUser, turret : turretWeapon.TurretWeapon):
-        """Selling items to Loma is not allowed."""
-        raise NotImplementedError("Attempted to sell an item to a Loma shop")
-
-
-    def userSellTurretIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellWeaponIndex(self, user: basedUser.BasedUser, index: int):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
 
-    def userSellToolObj(self, user : basedUser.BasedUser, tool : toolItem.ToolItem):
+    def userSellModuleObj(self, user: basedUser.BasedUser, module: moduleItem.ModuleItem):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
-    def userSellToolIndex(self, user : basedUser.BasedUser, index : int):
+    def userSellModuleIndex(self, user: basedUser.BasedUser, index: int):
+        """Selling items to Loma is not allowed."""
+        raise NotImplementedError("Attempted to sell an item to a Loma shop")
+
+
+
+    def userSellTurretObj(self, user: basedUser.BasedUser, turret: turretWeapon.TurretWeapon):
+        """Selling items to Loma is not allowed."""
+        raise NotImplementedError("Attempted to sell an item to a Loma shop")
+
+
+    def userSellTurretIndex(self, user: basedUser.BasedUser, index: int):
+        """Selling items to Loma is not allowed."""
+        raise NotImplementedError("Attempted to sell an item to a Loma shop")
+
+
+
+    def userSellToolObj(self, user: basedUser.BasedUser, tool: toolItem.ToolItem):
+        """Selling items to Loma is not allowed."""
+        raise NotImplementedError("Attempted to sell an item to a Loma shop")
+
+
+    def userSellToolIndex(self, user: basedUser.BasedUser, index: int):
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 
     @classmethod
-    def deserialize(cls, shopDict : dict, **kwargs) -> LomaShop:
+    def deserialize(cls, shopDict: dict, **kwargs) -> LomaShop:
         """Recreate a LomaShop instance from its dictionary-serialized representation - the opposite of LomaShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new LomaShop object as described by shopDict
         :rtype: LomaShop
         """
-        shipsStock = inventory.DiscountableTypeRestrictedInventory(shipItem.Ship)
-        weaponsStock = inventory.DiscountableTypeRestrictedInventory(primaryWeapon.PrimaryWeapon)
-        modulesStock = inventory.DiscountableTypeRestrictedInventory(moduleItem.ModuleItem)
-        turretsStock = inventory.DiscountableTypeRestrictedInventory(turretWeapon.TurretWeapon)
-        toolsStock = inventory.DiscountableTypeRestrictedInventory(toolItem.ToolItem)
+        shipsStock = inventory.DiscountableInventory(shipItem.Ship)
+        weaponsStock = inventory.DiscountableInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = inventory.DiscountableInventory(moduleItem.ModuleItem)
+        turretsStock = inventory.DiscountableInventory(turretWeapon.TurretWeapon)
+        toolsStock = inventory.DiscountableInventory(toolItem.ToolItem)
 
-        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship.deserialize),
-                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon.deserialize),
-                                        ("modulesStock", modulesStock, moduleItemFactory.deserialize),
-                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon.deserialize),
-                                        ("toolsStock", toolsStock, toolItemFactory.deserialize)):
+        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship),
+                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon),
+                                        ("modulesStock", modulesStock, moduleItemFactory.ModuleItemFactory),
+                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon),
+                                        ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
-                    newItem = deserializer(listingDict["item"], **kwargs)
-                    stock.addItem(newItem, quantity=listingDict["count"])
+                    newItem = deserializer.deserialize(listingDict["item"], **kwargs)
+                    # I can't find a way to show pyright that the types from the for loop params tuple match
+                    stock.addItem(newItem, quantity=listingDict["count"]) # type: ignore[reportGeneralTypeIssues]
                     if "discounts" in listingDict:
                         for discountDict in listingDict["discounts"]:
-                            stock.getListing(newItem).pushDiscount(itemDiscount.ItemDiscount.deserialize(discountDict, **kwargs))
+                            # I can't find a way to show pyright that the types from the for loop params tuple match
+                            stock.getListing(newItem).pushDiscount(itemDiscount.ItemDiscount.deserialize(discountDict, **kwargs)) # type: ignore[reportGeneralTypeIssues]
 
         return LomaShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                         turretsStock=turretsStock, toolsStock=toolsStock)

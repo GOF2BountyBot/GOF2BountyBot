@@ -1,36 +1,32 @@
 from __future__ import annotations
 from . import inventoryListing
-from ...baseClasses.serializable import Serializable
-from typing import Dict, Any, List, Tuple
+from ...baseClasses.serializable import SerializesToJson
+from typing import Dict, Generic, List, Tuple, Type, TypeVar, cast
+from ..items import gameItem
+from ..itemDiscount import ItemDiscount
+
+TListingType = TypeVar("TListingType", bound="inventoryListing.InventoryListing")
+TItemType = TypeVar("TItemType", bound="gameItem.GameItem",)
+TSelf = TypeVar("TSelf", bound="_InventoryBase")
 
 
-class Inventory(Serializable):
-    """A database of InventoryListings.
-    Aside from the use of InventoryListing for the purpose of item quantities, this class is type unaware.
+class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
+    listingType: Type[TListingType]
 
-    :var items: The actual item listings
-    :vartype items: dict[Any, InventoryListing]
-    :var keys: The item types stored
-    :vartype keys: ist[Any]
-    :var totalItems: The total number of items stored; the sum of all item quantities
-    :vartype totalItems: int
-    :var numKeys: The number of item types stored; the length of self.keys
-    :vartype numKeys: int
-    """
-    listingType = inventoryListing.InventoryListing
-
-    def __init__(self):
+    def __init__(self, itemType: Type[TItemType]):
         # The actual item listings
-        self.items: Dict[Any, inventoryListing.InventoryListing] = {}
+        self.items: Dict[TItemType, TListingType] = {}
         # The item types stored
-        self.keys: List[Any] = []
+        self.keys: List[TItemType] = []
         # The total number of items stored; the sum of all item quantities
         self.totalItems = 0
         # The number of item types stored; the length of self.keys
         self.numKeys = 0
+        # The type that all items must be
+        self.itemType = itemType
 
 
-    def addItem(self, item : Any, quantity : int = 1):
+    def addItem(self, item: TItemType, quantity: int = 1):
         """Add one or more of an item to the inventory.
         If at least one of item is already in the inventory, that item's InventoryListing count will be incremented.
         Otherwise, a new InventoryListing is created for item.
@@ -41,6 +37,10 @@ class Inventory(Serializable):
         """
         if quantity < 0:
             raise ValueError("Quantity must be at least 1")
+        
+        if not isinstance(item, self.itemType):
+            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
+                            + self.itemType.__name__ + "', given '" + type(item).__name__ + "'")
 
         # increment totalItems tracker
         self.totalItems += quantity
@@ -55,7 +55,7 @@ class Inventory(Serializable):
             self.numKeys += 1
 
 
-    def getListing(self, item: Any) -> inventoryListing.InventoryListing:
+    def getListing(self, item: TItemType) -> TListingType:
         """Get the stored InventoryListing tracking the given item and its quantity.
         At least one of item must already be in the inventory. The type of the listing returned
         is self.listingType, which will always be an InventoryListing subclass.
@@ -65,6 +65,10 @@ class Inventory(Serializable):
         :return: The InventoryListing (or subclass instance) tracking the inventory's quantity of item
         :rtype: self.listingType
         """
+        if not isinstance(item, self.itemType):
+            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
+                            + self.itemType.__name__ + "', given '" + type(item).__name__ + "'")
+                            
         # Return existing listings
         if item in self.items:
             return self.items[item]
@@ -73,13 +77,17 @@ class Inventory(Serializable):
             raise KeyError(f"None of '{item}' are currently stored in the inventory")
 
 
-    def _addListing(self, newListing : inventoryListing.InventoryListing):
+    def _addListing(self, newListing: TListingType):
         """Add an inventory listing to the inventory, including item and acount.
         If at least one of item is already in the inventory, that item's InventoryListing count will be incremented.
         Otherwise, a reference to the given InventoryListing is stored. The listing is not copied and remains mutable.
 
         :param InventoryListing newListing: The inventory listing to add to the inventory
         """
+        if not isinstance(newListing.item, self.itemType):
+            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
+                            + self.itemType.__name__ + "', given '" + type(newListing.item).__name__ + "'")
+
         # update total items count
         self.totalItems += newListing.count
         # if item is already stored, increment its listing count
@@ -93,7 +101,7 @@ class Inventory(Serializable):
             self.numKeys += 1
 
 
-    def removeItem(self, item : Any, quantity : int = 1):
+    def removeItem(self, item: TItemType, quantity: int = 1):
         """Remove one or more of an item from the inventory.
         If the amount of item stored in the inventory is now zero, the InventoryListing is removed from the inventory.
         At least quantity of item must already be stored in the inventory.
@@ -123,7 +131,7 @@ class Inventory(Serializable):
                                 + (str(self.items[item].count) if item in self.items else "0") + " are in inventory")
 
 
-    def numPages(self, itemsPerPage : int) -> int:
+    def numPages(self, itemsPerPage: int) -> int:
         """Get the number of pages of items in the inventory, for a given max number of items per page
         E.g, where 3 keys are in the inventory: numPages(1) gives 3. numPages(2) gives 2.
 
@@ -134,7 +142,7 @@ class Inventory(Serializable):
         return int(self.numKeys / itemsPerPage) + (0 if self.numKeys % itemsPerPage == 0 else 1)
 
 
-    def getPage(self, pageNum : int, itemsPerPage : int) -> list:
+    def getPage(self, pageNum: int, itemsPerPage: int) -> list:
         """Get a list of the bbItemListings on the requested page.
         pageNum is 1 index-based; the first page is 1.
         pageNum must be between 1 and numPages(itemsPerPage).
@@ -195,8 +203,22 @@ class Inventory(Serializable):
         self.totalItems = 0
         self.numKeys = 0
 
+    
+    def itemAtIndex(self, i: int) -> TItemType:
+        """Get the stored item at position `i` in self.keys.
 
-    def __getitem__(self, key : int) -> inventoryListing.InventoryListing:
+        :param int key: The index of the item to get
+        :return: The item at the requested index
+        :rtype: TItemType
+        :raise KeyError: When the given index is in range of the inventory, but the key at the requested position
+                         in the keys array does not exist in the items dictionary
+        :raise IndexError: When given an index that isn't an int, or the given index is out of range
+        :raise ValueError: When the inventory is empty
+        """
+        return cast(TItemType, self[i].item)
+
+
+    def __getitem__(self, key: int) -> TListingType:
         """Override [subscript] operator for reading values.
         Currently returns the InventoryListing for the item at position key in self.keys.
 
@@ -248,8 +270,8 @@ class Inventory(Serializable):
 
 
     @classmethod
-    def deserialize(cls, invDict, **kwargs) -> Inventory:
-        newInv = Inventory()
+    def deserialize(cls: Type[TSelf], invDict, itemType: Type[TItemType], **kwargs) -> TSelf:
+        newInv = cls(itemType)
         if "items" in invDict:
             for listingDict in invDict["items"]:
                 newInv._addListing(cls.listingType.deserialize(listingDict))
@@ -257,54 +279,29 @@ class Inventory(Serializable):
         return newInv
 
 
-class TypeRestrictedInventory(Inventory):
-    """An inventory where the item listings are guaranteed to be of a given type.
+class Inventory(_InventoryBase[inventoryListing.InventoryListing, TItemType]):
+    """A database of InventoryListings.
+    Aside from the use of InventoryListing for the purpose of item quantities, this class is type unaware.
 
-    :var itemType: The type by which listings are restricted
-    :vartype itemType: type
+    :var items: The actual item listings
+    :vartype items: dict[Any, InventoryListing]
+    :var keys: The item types stored
+    :vartype keys: ist[Any]
+    :var totalItems: The total number of items stored; the sum of all item quantities
+    :vartype totalItems: int
+    :var numKeys: The number of item types stored; the length of self.keys
+    :vartype numKeys: int
     """
-
-    def __init__(self, itemType : type):
-        super().__init__()
-        self.itemType = itemType
+    listingType = inventoryListing.InventoryListing
 
 
-    def addItem(self, item: Any, quantity : int = 1):
-        if not isinstance(item, self.itemType):
-            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
-                            + self.itemType.__name__ + "', given '" + type(item).__name__ + "'")
-        super().addItem(item, quantity=quantity)
-
-
-    def _addListing(self, newListing: inventoryListing.InventoryListing):
-        if not isinstance(newListing.item, self.itemType):
-            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
-                            + self.itemType.__name__ + "', given '" + type(newListing.item).__name__ + "'")
-        super()._addListing(newListing)
-
-
-    def getListing(self, item: Any) -> inventoryListing.InventoryListing:
-        if not isinstance(item, self.itemType):
-            raise TypeError("Given item does not match this inventory's item type restriction. Expected '" \
-                            + self.itemType.__name__ + "', given '" + type(item).__name__ + "'")
-        return super().getListing(item)
-
-
-
-class DiscountableTypeRestrictedInventory(TypeRestrictedInventory):
-    """A TypeRestrictedInventory storing DiscountableItemListing instead of bbItemListings.
+class DiscountableInventory(_InventoryBase[inventoryListing.DiscountableItemListing, TItemType], Generic[TItemType]):
+    """An Inventory storing DiscountableItemListing instead of plain ItemListings.
     """
     listingType = inventoryListing.DiscountableItemListing
 
-    def _addListing(self, newListing: inventoryListing.DiscountableItemListing):
-        super()._addListing(newListing)
 
-
-    def getListing(self, item: Any) -> inventoryListing.DiscountableItemListing:
-        return super().getListing(item)
-
-
-    def removeItemAndDiscount(self, item) -> Tuple[Any, float]:
+    def removeItemAndDiscount(self, item) -> Tuple[TItemType, float]:
         """Pop one of item out of the inventory, and return it in a tuple with the largest discount available
         for that item. The discount is also removed from the inventory.
         If no discount is available, 1 is returned in its place.

@@ -32,7 +32,7 @@ class AnyCoroutine(Protocol):
     def __call__(*args, **kwargs) -> Awaitable: ...
 
 
-def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
+def findBUserDCGuild(user: basedUser.BasedUser) -> Union[Guild, None]:
     """Attempt to find a discord.guild containing the given BasedUser.
     If a guild is found, it will be returned as a discord.guild. If no guild can be found, None will be returned.
 
@@ -45,14 +45,14 @@ def findBUserDCGuild(user : basedUser.BasedUser) -> Union[Guild, None]:
         if homeGuild is not None:
             return homeGuild
 
-    dcUser: User = botState.client.get_user(user.id)
+    dcUser = botState.client.get_user(user.id)
     if dcUser is not None and dcUser.mutual_guilds:
         return dcUser.mutual_guilds[0]
 
     return None
 
 
-def userOrMemberName(dcUser : User, dcGuild : Guild) -> str:
+def userOrMemberName(dcUser: User, dcGuild: Guild) -> str:
     """If dcUser is a member of dcGuild, return dcUser's display name in dcGuild
     (their nickname if they have one, or their user name otherwise), Otherwise, returm dcUser's discord user name.
 
@@ -106,7 +106,7 @@ def getMemberFromRef(uRef: str, dcGuild: Guild) -> Union[Member, None]:
     return dcGuild.get_member_named(uRef)
 
 
-def userTagOrDiscrim(userID : str, guild : Guild = None) -> str:
+def userTagOrDiscrim(userID: str, guild: Optional[Guild] = None) -> str:
     """If the given guild has a user with the given ID, return their mention.
     Otherwise, if the bot shares any server with the user with the given ID,
     return their name and discriminator. TODO: Should probably change this to display name
@@ -134,7 +134,7 @@ def userTagOrDiscrim(userID : str, guild : Guild = None) -> str:
     return userID
 
 
-def criminalNameOrDiscrim(criminal : criminal.Criminal) -> str:
+def criminalNameOrDiscrim(criminal: criminal.Criminal) -> str:
     """If a passed criminal is a player, attempt to return the user's name and discriminator.
     Otherwise, return the passed criminal's name. TODO: Should probably change this to display name
 
@@ -174,7 +174,7 @@ def makeEmbed(titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), f
     return embed
 
 
-def getMemberByRefOverDB(uRef : str, dcGuild : Guild = None) -> User:
+def getMemberByRefOverDB(uRef: str, dcGuild: Optional[Guild] = None) -> Optional[Member]:
     """Attempt to get a user object from a given string user reference.
     a user reference can be one of:
     - A user mention <@123456> or <@!123456>
@@ -204,8 +204,9 @@ def getMemberByRefOverDB(uRef : str, dcGuild : Guild = None) -> User:
     return userAttempt
 
 
-def typeAlertedUserMentionOrName(alertType : Type[userAlerts.UABase], dcUser : Union[User, Member] = None,
-        basedUser : basedUser.BasedUser = None, basedGuild : basedGuild.BasedGuild = None, dcGuild : Guild = None) -> str:
+def typeAlertedUserMentionOrName(alertType: Type[userAlerts.UABase], dcUser: Optional[Union[User, Member]] = None,
+                                    basedUser: Optional[basedUser.BasedUser] = None, basedGuild: Optional[basedGuild.BasedGuild] = None,
+                                    dcGuild: Optional[Guild] = None) -> str:
     """If the given user has subscribed to the given alert type, return the user's mention.
     Otherwise, return their display name and discriminator. At least one of dcUser or basedUser must be provided.
     BasedGuild and dcGuild are both optional. If neither are provided then the joined guilds will be searched for
@@ -225,30 +226,36 @@ def typeAlertedUserMentionOrName(alertType : Type[userAlerts.UABase], dcUser : U
     :raise KeyError: When given neither BasedGuild nor dcGuild,
                         and the user could not be located in any of the bot's joined guilds.
     """
-    if dcUser is None and basedGuild is None:
+    if dcUser is None and basedUser is None:
         raise ValueError("At least one of dcUser or basedUser must be given.")
 
     if basedGuild is None and dcGuild is None:
-        dcGuild = findBUserDCGuild(dcUser)
+        dcGuild = findBUserDCGuild(basedUser if basedUser is not None else botState.client.usersDB.getUser(cast(Union[User, Member], dcUser).id))
         if dcGuild is None:
-            raise KeyError("user does not share an guilds with the bot")
-    if basedGuild is None:
-        basedGuild = botState.client.guildsDB.getGuild(dcGuild.id)
-    elif dcGuild is None:
-        dcGuild = botState.client.get_guild(basedGuild.id)
-    if basedUser is None:
-        basedGuild = botState.client.usersDB.getOrAddID(dcUser.id)
+            raise KeyError("user does not share any guilds with the bot")
+    dcGuild = cast(Guild, dcGuild)
 
-    guildMember = dcGuild.get_member(dcUser.id)
+    if basedGuild is None:
+        basedGuild = botState.client.guildsDB.getGuild(cast(Guild, dcGuild).id)
+    elif dcGuild is None:
+        dcGuild = cast(Guild, botState.client.get_guild(basedGuild.id))
+
+    if basedUser is None:
+        basedUser = botState.client.usersDB.getOrAddID(cast(Union[User, Member], dcUser).id)
+    elif dcUser is None:
+        dcUser = botState.client.get_user(basedUser.id)
+    dcUser = cast(Union[User, Member], dcUser)
+
+    guildMember = dcGuild.get_member(basedUser.id)
     if guildMember is None:
         return dcUser.name + "#" + str(dcUser.discriminator)
-    if basedUser.isAlertedForType(alertType, dcGuild, basedGuild, dcUser):
+    if basedUser.isAlertedForType(alertType, dcGuild, basedGuild, guildMember):
         return guildMember.mention
     return guildMember.display_name + "#" + str(guildMember.discriminator)
 
 
-def IDAlertedUserMentionOrName(alertID : str, dcUser : Union[Member, User] = None, basedUser : basedUser.BasedUser = None,
-        basedGuild : basedGuild.BasedGuild = None, dcGuild : Guild = None) -> str:
+def IDAlertedUserMentionOrName(alertID: str, dcUser: Optional[Union[Member, User]] = None, basedUser: Optional[basedUser.BasedUser] = None,
+        basedGuild: Optional[basedGuild.BasedGuild] = None, dcGuild: Optional[Guild] = None) -> str:
     """If the given user has subscribed to the alert type of the given ID, return the user's mention
     Otherwise, return their display name and discriminator. At least one of dcUser or basedUser must be provided.
     BasedGuild and dcGuild are both optional. If neither are provided then the joined guilds will be searched for
@@ -456,7 +463,7 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
     return run
 
 
-async def asyncOperationWithRetry(f: AnyCoroutine, opName: str, logCategory: LogCategory, className: str, meta: str,
+async def asyncOperationWithRetry(f: Callable[..., Coroutine], opName: str, logCategory: LogCategory, className: str, meta: str,
                                     *fArgs, **fKwargs) -> Optional[Message]:
     """Perform an asynchronous operation with a fixed retry, as defined in cfg.
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from . import toolItem
 from .... import lib
 from ....lib import gameMaths
@@ -9,18 +10,18 @@ from discord import Message
 from .... import botState
 from ..gameItem import spawnableItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
-from ....baseClasses.hasRarity import HasRarity
+from ....baseClasses.hasRarity import HasRarityMixin
 
 
 @spawnableItem
-class ShipSkinTool(HasRarity, toolItem.ToolItem):
+class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
     """A tool that can be used to apply a skin to a ship.
     This item is named after the skin it applies.
     The manufacturer is set to the skin designer.
     This tool is single use. If a calling user is given, the tool is removed from that user's inventory after use.
     """
-    def __init__(self, skin : ShipSkin, value : int = 0, wiki : str = "", icon : str = cfg.defaultShipSkinToolIcon,
-            emoji : lib.emojis.BasedEmoji = None, techLevel : int = -1, builtIn : bool = False,
+    def __init__(self, skin: ShipSkin, value: int = 0, wiki: str = "", icon: str = cfg.defaultShipSkinToolIcon,
+            emoji: Optional[lib.emojis.BasedEmoji] = None, techLevel: int = -1, builtIn: bool = False,
             autoUse: bool = False):
         """
         :param shipSkin shipSkin: The skin that this tool applies.
@@ -113,9 +114,7 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
         if ship.isSkinned:
             return ":x: This ship already has a skin applied! Please equip a different ship."
         if not self.skin.compatibleWithShip(ship):
-            try:
-                message.guild
-            except AttributeError:
+            if message.guild is None:
                 prefix = cfg.defaultCommandPrefix
             else:
                 prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
@@ -128,14 +127,13 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
         confirmation = await InlineConfirmationMenu(confirmMsg, message.author,
                                                     cfg.toolUseConfirmTimeoutSeconds).doMenu()
 
-        if cfg.defaultEmojis.reject in confirmation:
-            return "🛑 Skin application cancelled."
-        elif cfg.defaultEmojis.accept in confirmation:
+        if cfg.defaultEmojis.accept in confirmation:
             ship.applySkin(self.skin)
             if self in callingBUser.inactiveTools:
                 callingBUser.inactiveTools.removeItem(self)
 
             return "🎨 Success! Your skin has been applied."
+        return "🛑 Skin application cancelled."
 
 
     def statsStringShort(self) -> str:
@@ -144,10 +142,9 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
         :return: A string summarising the statistics and functionality of this item
         :rtype: str
         """
-        try:
-            return "*Designer: " + botState.client.get_user(self.manufacturer).name + "*"
-        except AttributeError:
-            return "*Designer: user #" + str(self.manufacturer) + "*"
+        if self.skin.designerId != -1 and (user := botState.client.get_user(self.skin.designerId)):
+            return f"*Designer: {user.display_name}*"
+        return "*Designer: user #" + str(self.manufacturer) + "*"
 
 
     def serialize(self, **kwargs):
@@ -164,7 +161,7 @@ class ShipSkinTool(HasRarity, toolItem.ToolItem):
 
 
     @classmethod
-    def deserialize(cls, toolDict : dict, **kwargs) -> ShipSkinTool:
+    def deserialize(cls, toolDict: dict, **kwargs) -> ShipSkinTool:
         """Construct a shipSkinTool from its dictionary-serialized representation.
 
         :param dict toolDict: A dictionary containing all information needed to construct the required shipSkinTool.

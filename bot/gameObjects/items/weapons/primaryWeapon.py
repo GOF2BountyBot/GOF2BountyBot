@@ -10,7 +10,7 @@ class PrimaryWeapon(Weapon):
     """
 
     @classmethod
-    def deserialize(cls, weaponDict, **kwargs):
+    def deserialize(cls, weaponDict, **kwargs) -> "PrimaryWeapon":
         """Factory function constructing a new primaryWeapon object from a dictionary serialised
         representation - the opposite of primaryWeapon.serialize.
 

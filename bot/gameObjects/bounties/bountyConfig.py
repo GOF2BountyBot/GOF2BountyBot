@@ -1,13 +1,12 @@
 # Typing imports
 from __future__ import annotations, division
-from typing import TYPE_CHECKING, List, Dict, Tuple, Any
+from typing import TYPE_CHECKING, Callable, List, Dict, Optional, Protocol, Tuple, Any, Type, Union
 if TYPE_CHECKING:
     from ..items import shipItem
     from ...databases import bountyDivision
 
 import random
 from datetime import datetime, timedelta
-from types import FunctionType
 
 from ...cfg import bbData, cfg
 from ... import lib, botState
@@ -18,8 +17,18 @@ from ..items import shipItem
 from ..items.weapons import primaryWeapon, turretWeapon
 from ...databases import bountyDB
 
+class ValidatorWithKwargs(Protocol):
+    def __call__(self, tl: int, **kwargs) -> bool: ...
 
-def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: FunctionType, **kwargs) -> int:
+
+class ValidatorNoKwargs(Protocol):
+    def __call__(self, tl: int) -> bool: ...
+
+
+ValidatorType = Union[ValidatorNoKwargs, ValidatorWithKwargs]
+
+
+def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: ValidatorType, **kwargs) -> int:
     """Attempt to find an integer tl where:
         minTL <= tl <= min(maxTL, center + upperBound)
         validator(tl) == True
@@ -102,7 +111,7 @@ def shipTLHasPrimaries(tl: int) -> bool:
     return False
 
 
-def tlDBHasType(index: int, db : List[List[Any]] = None, itemType : type = object) -> bool:
+def tlDBHasType(index: int, db: List[List[Any]], itemType: type = object) -> bool:
     """Decide if db[index] contains an element of the given type.
 
     :param int index: The index of the sub-list in db to search for an element of the given type
@@ -117,8 +126,8 @@ def tlDBHasType(index: int, db : List[List[Any]] = None, itemType : type = objec
     return False
 
 
-def tlDBHasEquippableType(index: int, db : List[List[Any]] = None, itemType : type = None,
-                            activeShip : shipItem.Ship = None) -> bool:
+def tlDBHasEquippableType(index: int, db: List[List[Any]], itemType: type,
+                            activeShip: shipItem.Ship) -> bool:
     """Decide if db[index] contains an element of the given type, and the type of that element is an equippable module on
     the given ship.
 
@@ -177,12 +186,12 @@ class BountyConfig:
     :vartype activeShip: shipItem
     """
 
-    def __init__(self, faction : str = "", name : str = "", isPlayer : bool = None,
-                    route : List[str] = [], start : str = "", end : str = "",
-                    answer : str = "", checked : Dict[str, int] = {}, reward : int = -1,
-                    issueTime : float = -1.0, endTime : float = -1.0, icon : str = "",
-                    aliases : List[str] = [], wiki : str = "", activeShip : shipItem.Ship = None,
-                    techLevel : int = -1, rewardPerSys : int = -1):
+    def __init__(self, faction: str = "", name: str = "", isPlayer: Optional[bool] = None,
+                    route: List[str] = [], start: str = "", end: str = "",
+                    answer: str = "", checked: Dict[str, int] = {}, reward: int = -1,
+                    issueTime: float = -1.0, endTime: float = -1.0, icon: str = "",
+                    aliases: List[str] = [], wiki: str = "", activeShip: Optional[shipItem.Ship] = None,
+                    techLevel: int = -1, rewardPerSys: int = -1):
         """All parameters are optional. If a parameter is not given, it will be randomly generated.
 
         :param faction: The faction owning this bounty
@@ -247,8 +256,8 @@ class BountyConfig:
         self.techLevel = techLevel
 
 
-    def generate(self, division : bountyDivision.BountyDivision, noCriminal : bool = True, forceKeepChecked : bool = False,
-                    forceNoDBCheck : bool = False) -> BountyConfig:
+    def generate(self, division: bountyDivision.BountyDivision, noCriminal: bool = True, forceKeepChecked: bool = False,
+                    forceNoDBCheck: bool = False) -> BountyConfig:
         """Validate all given config data, and randomly generate missing data.
 
         :param BountyDB owningDB: Database containing all currently active bounties. When forceNoDBCheck is True,
@@ -268,6 +277,7 @@ class BountyConfig:
         :raise OverflowError: When attempting to spawn a bounty into a full division
         """
         doDBCheck = not forceNoDBCheck
+
         if doDBCheck and division.isFull() and (division.hasMinTLBounty() or \
                 (not division.hasMinTLBounty() and self.techLevel not in [division.minLevel, -1])):
             raise OverflowError("The given division is full: " + bountyDB.nameForDivision(division))
@@ -300,20 +310,37 @@ class BountyConfig:
             # self.techLevel = gameMaths.pickRandomCriminalTL()
 
         if self.route == []:
-            if self.start == "":
-                self.start = random.choice(list(bbData.builtInSystemObjs.keys()))
-                while self.start == self.end or not bbData.builtInSystemObjs[self.start].hasJumpGate():
-                    self.start = random.choice(list(bbData.builtInSystemObjs.keys()))
-            elif self.start not in bbData.builtInSystemObjs:
-                raise KeyError("BountyConfig: Invalid start system requested '" + self.start + "'")
-            if self.end == "":
-                self.end = random.choice(list(bbData.builtInSystemObjs.keys()))
-                while self.start == self.end or not bbData.builtInSystemObjs[self.end].hasJumpGate():
-                    self.end = random.choice(list(bbData.builtInSystemObjs.keys()))
-            elif self.end not in bbData.builtInSystemObjs:
-                raise KeyError("BountyConfig: Invalid end system requested '" + self.end + "'")
-            # self.route = makeRoute(self.start, self.end)
-            self.route = lib.pathfinding.bbAStar(self.start, self.end, bbData.builtInSystemObjs)
+            tries = 3
+            success = False
+            while tries:
+                if self.start == "":
+                    startAttempt = random.choice(list(bbData.builtInSystemObjs.keys()))
+                    while startAttempt == self.end or not bbData.builtInSystemObjs[startAttempt].hasJumpGate():
+                        startAttempt = random.choice(list(bbData.builtInSystemObjs.keys()))
+                elif self.start not in bbData.builtInSystemObjs:
+                    raise KeyError("BountyConfig: Invalid start system requested '" + self.start + "'")
+                else:
+                    startAttempt = self.start
+
+                if self.end == "":
+                    endAttempt = random.choice(list(bbData.builtInSystemObjs.keys()))
+                    while startAttempt == endAttempt or not bbData.builtInSystemObjs[endAttempt].hasJumpGate():
+                        endAttempt = random.choice(list(bbData.builtInSystemObjs.keys()))
+                elif self.end not in bbData.builtInSystemObjs:
+                    raise KeyError("BountyConfig: Invalid end system requested '" + self.end + "'")
+                else:
+                    endAttempt = self.end
+
+                routeAttempt = lib.pathfinding.bbAStar(startAttempt, endAttempt, bbData.builtInSystemObjs)
+                if not isinstance(routeAttempt, lib.pathfinding.PathfindingError):
+                    self.route = routeAttempt
+                    self.start = startAttempt
+                    self.end = endAttempt
+                    success = True
+                    break
+                tries -= 1
+            if not success:
+                raise ValueError(f"Unable to generate route. Start: {self.start or '<auto>'} -> End: {self.end or '<auto>'}")
         else:
             for system in self.route:
                 if system not in bbData.builtInSystemObjs:
@@ -344,7 +371,8 @@ class BountyConfig:
                 if not shipWithPrimaryExists:
                     # If no such TL could be found, settle for a TL for which a ship exists
                     shipTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1,
-                                        cfg.criminalMaxGearUpgrade, tlDBHasType,
+                                        # Ignoring a warning here because tlDBHasType is a valid validator
+                                        cfg.criminalMaxGearUpgrade, tlDBHasType, # type: ignore[reportGeneralTypeIssues]
                                         db=bbData.shipKeysByTL, itemType=str)
 
                     # If no such TL could be found, there must be no ships in the game
@@ -365,8 +393,9 @@ class BountyConfig:
                 if shipWithPrimaryExists:
                     # Attempt to find damage-dealing weapons first
                     weaponTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1, cfg.criminalMaxGearUpgrade,
+                                            # Ignoring a warning here because my lambda is a valid validator
                                             lambda i, db, itemType: tlDBHasType(i, db, itemType) \
-                                                                    and any(x.dps for x in db[i]),
+                                                                    and any(x.dps for x in db[i]), # type: ignore[reportGeneralTypeIssues]
                                             db=bbData.weaponObjsByTL, itemType=primaryWeapon.PrimaryWeapon)
                     dpsWeapons = weaponTL != -1
                     
@@ -374,7 +403,8 @@ class BountyConfig:
                     if not dpsWeapons:
                         # Try for TLs with non-damaging weapons
                         weaponTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1, cfg.criminalMaxGearUpgrade,
-                                                tlDBHasType, db=bbData.weaponObjsByTL, itemType=primaryWeapon.PrimaryWeapon)
+                                                # Ignoring a warning here because tlDBHasType is a valid validator
+                                                tlDBHasType, db=bbData.weaponObjsByTL, itemType=primaryWeapon.PrimaryWeapon) # type: ignore[reportGeneralTypeIssues]
 
                         if weaponTL == -1:
                             botState.client.logger.log("BountyConfig", "generate",
@@ -393,7 +423,7 @@ class BountyConfig:
                                     currentWeapon = random.choice(bbData.weaponObjsByTL[weaponTL])
                             self.activeShip.equipWeapon(currentWeapon)
 
-                moduleTypesToEquip = {armourModule.ArmourModule: 0, shieldModule.ShieldModule: 0}
+                moduleTypesToEquip: Dict[Type[moduleItem.ModuleItem], int] = {armourModule.ArmourModule: 0, shieldModule.ShieldModule: 0}
                 reservedSlots = 0
                 # ensure criminals above TL 1 have armour
                 if self.techLevel > 1:
@@ -412,7 +442,8 @@ class BountyConfig:
                             and moduleTypesToEquip[moduleType] > 0:
 
                         moduleTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1, cfg.criminalMaxGearUpgrade,
-                                                tlDBHasEquippableType, db=bbData.moduleObjsByTL, itemType=moduleType,
+                                                # Ignoring a warning here because tlDBHasEquippableType is a valid validator
+                                                tlDBHasEquippableType, db=bbData.moduleObjsByTL, itemType=moduleType, # type: ignore[reportGeneralTypeIssues]
                                                 activeShip=self.activeShip)
                         
                         if moduleTL == -1:
@@ -432,8 +463,9 @@ class BountyConfig:
                 if self.activeShip.maxTurrets:
                     # Attempt to find damage-dealing turrets first
                     turretTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1, cfg.criminalMaxGearUpgrade,
+                                            # Ignoring a warning here because my lambda is a valid validator
                                             lambda i, db, itemType: tlDBHasType(i, db, itemType) \
-                                                                    and any(x.dps for x in db[i]),
+                                                                    and any(x.dps for x in db[i]), # type: ignore[reportGeneralTypeIssues]
                                             db=bbData.turretObjsByTL, itemType=turretWeapon.TurretWeapon)
                     dpsTurrets = turretTL != -1
                     
@@ -441,7 +473,8 @@ class BountyConfig:
                     if not dpsTurrets:
                         # Try for TLs with non-damaging turrets
                         turretTL = findItemTL(itemTL, cfg.minTechLevel - 1, cfg.maxTechLevel - 1, cfg.criminalMaxGearUpgrade,
-                                                tlDBHasType, db=bbData.turretObjsByTL, itemType=turretWeapon.TurretWeapon)
+                                                # Ignoring a warning here because tlDBHasType is a valid validator
+                                                tlDBHasType, db=bbData.turretObjsByTL, itemType=turretWeapon.TurretWeapon) # type: ignore[reportGeneralTypeIssues]
 
                         if turretTL == -1:
                             botState.client.logger.log("BountyConfig", "generate",
@@ -495,3 +528,24 @@ class BountyConfig:
                     issueTime=self.issueTime, endTime=self.endTime, icon=self.icon,
                     aliases=self.aliases, wiki=self.wiki, activeShip=self.activeShip,
                     techLevel=self.techLevel, rewardPerSys=self.rewardPerSys)
+
+
+class GeneratedConfig(BountyConfig):
+    faction: str
+    name: str
+    isPlayer: bool
+    route: List[str]
+    start: str
+    end: str
+    answer: str
+    checked: Dict[str, int]
+    reward: int
+    issueTime: float
+    endTime: float
+    icon: str
+    aliases: List[str]
+    wiki: str
+    activeShip: shipItem.Ship
+    techLevel: int
+    rewardPerSys: int
+                    

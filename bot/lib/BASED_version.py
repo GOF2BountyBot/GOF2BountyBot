@@ -1,4 +1,6 @@
 import os
+
+from ..baseClasses.serializable import SerializesToJson
 from ..cfg import cfg
 from .. import lib
 from datetime import datetime, timezone
@@ -20,7 +22,7 @@ BASED_REPO_URL = f"https://github.com/{BASED_REPO_USER}/{BASED_REPO_NAME}"
 BASED_API_URL = f"https://api.github.com/repos/{BASED_REPO_USER}/{BASED_REPO_NAME}/releases"
 
 @dataclass
-class VersionInfo(SerializableDataClass):
+class VersionInfo(SerializableDataClass, SerializesToJson):
     BASED_version: str # a version indicator from github
     next_update_check: float # a POSIX timestamp in UTC
 
@@ -73,7 +75,7 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
     :rtype: UpdateCheckResults
     """
     # Fetch the next scheduled updates check from file
-    nextUpdate = nextUpdateCheck
+    nextUpdate = nextUpdateCheck()
 
     # Is it time to check yet?
     if utcnow() >= nextUpdate:

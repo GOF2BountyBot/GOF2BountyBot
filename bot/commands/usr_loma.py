@@ -5,14 +5,14 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..logging import LogCategory
 from ..cfg import cfg
-from ..gameObjects.inventories.inventory import DiscountableTypeRestrictedInventory
+from ..gameObjects.inventories.inventory import DiscountableInventory
 from ..users.basedUser import BasedUser
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
 
 
 bbCommands.addHelpSection(0, "loma")
 
-async def cmd_loma_buy(message : discord.Message, args : str, isDM : bool):
+async def cmd_loma_buy(message: discord.Message, args: str, isDM: bool):
     """Buy the item of the given item type, at the given index, from the user's loma shop.
     The typical "sell" and "transfer" shortcut args from cmd_buy are not compatible with this command.
 
@@ -52,7 +52,7 @@ async def cmd_loma_buy(message : discord.Message, args : str, isDM : bool):
         return
 
     itemNum = int(itemNum)
-    shopItemStock: DiscountableTypeRestrictedInventory = requestedBUser.loma.getStockByName(itemCategory)
+    shopItemStock: DiscountableInventory = requestedBUser.loma.getStockByName(itemCategory)
     if itemNum > shopItemStock.numKeys:
         if shopItemStock.numKeys == 0:
             await message.channel.send(":x: The Loma pirates don't have any " + itemCategory + "s in stock!")
@@ -90,7 +90,7 @@ bbCommands.register("loma buy", cmd_loma_buy, 0, allowDM=True, helpSection="loma
                                     + "`loma`. The `sell` and `transfer` options from `shop buy` do not apply to loma.")
 
 
-async def cmd_loma(message : discord.Message, args : str, isDM : bool):
+async def cmd_loma(message: discord.Message, args: str, isDM: bool):
     """list the items currently available in the user's loma shop.
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
 
@@ -183,7 +183,7 @@ async def cmd_loma(message : discord.Message, args : str, isDM : bool):
                         discountedValue = int(currentItem.value * itemListing.discounts[0].mult)
                         discountAmountStr = lib.stringTyping.formatMultiplier(itemListing.discounts[0].mult)
                         valueStr = f"~~{commaSplitNum(currentItem.value)}~~ {commaSplitNum(discountedValue)}" \
-                                    + f" Credits\n*{discountAmountStr} : {itemListing.discounts[0].desc}*\n"
+                                    + f" Credits\n*{discountAmountStr}: {itemListing.discounts[0].desc}*\n"
                     else:
                         valueStr = f"{commaSplitNum(currentItem.value)} Credits\n"
                     shopEmbed.add_field(name=str(itemNum) + ". " \

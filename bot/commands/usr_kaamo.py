@@ -14,7 +14,7 @@ from ..users import basedUser
 bbCommands.addHelpSection(0, "kaamo club")
 
 
-async def cmd_kaamo_get(message : discord.Message, args : str, isDM : bool):
+async def cmd_kaamo_get(message: discord.Message, args: str, isDM: bool):
     """Move the item of the given item type, at the given index, from the user's Kaamo Club storage into their hangar.
     :param discord.Message message: the discord message calling the command
     :param str args: string containing an item type and an index number
@@ -102,7 +102,7 @@ bbCommands.register("kaamo get", cmd_kaamo_get, 0, helpSection="kaamo club", all
                                 + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
-async def cmd_kaamo_store(message : discord.Message, args : str, isDM : bool):
+async def cmd_kaamo_store(message: discord.Message, args: str, isDM: bool):
     """Transfer the item of the given item type, at the given index, from the user's inactive items, to their kaamo club shop.
     :param discord.Message message: the discord message calling the command
     :param str args: string containing an item type and an index number
@@ -183,7 +183,7 @@ bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club",
                                 + f"level {cfg.maxTechLevel} bounty hunters.")
 
 
-async def cmd_kaamo(message : discord.Message, args : str, isDM : bool):
+async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
     """list the items currently stored in the user's kaamo club.
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
     :param discord.Message message: the discord message calling the command

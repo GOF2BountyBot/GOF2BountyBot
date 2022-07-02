@@ -15,7 +15,7 @@ from ..gameObjects.itemDiscount import ItemDiscount
 
 botCommands.addHelpSection(3, "kaamo")
 
-async def dev_cmd_kaamo_give(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_kaamo_give(message: discord.Message, args: str, isDM: bool):
     """developer command spawning the described item, and placing it in the given user's kaamo shop.
     user must be either a mention or an ID or empty (to give the item to the calling user).
     type must be in cfg.validItemNames (but not 'all')
@@ -72,7 +72,7 @@ async def dev_cmd_kaamo_give(message : discord.Message, args : str, isDM : bool)
 botCommands.register("kaamo-give", dev_cmd_kaamo_give, 3, forceKeepArgsCasing=True, allowDM=True, helpSection="kaamo", useDoc=True)
 
 
-async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_debug_kaamo(message: discord.Message, args: str, isDM: bool):
     """developer command printing the requested user's kaamo, including object memory addresses.
 
     :param discord.Message message: the discord message calling the command
@@ -170,7 +170,7 @@ async def dev_cmd_debug_kaamo(message : discord.Message, args : str, isDM : bool
 botCommands.register("debug-kaamo", dev_cmd_debug_kaamo, 3, allowDM=True, helpSection="kaamo", useDoc=True)
 
 
-async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_kaamo_item(message: discord.Message, args: str, isDM: bool):
     """Delete an item in a requested user's kaamo.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)
@@ -289,7 +289,7 @@ async def dev_cmd_del_kaamo_item(message : discord.Message, args : str, isDM : b
 botCommands.register("del-kaamo-item", dev_cmd_del_kaamo_item, 3, allowDM=True, helpSection="kaamo", useDoc=True)
 
 
-async def dev_cmd_del_kaamo_item_key(message : discord.Message, args : str, isDM : bool):
+async def dev_cmd_del_kaamo_item_key(message: discord.Message, args: str, isDM: bool):
     """Delete ALL of an item in a requested user's kaamo.
     arg 1: user mention or ID
     arg 2: item type (ship/weapon/module/turret)

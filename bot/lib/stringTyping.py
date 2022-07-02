@@ -65,7 +65,7 @@ def getNumExtension(num: int) -> str:
     return "th" if 11 <= (num % 100) <= 13 else ("th", "st", "nd", "rd", "th")[min(num % 10, 4)]
 
 
-def shipSkinNameToToolName(skinName : str) -> str:
+def shipSkinNameToToolName(skinName: str) -> str:
     """Construct a name of a shipSkinTool from the name of the skin of the skin.
 
     :param str skinName: The name of the skin this tool name should reference
@@ -74,7 +74,7 @@ def shipSkinNameToToolName(skinName : str) -> str:
     return f"Ship Skin: {skinName}"
 
 
-def formatAdditive(stat : Union[float, int]) -> str:
+def formatAdditive(stat: Union[float, int]) -> str:
     """Format a module effect attribute into a string, including a sign symbol.
 
     :param stat: The statistic to format into a string
@@ -84,7 +84,7 @@ def formatAdditive(stat : Union[float, int]) -> str:
     return f"{'+' if stat > 0 else '-'}{stat}"
 
 
-def formatMultiplier(stat : float) -> str:
+def formatMultiplier(stat: float) -> str:
     """Format a module effect attribute into a string, including a sign symbol and percentage symbol.
 
     :param stat: The statistic to format into a string
@@ -95,7 +95,7 @@ def formatMultiplier(stat : float) -> str:
 
 
 def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign='left', valuesAlign='left',
-                        keyMaxLenOverride: int = None, valueMaxLenOverride: int = None) -> str:
+                        keyMaxLenOverride: Optional[int] = None, valueMaxLenOverride: Optional[int] = None) -> str:
     """With each `field` in `fields` as `key` and `value`, perform a `sep`.join on `fields`, with padding between each
     `key` and `value`, such that each `value` begins in the same column.
 
@@ -117,10 +117,9 @@ def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign
     :rtype: str
     """
     longestKeyLength = max(len(k) for k, _ in fields) if keyMaxLenOverride is None else keyMaxLenOverride
-    longestValueLength = (max(len(v) for _, v in fields) if valuesAlign != 'left' else None) \
-                            if valueMaxLenOverride is None else valueMaxLenOverride
+    longestValueLength = max(len(v) for _, v in fields) if valueMaxLenOverride is None else valueMaxLenOverride
 
-    def centreOrPad(value: str, alignment: str, maxLength: Optional[int], padRight: bool) -> str:
+    def centreOrPad(value: str, alignment: str, maxLength: int, padRight: bool) -> str:
         if alignment == 'left':
             if padRight:
                 return f"{value}{pad * (maxLength - len(value))}"
