@@ -197,6 +197,7 @@ includedCogs = (
     cogPath("BASEDVersionCog"),
     cogPath("CommonStaticComponentsCog"),
     cogPath("AdminMiscCog"),
+    cogPath("AdminChannelsCog"),
     cogPath("HelpCog"),
     cogPath("DevMiscCog"),
     cogPath("UserMiscCog")

@@ -852,8 +852,8 @@ async def cmd_showme_ship(message: discord.Message, args: str, isDM: bool):
     else:
         callingBGuild: BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
         prefix = callingBGuild.commandPrefix
-        if reskin and callingBGuild.hasRendersChannel() and callingBGuild.rendersChannel.id != message.channel.id:
-            await message.reply(f":x: Skin renders are restricted to {callingBGuild.rendersChannel.mention}.")
+        if reskin and callingBGuild.hasRendersChannel() and callingBGuild.getRendersChannel().id != message.channel.id:
+            await message.reply(f":x: Skin renders are restricted to {callingBGuild.getRendersChannel().mention}.")
             return
 
     # verify a item was given

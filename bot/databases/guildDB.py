@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Dict, cast
-from discord import Guild
+from discord import Guild, Interaction
 from concurrent.futures import ThreadPoolExecutor
 import os
 
@@ -57,6 +57,12 @@ class GuildDB(SerializesToJson):
         :rtype: BasedGuild
         """
         return self.guilds[id]
+
+
+    def fromInteraction(self, interaction: Interaction) -> basedGuild.BasedGuild:
+        if interaction.guild_id is None:
+            raise lib.exceptions.IncorrectInteractionContext("This interaction is only applicable to guild channels")
+        return self.getGuild(interaction.guild_id)
 
 
     def idExists(self, id: int) -> bool:

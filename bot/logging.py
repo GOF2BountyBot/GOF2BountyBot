@@ -40,20 +40,19 @@ class Logger:
     :vartype categories: List[str]
     """
 
-    def __init__(self, categories: List[str] = ["misc"]):
+    def __init__(self):
         """
         :param List[str] categories: The names of logging categories to sort and save logs into (Default ["misc"])
         """
-        self.categories = categories
-        if "misc" not in categories:
-            self.categories.append("misc")
+        self.categories = [c for c in LogCategory]
+        self.logs: Dict[LogCategory, Dict[datetime, str]] = {}
         self.clearLogs()
 
 
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs: Dict[str, Dict[datetime, str]] = {category.name: {} for category in LogCategory}
+        self.logs = {category: {} for category in self.categories}
 
 
     def isEmpty(self) -> bool:
@@ -68,7 +67,7 @@ class Logger:
         return True
 
 
-    def peekHeadTimeAndCategory(self) -> Tuple[Optional[datetime], str]:
+    def peekHeadTimeAndCategory(self) -> Tuple[Optional[datetime], Optional[LogCategory]]:
         """Get the log time of the earliest-logged event currently stored in the logger, as well as the category of the event.
         If the logger is currently empty, None is returned as the log time, and "" as the category.
 
@@ -76,9 +75,9 @@ class Logger:
                 added to the logger, and whose second element is the earliest-logged event's category. (None, "") otherwise.
         :rtype: tuple[datetime.datetime or None, str]
         """
-        head, headCat = None, ""
+        head, headCat = None, None
         for cat in self.logs:
-            if bool(self.logs[cat]):
+            if self.logs[cat]:
                 currHead = list(self.logs[cat].keys())[0]
                 if head is None or currHead < head:
                     head, headCat = currHead, cat
@@ -86,7 +85,7 @@ class Logger:
         return head, headCat
 
 
-    def popHeadLogAndCategory(self) -> Tuple[str, str]:
+    def popHeadLogAndCategory(self) -> Tuple[str, LogCategory]:
         """Pop the earliest-logged event and its category. This also removes the returned log from the logger.
         If the logger is currently empty, ("", "") is returned.
 
@@ -96,7 +95,8 @@ class Logger:
         """
         head, headCat = self.peekHeadTimeAndCategory()
 
-        if head is None:
+        if head is None or headCat is None:
+            headCat = LogCategory.misc
             log = ""
         else:
             log = self.logs[headCat][head]
@@ -126,8 +126,8 @@ class Logger:
 
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = path.join(cfg.paths.logsFolder, category + ".txt")
-                logsSaved += category + ".txt, "
+                currentFName = path.join(cfg.paths.logsFolder, category.value + ".txt")
+                logsSaved += category.value + ".txt, "
 
                 if category not in files:
                     if not path.exists(currentFName):
@@ -207,10 +207,10 @@ class Logger:
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
-            self.logs[category.value][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
             eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)
-            self.logs[category.value][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"
+            self.logs[category][now] = eventStr + ("\n" + trace if trace != "" else "") + "\n\n"

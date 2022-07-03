@@ -269,7 +269,7 @@ def loadAllGameObjectData():
                             ("builtInTurretData",     cfg.paths.bbTurretMETAFolder,       ".bbTurret"),
                             ("builtInCommodityData",  cfg.paths.bbCommodityMETAFolder,    ".bbCommodity"),
                             ("builtInToolData",       cfg.paths.bbToolMETAFolder,         ".bbTool"),
-                            ("builtInSecondariesData",cfg.paths.bbModuleMETAFolder,       ".bbModule"),
+                            ("builtInSecondariesData",cfg.paths.bbSecondaryMETAFolder,    ".bbSecondary"),
                             ("medalsData",            cfg.paths.bbMedalsMETAFolder,       ".bbMedal")):
         setattr(bbData, db, _loadGameItemsFromDir(dir, ext, lowerKey=ext==".bbMedal"))
 
@@ -302,15 +302,16 @@ def loadAllGameObjects():
     bbData.builtInSecondariesObjs
     """
     for dataDB, objsDB, deserializer in (
-                (bbData.builtInCriminalData,bbData.builtInCriminalObjs, criminal.Criminal),
-                (bbData.builtInSystemData,  bbData.builtInSystemObjs,   solarSystem.SolarSystem),
-                (bbData.builtInWeaponData,  bbData.builtInWeaponObjs,   primaryWeapon.PrimaryWeapon),
-                (bbData.builtInUpgradeData, bbData.builtInUpgradeObjs,  shipUpgrade.ShipUpgrade),
-                (bbData.builtInTurretData,  bbData.builtInTurretObjs,   turretWeapon.TurretWeapon),
-                (bbData.builtInModuleData,  bbData.builtInModuleObjs,   moduleItemFactory.ModuleItemFactory),
-                (bbData.builtInShipSkinsData,bbData.builtInShipSkins,   shipSkin.ShipSkin),
-                (bbData.medalsData,         bbData.medalObjs,           medal.Medal)):
-        _loadGameObjects(dataDB, objsDB, moduleItemFactory.ModuleItemFactory)
+                (bbData.builtInCriminalData,    bbData.builtInCriminalObjs, criminal.Criminal),
+                (bbData.builtInSystemData,      bbData.builtInSystemObjs,   solarSystem.SolarSystem),
+                (bbData.builtInWeaponData,      bbData.builtInWeaponObjs,   primaryWeapon.PrimaryWeapon),
+                (bbData.builtInUpgradeData,     bbData.builtInUpgradeObjs,  shipUpgrade.ShipUpgrade),
+                (bbData.builtInTurretData,      bbData.builtInTurretObjs,   turretWeapon.TurretWeapon),
+                (bbData.builtInModuleData,      bbData.builtInModuleObjs,   moduleItemFactory.ModuleItemFactory),
+                (bbData.builtInShipSkinsData,   bbData.builtInShipSkins,    shipSkin.ShipSkin),
+                (bbData.medalsData,             bbData.medalObjs,           medal.Medal)):
+        # Ignoring a warning here because I can't convince pyright that the loop params tuple has matching types per line
+        _loadGameObjects(dataDB, objsDB, deserializer) # type: ignore[reportGeneralTypeIssues]
 
     # generate shipSkinTool objects for each shipSkin
     for currentSkin in bbData.builtInShipSkins.values():

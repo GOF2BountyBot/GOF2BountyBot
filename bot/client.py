@@ -495,7 +495,8 @@ class BasedClient(ClientBaseClass):
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.githubClient is only available after on_ready.")
         return cast(Github, self._githubClient)
 
-        
+    
+    @property
     def taskScheduler(self):
         """The bot's running task scheduler
         Only available after on_ready.
@@ -564,12 +565,13 @@ class BasedClient(ClientBaseClass):
                 tasks.add(menu.delete())
         await tasks.wait()
         tasks.logExceptions()
+        
+        # save bot save data
+        self.saveAllDBs()
 
         # log out of discord
         self.loggedIn = False
         await self.close()
-        # save bot save data
-        self.saveAllDBs()
         # close the bot's aiohttp session
         await self.httpClient.close()
         print(datetime.now().strftime("%H:%M:%S: Shutdown complete."))
@@ -623,6 +625,7 @@ class BasedClient(ClientBaseClass):
         if not self._schedulerLoaded:
             self._taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())
             self._taskScheduler.startTaskChecking()
+            self._schedulerLoaded = True
 
         if not self.shutdownCheckTask.is_running():
             self.shutdownCheckTask.start()

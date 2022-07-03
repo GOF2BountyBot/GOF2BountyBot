@@ -427,9 +427,9 @@ async def dev_cmd_guild_status(message: discord.Message, args: str, isDM: bool):
     embed.add_field(name=str(guildId), value=f"{bGuild.dcGuild.name}")
 
     embed.add_field(name="Channels",
-                    value=(f"announceChannel: {bGuild.announceChannel.mention} ({bGuild.announceChannel.id})\n" if bGuild.announceChannel is not None else f"announceChannel: None\n") \
-                    + (f"playChannel: {bGuild.playChannel.mention} ({bGuild.playChannel.id})\n" if bGuild.playChannel is not None else f"playChannel: None\n") \
-                    + (f"rendersChannel: {bGuild.rendersChannel.mention} ({bGuild.rendersChannel.id})" if bGuild.rendersChannel is not None else f"rendersChannel: None\n"))
+                    value=(f"announceChannel: {bGuild.getAnnounceChannel().mention} ({bGuild.getAnnounceChannel().id})\n" if bGuild.hasAnnounceChannel() else f"announceChannel: None\n") \
+                    + (f"playChannel: {bGuild.getPlayChannel().mention} ({bGuild.getPlayChannel().id})\n" if bGuild.hasPlayChannel() else f"playChannel: None\n") \
+                    + (f"rendersChannel: {bGuild.hasRendersChannel.mention} ({bGuild.hasRendersChannel.id})" if bGuild.hasRendersChannel() else f"rendersChannel: None\n"))
 
     if bGuild.shopsDisabled:
         shopsStr = "Disabled"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
+from enum import Enum
 from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role
 from discord import TextChannel
 from discord.utils import MISSING
@@ -80,6 +81,61 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     return e
 
 
+class GuildChannelType(Enum):
+    BountyPlay = "0"
+    Announcements = "1"
+    Renders = "2"
+
+
+class GuildChannels(SerializesToJson):
+    def __init__(self, bountyPlay: Optional[TextChannel] = None, announcements: Optional[TextChannel] = None, renders: Optional[TextChannel] = None) -> None:
+        self.bountyPlay = bountyPlay
+        self.announcements = announcements
+        self.renders = renders
+
+
+    def getForType(self, channelType: GuildChannelType) -> Optional[TextChannel]:
+        return {GuildChannelType.BountyPlay: self.bountyPlay,
+                GuildChannelType.Announcements: self.announcements,
+                GuildChannelType.Renders: self.renders}[channelType]
+
+
+    def setForType(self, channelType: GuildChannelType, channel: Optional[TextChannel]):
+        if channelType is GuildChannelType.BountyPlay:
+            self.bountyPlay = channel
+        elif channelType is GuildChannelType.Announcements:
+            self.announcements = channel
+        elif channelType is GuildChannelType.Renders:
+            self.renders = channel
+
+    
+    def keys(self):
+        return [
+            GuildChannelType.BountyPlay,
+            GuildChannelType.Announcements,
+            GuildChannelType.Renders
+        ]
+
+
+    def hasChannel(self, channelType: GuildChannelType) -> bool:
+        return self.getForType(channelType) is not None
+
+
+    def serialize(self, **kwargs) -> JsonType:
+        return {k.value: cast(TextChannel, self.getForType(k)).id for k in self.keys() if self.hasChannel(k)}
+
+    
+    @classmethod
+    def deserialize(cls, data: JsonType, /, dcGuild: Guild, **kwargs):
+        new = cls()
+        for k in new.keys():
+            if k.value in data:
+                c = dcGuild.get_channel(cast(int, data[k.value]))
+                if isinstance(c, TextChannel):
+                    new.setForType(k, c)
+        return new
+
+
 class BasedGuild(SerializesToJson):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
@@ -114,8 +170,7 @@ class BasedGuild(SerializesToJson):
     """
 
     def __init__(self, id: int, dcGuild: Guild, bounties: BountyDB, commandPrefix: str = cfg.defaultCommandPrefix,
-            announceChannel:  Union[TextChannel, None] = None, playChannel:  Union[TextChannel, None] = None,
-            rendersChannel:  Union[TextChannel, None] = None,
+            guildChannels: Optional[GuildChannels] = None,
             divisionShops: Union[None, Dict[str, guildShop.TechLeveledShop]] = None,
             alertRoles: Dict[str, int] = {}, ownedRoleMenus: int = 0, bountiesDisabled: bool = False,
             shopsDisabled: bool = False):
@@ -155,9 +210,7 @@ class BasedGuild(SerializesToJson):
         elif type(id) != int:
             raise TypeError("id must be int, given " + str(type(id)))
 
-        self.announceChannel = announceChannel
-        self.playChannel = playChannel
-        self.rendersChannel = rendersChannel
+        self.guildChannels = GuildChannels() if guildChannels is None else guildChannels
 
         self.shopsDisabled = shopsDisabled
         if shopsDisabled:
@@ -326,6 +379,25 @@ class BasedGuild(SerializesToJson):
                                     category=LogCategory.userAlerts, exception=e)
 
 
+    def getChannel(self, channelType: GuildChannelType) -> TextChannel:
+        c = self.guildChannels.getForType(channelType)
+        if c is None:
+            raise ValueError("This guild has no announce channel set")
+        return c
+
+
+    def hasChannel(self, channelType: GuildChannelType) -> bool:
+        return self.guildChannels.getForType(channelType) is not None
+
+
+    def setChannel(self, channelType: GuildChannelType, channel: Optional[TextChannel]):
+        self.guildChannels.setForType(channelType, channel)
+
+
+    def removeChannel(self, channelType: GuildChannelType):
+        self.guildChannels.setForType(channelType, None)
+
+
     def getAnnounceChannel(self) -> TextChannel:
         """Get the discord channel object of the guild's announcements channel.
 
@@ -335,7 +407,7 @@ class BasedGuild(SerializesToJson):
         """
         if not self.hasAnnounceChannel():
             raise ValueError("This guild has no announce channel set")
-        return cast(TextChannel, self.announceChannel)
+        return cast(TextChannel, self.guildChannels.announcements)
 
 
     def getPlayChannel(self) -> TextChannel:
@@ -347,7 +419,7 @@ class BasedGuild(SerializesToJson):
         """
         if not self.hasPlayChannel():
             raise ValueError("This guild has no play channel set")
-        return cast(TextChannel, self.playChannel)
+        return cast(TextChannel, self.guildChannels.bountyPlay)
 
 
     def setAnnounceChannel(self, announceChannel: TextChannel):
@@ -355,7 +427,7 @@ class BasedGuild(SerializesToJson):
 
         :param TextChannel announceChannel: The discord channel object of the guild's new announcements channel
         """
-        self.announceChannel = announceChannel
+        self.guildChannels.announcements = announceChannel
 
 
     def setPlayChannel(self, playChannel: TextChannel):
@@ -363,7 +435,7 @@ class BasedGuild(SerializesToJson):
 
         :param TextChannel playChannel: The discord channel object of the guild's new bounty playing channel
         """
-        self.playChannel = playChannel
+        self.guildChannels.bountyPlay = playChannel
 
 
     def hasAnnounceChannel(self) -> bool:
@@ -372,7 +444,7 @@ class BasedGuild(SerializesToJson):
         :return: True if this guild has a announcements channel, False otherwise
         :rtype bool:
         """
-        return self.announceChannel is not None
+        return self.guildChannels.hasChannel(GuildChannelType.Announcements)
 
 
     def hasPlayChannel(self) -> bool:
@@ -381,7 +453,7 @@ class BasedGuild(SerializesToJson):
         :return: True if this guild has a play channel, False otherwise
         :rtype bool:
         """
-        return self.playChannel is not None
+        return self.guildChannels.bountyPlay is not None
 
 
     def removePlayChannel(self):
@@ -391,7 +463,7 @@ class BasedGuild(SerializesToJson):
         """
         if not self.hasPlayChannel():
             raise ValueError("Attempted to remove play channel on a BasedGuild that has no playChannel")
-        self.playChannel = None
+        self.guildChannels.bountyPlay = None
 
 
     def removeAnnounceChannel(self):
@@ -401,7 +473,7 @@ class BasedGuild(SerializesToJson):
         """
         if not self.hasAnnounceChannel():
             raise ValueError("Attempted to remove announce channel on a BasedGuild that has no announceChannel")
-        self.announceChannel = None
+        self.guildChannels.announcements = None
 
 
     def setRendersChannel(self, rendersChannel: TextChannel):
@@ -409,7 +481,15 @@ class BasedGuild(SerializesToJson):
 
         :param TextChannel rendersChannel: The discord channel object of the guild's autoskin renders channel
         """
-        self.rendersChannel = rendersChannel
+        self.guildChannels.renders = rendersChannel
+
+
+    def getRendersChannel(self) -> TextChannel:
+        """Get the discord channel of the guild's autoskin renders channel.
+        """
+        if not self.hasRendersChannel():
+            raise ValueError("Attempted to get renders channel on a BasedGuild that has no renders channel")
+        return cast(TextChannel, self.guildChannels.renders)
 
 
     def hasRendersChannel(self) -> bool:
@@ -418,7 +498,7 @@ class BasedGuild(SerializesToJson):
         :return: True if this guild has a renders channel, False otherwise
         :rtype bool:
         """
-        return self.rendersChannel is not None
+        return self.guildChannels.renders is not None
 
 
     def removeRendersChannel(self):
@@ -428,7 +508,7 @@ class BasedGuild(SerializesToJson):
         """
         if not self.hasRendersChannel():
             raise ValueError("Attempted to remove renders channel on a BasedGuild that has no rendersChannel")
-        self.rendersChannel = None
+        self.guildChannels.renders = None
 
 
     def getUserAlertRoleID(self, alertID: str) -> int:
@@ -872,13 +952,16 @@ class BasedGuild(SerializesToJson):
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        data = {    "announceChannel":  self.announceChannel.id if self.announceChannel is not None else -1,
-                    "playChannel":      self.playChannel.id if self.playChannel is not None else -1,
-                    "rendersChannel":   self.rendersChannel.id if self.rendersChannel is not None else -1,
-                    "alertRoles":       self.alertRoles,
-                    "ownedRoleMenus":   self.ownedRoleMenus,
+        data = {    "alertRoles":       self.alertRoles,
                     "bountiesDisabled": self.bountiesDisabled,
                     "shopsDisabled":     self.shopsDisabled}
+
+        guildChannels = self.guildChannels.serialize()
+        if guildChannels != {}:
+            data["guildChannels"] = guildChannels
+
+        if self.ownedRoleMenus:
+            data["ownedRoleMenus"] = self.ownedRoleMenus
 
         if self.commandPrefix != cfg.defaultCommandPrefix:
             data["commandPrefix"] = self.commandPrefix
@@ -913,15 +996,22 @@ class BasedGuild(SerializesToJson):
         if dcGuild is None:
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
 
-        # Casting here because pyright doesn't know the structure of a serialized BasedGuild
-        announceChannel = cast(int, guildDict.get("announceChannel", -1))
-        # Casting here because pyright doesn't know the structure of a serialized BasedGuild
-        announceChannel = dcGuild.get_channel(announceChannel) if announceChannel != -1 else None
-        playChannel = cast(int, guildDict.get("playChannel", -1))
-        # Casting here because pyright doesn't know the structure of a serialized BasedGuild
-        playChannel = dcGuild.get_channel(playChannel) if playChannel != -1 else None
-        rendersChannel = cast(int, guildDict.get("rendersChannel", -1))
-        rendersChannel = dcGuild.get_channel(rendersChannel) if rendersChannel != -1 else None
+        if "guildChannels" in guildDict:
+            guildChannels = GuildChannels.deserialize(cast(dict, guildDict["guildChannels"]), dcGuild=dcGuild)
+        else:
+            guildChannels = GuildChannels()
+            if guildDict.get("announceChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["announceChannel"]))
+                if isinstance(c, TextChannel):
+                    guildChannels.announcements = c
+            if guildDict.get("playChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["playChannel"]))
+                if isinstance(c, TextChannel):
+                    guildChannels.bountyPlay = c
+            if guildDict.get("rendersChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["rendersChannel"]))
+                if isinstance(c, TextChannel):
+                    guildChannels.renders = c
 
         bountiesDisabled = guildDict.get("bountiesDisabled", False)
 
@@ -940,8 +1030,7 @@ class BasedGuild(SerializesToJson):
 
         newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,
-                                                    announceChannel=announceChannel, playChannel=playChannel,
-                                                    rendersChannel=rendersChannel,
+                                                    guildChannels=guildChannels,
                                                     divisionShops=divisionShops, shopsDisabled=shopsDisabled))
 
         if not bountiesDisabled:

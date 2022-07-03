@@ -44,8 +44,8 @@ class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     - A `FromPrimativeFactory[SerializesToJson]` deserializes any primative type into a json-serializable type
     - A `FromJsonFactory[MyJsonSerializableType]` deserializes a json-compliant `dict` into `MyJsonSerializableType`
     """
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def deserialize(cls, data: TSerialized, **kwargs) -> TDeserialized: ...
 
 FromPrimativeFactory = Factory[PrimativeType, TDeserialized]
