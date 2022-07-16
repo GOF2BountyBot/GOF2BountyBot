@@ -632,13 +632,6 @@ class BasedClient(ClientBaseClass):
             self.shutdownCheckTask.start()
 
         await self.reloadDBs()
-        
-        treeSyncTasks = lib.discordUtil.BasicScheduler()
-        for g in cfg.developmentGuilds:
-            treeSyncTasks.add(self.tree.sync(guild=g))
-        if treeSyncTasks.any():
-            await treeSyncTasks.wait()
-            treeSyncTasks.raiseExceptions()
 
         if cfg.githubAccessToken and cfg.githubIssuesRepo:
             try:
