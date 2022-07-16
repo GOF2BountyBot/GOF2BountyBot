@@ -23,6 +23,7 @@ from .users.basedGuild import BasedGuild
 from .cfg import gameConfigurator
 from github import Github
 from github.Repository import Repository
+from .reactionMenus import reactionMenu
 
 
 class ShutDownState:
@@ -561,7 +562,7 @@ class BasedClient(ClientBaseClass):
         tasks = lib.discordUtil.BasicScheduler()
         # expire non-saveable reaction menus
         for menu in self.reactionMenusDB.values():
-            if not menu.saveable:
+            if not reactionMenu.isSaveableMenuInstance(menu):
                 tasks.add(menu.delete())
         await tasks.wait()
         tasks.logExceptions()
