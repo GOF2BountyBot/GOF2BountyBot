@@ -9,7 +9,7 @@ class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu):
     """
     def __init__(self, msg: Message, owningUser: Union[User, Member], timeoutSeconds: int,
                     numRegions: int = 0, possibleRegions: List[int] = [], titleTxt: str = "",
-                    desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+                    desc: str = "", col: Colour = Colour.blue(), img: str = "",
                     thumb: str = "", icon: str = cfg.defaultShipSkinToolIcon, authorName: str = ""):
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -21,8 +21,6 @@ class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu):
         :param str titleTxt: The content of the embed title (Default "")
         :param str desc: he content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed
-                                (Default time until menu expiry if timeout is not None, "" otherwise)
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required for this to be displayed.
@@ -65,6 +63,6 @@ class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu):
                                                                             cfg.defaultEmojis.submit,
                                                                             cfg.defaultEmojis.cancel],
                                                         options=regionOptions, titleTxt=titleTxt, desc=desc, col=col,
-                                                        footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                                                        img=img, thumb=thumb, icon=icon,
                                                         authorName=authorName)
                                                         

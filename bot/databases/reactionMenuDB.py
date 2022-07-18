@@ -1,12 +1,11 @@
-from ..reactionMenus import reactionMenu
-from typing import cast
+from typing import Dict, cast
 from .. import botState
 from ..reactionMenus import reactionMenu
 from ..logging import LogCategory
 from discord.abc import Messageable
 from ..baseClasses.serializable import SerializesToJson, JsonType
 
-class ReactionMenuDB(dict, SerializesToJson):
+class ReactionMenuDB(Dict[int, reactionMenu.ReactionMenu], SerializesToJson):
     """A database of ReactionMenu instances.
     Currently just an extension of dict to add serialize()."""
 

@@ -94,7 +94,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
 
     def __init__(self, msg: Message, reactionRoles: Dict[BasedEmoji, Role], dcGuild: Guild,
             titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None,
-            footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+            img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
             targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         # TODO: Stop taking dcGuild, and instead extract dcGuild from msg.guild
         """
@@ -107,8 +107,6 @@ class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
         :param str desc: he content of the embed description; appears at the top below the title
                             (Default "React for your desired role!")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed
-                                (Default time until menu expiry if timeout is not None, "" otherwise)
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required for this to be displayed.
@@ -132,7 +130,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
             desc = "React for your desired role!"
 
         super(ReactionRolePicker, self).__init__(msg, options=roleOptions, titleTxt=titleTxt, desc=desc, col=col,
-                                                    footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                                                    img=img, thumb=thumb, icon=icon,
                                                     authorName=authorName, timeout=timeout, targetMember=targetMember,
                                                     targetRole=targetRole)
 

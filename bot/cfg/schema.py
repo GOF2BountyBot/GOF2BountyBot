@@ -128,6 +128,9 @@ class EmojisConfig(SerializableDataClass):
 
 @dataclass
 class TimeoutsConfig(SerializableDataClass):
+    # A generic timeout used as the default for menu interactions
+    menuInteractionDefault: SerializableTimedelta
+
     helpMenu: SerializableTimedelta
     BASED_updateCheckFrequency: SerializableTimedelta
     dataSaveFrequency: SerializableTimedelta

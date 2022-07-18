@@ -19,7 +19,7 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveab
     :vartype duelChallenge: duelRequest
     """
     def __init__(self, msg: Message, duelChallenge: duelRequest.DuelRequest, titleTxt: str = "", desc: str = "",
-            col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None, footerTxt: str = "", img: str = "", thumb: str = "",
+            col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None, img: str = "", thumb: str = "",
             icon: str = defaultMenuIcon, authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: The discord message where this menu should be embedded
@@ -28,7 +28,6 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveab
         :param str desc: The content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed (Default "")
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str authorName: Secondary, smaller title for the embed (Default "")
@@ -57,7 +56,7 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveab
                                                                                     addFunc=self.rejectChallenge)}
 
         super(ReactionDuelChallengeMenu, self).__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, \
-                                                        footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, \
+                                                        img=img, thumb=thumb, icon=icon, \
                                                         authorName=authorName, timeout=timeout, targetMember=targetMember, \
                                                         targetRole=targetRole)
 

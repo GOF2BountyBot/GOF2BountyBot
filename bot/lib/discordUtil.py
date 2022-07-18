@@ -23,6 +23,8 @@ from ..userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
+from enum import Enum
+from datetime import datetime
 
 from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
@@ -829,8 +831,8 @@ EMPTY_IMAGE = "https://cdn.discordapp.com/attachments/700683544103747594/9794958
 ZWSP = "​"
 
 
-def embedEmpty(embed: Embed) -> bool:
-    return not any((embed.fields, embed.title, embed.author.name if embed.author else None,
+def embedEmpty(embed: Embed, includeFields = True) -> bool:
+    return not any((includeFields and embed.fields, embed.title, embed.author.name if embed.author else None,
                     embed.author.icon_url if embed.author else None, embed.description,
                     embed.footer.text if embed.footer else None, embed.footer.icon_url if embed.footer else None))
 
@@ -860,3 +862,27 @@ def textChannel(o: SupportsOptionalChannel, e: Optional[Exception] = None) -> di
     if not isinstance(o.channel, discord.abc.Messageable):
         raise e if e is not None else exceptions.IncorrectInteractionContext("This operation is not valid here.")
     return o.channel
+
+
+class TimeStampStyle(Enum):
+    ShortTime = "t"
+    LongTime = "T"
+    ShortDate = "d"
+    LongDate = "D"
+    ShortDateTime = "f"
+    LongDateTime = "F"
+    Relative = "R"
+
+
+def timestamp(t: datetime, format=TimeStampStyle.ShortDateTime) -> str:
+    """Construct a discord timestamp string.
+    Time divisions smaller than a second are ignored.
+
+    :param t: The datetime
+    :type t: datetime
+    :param format: The style of the timestamp (Default ShortDateTime)
+    :type format: TimeStampFormat, optional
+    :return: A discord timestamp, i.e `<t:TIMESTAMP:STYLE>`
+    :rtype: str
+    """
+    return f"<t:{int(t.timestamp())}:{format.value}"

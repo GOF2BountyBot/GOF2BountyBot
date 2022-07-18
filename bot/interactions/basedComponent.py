@@ -106,16 +106,38 @@ class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
 
 
 class StaticComponents(StaticComponentIDsEnum):
+    # Special
     Help = 1
+
+    # Common
     Clear_View = 2
     Clone_Message = 3
-    User_Embed_Add_Field = 4
-    User_Embed_Remove_Field = 5
-    User_Embed_Remove_Field_Select = 6
-    User_Embed_Edit_Field = 7
-    User_Embed_Edit_Field_Select = 8
-    User_Embed_Edit_Text = 9
-    User_Embed_Edit_Images = 10
+    Delete_Message = 4
+
+    # EmbedEditorCog
+    User_Embed_Add_Field = 5
+    User_Embed_Edit_Text = 6
+    User_Embed_Edit_Images = 7
+
+    # DevMiscCog
+    Dev_Say_Embed_Remove_Field = 8
+    Dev_Say_Embed_Remove_Field_Select = 9
+    Dev_Say_Embed_Edit_Field = 10
+    Dev_Say_Embed_Edit_Field_Select = 11
+    Dev_Say_Embed_Reorder_Fields = 12
+    Dev_Say_Embed_Reorder_Fields_Select = 13
+
+    # AdminMiscCog
+    Admin_MakeRoleMenu_Submit_New_Menu = 14
+    Admin_MakeRoleMenu_Cancel_New_Menu = 15
+    Admin_MakeRoleMenu_Remove_Role = 16
+    Admin_MakeRoleMenu_Reorder_Roles = 17
+    Admin_MakeRoleMenu_Remove_Role_Select = 18
+    Admin_MakeRoleMenu_Reorder_Roles_Select = 19
+    Admin_MakeRoleMenu_Manage_Roles = 20
+    Admin_MakeRoleMenu_Manage_Roles_Refresh = 21
+    Admin_MakeRoleMenu_Change_Emoji_Select = 22
+    Admin_MakeRoleMenu_Change_Emoji = 23
 
 
 class StaticComponentMeta:

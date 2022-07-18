@@ -10,11 +10,11 @@ from ..gameObjects.guildShop import StoredItemType
 
 
 class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption"]):
-    def __init__(self, msg: Message, items: List[StoredItemType], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
+    def __init__(self, msg: Message, items: List[StoredItemType], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         options = {i.emoji: GiveawayMenuOption(self, i) for i in items}
         timeout = timedTask.TimedTask(expiryDelta=activeTime, expiryFunction=expiryFunctions.markExpiredMenu, expiryFunctionArgs=msg.id, rescheduleOnExpiryFuncFailure=True)
         botState.client.taskScheduler.scheduleTask(timeout)
-        super().__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, timeout=timeout, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName, targetMember=targetMember, targetRole=targetRole)
+        super().__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, timeout=timeout, img=img, thumb=thumb, icon=icon, authorName=authorName, targetMember=targetMember, targetRole=targetRole)
         self.givenUsers: Set[Member] = set()
         self.originalDesc = desc
 

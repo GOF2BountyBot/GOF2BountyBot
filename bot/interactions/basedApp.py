@@ -13,24 +13,6 @@ if TYPE_CHECKING:
 
 TAnyCallback = Callable[..., Awaitable[Any]]
 
-def w(arg):
-    def wrapper(f):
-        return f
-    return wrapper
-
-class X:
-    @w(1)
-    async def clearViewFromMessage(self, interaction: Interaction):
-        if interaction.response.is_done():
-            await interaction.edit_original_message(view=None)
-        else:
-            await interaction.response.edit_message(view=None)
-
-    async def cloneMessage(self, interaction: Interaction, userId: str):
-        await self.clearViewFromMessage(interaction)
-
-    
-
 class DelayedPropogationFlag: pass
 
 COG_INSTANCE = DelayedPropogationFlag()

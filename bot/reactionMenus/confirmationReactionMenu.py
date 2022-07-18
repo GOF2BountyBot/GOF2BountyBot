@@ -7,7 +7,7 @@ from ..lib.emojis import BasedEmoji
 
 class InlineConfirmationMenu(reactionMenu.SingleUserReactionMenu):
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
-                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+                 titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), img: str = "",
                  thumb: str = "", icon: str = "", authorName: str = ""):
 
         options: Dict[BasedEmoji, reactionMenu.ReactionMenuOption] = {
@@ -17,4 +17,4 @@ class InlineConfirmationMenu(reactionMenu.SingleUserReactionMenu):
 
         super().__init__(msg, targetMember, timeoutSeconds, options=options, img=img, thumb=thumb, icon=icon,
                             authorName=authorName, returnTriggers=[cfg.defaultEmojis.accept, cfg.defaultEmojis.reject],
-                            titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt)
+                            titleTxt=titleTxt, desc=desc, col=col)

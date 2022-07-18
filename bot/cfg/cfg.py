@@ -67,6 +67,8 @@ defaultEmojis = EmojisConfig(
 )
 
 timeouts = TimeoutsConfig(
+    menuInteractionDefault = SerializableTimedelta(minutes=2),
+    
     helpMenu = SerializableTimedelta(minutes=3),
     BASED_updateCheckFrequency = SerializableTimedelta(days=1),
     # The time to wait inbetween database autosaves.
@@ -196,6 +198,7 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
 includedCogs = (
     cogPath("BASEDVersionCog"),
     cogPath("CommonStaticComponentsCog"),
+    cogPath("EmbedEditorCog"),
     cogPath("AdminMiscCog"),
     cogPath("AdminChannelsCog"),
     cogPath("HelpCog"),

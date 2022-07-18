@@ -1,10 +1,11 @@
 # Typing imports
-from typing import TYPE_CHECKING, Dict, Type, Union, List
+from typing import TYPE_CHECKING, Dict, Type, Union, List, cast
 if TYPE_CHECKING:
     from ..users import basedGuild
 
 from discord import utils, Guild, Member # type: ignore[import]
 from abc import ABC, abstractmethod
+from enum import Enum
 
 
 class UABase(ABC):
@@ -268,6 +269,21 @@ class UA_System_Misc(GuildRoleUserAlert):
         :param state: Ignored
         """
         super(UA_System_Misc, self).__init__()
+
+
+class GuildRoleAlertNames(Enum):
+    ShopRefresh = "new shop stock"
+    SystemUpdates_Major = "BountyBot major updates"
+    SystemUpdates_Minor = "BountyBot minor updates"
+    SystemAnnouncements_Misc = "BountyBot misc. announcements"
+
+
+guildRoleAlertNamesAlertIDs = {
+    GuildRoleAlertNames.ShopRefresh: "shop_refresh",
+    GuildRoleAlertNames.SystemUpdates_Major: "system_updates_major",
+    GuildRoleAlertNames.SystemUpdates_Minor: "system_updates_minor",
+    GuildRoleAlertNames.SystemAnnouncements_Misc: "system_misc"
+}
 
 
 # Translate UA ID strings into types

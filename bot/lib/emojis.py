@@ -10,9 +10,8 @@ from carica import PrimativeType, SerializableType # type: ignore[import]
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
 from abc import ABC, abstractmethod
 
-from typing import TypeVar, Union, TYPE_CHECKING, cast
-if TYPE_CHECKING:
-    from discord import PartialEmoji, Emoji # type: ignore[import]
+from typing import TypeVar, Union, cast
+from discord import PartialEmoji, Emoji # type: ignore[import]
 
 from .. import botState
 from . import stringTyping, exceptions
@@ -359,14 +358,11 @@ class BasedEmoji(IBasedEmoji):
             elif strIsCustomEmoji(e):
                 return BasedEmoji.fromStr(e, rejectInvalid=rejectInvalid)
             else:
-                raise ValueError("Given a string that does not match any emoji format: " + e)
+                raise exceptions.UnrecognisedEmojiFormat("Given a string that does not match any emoji format: " + e, e)
         if isinstance(e, PartialEmoji):
             return BasedEmoji.fromPartial(e, rejectInvalid=rejectInvalid)
         else:
-            # Ignoring two warnings here:
-            # e could be str - I've already checked for this.
-            # e.id could be None - Here e can only be Emoji (a custom emoji), so id is guaranteed to be present
-            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid) # type: ignore[reportGeneralTypeIssues]
+            return BasedEmoji(id=e.id, rejectInvalid=rejectInvalid)
 
 
     @classmethod

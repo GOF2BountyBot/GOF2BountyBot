@@ -4,13 +4,13 @@
 from datetime import datetime, timedelta
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import Embed, Colour, NotFound, HTTPException, Forbidden # type: ignore[import]
+from discord import Embed, Colour, Emoji, NotFound, HTTPException, Forbidden, PartialEmoji # type: ignore[import]
 from discord import Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
 from discord.abc import GuildChannel
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Generic, Optional, Type, TypeVar, Union, Dict, List, cast
+from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Type, TypeVar, Union, Dict, List, cast
 import asyncio
 from ..baseClasses.serializable import SerializesToJson, JsonType
 from . import expiryFunctions
@@ -297,8 +297,6 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
     :vartype desc: str
     :var col: The colour of the embed's side strip
     :vartype col: discord.Colour
-    :var footerTxt: Secondary description appearing in darker font at the bottom of the embed
-    :vartype footerTxt: str
     :var img: URL to a large icon appearing as the content of the embed, left aligned like a field
     :vartype img: str
     :var thumb: URL to a larger image appearing to the right of the title
@@ -317,8 +315,8 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
 
     def __init__(self, msg: Message, options: Optional[Dict[lib.emojis.BasedEmoji, TMenuOptionType]] = None,
                  titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
-                 footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "",
-                 authorName: str = "", targetMember: Optional[Union[User, Member]] = None, targetRole: Optional[Role] = None):
+                 img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+                 targetMember: Optional[Union[User, Member]] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the menu's options and their behaviour (Default {})
@@ -326,8 +324,6 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         :param str titleTxt: The content of the embed title (Default "")
         :param str desc: he content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed
-                                (Default time until menu expiry if timeout is not None, "" otherwise)
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str icon: URL to a smaller image to the left of authorName.
@@ -339,10 +335,6 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         :param discord.Role targetRole: In order to interact with this menu, users must possess this role.
                                         All other reactions are ignored (Default None)
         """
-
-        if footerTxt == "" and timeout is not None:
-            footerTxt = "This menu will expire in " + lib.timeUtil.td_format_noYM(timeout.expiryDelta) + "."
-
         # discord.message
         self.msg = msg
         # Dict of lib.emojis.BasedEmoji: ReactionMenuOption
@@ -351,7 +343,6 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         self.titleTxt = titleTxt
         self.desc = desc
         self.col = col if col is not None else Colour.blue()
-        self.footerTxt = footerTxt
         self.img = img
         self.thumb = thumb
         self.icon = icon
@@ -428,8 +419,10 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         :rtype: discord.Embed
         """
         menuEmbed = Embed(title=self.titleTxt, description=self.desc, colour=self.col)
-        if self.footerTxt != "":
-            menuEmbed.set_footer(text=self.footerTxt)
+        if self.timeout is not None:
+            menuEmbed.set_footer(text=f"{self.msg.id}|This menu will expire in {lib.timeUtil.td_format_noYM(self.timeout.expiryDelta)}.")
+        else:
+            menuEmbed.set_footer(text=f"Menu ID: {self.msg.id}")
         menuEmbed.set_image(url=self.img)
         if self.thumb != "":
             menuEmbed.set_thumbnail(url=self.thumb)
@@ -442,28 +435,57 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         return menuEmbed
 
 
-    async def updateMessage(self, noRefreshOptions=False):
+    async def refreshReactions(self):
+        """Remove any reactions on the menu (from the bot) that are not menu options, and add new reactions
+        for any missing options.
+        If the menu has no options, then a removal of all reactions (Including other peoples') will be attempted,
+        and the bot's reactions removed as a fallback.
+        """
+        if botState.client.user is None:
+            raise lib.exceptions.NotReady("Client is not logged in")
+        
+        async def _swallow(coro: Coroutine):
+            try:
+                await coro
+            except HTTPException:
+                pass
+            
+        tasks = lib.discordUtil.BasicScheduler()
+        async def _doTasks():
+            await tasks.wait()
+            tasks.logExceptions()
+            tasks.clear()
+
+        if not self.options:
+            try:
+                await self.msg.clear_reactions()
+            except HTTPException:
+                for reaction in self.msg.reactions:
+                    tasks.add(_swallow(reaction.remove(botState.client.user)))
+                await _doTasks()
+
+        else:
+            for e in self.options:
+                tasks.add(_swallow(self.msg.add_reaction(e.sendable)))
+            await _doTasks()
+
+            self.msg = await self.msg.channel.fetch_message(self.msg.id)
+            for r in self.msg.reactions:
+                e = lib.discordUtil.emojis.BasedEmoji.fromReaction(r.emoji, rejectInvalid=False)
+                if e not in self.options:
+                    tasks.add(_swallow(self.msg.remove_reaction(r.emoji, botState.client.user)))
+            
+            await _doTasks()
+
+
+    async def updateMessage(self, noRefreshOptions=False, **kwargs):
         """Update the menu message by removing all reactions, replacing any existing embed with
         up to date embed content, and readd all of the menu's option reactions.
         """
-        await self.msg.edit(embed=self.getMenuEmbed())
+        await self.msg.edit(embed=self.getMenuEmbed(), **kwargs)
 
         if not noRefreshOptions:
-            self.msg = await self.msg.channel.fetch_message(self.msg.id)
-
-            try:
-                await self.msg.clear_reactions()
-            except Forbidden:
-                for reaction in self.msg.reactions:
-                    try:
-                        # ignoring a warning here that Client.user can be None, if the client is not logged in.
-                        # The client will always be logged in here, because menu changes can only be triggered by discord reactions.
-                        await reaction.remove(botState.client.user) # type: ignore[reportGeneralTypeIssues] 
-                    except (HTTPException, NotFound):
-                        pass
-
-            for option in self.options:
-                await self.msg.add_reaction(option.sendable)
+            await self.refreshReactions()
 
 
     async def delete(self):
@@ -507,9 +529,6 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
 
         if self.col != Colour.blue():
             data["col"] = self.col.to_rgb()
-
-        if self.footerTxt != "":
-            data["footerTxt"] = self.footerTxt
 
         if self.img != "":
             data["img"] = self.img
@@ -558,7 +577,7 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
     def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, NonSaveableReactionMenuOption]],
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
-                    footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+                    img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
                     targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
@@ -569,8 +588,6 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
         :param str titleTxt: The content of the embed title (Default "")
         :param str desc: he content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed
-                                (Default time until menu expiry if timeout is not None, "" otherwise)
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required
@@ -585,7 +602,7 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
         self.cancelEmoji = cancelEmoji
         options[cancelEmoji] = NonSaveableReactionMenuOption("cancel", cancelEmoji, self.delete, None)
         super(CancellableReactionMenu, self).__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col,
-                                                        footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                                                        img=img, thumb=thumb, icon=icon,
                                                         authorName=authorName, timeout=timeout, targetMember=targetMember,
                                                         targetRole=targetRole)
 
@@ -628,17 +645,15 @@ class SingleUserReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
     def __init__(self, msg: Message, targetMember: Union[Member, User], timeoutSeconds: int,
                  options: Optional[Dict[lib.emojis.BasedEmoji, TMenuOptionType]] = None,
                  returnTriggers: List[lib.emojis.BasedEmoji] = [], titleTxt: str = "", desc: str = "",
-                 col: Colour = Colour.blue(), footerTxt: str = "", img: str = "", thumb: str = "",
+                 col: Colour = Colour.blue(), img: str = "", thumb: str = "",
                  icon: str = "", authorName: str = ""):
         """
         :param returnTriggers: A list of emojis which, when reacted with, trigger the expiry of the menu.
         :type returnTriggers: List[lib.emojis.BasedEmoji]
         :param int timeoutSeconds: The number of seconds that this menu should last before timing out
         """
-        if footerTxt == "":
-            footerTxt = "This menu will expire in " + str(timeoutSeconds) + " seconds."
         super().__init__(msg, targetMember=targetMember, options=options, titleTxt=titleTxt, desc=desc, col=col,
-                            footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName)
+                            img=img, thumb=thumb, icon=icon, authorName=authorName)
         self.returnTriggers = returnTriggers
         self.timeoutSeconds = timeoutSeconds
 
@@ -767,7 +782,7 @@ class DummySingleUserReactionMenu(SingleUserReactionMenu):
     def __init__(self, msg: Message, targetMember: Union[Member, User], activeTime: timedelta,
                 options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],
                 returnTriggers: List[lib.emojis.BasedEmoji], titleTxt: str = "", desc: str = "",
-                col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+                col: Colour = Colour.blue(), img: str = "",
                 thumb: str = "", icon: str = "", authorName: str = ""):
 
         if isinstance(options, dict):
@@ -776,7 +791,7 @@ class DummySingleUserReactionMenu(SingleUserReactionMenu):
             dummyOptions = {e: DummyReactionMenuOption(e.sendable, e) for e in options}
 
         super().__init__(msg, targetMember, int(activeTime.total_seconds()), options=dummyOptions, returnTriggers=returnTriggers,
-                            titleTxt=titleTxt, desc=desc, col=col, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                            titleTxt=titleTxt, desc=desc, col=col, img=img, thumb=thumb, icon=icon,
                             authorName=authorName)
 
 
@@ -793,5 +808,5 @@ class DummySingleUserReactionMenu(SingleUserReactionMenu):
     #     return DummySingleUserReactionMenu(msg, options, activeTime = timedelta(seconds=data["timeout"]),
     #             options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],
     #             returnTriggers: List[lib.emojis.BasedEmoji], titleTxt: str = "", desc: str = "",
-    #             col: Colour = Colour.blue(), footerTxt: str = "", img: str = "",
+    #             col: Colour = Colour.blue(), img: str = "",
     #             thumb: str = "", icon: str = "", authorName: str = "")
