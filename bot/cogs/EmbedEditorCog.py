@@ -304,7 +304,7 @@ class EmbedEditorCog(BasedCog):
             embed.description = None
 
         footerIcon = (embed.footer.icon_url or "") if embed.footer is not None else ""
-        if modal.footerText.value:
+        if not isReactionMenu and modal.footerText.value:
             embed.set_footer(text=modal.footerText.value, icon_url=footerIcon or None)
         else:
             if footerIcon:
