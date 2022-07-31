@@ -171,7 +171,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuO
 
         if icon == "":
             if pollStarter is not None:
-                icon = str(pollStarter.display_avatar.with_size(64))
+                icon = pollStarter.display_avatar.with_size(64).url
         else:
             icon = icon if icon else checkMarkIcon
 

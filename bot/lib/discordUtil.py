@@ -613,7 +613,7 @@ class BasicScheduler:
         return bool(self.tasks)
 
 
-    def add(self, coro: Coroutine) -> asyncio.Task:
+    def add(self, coro: Union[Coroutine, asyncio.Task]) -> asyncio.Task:
         """Schedule a coroutine execution onto the event loop.
         Pass a normal parenthesized call to a coroutine, but without awaiting it.
         Execution begins immediately.
@@ -623,7 +623,7 @@ class BasicScheduler:
         :return: A task wrapping the execution
         :rtype: asyncio.Task
         """
-        t = asyncio.create_task(coro)
+        t = asyncio.create_task(coro) if isinstance(coro, Coroutine) else coro
         self.tasks.add(t)
         return t
 

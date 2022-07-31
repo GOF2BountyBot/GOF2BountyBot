@@ -16,6 +16,20 @@ def isInt(x) -> bool:
     return True
 
 
+def isFloat(x) -> bool:
+    """Decide whether or not something is either a float, or is castable to float.
+
+    :param x: The object to type-check
+    :return: True if x is a float or if x can be casted to float. False otherwise
+    :rtype: bool
+    """
+    try:
+        float(x)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def isMention(m: str) -> bool:
     """Decide whether the given string is a discord user mention,
     being either <@USERID> or <@!USERID> where USERID is an integer discord user id.

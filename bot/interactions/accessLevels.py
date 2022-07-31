@@ -1,6 +1,6 @@
 from typing import Dict, Optional, Type, TypeVar, Union
 from ..cfg import cfg
-from ..cogs import helpUtil
+from ..cogs.util import helpUtil
 from .. import lib
 from . import basedComponent
 from abc import ABC, abstractmethod

@@ -880,8 +880,12 @@ async def cmd_prestige(message: discord.Message, args: str, isDM: bool):
                                                 + "role, did it get deleted?")
                 
                 if oldRole is not None or newRole is not None:
-                    await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
+                    errors = await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                         actionOverride="prestiged")
+                    if errors:
+                        await message.reply(mention_author=False,
+                                            content="\nThe following error(s) occurred when updating the user's bounty alert role:" \
+                                                + "\n".join(f"- {error}" for error in errors))
 
         callingBBUser.bountyHuntingXpSurplus = -1
 
@@ -973,7 +977,11 @@ async def cmd_div_up(message: discord.Message, args: str, isDM: bool):
                                             + "role, did it get deleted?")
             
             if oldRole is not None or newRole is not None:
-                await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole)
+                errors = await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole)
+                if errors:
+                    await message.reply(mention_author=False,
+                                        content="\nThe following error(s) occurred when updating the user's bounty alert role:" \
+                                            + "\n".join(f"- {error}" for error in errors))
     else:
         await confirmMsg.edit(content="🛑 Div-up cancelled.")
 
@@ -1061,8 +1069,12 @@ async def cmd_div_down(message: discord.Message, args: str, isDM: bool):
                                             + "role, did it get deleted?")
             
             if oldRole is not None or newRole is not None:
-                await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
+                errors = await homeGuild.levelUpSwapRoles(message.author, message.channel, oldRole, newRole,
                                                 actionOverride="descended")
+                if errors:
+                    await message.reply(mention_author=False,
+                                        content="\nThe following error(s) occurred when updating the user's bounty alert role:" \
+                                            + "\n".join(f"- {error}" for error in errors))
     else:
         await confirmMsg.edit(content="🛑 Div-down cancelled.", embed=None)
 

@@ -481,13 +481,24 @@ class BountyDivision(Serializable):
 
 
     def isFull(self, includeEscaped: bool = True) -> bool:
-        """Decide whether this division has space for more bounties.
+        """Decide whether this division is full. Does not consider whether a min TL bounty exists.
 
         :param bool includeEscaped: Whether or not to consider escaped criminals (Default True)
         :return: True if the division is at capacity, False otherwise
         :rtype: bool
         """
         return self.getNumBounties(includeEscaped=includeEscaped) >= self.maxBounties()
+
+    
+    def canMakeBounty(self) -> bool:
+        """Decide whether this division has space for more bounties.
+        This is True if the division is not full, or if the division is full but has no min TL bounty.
+
+        :return: True if the division is can accept another bounty, False otherwise
+        :rtype: bool
+        """
+        full = self.isFull()
+        return (not full) or len(self.bounties[self.minLevel]) == 0 and len(self.escapedBounties[self.minLevel]) == 0
 
 
     async def clear(self, includeEscaped: bool = True):
@@ -508,6 +519,7 @@ class BountyDivision(Serializable):
         if wasFull or not self.hasMinTLBounty():
             self.tryStartBountySpawner()
         if self.bountyBoardChannel is not None:
+            await self.bountyBoardChannel.clear()
             await self.bountyBoardChannel.updateEscapedBountiesMessage()
 
 

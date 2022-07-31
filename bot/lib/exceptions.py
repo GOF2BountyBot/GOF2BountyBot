@@ -98,3 +98,10 @@ class ClientInitFailed(Exception):
         self.inner = inner
         super().__init__("Initialization of the discord client failed due to the following exception:\n" \
                         + formatExceptionTrace(inner))
+
+
+class SharedCogNotLoaded(Exception):
+    """Raised when trying to use a utility cog that is not loaded. This is a special-case exception, because it shouldn't really happen.
+    """
+    def __init__(self, cogName: str):
+        super().__init__("Shared cog is not loaded: " + cogName)

@@ -13,7 +13,7 @@ from ..interactions.basedComponent import StaticComponents
 from typing import List, cast
 from discord.abc import Snowflake
 if TYPE_CHECKING:
-    from . import EmbedEditorCog
+    from .util import EmbedEditorCog
 from .util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
 
 

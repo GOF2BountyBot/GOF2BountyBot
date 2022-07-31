@@ -1,18 +1,18 @@
 from dataclasses import dataclass
 from typing import Optional, Protocol, List, Tuple, cast
-from .. import client, lib
-from ..lib.discordUtil import ZWSP
+from ... import client, lib
+from ...lib.discordUtil import ZWSP
 from discord import Message, Interaction, Embed, TextStyle, Colour, SelectOption
 from discord import HTTPException, ClientException, NotFound
 from discord.utils import MISSING
 from discord.ui import View, Modal, TextInput, Button, Select
-from ..cfg import cfg
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..logging import LogCategory
+from ...cfg import cfg
+from ...interactions.basedApp import BasedCog
+from ...interactions.basedComponent import StaticComponents
+from ...logging import LogCategory
 from typing import List, cast
 from discord.abc import Snowflake
-from .util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
+from .EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
 
 EMBED_FIELD_INLINE_DEFAULT = "y"
 

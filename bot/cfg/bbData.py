@@ -69,44 +69,55 @@ def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
 
 # Data representing all module items in the game. These are used to create bbModule objects,
 # which are stored in builtInModuleObjs in a similar dict format.
+# Keys are ordered by name.
 builtInModuleData = {}
 
 # Data representing all primary weapon items in the game. These are used to create bbWeapon objects,
 # which are stored in builtInWeaponObjs in a similar dict format.
+# Keys are ordered by name.
 builtInWeaponData = {}
 
 # Data representing all ship upgrades in the game. These are used to create bbShipUpgrade objects,
 # which are stored in builtInUpgradeObjs in a similar dict format.
+# Keys are ordered by name.
 builtInUpgradeData = {}
 
 # data for builtIn criminals to be used in Criminal.deserialize
 # criminals marked as not builtIn to allow for dictionary init.
 # The criminal object is then marked as builtIn during bot.on_ready
+# Keys are ordered by name.
 builtInCriminalData = {}
 
 # data for builtIn systems to be used in SolarSystem.deserialize
+# Keys are ordered by name.
 builtInSystemData = {}
 
 # data for builtIn Turrets to be used in bbTurret.deserialize
+# Keys are ordered by name.
 builtInTurretData = {}
 
 # data for builtIn commodities to be used in bbCommodity.deserialize (unimplemented)
+# Keys are ordered by name.
 builtInCommodityData = {}
 
 builtInToolData = {}
 
 # data for builtIn secondaries to be used in bbSecondary.deserialize (unimplemented)
+# Keys are ordered by name.
 builtInSecondariesData = {}
 
 # data for builtIn ShipSkins to be used in ShipSkin.deserialize
+# Keys are ordered by name.
 builtInShipSkinsData = {}
 
 # data for Medals to be used in Medal.deserialize. builtIn is not applicable to Medals, as custom Medals cannot be created
+# Keys are ordered by name.
 medalsData = {}
 
 
 # To be populated during bot.on_ready
 # These dicts contain item name: item object for the object described in the variable name.
+# Keys are ordered by name.
 builtInShipSkins = {}
 builtInToolObjs = {}
 builtInSystemObjs = {}
@@ -120,6 +131,7 @@ builtInCommodityObjs = {}
 medalObjs = {}
 
 # References to the above item objects, sorted by techLevel.
+# Keys are ordered by name.
 shipKeysByTL = []
 moduleObjsByTL = []
 weaponObjsByTL = []
@@ -127,6 +139,7 @@ turretObjsByTL = []
 
 
 # names of criminals in builtIn bounties
+# Keys are ordered by name.
 bountyNames = {}
 # the length of the longest criminal name, to be used in padding during cmd_bounties
 longestBountyNameLength = 0
@@ -135,11 +148,13 @@ shipSkinToolsBySkin = {}
 shipUpgradeToolsByUpgrade = {}
 
 # Dict of crate type (str): list of crates
+# Keys are ordered by name.
 builtInCrateObjs = {}
 
 
 # Profile Customisation items
 # XP bar fills
+# Keys are ordered by name.
 builtInXPBars = {}
 
 drinkMessages = [

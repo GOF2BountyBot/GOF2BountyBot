@@ -1,4 +1,4 @@
-from .. import lib
+from ... import lib
 
 HELP_CUSTOMID_PAGE_ID_MAX_LENGTH = 2
 HELP_CUSTOMID_ACCESS_ID_MAX_LENGTH = 2

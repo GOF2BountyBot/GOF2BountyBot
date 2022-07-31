@@ -6,7 +6,7 @@ from .commandChecks import requireAccess
 from .basedApp import basedApp, BasedAppType
 from . import basedComponent
 from ..cfg import cfg
-from ..cogs.helpUtil import *
+from ..cogs.util.helpUtil import *
 
 TClass = TypeVar("TClass")
 TParam = TypeVar("TParam")

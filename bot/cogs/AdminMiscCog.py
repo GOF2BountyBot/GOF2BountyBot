@@ -21,21 +21,17 @@ from .. import lib
 from ..lib.discordUtil import timestamp, TimeStampStyle
 from ..reactionMenus.reactionRolePicker import ReactionRolePicker, ReactionRolePickerOption
 from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
+from .util.transformers import BoolEnableDisable
 from ..logging import LogCategory
 
 if TYPE_CHECKING:
-    from . import EmbedEditorCog
-    from . import CommonStaticComponentsCog
+    from .util import EmbedEditorCog
+    from .util import CommonStaticComponentsCog
 
 
 class GuildConfigSettings(Enum):
     Bounties = "Bounties"
     Shop = "Shops"
-
-
-class EnableBool(Enum):
-    Enable = "Enable"
-    Disable = "Disable"
 
 
 class RoleManagerFlag(Enum):
@@ -136,23 +132,6 @@ class AdminMiscCog(basedApp.BasedCog):
         self.bot = bot
         super().__init__(*args, **kwargs)
 
-#region util
-
-    def tryGetCog(self, cogName: str, callingFuncName: Optional[str] = None) -> Optional[commands.Cog]:
-        foundCog = self.bot.get_cog(cogName)
-        if foundCog is None:
-            self.bot.logger.log("DevMiscCog", callingFuncName or "tryGetCog", f"Unable to find cog on self.bot: {cogName}", eventType="COG_NOT_FOUND")
-        return foundCog
-
-
-    def getEmbedEditorCog(self, callingFuncName: Optional[str] = None) -> Optional["EmbedEditorCog.EmbedEditorCog"]:
-        return cast(Optional["EmbedEditorCog.EmbedEditorCog"], self.tryGetCog("EmbedEditorCog", callingFuncName=callingFuncName))
-
-
-    def getCommonStaticComponentsCog(self, callingFuncName: Optional[str] = None) -> Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"]:
-        return cast(Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"], self.tryGetCog("CommonStaticComponentsCog", callingFuncName=callingFuncName))
-
-#endregion
 #region static components
 
     """These are being replaced with the manage roles selector
@@ -165,7 +144,7 @@ class AdminMiscCog(basedApp.BasedCog):
             embed = interaction.message.embeds[0]
             menu = roleMenuForInteraction(interaction)
             if menu is None:
-                await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.")
+                await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.", ephemeral=True)
                 return
 
             if not embed.fields:
@@ -201,7 +180,7 @@ class AdminMiscCog(basedApp.BasedCog):
             tasks = lib.discordUtil.BasicScheduler()
             menu = roleMenuForInteraction(interaction)
             if menu is None:
-                await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.")
+                await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.", ephemeral=True)
                 return
                 
             changed = False
@@ -320,7 +299,7 @@ class AdminMiscCog(basedApp.BasedCog):
         if interaction.message is None or interaction.guild is None: return
         menu = self.bot.reactionMenusDB.get(interaction.message.id, None)
         if not isinstance(menu, ReactionRolePicker):
-            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.")
+            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.", ephemeral=True)
             return
 
         embed = interaction.message.embeds[0]
@@ -392,7 +371,7 @@ class AdminMiscCog(basedApp.BasedCog):
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
         if menu is None:
-            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.")
+            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.", ephemeral=True)
             return
 
         view = roleMenuCreatorView(interaction, userId, embed=interaction.message.embeds[0])
@@ -418,7 +397,7 @@ class AdminMiscCog(basedApp.BasedCog):
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
         if menu is None:
-            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.")
+            await interaction.response.send_message(f"{cfg.defaultEmojis.error} This interaction is not valid here. The message is not a role menu.", ephemeral=True)
             return
 
         selected: Optional[List[str]] = None if interaction.data is None else interaction.data.get("values", None)
@@ -454,7 +433,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                 disabledNoSelects.remove_item(c)
 
                     await interaction.response.edit_message(view=disabledNoSelects)
-                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}", wait=True)
+                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}", wait=True, ephemeral=True)
 
                     def check(reaction: Reaction, user: Union[Member, User]) -> bool:
                         return reaction.message.id == reactMsg.id and user.id == int(userId)
@@ -542,23 +521,24 @@ class AdminMiscCog(basedApp.BasedCog):
     @app_commands.command(name="config",
                             description="Set various settings for how bountybot will function in this server.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def admin_cmd_config(self, interaction: Interaction, setting: GuildConfigSettings, value: EnableBool):
+    async def admin_cmd_config(self, interaction: Interaction, setting: GuildConfigSettings, value: BoolEnableDisable):
         """Apply various bountybot configuration settings for the calling guild.
         TODO: Refactor - change this into a UI kind of like the SDB deck master menu
         """
         callingBBGuild = self.bot.guildsDB.fromInteraction(interaction)
+        newVal = bool(value)
 
         act = {
-            GuildConfigSettings.Bounties: {EnableBool.Enable: callingBBGuild.enableBounties, EnableBool.Disable: callingBBGuild.disableBounties},
-            GuildConfigSettings.Shop: {EnableBool.Enable: callingBBGuild.enableShops, EnableBool.Disable: callingBBGuild.disableShops}
+            GuildConfigSettings.Bounties: {True: callingBBGuild.enableBounties, False: callingBBGuild.disableBounties},
+            GuildConfigSettings.Shop: {True: callingBBGuild.enableShops, False: callingBBGuild.disableShops}
         }
         check = {
-            GuildConfigSettings.Bounties: {EnableBool.Enable: lambda: callingBBGuild.bountiesDisabled, EnableBool.Disable: lambda: not callingBBGuild.bountiesDisabled},
-            GuildConfigSettings.Shop: {EnableBool.Enable: lambda: callingBBGuild.shopsDisabled, EnableBool.Disable: lambda: not callingBBGuild.shopsDisabled}
+            GuildConfigSettings.Bounties: {True: lambda: callingBBGuild.bountiesDisabled, False: lambda: not callingBBGuild.bountiesDisabled},
+            GuildConfigSettings.Shop: {True: lambda: callingBBGuild.shopsDisabled, False: lambda: not callingBBGuild.shopsDisabled}
         }
 
-        if check[setting][value]():
-            act[setting][value]()
+        if check[setting][newVal]():
+            act[setting][newVal]()
             await interaction.response.send_message(f":white_check_mark: {setting.value.title()} are now {value.value.lower()}d on this server!", ephemeral=True)
         else: 
             await interaction.response.send_message(f":x: {setting.value.title()} are already {value.value.lower()}d on this server!", ephemeral=True)
@@ -577,7 +557,7 @@ class AdminMiscCog(basedApp.BasedCog):
         """Force the expiry of the specified reaction menu message, regardless of reaction menu type.
         """
         if not lib.stringTyping.isInt(menu_id):
-            await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.")
+            await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.", ephemeral=True)
             return
 
         msgID = int(menu_id)
@@ -693,7 +673,7 @@ class AdminMiscCog(basedApp.BasedCog):
         # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
         dcGuild = cast(Guild, interaction.guild)
         if not dcGuild.roles:
-            await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This server has no roles!")
+            await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This server has no roles!", ephemeral=True)
 
         requestedBBGuild = self.bot.guildsDB.fromInteraction(interaction)
         if requestedBBGuild.ownedRoleMenus >= cfg.maxRoleMenusPerGuild:
@@ -720,7 +700,7 @@ class AdminMiscCog(basedApp.BasedCog):
     @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_add_role_menu_role(self, interaction: Interaction, emoji: str, role: Role, menu_id: str):
         if not lib.stringTyping.isInt(menu_id.strip()):
-            await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.")
+            await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.", ephemeral=True)
             return
 
         menu = self.bot.reactionMenusDB.get(int(menu_id.strip()), None)

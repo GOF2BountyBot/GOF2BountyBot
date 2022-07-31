@@ -260,7 +260,7 @@ class BountyDB(Serializable):
 
     def bountyNameExists(self, name: str, level: Optional[int] = None, noEscapedCrim: bool = True) -> bool:
         """Check whether a criminal with the given name or alias exists in the DB
-        The process is much more efficient if the faction where the criminal should reside is known.
+        The process is much more efficient if the level of the criminal is known.
 
         :param str name: The name or alias to check for criminal existence against
         :param str level: The difficulty level of the named criminal's bounty.

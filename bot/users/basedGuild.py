@@ -320,27 +320,29 @@ class BasedGuild(SerializesToJson):
         self.hasBountyAlertRoles = False
 
 
-    async def levelUpSwapRoles(self, dcUser: Member, channel: TextChannel, oldRole: Role, newRole: Role,
-                                    actionOverride="leveled up"):
+    async def levelUpSwapRoles(self, dcUser: Member, oldRole: Role, newRole: Role,
+                                    actionOverride="leveled up") -> List[str]:
         """Remove oldRole from dcUser, and grant newRole.
         If errors occur, they will be printed in the context of dcUser leveling up their bounty Hunting level,
         and sent in channel. If oldRole or newRole are given as None, they will be ignored and no exception raised.
 
         :param Member dcUser: The user to toggle roles for
-        :param TextChannel channel: The channel in which to send errors
         :param Role oldRole: The role to remove, corresponding to dcUser's previous tech level
         :param Role newRole: The role to grant, corresponding to dcUser's new tech level
         :param str actionOverride: The reason for the role change, inserted partially into each message.
                                     (Default "leveled up")
+        :returns: A list of errors that occurred
+        :rtype: List[str]
         """
+        errors = []
         if oldRole is not None:
             try:
                 await dcUser.remove_roles(oldRole, reason=f"User {actionOverride} into a new division")
             except Forbidden:
-                await channel.send(":woozy_face: I don't have permission to remove your old division role! Please ensure " \
+                errors.append("I don't have permission to remove your old division role! Please ensure " \
                                     + "it is beneath the BountyBot role.")
             except HTTPException as e:
-                await channel.send(":woozy_face: Something went wrong when removing your old division role!\n" \
+                errors.append("Something went wrong when removing your old division role!\n" \
                                     + "The error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
@@ -348,7 +350,7 @@ class BasedGuild(SerializesToJson):
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
                                     category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError as e:
-                await channel.send(":thinking: Whoops! A connection error occurred when removing your old division role, " \
+                errors.append("A connection error occurred when removing your old division role, " \
                                     + "the error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
@@ -359,10 +361,10 @@ class BasedGuild(SerializesToJson):
             try:
                 await dcUser.add_roles(newRole, reason=f"User {actionOverride} into a new division")
             except Forbidden:
-                await channel.send(":woozy_face: I don't have permission to grant your new division role! Please ensure " \
+                errors.append("I don't have permission to grant your new division role! Please ensure " \
                                     + "it is beneath the BountyBot role.")
             except HTTPException as e:
-                await channel.send(":woozy_face: Something went wrong when granting your new division role!\n" \
+                errors.append("Something went wrong when granting your new division role!\n" \
                                     + "The error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
@@ -370,13 +372,14 @@ class BasedGuild(SerializesToJson):
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
                                     category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError as e:
-                await channel.send(":thinking: Whoops! A connection error occurred when granting your new division role, " \
+                errors.append("A connection error occurred when granting your new division role, " \
                                     + "the error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
                                     category=LogCategory.userAlerts, exception=e)
+        return errors
 
 
     def getChannel(self, channelType: GuildChannelType) -> TextChannel:

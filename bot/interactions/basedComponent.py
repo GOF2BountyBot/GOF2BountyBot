@@ -83,8 +83,7 @@ def validateCustomId(customId: str):
 
 
 class StaticComponentEnumMeta(EnumMeta):
-    # Ignoring warning on 'cls' parameter naming - this is the naming chosen by EnumMeta.
-    def __new__(metacls: type, clsName: str, bases: tuple[type, ...], classdict: _EnumDict, **kwds): # type: ignore[ncereportSelfClsParameterName]
+    def __new__(cls: type, clsName: str, bases: tuple[type, ...], classdict: _EnumDict, **kwds):
         # Ignoring warning for unknown field _member_names. Go to the _EnumDict source, it's there.
         enumMembers: Dict[str, Any] = {k: classdict[k] for k in classdict._member_names} # type: ignore[reportGeneralTypeIssues]
         maxId = lib.ids.maxIndex(STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
@@ -96,7 +95,7 @@ class StaticComponentEnumMeta(EnumMeta):
             enumMembers[name] = lib.ids.indexToID(value, pad=STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
             validateParam(f"component ID for component named '{name}'", enumMembers[name])
         classdict.update(enumMembers)
-        return super().__new__(metacls, clsName, bases, classdict, **kwds)
+        return super().__new__(cls, clsName, bases, classdict, **kwds)
 
 
 class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):

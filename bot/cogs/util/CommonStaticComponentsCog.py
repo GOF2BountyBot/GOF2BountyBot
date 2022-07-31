@@ -1,10 +1,10 @@
 from typing import Optional
-from .. import client, lib
-from ..lib.discordUtil import ZWSP, textChannel
+from ... import client, lib
+from ...lib.discordUtil import ZWSP, textChannel
 from discord import Interaction, Message
-from ..cfg import cfg
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
+from ...cfg import cfg
+from ...interactions.basedApp import BasedCog
+from ...interactions.basedComponent import StaticComponents
 
 class CommonStaticComponentsCog(BasedCog):
     def __init__(self, bot: client.BasedClient, *args, **kwargs):

@@ -13,7 +13,7 @@ from discord import HTTPException
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
-from .helpUtil import *
+from .util.helpUtil import *
 from typing import List, cast
 from discord.abc import Snowflake
 

@@ -1,15 +1,16 @@
 from enum import Enum
 from inspect import iscoroutinefunction
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, TYPE_CHECKING, Union
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, TYPE_CHECKING, Union, cast
 
 from discord.ext.commands.cog import Cog
 from discord import app_commands, Interaction, Component
 
 from . import basedCommand, basedComponent
-from .. import client
+from .. import client, lib
 
 if TYPE_CHECKING:
     from .basedCommand import CallBackType, TClass, TParams
+    from ..cogs.util import EmbedEditorCog, CommonStaticComponentsCog, GuildsUtilCog, UsersUtilCog
 
 TAnyCallback = Callable[..., Awaitable[Any]]
 
@@ -135,7 +136,8 @@ class BasedCog(Cog):
     :var staticComponentCallbacks: All static component callbacks defined within the cog, by ID
     :type staticComponentCallbacks: Dict[basedComponent.StaticComponents, basedComponent.StaticComponentCallbackMeta]
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, bot: client.BasedClient, *args, **kwargs):
+        self.bot = bot
         super().__init__(*args, **kwargs)
         self._basedCommands: Optional[Dict[app_commands.Command, "basedCommand.BasedCommandMeta"]] = None
         self._staticComponentCallbacks: Optional[Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"]] = None
@@ -242,3 +244,94 @@ class BasedCog(Cog):
             return func
 
         return decorator
+
+    
+    def tryGetCog(self, cogName: str, callingFuncName: Optional[str] = None) -> Optional[Cog]:
+        foundCog = self.bot.get_cog(cogName)
+        if foundCog is None:
+            self.bot.logger.log("DevMiscCog", callingFuncName or "tryGetCog", f"Unable to find cog on self.bot: {cogName}", eventType="COG_NOT_FOUND")
+        return foundCog
+
+
+    def getEmbedEditorCog(self, callingFuncName: Optional[str] = None) -> Optional["EmbedEditorCog.EmbedEditorCog"]:
+        """Get the loaded instance of the shared 'EmbedEditorCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        """
+        return cast(Optional["EmbedEditorCog.EmbedEditorCog"], self.tryGetCog("EmbedEditorCog", callingFuncName=callingFuncName))
+
+
+    @property
+    def EmbedEditorCog(self) -> "EmbedEditorCog.EmbedEditorCog":
+        """Get the loaded instance of the shared 'EmbedEditorCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        :raises SharedCogNotLoaded: If the cog is not loaded.
+        """
+        c = self.getEmbedEditorCog()
+        if c is None:
+            raise lib.exceptions.SharedCogNotLoaded("EmbedEditorCog")
+        return cast("EmbedEditorCog.EmbedEditorCog", c)
+
+
+    def getCommonStaticComponentsCog(self, callingFuncName: Optional[str] = None) -> Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"]:
+        """Get the loaded instance of the shared 'CommonStaticComponentsCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        """
+        return cast(Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"], self.tryGetCog("CommonStaticComponentsCog", callingFuncName=callingFuncName))
+
+
+    @property
+    def CommonStaticComponentsCog(self) -> "CommonStaticComponentsCog.CommonStaticComponentsCog":
+        """Get the loaded instance of the shared 'CommonStaticComponentsCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        :raises SharedCogNotLoaded: If the cog is not loaded.
+        """
+        c = self.getCommonStaticComponentsCog()
+        if c is None:
+            raise lib.exceptions.SharedCogNotLoaded("CommonStaticComponentsCog")
+        return cast("CommonStaticComponentsCog.CommonStaticComponentsCog", c)
+
+    
+    def getGuildsUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["GuildsUtilCog.GuildsUtilCog"]:
+        """Get the loaded instance of the shared 'GuildsUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        """
+        return cast(Optional["GuildsUtilCog.GuildsUtilCog"], self.tryGetCog("GuildsUtilCog", callingFuncName=callingFuncName))
+
+
+    @property
+    def GuildsUtilCog(self) -> "GuildsUtilCog.GuildsUtilCog":
+        """Get the loaded instance of the shared 'GuildsUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        :raises SharedCogNotLoaded: If the cog is not loaded.
+        """
+        c = self.getGuildsUtilCog()
+        if c is None:
+            raise lib.exceptions.SharedCogNotLoaded("GuildsUtilCog")
+        return cast("GuildsUtilCog.GuildsUtilCog", c)
+
+
+    def getUsersUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["UsersUtilCog.UsersUtilCog"]:
+        """Get the loaded instance of the shared 'UsersUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        """
+        return cast(Optional["UsersUtilCog.UsersUtilCog"], self.tryGetCog("UsersUtilCog", callingFuncName=callingFuncName))
+
+
+    @property
+    def UsersUtilCog(self) -> "UsersUtilCog.UsersUtilCog":
+        """Get the loaded instance of the shared 'UsersUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        :raises SharedCogNotLoaded: If the cog is not loaded.
+        """
+        c = self.getUsersUtilCog()
+        if c is None:
+            raise lib.exceptions.SharedCogNotLoaded("UsersUtilCog")
+        return cast("UsersUtilCog.UsersUtilCog", c)

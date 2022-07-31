@@ -1,4 +1,12 @@
 import sys
+
+# Require python 3.7, because:
+# - bbData gameObject DBs should be sorted by name to allow for alphabetized command parameter auto-completion.
+#   This could have been done with an OrderedDict, but they have been optimized for reorder efficiency, which is not needed.
+MIN_PYTHON = (3, 7)
+if sys.version_info < MIN_PYTHON:
+    sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
+
 from bot.cfg import cfg
 import carica
 
