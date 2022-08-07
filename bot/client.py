@@ -144,10 +144,6 @@ class BasedClient(ClientBaseClass):
         self._bountyRouteImagesChannel: Optional[TextChannel] = None
         self._mediaServersLoaded = False
 
-        self._githubClient: Optional[Github] = None
-        self._githubRepo: Optional[Repository] = None
-        self._githubLoaded = False
-
 
     async def on_interaction(self, interaction: discord.Interaction):
         customId = None if interaction.data is None else interaction.data.get("custom_id", None)
@@ -468,34 +464,6 @@ class BasedClient(ClientBaseClass):
             raise lib.exceptions.NotReady("Not yet loaded. BasedClient.bountyRouteImagesChannel is only available after on_ready.")
         return cast(TextChannel, self._bountyRouteImagesChannel)
 
-
-    @property
-    def githubRepo(self):
-        """The repository in which to create issues.
-        Only available after on_ready.
-
-        :raises lib.exceptions.NotReady: Repo not loaded yet
-        :return: The repository in which to create issues.
-        :rtype: GitHub
-        """
-        if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Not yet loaded. BasedClient.githubRepo is only available after on_ready.")
-        return cast(Repository, self._githubRepo)
-
-
-    @property
-    def githubClient(self):
-        """The client for accessing the GitHub API.
-        Only available after on_ready.
-
-        :raises lib.exceptions.NotReady: Client not loaded yet
-        :return: The client for accessing the GitHub API.
-        :rtype: GitHub
-        """
-        if not self._dbsLoaded:
-            raise lib.exceptions.NotReady("Not yet loaded. BasedClient.githubClient is only available after on_ready.")
-        return cast(Github, self._githubClient)
-
     
     @property
     def taskScheduler(self):
@@ -632,19 +600,6 @@ class BasedClient(ClientBaseClass):
             self.shutdownCheckTask.start()
 
         await self.reloadDBs()
-
-        if cfg.githubAccessToken and cfg.githubIssuesRepo:
-            try:
-                self._githubClient = Github(cfg.githubAccessToken)
-            except Exception as e:
-                self.logger.log("BasedClient", "on_ready", "", exception=e)
-            else:
-                try:
-                    self._githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
-                except Exception as e:
-                    self.logger.log("BasedClient", "on_ready", "", exception=e)
-                else:
-                    self._githubLoaded = True
 
         self.loggedIn = True
         if dispatchReady:

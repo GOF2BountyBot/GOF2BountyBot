@@ -196,13 +196,20 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
     return ".".join((basePackage, cogName))
 
 includedCogs = (
-    cogPath("BASEDVersionCog"),
-    cogPath("CommonStaticComponentsCog"),
-    cogPath("EmbedEditorCog"),
-    cogPath("AdminMiscCog"),
+    cogPath("CommonStaticComponentsCog", basePackage="bot.cogs.util"),
+    cogPath("EmbedEditorCog", basePackage="bot.cogs.util"),
+    cogPath("GithubUtilCog", basePackage="bot.cogs.util"),
+    cogPath("GuildsUtilCog", basePackage="bot.cogs.util"),
+    cogPath("UsersUtilCog", basePackage="bot.cogs.util"),
+    
     cogPath("AdminChannelsCog"),
-    cogPath("HelpCog"),
+    cogPath("AdminMiscCog"),
+    cogPath("BASEDVersionCog"),
+    cogPath("DevBountiesCog"),
+    cogPath("DevChannelsCog"),
+    cogPath("DevGithubCog"),
     cogPath("DevMiscCog"),
+    cogPath("HelpCog"),
     cogPath("UserMiscCog")
 )
 

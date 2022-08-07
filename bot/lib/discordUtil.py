@@ -1,10 +1,17 @@
 from __future__ import annotations
 from abc import abstractmethod
 from asyncio.exceptions import CancelledError, InvalidStateError
-from typing import Any, Awaitable, Callable, Coroutine, Generator, List, Optional, Protocol, Set, Type, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, List, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing_extensions import ParamSpec, Concatenate
+
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild
     from ..gameObjects.bounties import criminal
+
+if TYPE_CHECKING:
+    TParams = ParamSpec('TParams')
+else:
+    TParams = TypeVar('TParams')
 
 import discord # type: ignore[import]
 from discord.errors import NotFound # type: ignore[import]
@@ -443,8 +450,9 @@ def messageArgsFromStr(msgStr: str) -> Dict[str, Union[str, Union[Embed, None]]]
 
     return {"content": msgText, "embed": msgEmbed}
 
+TReturn = TypeVar("TReturn", covariant=True)
 
-def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
+def asyncWrap(func: Callable[TParams, TReturn]) -> Callable[TParams, Coroutine[Any, Any, TReturn]]:
     """Function decorator wrapping a synchronous function into an asynchronous executor call.
     This is a last-resort expensive operation, as a new process is spawned off for each call of the funciton.
     Where possible, use natively asynchronous code, e.g aiohttp instead of requests.
@@ -462,7 +470,9 @@ def asyncWrap(func: Callable) -> Callable[[Any], Awaitable[Any]]:
             loop = asyncio.get_event_loop()
         pfunc = partial(func, *args, **kwargs)
         return await loop.run_in_executor(executor, pfunc)
-    return run
+    
+    # TODO: Ignoring here because I'm not sure how to type `run`, but it appears to be correct in practise
+    return run # type: ignore
 
 
 async def asyncOperationWithRetry(f: Callable[..., Coroutine], opName: str, logCategory: LogCategory, className: str, meta: str,

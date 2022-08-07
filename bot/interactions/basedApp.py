@@ -1,6 +1,7 @@
 from enum import Enum
-from inspect import iscoroutinefunction
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, TYPE_CHECKING, Union, cast
+from inspect import iscoroutinefunction, signature
+from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable, List, Optional, Protocol, Tuple, Type, TypeVar, TYPE_CHECKING, Union, cast
+from functools import wraps
 
 from discord.ext.commands.cog import Cog
 from discord import app_commands, Interaction, Component
@@ -10,7 +11,7 @@ from .. import client, lib
 
 if TYPE_CHECKING:
     from .basedCommand import CallBackType, TClass, TParams
-    from ..cogs.util import EmbedEditorCog, CommonStaticComponentsCog, GuildsUtilCog, UsersUtilCog
+    from ..cogs.util import EmbedEditorCog, CommonStaticComponentsCog, GuildsUtilCog, UsersUtilCog, GithubUtilCog
 
 TAnyCallback = Callable[..., Awaitable[Any]]
 
@@ -334,3 +335,109 @@ class BasedCog(Cog):
         if c is None:
             raise lib.exceptions.SharedCogNotLoaded("UsersUtilCog")
         return cast("UsersUtilCog.UsersUtilCog", c)
+
+
+    @property
+    def GithubUtilCog(self) -> "GithubUtilCog.GithubUtilCog":
+        """Get the loaded instance of the shared 'GithubUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        :raises SharedCogNotLoaded: If the cog is not loaded.
+        """
+        c = self.getGithubUtilCog()
+        if c is None:
+            raise lib.exceptions.SharedCogNotLoaded("GithubUtilCog")
+        return cast("GithubUtilCog.GithubUtilCog", c)
+
+
+    def getGithubUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["GithubUtilCog.GithubUtilCog"]:
+        """Get the loaded instance of the shared 'GithubUtilCog' cog.
+
+        :param callingFuncName: The name of the calling function, for logging purposes (Default None)
+        """
+        return cast(Optional["GithubUtilCog.GithubUtilCog"], self.tryGetCog("GithubUtilCog", callingFuncName=callingFuncName))
+
+
+TCog = TypeVar("TCog", bound=BasedCog, contravariant=True)
+class _CogMethodNoArgs(Protocol, Generic[TCog]):
+    __name__: str
+
+    # Ignoring a warning here for the self name.
+    # Since this is an instance method, it needs its own 'self' argument.
+    def __call__(protocolSelf, self: TCog, **kwargs) -> Any: ... # type: ignore[reportSelfClsParameterName]
+
+
+class _CogMethodNoKwargs(Protocol):
+    __name__: str
+
+    # Ignoring a warning here for the self name.
+    # Since this is an instance method, it needs its own 'self' argument.
+    def __call__(protocolSelf, self: TCog, *args) -> Any: ... # type: ignore[reportSelfClsParameterName]
+
+class _CogMethodBothArgs(Protocol):
+    __name__: str
+
+    # Ignoring a warning here for the self name.
+    # Since this is an instance method, it needs its own 'self' argument.
+    def __call__(protocolSelf, self: TCog, *args, **kwargs) -> Any: ... # type: ignore[reportSelfClsParameterName]
+
+TMethod = TypeVar("TMethod", bound=Union[_CogMethodBothArgs, _CogMethodNoArgs, _CogMethodNoKwargs])
+
+def useCog(failCallback: Optional[Callable] = None, **paramCogNames: str):
+    """Cog method decorator, requiring a cog instance for the method to execute.
+    Give your cog names as kwargs to the decorator, e.g:
+
+    ```
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from cogs.MyCogClass import MyCogClass
+
+    class MyCog(BasedCog):
+        def throwForMissingCog(self):
+            raise RuntimeError("Couldn't find required cog")
+
+        @useCog(myCog="MyCogClass", failCallback=throwForMissingCog)
+        def myMethod(self, myCog: "MyCogClass")
+            ...
+
+        async def doNothingAsyncFailCallback(self):
+            pass
+        
+        # Here I'm using doNothingAsyncFailCallback because otherwise None will be returned for `myAsyncMethod` on fail instead of a `Coroutine`.
+        # If `None` is returned, then `await myAsyncMethod()` would not work!
+        @useCog(myCog="MyCogClass", failCallback=doNothingAsyncFailCallback)
+        async def myAsyncMethod(self, myCog: "MyCogClass"):
+            ...
+    ```
+
+    It is recommended that you make your cog parameters optional, so that you needn't provide anything when calling the method.
+    If some but not all of the cogs are found, then they will be present in the arguments for `failCallback`.
+
+    :param failCallback: If the cog does not exist, then this function will be called instead, with the same arguments as the original method (including self)
+    :param paramCogNames: Mapping of method parameter names to cog names.
+    """
+    if not paramCogNames:
+        raise ValueError("At least one parameter must be specified. See the docs for this decorator for more information")
+
+    def wrapper(func: TMethod) -> TMethod:
+        sig = signature(func)
+        for paramName in paramCogNames:
+            if paramName not in sig.parameters:
+                raise ValueError(f"function {func.__name__} does not have a parameter called {paramName}")
+
+        # Clear this out from the closure, only needed for validation
+        del sig
+
+        @wraps(func)
+        def run(self: BasedCog, *args, **kwargs):
+            for paramName, cogName in paramCogNames.items():
+                c = self.tryGetCog(cogName)
+                if c is None:
+                    if failCallback is not None:
+                        return failCallback(self, *args, **kwargs)
+                    return
+                kwargs[paramName] = c
+            return func(self, *args, **kwargs)
+
+        return cast(TMethod, run)
+    return wrapper
