@@ -529,9 +529,6 @@ maxItemsPerHangarPageAll = 3
 # The maximum number of items that will be displayed per page of a user's hangar, when a single item type is requested
 maxItemsPerHangarPageIndividual = 10
 
-# Names to be used when checking input to cmd_hangar and BasedUser.numInventoryPages
-validItemNames = ["ship", "weapon", "module", "turret", "all", "tool"]
-
 # the max number of each module type that can be equipped on a ship.
 maxModuleTypeEquips = {     "ArmourModule": 1,
                             "BoosterModule": 1,

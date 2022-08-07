@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Optional, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast
+from typing import Optional, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
@@ -9,7 +9,7 @@ from ..baseClasses.serializable import SerializesToJson, JsonType
 
 from ..cfg import cfg, bbData
 from ..gameObjects import kaamoShop, lomaShop
-from ..gameObjects.items import shipItem, moduleItemFactory
+from ..gameObjects.items import shipItem, moduleItemFactory, gameItem
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
@@ -40,6 +40,8 @@ defaultUserDict = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsW
 # Reference value manually added, not pre-calculated from defaultUserDict. This is not used in the game's code,
 # but provides a reference for game design.
 defaultUserValue = 28970
+
+TItem = TypeVar("TItem", bound=gameItem.GameItem)
 
 
 class BasedUser(SerializesToJson):
@@ -598,7 +600,7 @@ class BasedUser(SerializesToJson):
         :raise ValueError: When requesting an invalid item type name
         :raise NotImplementedError: When requesting a valid item type name but one that is not yet implemented (e.g commodity)
         """
-        if item == "all" or item not in cfg.validItemNames:
+        if item == "all":
             raise ValueError("Invalid item type: " + item)
         elif item == "ship":
             return self.inactiveShips
@@ -611,7 +613,7 @@ class BasedUser(SerializesToJson):
         elif item == "tool":
             return self.inactiveTools
         else:
-            raise NotImplementedError("Valid, but unrecognised item type: " + item)
+            raise NotImplementedError("Unrecognised item type: " + item)
 
 
     def hasDuelChallengeFor(self, targetBasedUser: BasedUser) -> bool:
@@ -793,17 +795,19 @@ class BasedUser(SerializesToJson):
         self.guildTransferCooldownEnd = now + cfg.timeouts.homeGuildTransferCooldown
 
 
-    def getInventoryForItem(self, item):
+    def getInventoryForItem(self, item: TItem) -> inventory.Inventory[TItem]:
+        # Lots of casting going on here - I look for an inventory that stores the given type and returns it.
+        # The inventory is guaranteed to be of the right type - just check the revealed type of the returned inventory!
         if isinstance(item, shipItem.Ship):
-            return self.inactiveShips
+            return cast(inventory.Inventory[TItem], self.inactiveShips)
         elif isinstance(item, primaryWeapon.PrimaryWeapon):
-            return self.inactiveWeapons
+            return cast(inventory.Inventory[TItem], self.inactiveWeapons)
         elif isinstance(item, turretWeapon.TurretWeapon):
-            return self.inactiveTurrets
+            return cast(inventory.Inventory[TItem], self.inactiveTurrets)
         elif isinstance(item, toolItem.ToolItem):
-            return self.inactiveTools
+            return cast(inventory.Inventory[TItem], self.inactiveTools)
         elif isinstance(item, moduleItem.ModuleItem):
-            return self.inactiveModules
+            return cast(inventory.Inventory[TItem], self.inactiveModules)
         raise ValueError(f"No inventory is stored for item type {type(item).__name__}")
 
 

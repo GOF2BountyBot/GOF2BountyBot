@@ -48,3 +48,20 @@ class BoolTrueFalse(BoolTransformerBase, trueVal="True"):
     # lower cased here to avoid clashing with the reserved words
     true = "True"
     false = "False"
+
+
+class ItemCategory(Enum):
+    ship = "ship"
+    weapon = "weapon"
+    module = "module"
+    turret = "turret"
+    tool = "tool"
+
+
+class ItemCategoryOrAll(Enum):
+    ship = "ship"
+    weapon = "weapon"
+    module = "module"
+    turret = "turret"
+    tool = "tool"
+    all = "all"
