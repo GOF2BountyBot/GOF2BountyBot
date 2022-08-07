@@ -16,14 +16,14 @@ class UsersUtilCog(BasedCog):
 
 #region util
 
-    async def getUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True) -> Optional[basedUser.BasedUser]:
+    async def getBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Optional[basedUser.BasedUser]:
         """Gets a user if one is specified. If not, then get the author.
         If the result cannot be found in the usersDB, respond to the interaction with an error, and return None.
         """
         if user_id:
             if not lib.stringTyping.isInt(user_id):
                 if sendError:
-                    await interaction.response.send_message("Invalid user ID.", ephemeral=True)
+                    await interaction.response.send_message("Invalid user ID.", ephemeral=errorEphemeral)
                 return None
             userId = int(user_id)
         else:
@@ -31,7 +31,7 @@ class UsersUtilCog(BasedCog):
 
         if not self.bot.usersDB.idExists(userId):
             if sendError:
-                await interaction.response.send_message("Unknown user.", ephemeral=True)
+                await interaction.response.send_message("Unknown user.", ephemeral=errorEphemeral)
             return None
         
         return self.bot.usersDB.getUser(userId)

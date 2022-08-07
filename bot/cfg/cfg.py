@@ -208,6 +208,7 @@ includedCogs = (
     cogPath("DevBountiesCog"),
     cogPath("DevChannelsCog"),
     cogPath("DevGithubCog"),
+    cogPath("DevHomeGuildsCog"),
     cogPath("DevMiscCog"),
     cogPath("HelpCog"),
     cogPath("UserMiscCog")
