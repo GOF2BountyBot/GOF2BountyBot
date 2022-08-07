@@ -156,19 +156,17 @@ class BasedCog(Cog):
             raise ValueError("staticComponentCallbacks is only available after cog injection")
         return self._staticComponentCallbacks
 
-    
-    def _inject(self, bot: "client.BasedClient", override: bool, guild, guilds) -> Coroutine:
-        """Registers all BASED apps in the cog with the provided client, and then passes cog injection responsibility up
-        to the discord Cog base class
+
+    async def cog_load(self) -> None:
+        """Registers all BASED apps, e.g static components callbacks, based commands, etc.
         """
         self._basedCommands = {}
         self._staticComponentCallbacks = {}
-        # __cog_app_commands__ is assigned in discord._CogMeta.__new__, which does not make new copies of commands
-        for command in self.__cog_app_commands__:
+        for command in self.walk_commands():
             if isinstance(command, app_commands.Command) and appType(command.callback) == BasedAppType.AppCommand:
                 self.basedCommands[command] = basedCommand.commandMeta(command)
                 setCogApp(command.callback, type(self))
-                bot.addBasedCommand(command)
+                self.bot.addBasedCommand(command)
         
         for methodName in dir(self):
             method = getattr(self, methodName)
@@ -176,25 +174,26 @@ class BasedCog(Cog):
                 meta = basedComponent.staticComponentCallbackMeta(method)
                 self.staticComponentCallbacks[meta.ID] = meta
                 setCogApp(method, type(self))
-                bot.addStaticComponent(meta.callback)
+                self.bot.addStaticComponent(meta.callback)
 
-        return super()._inject(bot=bot, override=override, guild=guild, guilds=guilds)
+        return await super().cog_load()
 
-
-    def _eject(self, bot: "client.BasedClient", guild_ids: Optional[Iterable[int]]) -> Coroutine[Any, Any, None]:
-        """Un-registers all BASED apps in the cog from the provided client, and then passes cog ejection responsibility up
-        to the discord Cog base class
+    
+    async def cog_unload(self) -> None:
+        """Unregisters all BASED apps in the cog from the provided client
+        """
+        """Un-registers all BASED apps, e.g static components callbacks, based commands, etc.
         """
         for command in self.basedCommands:
-            bot.removeBasedCommand(command)
+            self.bot.removeBasedCommand(command)
 
         for meta in self.staticComponentCallbacks.values():
-            bot.removeStaticComponent(meta.ID)
+            self.bot.removeStaticComponent(meta.ID)
             
         self._basedCommands = None
         self._staticComponentCallbacks = None
 
-        return super()._eject(bot, guild_ids)
+        return await super().cog_unload()
 
 
     @classmethod
