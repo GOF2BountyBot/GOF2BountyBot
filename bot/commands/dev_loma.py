@@ -6,6 +6,7 @@ from .. import lib, botState
 from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
 from ..cfg import cfg, bbData
+from ..cfg.bbData import ItemCategory
 from ..gameObjects.items import gameItem
 from ..users.basedUser import BasedUser
 from ..gameObjects.lomaShop import LomaShop
@@ -18,12 +19,12 @@ botCommands.addHelpSection(3, "loma")
 async def dev_cmd_loma_give(message: discord.Message, args: str, isDM: bool):
     """developer command spawning the described item, and placing it in the given user's loma shop.
     user must be either a mention or an ID or empty (to give the item to the calling user).
-    type must be in cfg.validItemNames (but not 'all')
+    type must be in bbData.ItemCategory
     item must be a json format description in line with the item's to and deserialize functions.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
-                        from cfg.validItemNames (but not 'all'), followed by a serialized item
+                        from bbData.ItemCategory, followed by a serialized item
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     requestedUser: BasedUser = None
@@ -38,7 +39,6 @@ async def dev_cmd_loma_give(message: discord.Message, args: str, isDM: bool):
         requestedUser = botState.client.usersDB.getOrAddID(int(argsSplit[0].lstrip("<@!").rstrip(">")))
         itemStr = args[len(argsSplit[0]) + 1:]
 
-    itemType = itemStr.split(" ")[0].lower()
     itemDict = json.loads(itemStr[len(itemStr.split(" ")[0]):])
 
     if "type" not in itemDict:
@@ -50,15 +50,17 @@ async def dev_cmd_loma_give(message: discord.Message, args: str, isDM: bool):
         return
 
 
-    if itemType == "all" or itemType not in cfg.validItemNames:
-        await message.channel.send(":x: Invalid item type arg - " + itemType)
+    _itemType = itemStr.split(" ")[0].lower()
+    if not ItemCategory.hasValue(_itemType):
+        await message.channel.send(":x: Invalid item type arg - " + _itemType)
         return
+    itemType = ItemCategory(_itemType)
 
     newItem = gameItem.spawnItem(itemDict)
 
     if requestedUser.loma is None:
         requestedUser.loma = LomaShop()
-    itemStock = requestedUser.loma.getStockByName(itemType)
+    itemStock = requestedUser.loma.getStock(itemType)
     itemStock.addItem(newItem)
 
     await message.channel.send(":white_check_mark: Given one '" + newItem.name + "' to **" \
@@ -71,13 +73,13 @@ botCommands.register("loma-give", dev_cmd_loma_give, 3, forceKeepArgsCasing=True
 async def dev_cmd_loma_give_discount(message: discord.Message, args: str, isDM: bool):
     """developer command the described item item discount, and placing it in the given user's loma shop, for the described item.
     user must be either a mention or an ID or empty (to give the item to the calling user).
-    type must be in cfg.validItemNames (but not 'all')
+    type must be in bbData.ItemCategory
     item number must be a number as shown in dev_cmd_debug_loma
     item discount must be a json format description in line with ItemDiscount.deserialize.
 
     :param discord.Message message: the discord message calling the command
     :param str args: string, containing either a user ID or mention or nothing (to give item to caller), followed by a string
-                        from cfg.validItemNames (but not 'all'), followed by an item number from debug_loma, and a serialized ItemDiscount
+                        from bbData.ItemCategory, followed by an item number from debug_loma, and a serialized ItemDiscount
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     requestedUser: BasedUser = None
@@ -97,15 +99,16 @@ async def dev_cmd_loma_give_discount(message: discord.Message, args: str, isDM: 
         return
 
     itemStrSplit = itemStr.split(" ")
-    itemType = itemStrSplit[0].lower()
     itemNum = int(itemStrSplit[1])
     discountDict = json.loads(itemStr[len(itemStrSplit[0]) + len(itemStrSplit[1]) + 2:])
 
-    if itemType == "all" or itemType not in cfg.validItemNames:
-        await message.channel.send(":x: Invalid item type arg - " + itemType)
+    _itemType = itemStr.split(" ")[0].lower()
+    if not ItemCategory.hasValue(_itemType):
+        await message.channel.send(":x: Invalid item type arg - " + _itemType)
         return
+    itemType = ItemCategory(_itemType)
 
-    itemTypeStock = requestedUser.loma.getStockByName(itemType)
+    itemTypeStock = requestedUser.loma.getStock(itemType)
     try:
         itemListing: DiscountableItemListing = itemTypeStock[itemNum - 1]
     except ValueError:
@@ -160,24 +163,24 @@ async def dev_cmd_debug_loma(message: discord.Message, args: str, isDM: bool):
                                             footerTxt="All items",
                                             thumb=requestedUser.avatar_url_as(size=64))
 
-    itemTypes = ("ship", "weapon", "module", "turret", "tool")
+    itemTypes = (ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool)
     for itemType in itemTypes:
-        itemInv = requestedBBUser.loma.getStockByName(itemType)
-        await message.author.send(itemType.upper() + " KEYS: " + str(itemInv.keys) + "\n" + itemType.upper() \
+        itemInv = requestedBBUser.loma.getStock(itemType)
+        await message.author.send(itemType.value.upper() + " KEYS: " + str(itemInv.keys) + "\n" + itemType.value.upper() \
                                     + " LISTINGS: " + str(list(itemInv.items.keys())))
 
     for currentItemType in itemTypes:
-        currentStock = requestedBBUser.loma.getStockByName(currentItemType)
+        currentStock = requestedBBUser.loma.getStock(currentItemType)
         for itemNum in range(1, currentStock.numKeys + 1):
             if itemNum == 1:
-                shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
+                shopEmbed.add_field(name="‎", value="__**" + currentItemType.value.title() + "s**__", inline=False)
 
             try:
                 currentItem = currentStock[itemNum - 1].item
             except KeyError:
                 try:
                     botState.client.logger.log("dev_loma", "dev_cmd_debug_loma",
-                                        "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
+                                        "Requested " + currentItemType.value + " '" + currentStock.keys[itemNum-1].name \
                                             + "' (index " + str(itemNum-1) \
                                             + "), which was not found in the shop stock",
                                         category=LogCategory.shop, eventType="UNKWN_KEY")
@@ -188,7 +191,7 @@ async def dev_cmd_debug_loma(message: discord.Message, args: str, isDM: bool):
                     for item in currentStock.items:
                         keysStr += str(item) + ", "
                     botState.client.logger.log("dev_loma", "dev_cmd_debug_loma",
-                                        "Unexpected type in " + currentItemType + "sStock KEYS, index " \
+                                        "Unexpected type in " + currentItemType.value + "sStock KEYS, index " \
                                             + str(itemNum-1) + ". Got " \
                                             + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
                                             + keysStr[:-2],
@@ -253,10 +256,11 @@ async def dev_cmd_del_loma_item(message: discord.Message, args: str, isDM: bool)
                                     + "(ship/weapon/module/turret), and an item number.")
         return
 
-    itemCategory = argsSplit[1].rstrip("s")
-    if itemCategory == "all" or itemCategory not in cfg.validItemNames:
+    _itemCategory = argsSplit[1].rstrip("s")
+    if not ItemCategory.hasValue(_itemCategory):
         await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
         return
+    itemCategory = ItemCategory(_itemCategory)
 
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
@@ -278,10 +282,10 @@ async def dev_cmd_del_loma_item(message: discord.Message, args: str, isDM: bool)
         await message.channel.send(":x: Requested user has no loma items!")
         return
 
-    lomaItemStock = requestedBBUser.loma.getStockByName(itemCategory)
+    lomaItemStock = requestedBBUser.loma.getStock(itemCategory)
     if itemNum > lomaItemStock.numKeys:
         await message.channel.send(":x: Invalid item number! The user only has " + str(lomaItemStock.numKeys) \
-                                    + " " + itemCategory + "s.")
+                                    + " " + itemCategory.value + "s.")
         return
     if itemNum < 1:
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
@@ -291,7 +295,7 @@ async def dev_cmd_del_loma_item(message: discord.Message, args: str, isDM: bool)
     itemName = ""
     itemEmbed = None
 
-    if itemCategory == "ship":
+    if itemCategory is ItemCategory.ship:
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \
@@ -371,10 +375,11 @@ async def dev_cmd_del_loma_item_key(message: discord.Message, args: str, isDM: b
                                     + "(ship/weapon/module/turret), and an item number.")
         return
 
-    itemCategory = argsSplit[1].rstrip("s")
-    if itemCategory == "all" or itemCategory not in cfg.validItemNames:
+    _itemCategory = argsSplit[1].rstrip("s")
+    if not ItemCategory.hasValue(_itemCategory):
         await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
         return
+    itemCategory = ItemCategory(_itemCategory)
 
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
@@ -396,10 +401,10 @@ async def dev_cmd_del_loma_item_key(message: discord.Message, args: str, isDM: b
         await message.channel.send(":x: Requested user has no loma items!")
         return
 
-    lomaItemStock = requestedBBUser.loma.getStockByName(itemCategory)
+    lomaItemStock = requestedBBUser.loma.getStock(itemCategory)
     if itemNum > lomaItemStock.numKeys:
         await message.channel.send(":x: Invalid item number! The user only has " + str(lomaItemStock.numKeys) \
-                                    + " " + itemCategory + "s.")
+                                    + " " + itemCategory.value + "s.")
         return
     if itemNum < 1:
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
@@ -409,7 +414,7 @@ async def dev_cmd_del_loma_item_key(message: discord.Message, args: str, isDM: b
     itemName = ""
     itemEmbed = None
 
-    if itemCategory == "ship":
+    if itemCategory is ItemCategory.ship:
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                     if requestedItem.manufacturer in bbData.factionColours \
@@ -503,10 +508,11 @@ async def dev_cmd_del_loma_discount(message: discord.Message, args: str, isDM: b
                                     + "and a discount index")
         return
 
-    itemCategory = argsSplit[1].rstrip("s")
-    if itemCategory == "all" or itemCategory not in cfg.validItemNames:
+    _itemCategory = argsSplit[1].rstrip("s")
+    if not ItemCategory.hasValue(_itemCategory):
         await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
         return
+    itemCategory = ItemCategory(_itemCategory)
 
     if not (lib.stringTyping.isInt(argsSplit[0]) or lib.stringTyping.isMention(argsSplit[0])):
         await message.channel.send(":x: Invalid user! ")
@@ -534,10 +540,10 @@ async def dev_cmd_del_loma_discount(message: discord.Message, args: str, isDM: b
         await message.channel.send(":x: Requested user has no loma items!")
         return
 
-    lomaItemStock = requestedBBUser.loma.getStockByName(itemCategory)
+    lomaItemStock = requestedBBUser.loma.getStock(itemCategory)
     if itemNum > lomaItemStock.numKeys:
         await message.channel.send(":x: Invalid item number! The user only has " + str(lomaItemStock.numKeys) \
-                                    + " " + itemCategory + "s.")
+                                    + " " + itemCategory.value + "s.")
         return
     if itemNum < 1:
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
@@ -559,7 +565,7 @@ async def dev_cmd_del_loma_discount(message: discord.Message, args: str, isDM: b
 
     discountObj = itemListing.discounts[discountNum]
 
-    if itemCategory == "ship":
+    if itemCategory is ItemCategory.ship:
         itemName = requestedItem.getNameAndNick()
         itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours[requestedItem.manufacturer] \
                                                 if requestedItem.manufacturer in bbData.factionColours else \

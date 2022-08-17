@@ -12,6 +12,7 @@ from .weapons.primaryWeapon import PrimaryWeapon
 from .weapons.turretWeapon import TurretWeapon
 from .. import shipSkin, shipUpgrade
 from ...cfg import cfg, bbData
+from ...cfg.bbData import ItemCategory
 from ... import lib
 from ...lib.emojis import BasedEmoji
 
@@ -21,7 +22,7 @@ class Ship(GameItem):
     """An equippable and customisable ship for use by players and NPCs.
 
     TODO: All of these 'get total' functions could probably be consolidated into a single function,
-    # making use of getActivesByName etc
+    # making use of getActives etc
 
     :var hasNickname: whether or not this ship has a nickname
     :vartype hasNickname: bool
@@ -660,26 +661,22 @@ class Ship(GameItem):
             other.equipTurret(self.turrets.pop(0))
 
 
-    def getActivesByName(self, item: str) -> Union[List[PrimaryWeapon], List[moduleItem.ModuleItem],
-                                                    List[TurretWeapon]]:
+    def getActives(self, item: ItemCategory) -> Union[List[PrimaryWeapon], List[moduleItem.ModuleItem], List[TurretWeapon]]:
         """Return a requested array of equipped items, specified by string name.
 
         :param str item: one of weapon, module or turret.
         :return: An array of equipped items of the named typed.
         :rtype: list[PrimaryWeapon or moduleItem or TurretWeapon]
         :raise ValueError: If the requested item type is invalid
-        :raise NotImplementedError: If a valid item type is requested, not just yet implemented (e.g commodity)
         """
-        if item == "all" or item == "ship" or item not in cfg.validItemNames:
-            raise ValueError("Invalid item type: " + str(item))
-        elif item == "weapon":
+        if item is ItemCategory.weapon:
             return self.weapons
-        elif item == "module":
+        elif item is ItemCategory.module:
             return self.modules
-        elif item == "turret":
+        elif item is ItemCategory.turret:
             return self.turrets
         else:
-            raise NotImplementedError("Valid, not unrecognised item type: " + item)
+            raise ValueError("unrecognised item type: " + item.value)
 
 
     def clearWeapons(self):
@@ -780,14 +777,14 @@ class Ship(GameItem):
         return stats + "*"
 
 
-    def fillLoadoutEmbed(self, baseEmbed: Embed, shipEmoji: bool = False):
+    def fillLoadoutEmbed(self, baseEmbed: Embed, shipEmoji: bool = False, titlePrefix: str = "Active Ship: "):
         """Populate a discord.embed with information describing the ship.
         :param discord.Embed baseEmbed: The embed to add fields to
         :param bool shipEmoji: whether or not to use the ship's emoji next to its name.
                                 You may wish to leave this as false and instead use the ship's icon
                                 in the embed icon (Default False)
         """
-        baseEmbed.add_field(name="Active Ship: " + (self.emoji.sendable if shipEmoji and self.hasEmoji else "") + self.getNameAndNick(),
+        baseEmbed.add_field(name=titlePrefix + (self.emoji.sendable if shipEmoji and self.hasEmoji else "") + self.getNameAndNick(),
                             value=self.statsStringNoItems(),
                             inline=False)
 

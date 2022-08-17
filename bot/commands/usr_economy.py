@@ -10,6 +10,7 @@ from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
 from ..lib import gameMaths
 from ..cfg import cfg
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import divisionNameForLevel
 from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
@@ -59,7 +60,7 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
 
     :param discord.Message message: the discord message calling the command
-    :param str args: either empty string, or one of cfg.validItemNames
+    :param str args: either empty string, or one of bbData.ItemCategory
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     requestedBGuild: basedGuild.BasedGuild = botState.client.guildsDB.getGuild(message.guild.id)
@@ -75,15 +76,16 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
                 args = args[len(n):].lstrip()
                 break
 
-    item = "all"
-    if args.rstrip("s") in cfg.validItemNames:
-        item = args.rstrip("s")
+    if ItemCategoryOrAll.hasValue(args.rstrip("s")):
+        item = ItemCategoryOrAll(args.rstrip("s"))
     elif args != "":
         await message.reply(mention_author=False,
                             content=":x: Unknown argument! You can give either or both of:\n" \
                                     + f"- a division name ({'/'.join(cfg.bountyDivisionNames)})\n" \
                                     + f"- an item type (ship/weapon/module/turret/tool/all)")
         return
+    else:
+        item = ItemCategoryOrAll.all
 
     userDivision = ""
 
@@ -112,7 +114,7 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
     sendChannel = None
     sendDM = False
 
-    if item == "all":
+    if item is ItemCategoryOrAll.all:
         if message.author.dm_channel is None:
             await message.author.create_dm()
         if message.author.dm_channel is None:
@@ -132,22 +134,22 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
                                             desc=f"__{message.guild.name}__\n" \
                                                 + classicModeDesc \
                                                 + f"`Current Tech Level: {requestedShop.currentTechLevel}`",
-                                            footerTxt="All items" if item == "all" else (item + "s").title(),
+                                            footerTxt="All items" if item is ItemCategoryOrAll.all else (item.value + "s").title(),
                                             thumb="" if message.guild.icon is None else message.guild.icon_url_as(size=64))
 
-    for currentItemType in ["ship", "weapon", "module", "turret", "tool"]:
-        if item in ["all", currentItemType]:
-            currentStock = requestedShop.getStockByName(currentItemType)
+    for currentItemType in [ItemCategoryOrAll.ship, ItemCategoryOrAll.weapon, ItemCategoryOrAll.module, ItemCategoryOrAll.turret, ItemCategoryOrAll.tool]:
+        if item in [ItemCategoryOrAll.all, currentItemType]:
+            currentStock = requestedShop.getStock(currentItemType.noAll())
             for itemNum in range(1, currentStock.numKeys + 1):
                 if itemNum == 1:
-                    shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
+                    shopEmbed.add_field(name="‎", value="__**" + currentItemType.value.title() + "s**__", inline=False)
 
                 try:
                     currentItem = currentStock[itemNum - 1].item
                 except KeyError:
                     try:
                         botState.client.logger.log("Main", "cmd_shop",
-                                            "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
+                                            "Requested " + currentItemType.value + " '" + currentStock.keys[itemNum-1].name \
                                                 + "' (index " + str(itemNum-1) + "), which was not found in the shop stock",
                                             category=LogCategory.shop, eventType="UNKWN_KEY")
                     except IndexError:
@@ -157,7 +159,7 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
                         for item in currentStock.items:
                             keysStr += str(item) + ", "
                         botState.client.logger.log("Main", "cmd_shop",
-                                            "Unexpected type in " + currentItemType + "sStock KEYS, index " \
+                                            "Unexpected type in " + currentItemType.value + "sStock KEYS, index " \
                                                 + str(itemNum-1) + ". Got " + type(currentStock.keys[itemNum-1]).__name__ \
                                                 + ".\nInventory keys: " + keysStr[:-2],
                                             category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
@@ -278,23 +280,24 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False, content=f":x: Too many arguments! Please only give:\n{cmdArgsStr}")
         return
 
-    item = argsSplit[0].rstrip("s")
-    if item == "all" or item not in cfg.validItemNames:
-        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.",
+    _item = argsSplit[0].rstrip("s")
+    if not ItemCategory.hasValue(_item):
+        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
                             mention_author=False)
         return
+    item = ItemCategory(_item)
 
     itemNum = argsSplit[1]
     if not lib.stringTyping.isInt(itemNum):
         await message.reply(mention_author=False, content=":x: Invalid item number!")
         return
     itemNum = int(itemNum)
-    shopItemStock = requestedShop.getStockByName(item)
+    shopItemStock = requestedShop.getStock(item)
     if itemNum > shopItemStock.numKeys:
         if shopItemStock.numKeys == 0:
-            await message.reply(mention_author=False, content=":x: This shop has no " + item + "s in stock!")
+            await message.reply(mention_author=False, content=":x: This shop has no " + item.value + "s in stock!")
         else:
-            await message.reply(f":x: Invalid item number! This shop has {shopItemStock.numKeys} {item}(s).",
+            await message.reply(f":x: Invalid item number! This shop has {shopItemStock.numKeys} {item.value}(s).",
                                 mention_author=False)
         return
 
@@ -311,7 +314,7 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
                     await message.reply(":x: Invalid argument! Please only specify `transfer` once!",
                                         mention_author=False)
                     return
-                if item != "ship":
+                if item is not ItemCategory.ship:
                     await message.reply(":x: `transfer` can only be used when buying a ship!",
                                         mention_author=False)
                     return
@@ -321,7 +324,7 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
                     await message.reply(":x: Invalid argument! Please only specify `sell` once!",
                                         mention_author=False)
                     return
-                if item != "ship":
+                if item is not ItemCategory.ship:
                     await message.reply(":x: `sell` can only be used when buying a ship!",
                                         mention_author=False)
                     return
@@ -333,7 +336,7 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
 
     requestedItem = shopItemStock[itemNum - 1].item
 
-    if item == "ship":
+    if item is ItemCategory.ship:
         newShipValue = requestedItem.getValue()
         activeShip = requestedBUser.activeShip
 
@@ -378,21 +381,21 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
 
         await message.reply(mention_author=False, content=outStr)
 
-    elif item in ["weapon", "module", "turret", "tool"]:
+    elif item in [ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
         if not requestedShop.userCanAffordItemObj(requestedBUser, requestedItem):
             await message.reply(f":x: You can't afford that item! ({requestedItem.getValue()})",
                                 mention_author=False)
             return
 
         requestedBUser.credits -= requestedItem.value
-        requestedBUser.getInactivesByName(item).addItem(requestedItem)
+        requestedBUser.getInventory(item).addItem(requestedItem)
         shopItemStock.removeItem(requestedItem)
 
         await message.reply(f":moneybag: Congratulations on your new **{requestedItem.name}" \
                             + f"**! \n\nYour balance is now: **{requestedBUser.credits} credits**.",
                             mention_author=False)
     else:
-        raise NotImplementedError("Valid but unsupported item name: " + item)
+        raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
 botCommands.register("buy", cmd_shop_buy, 0, allowDM=False, helpSection="economy",
                         signatureStr="**buy** *[division-name]* **<item-type> <item-number>** *[transfer] [sell]*",
@@ -480,11 +483,12 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False, content=f":x: Too many arguments! Please only give:\n{cmdArgsStr}")
         return
 
-    item = argsSplit[0].rstrip("s")
-    if item == "all" or item not in cfg.validItemNames:
+    _item = argsSplit[0].rstrip("s")
+    if not ItemCategory.hasValue(_item):
         await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
                             mention_author=False)
         return
+    item = ItemCategory(_item)
 
     itemNum = argsSplit[1]
     if not lib.stringTyping.isInt(itemNum):
@@ -492,9 +496,9 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
         return
     itemNum = int(itemNum)
 
-    userItemInactives = requestedBUser.getInactivesByName(item)
+    userItemInactives = requestedBUser.getInventory(item)
     if itemNum > userItemInactives.numKeys:
-        await message.reply(f":x: Invalid item number! You have {userItemInactives.numKeys} {item}s.",
+        await message.reply(f":x: Invalid item number! You have {userItemInactives.numKeys} {item.value}s.",
                             mention_author=False)
         return
     if itemNum < 1:
@@ -504,7 +508,7 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
     clearItems = False
     if len(argsSplit) == 3:
         if argsSplit[2] == "clear":
-            if item != "ship":
+            if item is not ItemCategory.ship:
                 await message.reply(mention_author=False, content=":x: `clear` can only be used when selling a ship!")
                 return
             clearItems = True
@@ -513,10 +517,10 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
             return
 
     requestedShop = requestedBGuild.divisionShops[divName]
-    shopItemStock = requestedShop.getStockByName(item)
+    shopItemStock = requestedShop.getStock(item)
     requestedItem = userItemInactives[itemNum - 1].item
 
-    if item == "ship":
+    if item is ItemCategory.ship:
         if clearItems:
             requestedBUser.unequipAll(requestedItem)
 
@@ -530,16 +534,16 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
             outStr += "\nItems removed from the ship can be found in the hangar."
         await message.reply(mention_author=False, content=outStr)
 
-    elif item in ["weapon", "module", "turret", "tool"]:
-        {"weapon": requestedShop.userSellWeaponObj, "module": requestedShop.userSellModuleObj,
-            "turret": requestedShop.userSellTurretObj,
-            "tool": requestedShop.userSellToolObj}[item](requestedBUser, requestedItem)
+    elif item in [ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
+        {ItemCategory.weapon: requestedShop.userSellWeaponObj, ItemCategory.module: requestedShop.userSellModuleObj,
+            ItemCategory.turret: requestedShop.userSellTurretObj,
+            ItemCategory.tool: requestedShop.userSellToolObj}[item](requestedBUser, requestedItem)
 
         await message.reply(mention_author=False, content=f":moneybag: You sold your **{requestedItem.name}** for **" \
                             f"{requestedItem.getValue()} credits**!")
 
     else:
-        raise NotImplementedError("Valid but unsupported item name: " + item)
+        raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
 botCommands.register("sell", cmd_shop_sell, 0, allowDM=False, helpSection="economy",
                         signatureStr="**sell** *[division-name]* **<item-type> <item-number>** *[clear]*",

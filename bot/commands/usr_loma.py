@@ -1,3 +1,4 @@
+from typing import cast
 import discord
 
 from . import commandsDB as bbCommands
@@ -5,6 +6,7 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..logging import LogCategory
 from ..cfg import cfg
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..gameObjects.inventories.inventory import DiscountableInventory
 from ..users.basedUser import BasedUser
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
@@ -41,10 +43,11 @@ async def cmd_loma_buy(message: discord.Message, args: str, isDM: bool):
                                     + f"and an item number from `{commandPrefix}loma`")
         return
 
-    itemCategory = argsSplit[0].rstrip("s")
-    if itemCategory == "all" or itemCategory not in cfg.validItemNames:
+    _itemCategory = argsSplit[0].lower().rstrip("s")
+    if not ItemCategory.hasValue(_itemCategory):
         await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.")
         return
+    itemCategory = ItemCategory(_itemCategory)
 
     itemNum = argsSplit[1]
     if not lib.stringTyping.isInt(itemNum):
@@ -52,13 +55,13 @@ async def cmd_loma_buy(message: discord.Message, args: str, isDM: bool):
         return
 
     itemNum = int(itemNum)
-    shopItemStock: DiscountableInventory = requestedBUser.loma.getStockByName(itemCategory)
+    shopItemStock = cast(DiscountableInventory, requestedBUser.loma.getStock(itemCategory))
     if itemNum > shopItemStock.numKeys:
         if shopItemStock.numKeys == 0:
-            await message.channel.send(":x: The Loma pirates don't have any " + itemCategory + "s in stock!")
+            await message.channel.send(":x: The Loma pirates don't have any " + itemCategory.value + "s in stock!")
         else:
             await message.channel.send(":x: Invalid item number! Loma currently has " + str(shopItemStock.numKeys) \
-                                        + " " + itemCategory + "(s).")
+                                        + " " + itemCategory.value + "(s).")
         return
 
     if itemNum < 1:
@@ -74,7 +77,7 @@ async def cmd_loma_buy(message: discord.Message, args: str, isDM: bool):
 
     _, valueDiscount = shopItemStock.removeItemAndDiscount(requestedItem)
     requestedBUser.credits -= int(requestedItem.value * valueDiscount)
-    requestedBUser.getInactivesByName(itemCategory).addItem(requestedItem)
+    requestedBUser.getInventory(itemCategory).addItem(requestedItem)
 
     await message.channel.send(":moneybag: Congratulations on your new **" + requestedItem.name \
                                 + "**! \n\nYour balance is now: **" + str(requestedBUser.credits) + " credits**.")
@@ -95,7 +98,7 @@ async def cmd_loma(message: discord.Message, args: str, isDM: bool):
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
 
     :param discord.Message message: the discord message calling the command
-    :param str args: either empty string, or one of bbConfig.validItemNames
+    :param str args: either empty string, or one of bbData.ItemCategory
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     commandPrefix = cfg.defaultCommandPrefix if isDM else botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
@@ -108,18 +111,20 @@ async def cmd_loma(message: discord.Message, args: str, isDM: bool):
                                     f"a server's `{commandPrefix}shop`.")
         return
 
-    item = "all"
-    if args.rstrip("s") in cfg.validItemNames:
-        item = args.rstrip("s")
+    if ItemCategoryOrAll.hasValue(args.rstrip("s")):
+        item = ItemCategoryOrAll(args.rstrip("s"))
     elif args != "":
-        await message.channel.send(":x: Invalid item type! (ship/weapon/module/turret/tool/all)")
+        await message.reply(mention_author=False,
+                            content=":x: Invalid item type! (ship/weapon/module/turret/tool/all)")
         return
+    else:
+        item = ItemCategoryOrAll.all
 
     sendChannel = None
     sendDM = False
     callingBBUser: BasedUser = botState.client.usersDB.getOrAddID(message.author.id)
 
-    if item == "all":
+    if item is ItemCategoryOrAll.all:
         if message.author.dm_channel is None:
             await message.author.create_dm()
         if message.author.dm_channel is None:
@@ -134,25 +139,25 @@ async def cmd_loma(message: discord.Message, args: str, isDM: bool):
 
     shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Loma",
                                             desc=message.author.mention,
-                                            footerTxt="All items" if item == "all" else (item + "s").title(),
+                                            footerTxt="All items" if item is ItemCategoryOrAll.all else (item.value + "s").title(),
                                             thumb=message.author.avatar_url_as(size=64))
 
     if callingBBUser.loma is None or callingBBUser.loma.isEmpty():
         shopEmbed.add_field(name="‎", value="No items currently available.")
     else:
-        for currentItemType in ["ship", "weapon", "module", "turret", "tool"]:
-            if item in ["all", currentItemType]:
-                currentStock = callingBBUser.loma.getStockByName(currentItemType)
+        for currentItemType in [ItemCategoryOrAll.ship, ItemCategoryOrAll.weapon, ItemCategoryOrAll.module, ItemCategoryOrAll.turret, ItemCategoryOrAll.tool]:
+            if item in [ItemCategoryOrAll.all, currentItemType]:
+                currentStock = callingBBUser.loma.getStock(currentItemType.noAll())
                 for itemNum in range(1, currentStock.numKeys + 1):
                     if itemNum == 1:
-                        shopEmbed.add_field(name="‎", value="__**" + currentItemType.title() + "s**__", inline=False)
+                        shopEmbed.add_field(name="‎", value="__**" + currentItemType.value.title() + "s**__", inline=False)
 
                     try:
                         currentItem = currentStock[itemNum - 1].item
                     except KeyError:
                         try:
                             botState.client.logger.log("Main", "cmd_loma",
-                                                "Requested " + currentItemType + " '" + currentStock.keys[itemNum-1].name \
+                                                "Requested " + currentItemType.value + " '" + currentStock.keys[itemNum-1].name \
                                                     + "' (index " + str(itemNum-1) \
                                                     + "), which was not found in the shop stock",
                                                 category=LogCategory.shop, eventType="UNKWN_KEY")
@@ -163,7 +168,7 @@ async def cmd_loma(message: discord.Message, args: str, isDM: bool):
                             for item in currentStock.items:
                                 keysStr += str(item) + ", "
                             botState.client.logger.log("Main", "cmd_loma",
-                                                "Unexpected type in " + currentItemType + "sStock KEYS, index " \
+                                                "Unexpected type in " + currentItemType.value + "sStock KEYS, index " \
                                                     + str(itemNum-1) + ". Got " \
                                                     + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
                                                     + keysStr[:-2],

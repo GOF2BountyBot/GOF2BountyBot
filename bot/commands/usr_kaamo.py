@@ -7,6 +7,7 @@ from .. import botState, lib
 from ..lib import gameMaths
 from ..logging import LogCategory
 from ..cfg import cfg
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..gameObjects import kaamoShop
 from ..users import basedUser
 
@@ -49,10 +50,12 @@ async def cmd_kaamo_get(message: discord.Message, args: str, isDM: bool):
                                         + commandPrefix + "kaamo`")
             return
 
-        item = argsSplit[0].rstrip("s")
-        if item == "all" or item not in cfg.validItemNames:
-            await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.")
+        _item = argsSplit[0].rstrip("s")
+        if not ItemCategory.hasValue(_item):
+            await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
+                                mention_author=False)
             return
+        item = ItemCategory(_item)
 
         itemNum = argsSplit[1]
 
@@ -61,13 +64,13 @@ async def cmd_kaamo_get(message: discord.Message, args: str, isDM: bool):
             return
         itemNum = int(itemNum)
 
-        shopItemStock = requestedBBUser.kaamo.getStockByName(item)
+        shopItemStock = requestedBBUser.kaamo.getStock(item)
         if itemNum > shopItemStock.numKeys:
             if shopItemStock.numKeys == 0:
-                await message.channel.send(":x: There are no " + item + "s in your Kaamo Club!")
+                await message.channel.send(":x: There are no " + item.value + "s in your Kaamo Club!")
             else:
                 await message.channel.send(":x: Invalid item number! Your Kaamo Club has " + str(shopItemStock.numKeys) \
-                                            + " " + item + "(s).")
+                                            + " " + item.value + "(s).")
             return
 
         if itemNum < 1:
@@ -76,21 +79,21 @@ async def cmd_kaamo_get(message: discord.Message, args: str, isDM: bool):
 
         requestedItem = shopItemStock[itemNum - 1].item
 
-        if item in ["ship", "weapon", "module", "turret", "tool"]:
-            if item == "ship":
+        if item in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
+            if item is ItemCategory.ship:
                 requestedBBUser.kaamo.userBuyShipObj(requestedBBUser, requestedItem)
-            elif item == "weapon":
+            elif item is ItemCategory.weapon:
                 requestedBBUser.kaamo.userBuyWeaponObj(requestedBBUser, requestedItem)
-            elif item == "turret":
+            elif item is ItemCategory.turret:
                 requestedBBUser.kaamo.userBuyTurretObj(requestedBBUser, requestedItem)
-            elif item == "module":
+            elif item is ItemCategory.module:
                 requestedBBUser.kaamo.userBuyModuleObj(requestedBBUser, requestedItem)
-            elif item == "tool":
+            elif item is ItemCategory.tool:
                 requestedBBUser.kaamo.userBuyToolObj(requestedBBUser, requestedItem)
 
             await message.channel.send(":outbox_tray: The **" + requestedItem.name + "** was moved to your hangar.")
         else:
-            raise NotImplementedError("Valid but unsupported item name: " + item)
+            raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
     # Destroy Kaamo object if it is now empty
     if requestedBBUser.kaamo.isEmpty():
@@ -134,10 +137,11 @@ async def cmd_kaamo_store(message: discord.Message, args: str, isDM: bool):
                                     + commandPrefix + "kaamo`")
         return
 
-    item = argsSplit[0].rstrip("s")
-    if item == "all" or item not in cfg.validItemNames:
+    _item = argsSplit[0].rstrip("s").lower()
+    if not ItemCategory.hasValue(_item):
         await message.channel.send(":x: Invalid item name! Please choose from: ship, weapon, module, turret or tool.")
         return
+    item = ItemCategory(_item)
 
     itemNum = argsSplit[1]
     if not lib.stringTyping.isInt(itemNum):
@@ -145,9 +149,9 @@ async def cmd_kaamo_store(message: discord.Message, args: str, isDM: bool):
         return
     itemNum = int(itemNum)
 
-    userItemInactives = requestedBBUser.getInactivesByName(item)
+    userItemInactives = requestedBBUser.getInventory(item)
     if itemNum > userItemInactives.numKeys:
-        await message.channel.send(":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+        await message.channel.send(":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item.value + "s.")
         return
     if itemNum < 1:
         await message.channel.send(":x: Invalid item number! Must be at least 1.")
@@ -165,17 +169,17 @@ async def cmd_kaamo_store(message: discord.Message, args: str, isDM: bool):
 
     requestedItem = userItemInactives[itemNum - 1].item
 
-    if item in ["ship", "weapon", "module", "turret", "tool"]:
-        {"weapon":      requestedBBUser.kaamo.userSellWeaponObj,
-            "module":   requestedBBUser.kaamo.userSellModuleObj,
-            "turret":   requestedBBUser.kaamo.userSellTurretObj,
-            "tool":     requestedBBUser.kaamo.userSellToolObj,
-            "ship":     requestedBBUser.kaamo.userSellShipObj}[item](requestedBBUser, requestedItem)
+    if item in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
+        {ItemCategory.weapon:      requestedBBUser.kaamo.userSellWeaponObj,
+            ItemCategory.module:   requestedBBUser.kaamo.userSellModuleObj,
+            ItemCategory.turret:   requestedBBUser.kaamo.userSellTurretObj,
+            ItemCategory.tool:     requestedBBUser.kaamo.userSellToolObj,
+            ItemCategory.ship:     requestedBBUser.kaamo.userSellShipObj}[item](requestedBBUser, requestedItem)
 
         await message.channel.send(":inbox_tray: The **" + requestedItem.name + "** was moved to Kaamo Club storage.")
 
     else:
-        raise NotImplementedError("Valid but unsupported item name: " + item)
+        raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
 bbCommands.register("kaamo store", cmd_kaamo_store, 0, helpSection="kaamo club", allowDM=True,
                     signatureStr="**kaamo store <item-type> <item-number>**",
@@ -187,7 +191,7 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
     """list the items currently stored in the user's kaamo club.
     Can specify an item type to list. TODO: Make specified item listings more detailed as in !bb bounties
     :param discord.Message message: the discord message calling the command
-    :param str args: either empty string, or one of bbConfig.validItemNames
+    :param str args: either empty string, or one of bData.ItemCategoryOrAll
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
     if args.startswith("store"):
@@ -197,12 +201,14 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
         await cmd_kaamo_get(message, args[3:].lstrip(" "), isDM)
         return
 
-    item = "all"
-    if args.rstrip("s") in cfg.validItemNames:
-        item = args.rstrip("s")
+    if ItemCategoryOrAll.hasValue(args.rstrip("s")):
+        item = ItemCategoryOrAll(args.rstrip("s"))
     elif args != "":
-        await message.channel.send(":x: Invalid item type! (ship/weapon/module/turret/tool/all)")
+        await message.reply(mention_author=False,
+                            content=":x: Invalid item type! (ship/weapon/module/turret/tool/all)")
         return
+    else:
+        item = ItemCategoryOrAll.all
 
     sendChannel = None
     sendDM = False
@@ -210,14 +216,14 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
     if not botState.client.usersDB.idExists(message.author.id):
         shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
                                             desc=f"{message.author.mention}\n*0/{cfg.kaamoMaxCapacity} items*",
-                                            footerTxt="All items" if item == "all" else (item + "s").title(),
+                                            footerTxt="All items" if item is ItemCategoryOrAll.all else (item.value + "s").title(),
                                             thumb=message.author.avatar_url_as(size=64))
         shopEmbed.add_field(name="‎", value="No items stored.")
     
     else:
         callingBBUser = botState.client.usersDB.getUser(message.author.id)
 
-        if item == "all":
+        if item is ItemCategoryOrAll.all:
             if message.author.dm_channel is None:
                 await message.author.create_dm()
             if message.author.dm_channel is None:
@@ -232,19 +238,19 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
         shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo Club Storage",
                                                 desc=message.author.mention + "\n*" \
                                                     + f"{numItemsStr}/{cfg.kaamoMaxCapacity} items*",
-                                                footerTxt="All items" if item == "all" else (item + "s").title(),
+                                                footerTxt="All items" if item is ItemCategoryOrAll.all else (item.value + "s").title(),
                                                 thumb=message.author.avatar_url_as(size=64))
 
         if callingBBUser.kaamo is None or callingBBUser.kaamo.totalItems == 0:
             shopEmbed.add_field(name="‎", value="No items stored.")
         else:
-            for currentItemType in ["ship", "weapon", "module", "turret", "tool"]:
-                if item in ["all", currentItemType]:
-                    currentStock = callingBBUser.kaamo.getStockByName(currentItemType)
+            for currentItemType in [ItemCategoryOrAll.ship, ItemCategoryOrAll.weapon, ItemCategoryOrAll.module, ItemCategoryOrAll.turret, ItemCategoryOrAll.tool]:
+                if item in [ItemCategoryOrAll.all, currentItemType]:
+                    currentStock = callingBBUser.kaamo.getStock(currentItemType.noAll())
                     for itemNum in range(1, currentStock.numKeys + 1):
                         if itemNum == 1:
                             shopEmbed.add_field(name="‎",
-                                                value=f"__**{currentItemType.title()}s**__",
+                                                value=f"__**{currentItemType.value.title()}s**__",
                                                 inline=False)
 
                         try:
@@ -252,7 +258,7 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
                         except KeyError:
                             try:
                                 botState.client.logger.log("Main", "cmd_kaamo",
-                                                    f"Requested {currentItemType} '{currentStock.keys[itemNum-1].name}" \
+                                                    f"Requested {currentItemType.value} '{currentStock.keys[itemNum-1].name}" \
                                                         + f"' (index {itemNum-1}" \
                                                         + "), which was not found in the shop stock",
                                                     category=LogCategory.shop, eventType="UNKWN_KEY")
@@ -263,7 +269,7 @@ async def cmd_kaamo(message: discord.Message, args: str, isDM: bool):
                                 for item in currentStock.items:
                                     keysStr += str(item) + ", "
                                 botState.client.logger.log("Main", "cmd_kaamo",
-                                                    f"Unexpected type in {currentItemType}sStock KEYS, index " \
+                                                    f"Unexpected type in {currentItemType.value}sStock KEYS, index " \
                                                         + str(itemNum-1) + ". Got " \
                                                         + type(currentStock.keys[itemNum-1]).__name__ \
                                                         + ".\nInventory keys: " \

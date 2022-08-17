@@ -1,14 +1,10 @@
-from typing import List, Optional, Tuple, Union, cast, TYPE_CHECKING
+from typing import List, Optional, Tuple, Union, cast
 from enum import Enum
 from time import perf_counter
-import emoji
-import random
 
-from discord import Colour, ComponentType, Embed, Guild, HTTPException, Member, Reaction, SelectOption, Message, Role, User, app_commands, Interaction, ButtonStyle
-from discord.ext import commands
+from discord import Colour, Embed, Guild, HTTPException, Member, Reaction, SelectOption, Role, User, app_commands, Interaction, ButtonStyle
 from discord.abc import Snowflake
 from discord.ui import View, Button, Select
-from discord.utils import utcnow
 
 from .. import client
 from ..cfg import cfg
@@ -18,15 +14,11 @@ from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
 from ..userAlerts import userAlerts
 from .. import lib
-from ..lib.discordUtil import timestamp, TimeStampStyle
+from ..lib.emojis import randomEmoji
 from ..reactionMenus.reactionRolePicker import ReactionRolePicker, ReactionRolePickerOption
 from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
 from .util.transformers import BoolEnableDisable
 from ..logging import LogCategory
-
-if TYPE_CHECKING:
-    from .util import EmbedEditorCog
-    from .util import CommonStaticComponentsCog
 
 
 class GuildConfigSettings(Enum):
@@ -43,10 +35,6 @@ def roleMenuForInteraction(interaction: Interaction) -> Optional[ReactionRolePic
         return None
     menu = cast(client.BasedClient, interaction.client).reactionMenusDB.get(interaction.message.id, None)
     return menu if isinstance(menu, ReactionRolePicker) else None
-
-
-def randomEmoji() -> lib.emojis.BasedEmoji:
-    return lib.emojis.BasedEmoji(unicode=random.sample(emoji.UNICODE_EMOJI_ENGLISH.keys(), 1)[0])
 
 
 # roleMenuCreatorView: "EmbedEditorCog.ViewFactoryType"

@@ -9,6 +9,7 @@ from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..lib.discordUtil import truncateWithEllipse
 from ..cfg import cfg, bbData
+from ..cfg.bbData import ItemCategory
 from ..gameObjects.battles import duelRequest
 from ..gameObjects.bounties.bounty import Bounty, CheckResult, RewardsMeta
 from ..scheduling import timedTask
@@ -842,7 +843,7 @@ async def cmd_prestige(message: discord.Message, args: str, isDM: bool):
         callingBBUser.inactiveShips.clear()
         callingBBUser.inactiveModules.clear()
         callingBBUser.inactiveWeapons.clear()
-        for weaponDict in basedUser.defaultUserDict["inactiveWeapons"]:
+        for weaponDict in basedUser.defaultUserDict[basedUser.itemCategoryUserKeys[ItemCategory.weapon]]:
             callingBBUser.inactiveWeapons.addItem(primaryWeapon.PrimaryWeapon.deserialize(weaponDict["item"]),
                                                     quantity=weaponDict["count"])
         callingBBUser.inactiveTurrets.clear()

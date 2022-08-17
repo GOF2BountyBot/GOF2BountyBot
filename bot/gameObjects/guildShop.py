@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from ..users import basedUser
 
 from ..cfg import bbData, cfg
+from ..cfg.bbData import ItemCategory
 from .items.shipItem import Ship
 from .items.weapons.primaryWeapon import PrimaryWeapon
 from .items.weapons.turretWeapon import TurretWeapon
@@ -19,6 +20,13 @@ from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
+itemCategoriesStoredItemTypes = {
+    ItemCategory.ship: Ship,
+    ItemCategory.weapon: PrimaryWeapon,
+    ItemCategory.module: moduleItem.ModuleItem,
+    ItemCategory.turret: TurretWeapon,
+    ItemCategory.tool: toolItem.ToolItem
+}
 
 class GuildShop(Serializable):
     """A shop containing a selection of items which players can buy.
@@ -87,7 +95,7 @@ class GuildShop(Serializable):
             raise KeyError(f"Unknown item type: {itemType.__name__}")
 
 
-    def getStockByName(self, item: str) -> _InventoryBase:
+    def getStock(self, item: ItemCategory) -> _InventoryBase:
         """Get the inventory containing all current stock of the named type.
         This object is mutable and can alter the stock of the shop.
 
@@ -95,22 +103,19 @@ class GuildShop(Serializable):
         :return: The inventory used by the shop to store all stock of the requested type
         :rtype: inventory
         :raise ValueError: When requesting an unknown item type
-        :raise NotImplementedError: When requesting a valid item type, but one that is not implemented yet (e.g commodity)
         """
-        if item == "all" or item not in cfg.validItemNames:
-            raise ValueError("Invalid item type: " + item)
-        if item == "ship":
+        if item is ItemCategory.ship:
             return self.shipsStock
-        if item == "weapon":
+        if item is ItemCategory.weapon:
             return self.weaponsStock
-        if item == "module":
+        if item is ItemCategory.module:
             return self.modulesStock
-        if item == "turret":
+        if item is ItemCategory.turret:
             return self.turretsStock
-        if item == "tool":
+        if item is ItemCategory.tool:
             return self.toolsStock
         else:
-            raise NotImplementedError("Valid, but unrecognised item type: " + item)
+            raise ValueError("unrecognised item type: " + item)
 
 
     def userCanAffordItemObj(self, user: basedUser.BasedUser, item: gameItem.GameItem) -> bool:
@@ -124,7 +129,7 @@ class GuildShop(Serializable):
         return user.credits >= item.getValue()
 
 
-    ##### SHIP MANAGEMENT #####
+#region ship management
 
 
     def userCanAffordShipIndex(self, user: basedUser.BasedUser, index: int) -> bool:
@@ -211,7 +216,8 @@ class GuildShop(Serializable):
         self.userSellShipObj(user, user.inactiveShips.itemAtIndex(index))
 
 
-    ##### WEAPON MANAGEMENT #####
+#endregion ship management
+#region weapon management
 
 
     def userCanAffordWeaponIndex(self, user: basedUser.BasedUser, index: int) -> bool:
@@ -274,7 +280,8 @@ class GuildShop(Serializable):
         self.userSellWeaponObj(user, user.inactiveWeapons.itemAtIndex(index))
 
 
-    ##### MODULE MANAGEMENT #####
+#endregion weapon management
+#region module management
 
 
     def userCanAffordModuleIndex(self, user: basedUser.BasedUser, index: int) -> bool:
@@ -337,7 +344,8 @@ class GuildShop(Serializable):
         self.userSellModuleObj(user, user.inactiveModules.itemAtIndex(index))
 
 
-    ##### TURRET MANAGEMENT #####
+#endregion module management
+#region turret management
 
 
     def userCanAffordTurretIndex(self, user: basedUser.BasedUser, index: int) -> bool:
@@ -400,7 +408,8 @@ class GuildShop(Serializable):
         self.userSellTurretObj(user, user.inactiveTurrets.itemAtIndex(index))
 
 
-    ##### TOOL MANAGEMENT #####
+#endregion turret management
+#region tool management
 
 
     def userCanAffordToolIndex(self, user: basedUser.BasedUser, index: int) -> bool:
@@ -458,8 +467,8 @@ class GuildShop(Serializable):
         self.userSellToolObj(user, user.inactiveTools.itemAtIndex(index))
 
 
-    ##### SERIALIZING #####
-
+#endregion tool management
+#region serializing
 
     def serialize(self, **kwargs) -> dict:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
@@ -472,20 +481,20 @@ class GuildShop(Serializable):
             kwargs["saveType"] = True
 
         data = {}
-        for invType in ["ship", "weapon", "module", "turret", "tool"]:
+        for invType in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
             stockDict = []
-            currentStock = self.getStockByName(invType)
+            currentStock = self.getStock(invType)
 
             for currentItem in currentStock.keys:
                 if currentItem in currentStock.items:
                     stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
                 else:
                     botState.client.logger.log("bbShp", "serialize",
-                                "Failed to save invalid " + invType + " key '" + str(currentItem) \
+                                "Failed to save invalid " + invType.value + " key '" + str(currentItem) \
                                     + "' - not found in items dict",
                                 category=LogCategory.shop, eventType="UNKWN_KEY")
 
-            data[invType + "sStock"] = stockDict
+            data[invType.value + "sStock"] = stockDict
 
         return data
 
@@ -518,6 +527,8 @@ class GuildShop(Serializable):
 
         return GuildShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
+
+#endregion
 
 
 class TechLeveledShop(GuildShop):

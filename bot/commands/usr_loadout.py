@@ -4,6 +4,7 @@ import discord
 from . import commandsDB as botCommands
 from .. import lib, botState
 from ..cfg import cfg, bbData
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..users import basedUser
 from ..gameObjects.items import shipItem, gameItem
 from ..gameObjects.inventories import inventory
@@ -30,7 +31,7 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
 
     requestedUser = message.author
     callingUserIsAdmin = not isDM and (message.author.guild_permissions.administrator or message.author.id in cfg.developers)
-    item = "all"
+    item = ItemCategoryOrAll.all
     page = 1
 
     useDummyData = False
@@ -38,15 +39,15 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
 
     def extractArgs():
         requestedUser = message.author
-        item = "all"
+        item = ItemCategoryOrAll.all
         page = 1
         foundUser = False
         foundItem = False
         foundPage = False
 
         arg = argsSplit[0]
-        if arg.rstrip("s") in cfg.validItemNames:
-            item = arg.rstrip("s")
+        if ItemCategoryOrAll.hasValue(arg.rstrip("s")):
+            item = ItemCategoryOrAll(arg.rstrip("s"))
             foundItem = True
             if len(argsSplit) == 1:
                 return requestedUser, item, page, True
@@ -93,7 +94,7 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
     sendChannel = None
     sendDM = False
 
-    if item == "all":
+    if item == ItemCategoryOrAll.all:
         if message.author.dm_channel is None:
             await message.author.create_dm()
         if message.author.dm_channel is None:
@@ -104,7 +105,7 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
     else:
         sendChannel = message.channel
 
-    if item == "all":
+    if item == ItemCategoryOrAll.all:
         maxPerPage = cfg.maxItemsPerHangarPageAll
     else:
         maxPerPage = cfg.maxItemsPerHangarPageIndividual
@@ -124,16 +125,16 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
 
         hangarEmbed = lib.discordUtil.makeEmbed(titleTxt="Hangar", desc=requestedUser.mention,
                                                 col=bbData.factionColours["neutral"],
-                                                footerTxt="All items" if item == "all" else item.rstrip("s").title() \
+                                                footerTxt="All items" if item == ItemCategoryOrAll.all else item.value.rstrip("s").title() \
                                                             + "s - page " + str(page),
                                                 thumb=requestedUser.avatar_url_as(size=64))
 
-        for itemType in ("ship", "weapon", "module", "turret", "tool"):
-            itemInactivesDict = basedUser.defaultUserDict.get(f"inactive{itemType.title()}s", False)
+        for itemType in ItemCategory:
+            itemInactivesDict = basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[itemType], False)
             if not itemInactivesDict:
                 continue
 
-            itemInactives = inventory.Inventory()
+            itemInactives = inventory.Inventory(basedUser.itemCategoryStoredTypes[itemType])
             for itemDict in itemInactivesDict:
                 itemInactives.addItem(gameItem.spawnItem(itemDict["item"]), itemDict.get("count", 1))
             
@@ -142,7 +143,7 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
 
             for itemNum in range(firstPlace, lastItemNumber + 1):
                 if itemNum == firstPlace:
-                    hangarEmbed.add_field(name="‎", value=f"__**Stored {itemType.title()}s**__", inline=False)
+                    hangarEmbed.add_field(name="‎", value=f"__**Stored {itemType.value.title()}s**__", inline=False)
 
                 currentItem = cast(gameItem.GameItem, itemInactives[itemNum - 1].item)
                 currentItemCount = itemInactives[itemNum- 1].count
@@ -168,7 +169,7 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
             maxPage = requestedBBUser.numInventoryPages(item, maxPerPage)
             if maxPage == 0:
                 await message.reply(mention_author=False, content=":x: " + ("The requested pilot doesn't" if foundUser else "You don't") \
-                                            + " have any " + ("items" if item == "all" else "of that item") + "!")
+                                            + " have any " + ("items" if item == ItemCategoryOrAll.all else "of that item") + "!")
                 return
             elif page > maxPage:
                 await message.reply(mention_author=False, content=":x: " + ("The requested pilot" if foundUser else "You") + " only " \
@@ -179,13 +180,13 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
 
         hangarEmbed = lib.discordUtil.makeEmbed(titleTxt="Hangar", desc=requestedUser.mention,
                                                 col=bbData.factionColours["neutral"],
-                                                footerTxt=("All item" if item == "all" else item.rstrip("s").title()) \
+                                                footerTxt=("All item" if item is ItemCategoryOrAll.all else item.value.rstrip("s").title()) \
                                                             + "s - page " + str(page) + "/" \
                                                             + str(requestedBBUser.numInventoryPages(item, maxPerPage)),
                                                 thumb=requestedUser.avatar_url_as(size=64))
 
-        if item in ["all", "ship"]:
-            for shipNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("ship", page, maxPerPage) + 1):
+        if item in [ItemCategoryOrAll.all, ItemCategoryOrAll.ship]:
+            for shipNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage(ItemCategory.ship, page, maxPerPage) + 1):
                 if shipNum == firstPlace:
                     hangarEmbed.add_field(name="‎", value="__**Stored Ships**__", inline=False)
                 currentItem = requestedBBUser.inactiveShips[shipNum - 1].item
@@ -196,8 +197,8 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
                                             + currentItem.getNameAndNick(), value=currentItem.statsStringShort(),
                                         inline=False)
 
-        if item in ["all", "weapon"]:
-            for weaponNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("weapon", page, maxPerPage) + 1):
+        if item in [ItemCategoryOrAll.all, ItemCategoryOrAll.weapon]:
+            for weaponNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage(ItemCategory.weapon, page, maxPerPage) + 1):
                 if weaponNum == firstPlace:
                     hangarEmbed.add_field(name="‎", value="__**Stored Weapons**__", inline=False)
                 currentItem = requestedBBUser.inactiveWeapons[weaponNum - 1].item
@@ -207,8 +208,8 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
                                             + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
                                             + currentItem.name, value=currentItem.statsStringShort(), inline=False)
 
-        if item in ["all", "module"]:
-            for moduleNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("module", page, maxPerPage) + 1):
+        if item in [ItemCategoryOrAll.all, ItemCategoryOrAll.module]:
+            for moduleNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage(ItemCategory.module, page, maxPerPage) + 1):
                 if moduleNum == firstPlace:
                     hangarEmbed.add_field(name="‎", value="__**Stored Modules**__", inline=False)
                 currentItem = requestedBBUser.inactiveModules[moduleNum - 1].item
@@ -219,8 +220,8 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
                                             + currentItem.name,
                                         value=currentItem.statsStringShort(), inline=False)
 
-        if item in ["all", "turret"]:
-            for turretNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("turret", page, maxPerPage) + 1):
+        if item in [ItemCategoryOrAll.all, ItemCategoryOrAll.turret]:
+            for turretNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage(ItemCategory.turret, page, maxPerPage) + 1):
                 if turretNum == firstPlace:
                     hangarEmbed.add_field(name="‎", value="__**Stored Turrets**__", inline=False)
                 currentItem = requestedBBUser.inactiveTurrets[turretNum - 1].item
@@ -231,8 +232,8 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
                                             + currentItem.name,
                                         value=currentItem.statsStringShort(), inline=False)
 
-        if item in ["all", "tool"]:
-            for toolNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage("tool", page, maxPerPage) + 1):
+        if item in [ItemCategoryOrAll.all, ItemCategoryOrAll.tool]:
+            for toolNum in range(firstPlace, requestedBBUser.lastItemNumberOnPage(ItemCategory.tool, page, maxPerPage) + 1):
                 if toolNum == firstPlace:
                     hangarEmbed.add_field(name="‎", value="__**Stored Tools**__", inline=False)
                 currentItem = requestedBBUser.inactiveTools[toolNum - 1].item
@@ -385,10 +386,12 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
                                     + "an item number (Or a comma seperated list of item numbers) from `" + prefix + "hangar`, and optionally `transfer` when equipping a ship.")
         return
 
-    item = argsSplit[0].rstrip("s")
-    if item in ["all", "tool"] or item not in cfg.validItemNames:
-        await message.reply(mention_author=False, content=":x: Invalid item name! Please choose from: ship, weapon, module or turret.")
+    _item = argsSplit[0].rstrip("s")
+    if not ItemCategory.hasValue(_item) or ItemCategory(_item) is ItemCategory.tool:
+        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
+                            mention_author=False)
         return
+    item = ItemCategory(_item)
 
     requestedBBUser = botState.client.usersDB.getOrAddID(message.author.id)
 
@@ -402,7 +405,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
         itemNum = []
         for arg in argsSplit:
             #Check if the argument is the item
-            if arg in cfg.validItemNames:
+            if ItemCategory.hasValue(arg):
                 continue
             #remove any ","       
             arg = arg.rstrip(",")
@@ -411,9 +414,9 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
                 await message.reply(mention_author=False, content=":x: Invalid item number!")
                 return
             arg = int(arg)
-            userItemInactives = requestedBBUser.getInactivesByName(item)
+            userItemInactives = requestedBBUser.getInventory(item)
             if arg > userItemInactives.numKeys:
-                await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+                await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item.value + "s.")
                 return
             if arg < 1:
                 await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
@@ -433,7 +436,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
             lastItemInSlot = requestedSlot.count == 1
             requestedItem = requestedSlot.item
 
-            if item == "ship":
+            if item is ItemCategory.ship:
                 activeShip = requestedBBUser.activeShip
                 if transferItems:
                     requestedBBUser.unequipAll(requestedItem)
@@ -447,7 +450,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
                     outStr += "\nItems that could not fit in your new ship can be found in the hangar."
                 await message.reply(mention_author=False, content=outStr)
 
-            elif item == "weapon":
+            elif item is ItemCategory.weapon:
                 if not requestedBBUser.activeShip.canEquipMoreWeapons():
                     await message.reply(mention_author=False, content=":x: Your active ship does not have any free weapon slots!")
                     return
@@ -457,7 +460,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
 
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
                 
-            elif item == "module":
+            elif item is ItemCategory.module:
                 if not requestedBBUser.activeShip.canEquipMoreModules():
                     await message.reply(mention_author=False, content=":x: Your active ship does not have any free module slots!")
                     return
@@ -471,7 +474,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
 
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
 
-            elif item == "turret":
+            elif item is ItemCategory.turret:
                 if not requestedBBUser.activeShip.canEquipMoreTurrets():
                     await message.reply(mention_author=False, content=":x: Your active ship does not have any free turret slots!")
                     return
@@ -482,7 +485,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
                 await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
             
             else:
-                raise NotImplementedError("Valid but unsupported item name: " + item)
+                raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
             if lastItemInSlot:
                 iterations += 1
@@ -501,9 +504,9 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
             return
         
         itemNum = int(itemNum)
-        userItemInactives = requestedBBUser.getInactivesByName(item)
+        userItemInactives = requestedBBUser.getInventory(item)
         if itemNum > userItemInactives.numKeys:
-            await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item + "s.")
+            await message.reply(mention_author=False, content=":x: Invalid item number! You have " + str(userItemInactives.numKeys) + " " + item.value + "s.")
             return
         if itemNum < 1:
             await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
@@ -512,7 +515,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
         transferItems = False
         if len(argsSplit) == 3:
             if argsSplit[2] == "transfer":
-                if item != "ship":
+                if item is not ItemCategory.ship:
                     await message.reply(mention_author=False, content=":x: `transfer` can only be used when equipping a ship!")
                     return
                 transferItems = True
@@ -523,7 +526,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
 
         requestedItem = userItemInactives[itemNum - 1].item
 
-        if item == "ship":
+        if item is ItemCategory.ship:
             activeShip = requestedBBUser.activeShip
             if transferItems:
                 requestedBBUser.unequipAll(requestedItem)
@@ -537,7 +540,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
                 outStr += "\nItems that could not fit in your new ship can be found in the hangar."
             await message.reply(mention_author=False, content=outStr)
 
-        elif item == "weapon":
+        elif item is ItemCategory.weapon:
             if not requestedBBUser.activeShip.canEquipMoreWeapons():
                 await message.reply(mention_author=False, content=":x: Your active ship does not have any free weapon slots!")
                 return
@@ -547,7 +550,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
 
             await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
 
-        elif item == "module":
+        elif item is ItemCategory.module:
             if not requestedBBUser.activeShip.canEquipMoreModules():
                 await message.reply(mention_author=False, content=":x: Your active ship does not have any free module slots!")
                 return
@@ -561,7 +564,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
 
             await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
 
-        elif item == "turret":
+        elif item is ItemCategory.turret:
             if not requestedBBUser.activeShip.canEquipMoreTurrets():
                 await message.reply(mention_author=False, content=":x: Your active ship does not have any free turret slots!")
                 return
@@ -572,7 +575,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
             await message.reply(mention_author=False, content=":wrench: You equipped the **" + requestedItem.name + "**.")
 
         else:
-            raise NotImplementedError("Valid but unsupported item name: " + item)
+            raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
 botCommands.register("equip", cmd_equip, 0, allowDM=True, helpSection="loadout",
                     signatureStr="**equip <item-type> <item-num>** *[transfer]*",
@@ -616,11 +619,14 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False, content=":wrench: You unequipped **all items** from your ship.")
         return
 
-    item = argsSplit[0].rstrip("s")
-    if item not in cfg.validItemNames:
-        await message.reply(mention_author=False, content=":x: Invalid item name! Please choose from: weapon, module or turret.")
+    _item = argsSplit[0].rstrip("s")
+    if not ItemCategory.hasValue(_item):
+        await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
+                            mention_author=False)
         return
-    if item == "ship":
+    item = ItemCategory(_item)
+
+    if item is ItemCategory.ship:
         await message.reply(mention_author=False, content=":x: You can't go without a ship! Instead, switch to another one.")
         return
 
@@ -631,9 +637,9 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
             await message.reply(mention_author=False, content=":x: Invalid item number!")
             return
         itemNum = int(itemNum)
-        if itemNum > len(requestedBBUser.activeShip.getActivesByName(item)):
+        if itemNum > len(requestedBBUser.activeShip.getActives(item)):
             await message.reply(mention_author=False, content=":x: Invalid item number! Your ship has " \
-                                        + str(len(requestedBBUser.activeShip.getActivesByName(item))) + " " + item + "s.")
+                                        + str(len(requestedBBUser.activeShip.getActives(item))) + " " + item.value + "s.")
             return
         if itemNum < 1:
             await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
@@ -641,7 +647,7 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
     else:
         itemNum = None
 
-    if item == "weapon":
+    if item is ItemCategory.weapon:
         if not requestedBBUser.activeShip.hasWeaponsEquipped():
             await message.reply(mention_author=False, content=":x: Your active ship does not have any weapons equipped!")
             return
@@ -658,7 +664,7 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
 
             await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
 
-    elif item == "module":
+    elif item is ItemCategory.module:
         if not requestedBBUser.activeShip.hasModulesEquipped():
             await message.reply(mention_author=False, content=":x: Your active ship does not have any modules equipped!")
             return
@@ -675,7 +681,7 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
 
             await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
 
-    elif item == "turret":
+    elif item is ItemCategory.turret:
         if not requestedBBUser.activeShip.hasTurretsEquipped():
             await message.reply(mention_author=False, content=":x: Your active ship does not have any turrets equipped!")
             return
@@ -693,7 +699,7 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
             await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
 
     else:
-        raise NotImplementedError("Valid but unsupported item name: " + item)
+        raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
 botCommands.register("unequip", cmd_unequip, 0, allowDM=True, helpSection="loadout",
                     signatureStr="**unequip <item-type> <item-num>**",

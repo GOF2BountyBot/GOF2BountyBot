@@ -5,6 +5,7 @@ if TYPE_CHECKING:
 
 from . import guildShop
 from ..cfg import cfg
+from ..cfg.bbData import ItemCategory
 from .items import gameItem, shipItem, moduleItemFactory
 from .items.weapons import primaryWeapon, turretWeapon
 from .items.modules import moduleItem
@@ -316,19 +317,19 @@ class KaamoShop(guildShop.GuildShop):
             kwargs["saveType"] = True
 
         data = {}
-        for invType in ["ship", "weapon", "module", "turret", "tool"]:
+        for invType in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
             stockDict = []
-            currentStock = self.getStockByName(invType)
+            currentStock = self.getStock(invType)
 
             for currentItem in currentStock.keys:
                 if currentItem in currentStock.items:
                     stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
                 else:
                     botState.client.logger.log("kaamoShop", "serialize",
-                                        f"Failed to save invalid {invType} key '{currentItem}' - not found in items dict",
+                                        f"Failed to save invalid {invType.value} key '{currentItem}' - not found in items dict",
                                         category=LogCategory.shop, eventType="UNKWN_KEY")
 
-            data[invType + "sStock"] = stockDict
+            data[invType.value + "sStock"] = stockDict
 
         return data
 

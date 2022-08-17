@@ -46,7 +46,7 @@ class DevBountiesCog(basedApp.BasedCog):
         if player_id is not None and name is not None:
             raise ValueError("parameters name and player_id are mutually exclusive")
 
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id, allowAllGuilds=False)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if not valid: return
 
         callingBBGuild = cast(basedGuild.BasedGuild, callingBBGuild)
@@ -173,7 +173,7 @@ class DevBountiesCog(basedApp.BasedCog):
 
 
     async def _setBountyXP(self, interaction: Interaction, xp: int, user_id: str):
-        callingUser = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        callingUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if callingUser is None:
             return
 
@@ -228,7 +228,7 @@ class DevBountiesCog(basedApp.BasedCog):
         """developer command clearing all active bounties. If a guild ID is given, clear bounties in that guild.
         If 'all' is given, clear bounties in all guilds. If nothing is given, clear bounties in the calling guild.
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -240,7 +240,7 @@ class DevBountiesCog(basedApp.BasedCog):
         async def clearDiv(div: BountyDivision):
             await div.clear()
 
-        await self.GuildsUtilCog.operateOverDivisionsAsync("dev_cmd_clear_bounties", clearDiv, "Active bounties cleared", division, interaction, callingBBGuild, allDivs, logCategory=LogCategory.bountiesDB)
+        await self.GuildsUtilCog.operateOverDivisionsAsync("dev_cmd_clear_bounties", clearDiv, "Active bounties cleared", division, interaction, callingBBGuild, allDivs, logCategory=LogCategory.bountiesDB, className="DevBountiesCog")
         
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
@@ -250,7 +250,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_get_cooldown(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the calling user's checking cooldown
         """
-        callingUser = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        callingUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if callingUser is None:
             return
 
@@ -271,7 +271,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_reset_cooldown(self, interaction: Interaction, user_id: str = ""):
         """developer command resetting the checking cooldown of the calling user, or the specified user if one is given
         """
-        user = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        user, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if user is None:
             return
         
@@ -319,7 +319,7 @@ class DevBountiesCog(basedApp.BasedCog):
         """developer command resetting the current bounty generation period,
         instantly generating a new bounty
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -343,7 +343,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_set_temp(self, interaction: Interaction, division: str, temperature: Range[float, cfg.minTechLevel, cfg.maxTechLevel], guild_id: str = "here"):
         """developer command setting the activity level for the calling guild at the given tech level
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -366,7 +366,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_canmakebounty(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command printing whether or not the given division can accept new bounties
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id, allowAllGuilds=False)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if not valid:
             return
 
@@ -487,7 +487,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_measure_temps(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command fetching the current activity temperatures in the calling guild.
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id, allowAllGuilds=False)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if not valid:
             return
 
@@ -518,7 +518,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_decay_temps(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command decaying the activity temperatures of the calling guild
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -540,7 +540,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_reset_temps(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command resetting the activity temperatures of the calling guild
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -563,7 +563,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_next_bounty_time(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command DMing the calling user with the current delays on new bounty TTs for the calling guild
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id, allowAllGuilds=False)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if not valid:
             return
 
@@ -601,7 +601,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_current_max_bounties(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command DMing the calling user with the current max bounties for the given guild(s)/division(s)
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id, allowAllGuilds=False)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if not valid:
             return
 
@@ -644,7 +644,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_force_expire_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here", include_escaped: BoolYesNo = BoolYesNo.Yes):
         """Force the named bounty to expire immediately.
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -662,7 +662,7 @@ class DevBountiesCog(basedApp.BasedCog):
             else:
                 await bounty.expire()
 
-        await self.GuildsUtilCog.operateOverBountyDBsAsync("dev_cmd_force_expire_bounty", callback, "Bounty expired", interaction, callingBBGuild)
+        await self.GuildsUtilCog.operateOverBountyDBsAsync("dev_cmd_force_expire_bounty", callback, "Bounty expired", interaction, callingBBGuild, className="DevBountiesCog")
 
     
     @criminalAutoComplete("criminal")
@@ -673,7 +673,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_force_escape_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """Force the named bounty to escape immediately.
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -689,7 +689,7 @@ class DevBountiesCog(basedApp.BasedCog):
                         await db.owningBasedGuild.updateBountyBoardChannel(bounty, bountyComplete=True)
                         await bounty.division.bountyBoardChannel.updateEscapedBountiesMessage()
 
-        await self.GuildsUtilCog.operateOverBountyDBsAsync("dev_cmd_force_escape_bounty", callback, "Bounty escaped", interaction, callingBBGuild, logCategory=LogCategory.escapedBounties)
+        await self.GuildsUtilCog.operateOverBountyDBsAsync("dev_cmd_force_escape_bounty", callback, "Bounty escaped", interaction, callingBBGuild, logCategory=LogCategory.escapedBounties, className="DevBountiesCog")
 
     
     @criminalAutoComplete("criminal")
@@ -700,7 +700,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_force_respawn_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """Force the named bounty to respawn immediately.
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -723,7 +723,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_restart_new_bounty_task(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command that restarts a 'new bounties' timedtask for one or all divisions in one or all guilds
         """
-        valid, callingBBGuild = await self.GuildsUtilCog.getGuildWithBounties(interaction, guild_id)
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
         if not valid:
             return
 
@@ -747,7 +747,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Decide whether a user can div-up/prestige
         """
-        u = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             await interaction.response.send_message(f"{u.canDivUp()} ({u.bountyHuntingXpSurplus}xp surplus)")
 
@@ -762,7 +762,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_set_user_divup_surplus(self, interaction: Interaction, xp_surplus: int, user_id: str = ""):
         """Change a user's ability to div-up or prestige by setting their xp surplus
         """
-        u = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             oldSurplus = u.bountyHuntingXpSurplus
             canDivup = u.canDivUp()
@@ -781,7 +781,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_disable_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Disable a user's ability to div-up/prestige, setting their xp surplus to -1.
         """
-        u = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             oldSurplus = u.bountyHuntingXpSurplus
             canDivup = u.canDivUp()
@@ -797,7 +797,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_enable_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Enable a user's ability to div-up/prestige, setting their xp surplus to 0.
         """
-        u = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             canDivup = u.canDivUp()
             if canDivup:
@@ -807,8 +807,52 @@ class DevBountiesCog(basedApp.BasedCog):
                 await interaction.response.send_message(f"✅ set successfully! User can now div-up (-1 -> 0)")
 
 
-#endregion commands
+    @criminalAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
+    @app_commands.command(name="crim-value",
+                            description="Get the total value of a criminal's loadout.")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_crim_value(self, interaction: Interaction, name: str, guild_id: str = "here"):
+        """⚠ WARNING: MARKED FOR CHANGE ⚠
+        The following function is provisional and marked as planned for overhaul.
+        Details: The command output is finalised. However, the inner workings of the command are to be replaced with attribute
+        getters. It is inefficient to calculate total value measurements on every call, so current totals should be cached in
+        object attributes whenever modified.
 
+        print the total value of the specified criminal.
+
+        :param discord.Message message: the discord message calling the command
+        :param str args: string containing a criminal name.
+        :param bool isDM: Whether or not the command is being called from a DM channel
+        """
+        valid, callingBBGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
+        if not valid: return
+        if not await verifyCriminalName(interaction, name): return
+        callingBBGuild = cast(basedGuild.BasedGuild, callingBBGuild)
+        bountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
+
+        # report unrecognised criminal names
+        if not bountiesDB.bountyNameExists(name, noEscapedCrim=True):
+            errmsg = ":x: That pilot is not currently wanted!"
+
+            if lib.stringTyping.isMention(name):
+                errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
+                            + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
+
+            await interaction.response.send_message(errmsg, ephemeral=True)
+            return
+
+        bountyObj = bountiesDB.getBounty(name)
+        if bountyObj.activeShip is None:
+            await interaction.response.send_message("ERR: The bounty has no active ship", ephemeral=True)
+            return
+
+        # send the user's balance
+        await interaction.response.send_message(":moneybag: **" + name \
+                                    + "**'s loadout has a total value of **" \
+                                    + str(bountyObj.activeShip.getValue()) + " Credits**.", ephemeral=True)
+
+#endregion commands
 
 async def setup(bot: client.BasedClient):
     # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,

@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 from ..baseClasses.serializable import SerializesToJson, JsonType
 
 from ..cfg import cfg, bbData
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
 from ..gameObjects import kaamoShop, lomaShop
 from ..gameObjects.items import shipItem, moduleItemFactory, gameItem
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
@@ -32,10 +33,26 @@ defaultShipLoadoutDict = {"name": "Betty", "type": "Ship", "builtIn": True,
                                         {"type": "ArmourModule", "name": "E2 Exoclad", "builtIn": True},
                                         {"type": "MiningDrillModule", "name": "IMT Extract 1.3", "builtIn": True}]}
 
+itemCategoryUserKeys = {
+    ItemCategory.ship: "inactiveShips",
+    ItemCategory.weapon: "inactiveWeapons",
+    ItemCategory.module: "inactiveModules",
+    ItemCategory.turret: "inactiveTurrets",
+    ItemCategory.tool: "inactiveTools"
+}
+
+itemCategoryStoredTypes: Dict[ItemCategory, Type[gameItem.GameItem]] = {
+    ItemCategory.ship: shipItem.Ship,
+    ItemCategory.weapon: primaryWeapon.PrimaryWeapon,
+    ItemCategory.module: moduleItem.ModuleItem,
+    ItemCategory.turret: turretWeapon.TurretWeapon,
+    ItemCategory.tool: toolItem.ToolItem
+}
+
 # Default attributes to give to new players
-defaultUserDict = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsWon": 0, "systemsChecked": 0, "bountyWins": 0,
+defaultUserDict: JsonType = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsWon": 0, "systemsChecked": 0, "bountyWins": 0,
                     "activeShip": defaultShipLoadoutDict, "bountyHuntingXP": gameMaths.bountyHuntingXPForLevel(1),
-                    "inactiveWeapons": [{"item": {"type": "PrimaryWeapon", "name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]}
+                    itemCategoryUserKeys[ItemCategory.weapon]: [{"item": {"type": "PrimaryWeapon", "name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]}
 
 # Reference value manually added, not pre-calculated from defaultUserDict. This is not used in the game's code,
 # but provides a reference for game design.
@@ -311,7 +328,7 @@ class BasedUser(SerializesToJson):
         self.prestiges = 0
 
 
-    def numInventoryPages(self, item: str, maxPerPage: int) -> int:
+    def numInventoryPages(self, itemType: ItemCategoryUnion, maxPerPage: int) -> int:
         """Get the number of pages required to display all of the user's unequipped items of the named type,
         displaying the given number of items per page
 
@@ -322,9 +339,6 @@ class BasedUser(SerializesToJson):
         :raise ValueError: When requesting an invalid item type
         :raise NotImplementedError: When requesting a valid item type, but one that is not yet implemented (e.g commodity)
         """
-        if item not in cfg.validItemNames:
-            raise ValueError("Requested an invalid item name: " + item)
-
         numWeapons = self.inactiveWeapons.numKeys
         numModules = self.inactiveModules.numKeys
         numTurrets = self.inactiveTurrets.numKeys
@@ -333,25 +347,27 @@ class BasedUser(SerializesToJson):
 
         itemsNum = 0
 
-        if item == "all":
+        if itemType is ItemCategoryOrAll.all:
             itemsNum = max(numWeapons, numModules, numTurrets, numShips, numTools)
-        elif item == "module":
-            itemsNum = numModules
-        elif item == "weapon":
-            itemsNum = numWeapons
-        elif item == "turret":
-            itemsNum = numTurrets
-        elif item == "ship":
-            itemsNum = numShips
-        elif item == "tool":
-            itemsNum = numTools
         else:
-            raise NotImplementedError("Valid but unsupported item name: " + item)
+            noAll = itemType if isinstance(itemType, ItemCategory) else itemType.noAll()
+            if noAll is ItemCategory.module:
+                itemsNum = numModules
+            elif noAll is ItemCategory.weapon:
+                itemsNum = numWeapons
+            elif noAll is ItemCategory.turret:
+                itemsNum = numTurrets
+            elif noAll is ItemCategory.ship:
+                itemsNum = numShips
+            elif noAll is ItemCategory.tool:
+                itemsNum = numTools
+            else:
+                raise NotImplementedError("Unsupported item name: " + noAll.value)
 
         return int(itemsNum / maxPerPage) + (0 if itemsNum % maxPerPage == 0 else 1)
 
 
-    def lastItemNumberOnPage(self, item: str, pageNum: int, maxPerPage: int) -> int:
+    def lastItemNumberOnPage(self, item: ItemCategory, pageNum: int, maxPerPage: int) -> int:
         """Get index of the last item on the given page number, where page numbers are of size maxPerPage.
         This is an absolute index from the start of the inventory, not a relative index from the start of the page.
 
@@ -362,23 +378,21 @@ class BasedUser(SerializesToJson):
         :raise ValueError: When requesting an invalid item type
         :raise NotImplementedError: When requesting a valid item type, but one that is not yet implemented (e.g commodity)
         """
-        if item not in cfg.validItemNames:
-            raise ValueError("Requested an invalid item name: " + item)
         if pageNum < self.numInventoryPages(item, maxPerPage):
             return pageNum * maxPerPage
 
-        elif item == "ship":
+        elif item is ItemCategory.ship:
             return self.inactiveShips.numKeys
-        elif item == "weapon":
+        elif item is ItemCategory.weapon:
             return self.inactiveWeapons.numKeys
-        elif item == "module":
+        elif item is ItemCategory.module:
             return self.inactiveModules.numKeys
-        elif item == "turret":
+        elif item is ItemCategory.turret:
             return self.inactiveTurrets.numKeys
-        elif item == "tool":
+        elif item is ItemCategory.tool:
             return self.inactiveTools.numKeys
         else:
-            raise NotImplementedError("Valid but unsupported item name: " + item)
+            raise NotImplementedError("unsupported item name: " + item.value)
 
 
     def unequipAll(self, ship: shipItem.Ship):
@@ -486,15 +500,15 @@ class BasedUser(SerializesToJson):
                 "duelCreditsLosses": self.duelCreditsLosses, "homeGuildID": self.homeGuildID,
                 "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges}
 
-        data["inactiveShips"] = self.inactiveShips.serialize(**kwargs)["items"]
-        data["inactiveModules"] = self.inactiveModules.serialize(**kwargs)["items"]
-        data["inactiveWeapons"] = self.inactiveWeapons.serialize(**kwargs)["items"]
-        data["inactiveTurrets"] = self.inactiveTurrets.serialize(**kwargs)["items"]
+        data[itemCategoryUserKeys[ItemCategory.ship]] = self.inactiveShips.serialize(**kwargs)["items"]
+        data[itemCategoryUserKeys[ItemCategory.module]] = self.inactiveModules.serialize(**kwargs)["items"]
+        data[itemCategoryUserKeys[ItemCategory.weapon]] = self.inactiveWeapons.serialize(**kwargs)["items"]
+        data[itemCategoryUserKeys[ItemCategory.turret]] = self.inactiveTurrets.serialize(**kwargs)["items"]
 
         if "saveType" not in kwargs:
-            data["inactiveTools"] = self.inactiveTools.serialize(saveType=True, **kwargs)["items"]
+            data[itemCategoryUserKeys[ItemCategory.tool]] = self.inactiveTools.serialize(saveType=True, **kwargs)["items"]
         else:
-            data["inactiveTools"] = self.inactiveTools.serialize(**kwargs)["items"]
+            data[itemCategoryUserKeys[ItemCategory.tool]] = self.inactiveTools.serialize(**kwargs)["items"]
 
         data["alerts"] = {}
         for alertType in self.userAlerts:
@@ -590,30 +604,26 @@ class BasedUser(SerializesToJson):
             raise ValueError("Unknown stat name: " + str(stat))
 
 
-    def getInactivesByName(self, item: str):
-        """Get the all of the user's inactive (hangar) items of the named type.
+    def getInventory(self, itemType: ItemCategory):
+        """Get the all of the user's inactive (hangar) items of the given type.
         The given inventory is mutable, and can alter the contents of the user's inventory.
 
-        :param str item: One of ship, weapon, module or turret
+        :param ItemCategory itemType: The item type whose inventory to get
         :return: A inventory containing all of the user's inactive items of the named type.
         :rtype: inventory
-        :raise ValueError: When requesting an invalid item type name
         :raise NotImplementedError: When requesting a valid item type name but one that is not yet implemented (e.g commodity)
         """
-        if item == "all":
-            raise ValueError("Invalid item type: " + item)
-        elif item == "ship":
+        if itemType == ItemCategory.ship:
             return self.inactiveShips
-        elif item == "weapon":
+        if itemType == ItemCategory.weapon:
             return self.inactiveWeapons
-        elif item == "module":
+        if itemType == ItemCategory.module:
             return self.inactiveModules
-        elif item == "turret":
+        if itemType == ItemCategory.turret:
             return self.inactiveTurrets
-        elif item == "tool":
+        if itemType == ItemCategory.tool:
             return self.inactiveTools
-        else:
-            raise NotImplementedError("Unrecognised item type: " + item)
+        raise NotImplementedError("Unrecognised item type: " + itemType)
 
 
     def hasDuelChallengeFor(self, targetBasedUser: BasedUser) -> bool:
@@ -928,11 +938,11 @@ class BasedUser(SerializesToJson):
         inactiveTurrets = inventory.Inventory(turretWeapon.TurretWeapon)
         inactiveTools = userInventory.UserToolInventory(userInventory.USER_PLACEHOLDER)
 
-        for key, stock, deserializer in (("inactiveShips", inactiveShips, shipItem.Ship),
-                                        ("inactiveWeapons", inactiveWeapons, primaryWeapon.PrimaryWeapon),
-                                        ("inactiveModules", inactiveModules, moduleItemFactory.ModuleItemFactory),
-                                        ("inactiveTurrets", inactiveTurrets, turretWeapon.TurretWeapon),
-                                        ("inactiveTools", inactiveTools, toolItemFactory.ToolItemFactory)):
+        for key, stock, deserializer in ((itemCategoryUserKeys[ItemCategory.ship], inactiveShips, shipItem.Ship),
+                                        (itemCategoryUserKeys[ItemCategory.weapon], inactiveWeapons, primaryWeapon.PrimaryWeapon),
+                                        (itemCategoryUserKeys[ItemCategory.module], inactiveModules, moduleItemFactory.ModuleItemFactory),
+                                        (itemCategoryUserKeys[ItemCategory.turret], inactiveTurrets, turretWeapon.TurretWeapon),
+                                        (itemCategoryUserKeys[ItemCategory.tool], inactiveTools, toolItemFactory.ToolItemFactory)):
             if key in userDict:
                 # Casting here because pyright doesn't know the structure of a serialized baseduser
                 for listingDict in cast(List[dict], userDict[key]):

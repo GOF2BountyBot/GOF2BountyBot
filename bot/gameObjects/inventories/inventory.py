@@ -231,11 +231,12 @@ class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
         :raise ValueError: When the inventory is empty
         """
         if bool(self.keys):
-            if key in range(len(self.keys)):
+            if key >= 0 and key < len(self.keys):
                 if self.keys[key] in self.items:
                     return self.items[self.keys[key]]
+                self.keys.pop(key)
                 raise KeyError("Failed get of key number " + str(key) + " - " + str(self.keys[key]) \
-                                + ". Key does not exist in inventory.")
+                                + ". Key does not exist in inventory. Removing key.")
             raise IndexError("Key of incorrect type or out of range: " + str(key) + ". Valid range: 0 - " \
                                 + str(len(self.keys) - 1))
         raise ValueError("Attempted to fetch key " + str(key) + ", but keys list is empty")

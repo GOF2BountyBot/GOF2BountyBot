@@ -1,20 +1,20 @@
 from __future__ import annotations
-import emoji
+from typing import TypeVar, Union, cast
 
-from .. import botState
-from . import stringTyping, exceptions
+import emoji
 import traceback
-from ..baseClasses.serializable import Serializable, JsonType
-from ..baseClasses.simpleHash import simpleHash
+from abc import ABC, abstractmethod
+import random
+
 from carica import PrimativeType, SerializableType # type: ignore[import]
 from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
-from abc import ABC, abstractmethod
 
-from typing import TypeVar, Union, cast
 from discord import PartialEmoji, Emoji # type: ignore[import]
 
 from .. import botState
 from . import stringTyping, exceptions
+from ..baseClasses.serializable import Serializable, JsonType
+from ..baseClasses.simpleHash import simpleHash
 from ..cfg import cfg
 
 
@@ -568,3 +568,12 @@ class UninitializedBasedEmoji(IBasedEmoji):
         :rtype: str
         """
         raise NotImplementedError(f"Cannot invoke {type(self)}.sendable, this method is only valid for {BasedEmoji.__name__}")
+
+
+def randomEmoji() -> BasedEmoji:
+    """Create a random unicode emoji. Can be anything.
+
+    :return: A random unicode emoji
+    :rtype: BasedEmoji
+    """
+    return BasedEmoji(unicode=random.sample(emoji.EMOJI_DATA.keys(), 1)[0])

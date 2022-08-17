@@ -1,6 +1,54 @@
+from typing import Union
 from discord import Colour
-from ..lib.emojis import UninitializedBasedEmoji
 from datetime import timedelta
+from ..baseClasses.basedEnum import _BasedEnumMeta
+from enum import Enum
+
+class _ItemCategoryMeta(_BasedEnumMeta):
+    @classmethod
+    def orAll(cls):
+        # ignoring here because cls will only ever be an Enum
+        return ItemCategoryOrAll(cls.value) # type: ignore
+
+class _ItemCategoryBase(Enum, metaclass=_ItemCategoryMeta):
+    @classmethod
+    def orAll(cls):
+        # ignoring here because cls will only ever be an Enum
+        return ItemCategoryOrAll(cls.value) # type: ignore
+
+class _ItemCategoryOrAllMeta(_BasedEnumMeta):
+    @classmethod
+    def noAll(cls):
+        # ignoring here because cls will only ever be an Enum
+        return ItemCategory(cls.value) # type: ignore
+
+class _ItemCategoryOrAllBase(Enum, metaclass=_ItemCategoryOrAllMeta):
+    @classmethod
+    def noAll(cls):
+        # ignoring here because cls will only ever be an Enum
+        return ItemCategory(cls.value) # type: ignore
+
+class ItemCategory(_ItemCategoryBase):
+    """Names for types of items that can be stored in inventories.
+    """
+    ship = "ship"
+    weapon = "weapon"
+    module = "module"
+    turret = "turret"
+    tool = "tool"
+
+
+class ItemCategoryOrAll(_ItemCategoryOrAllBase):
+    """Names for types of items that can be stored in inventories, or 'all'. This one is useful for command parameters.
+    """
+    ship = "ship"
+    weapon = "weapon"
+    module = "module"
+    turret = "turret"
+    tool = "tool"
+    all = "all"
+
+ItemCategoryUnion = Union[ItemCategory, ItemCategoryOrAll]
 
 # all factions recognised by BB
 factions = ["terran", "vossk", "midorian", "nivelian", "neutral"]
