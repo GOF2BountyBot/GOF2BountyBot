@@ -18,7 +18,6 @@ class DevMedalsCog(basedApp.BasedCog):
         self.bot = bot
         super().__init__(*args, **kwargs)
 
-    @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="medals")
     @app_commands.command(name="create-medal",
                             description="Create a new medal.")
@@ -108,7 +107,6 @@ class DevMedalsCog(basedApp.BasedCog):
         await interaction.response.send_message(f"{cfg.defaultEmojis.submit.sendable} medal added successfuly: {name}", ephemeral=True)
 
 
-    @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="medals")
     @app_commands.command(name="delete-medal",
                             description="Delete a medal.")
@@ -172,7 +170,6 @@ class DevMedalsCog(basedApp.BasedCog):
             await nextInteraction[0].response.send_message("Medal deletion cancelled.", ephemeral=True)
 
 
-    @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="medals")
     @app_commands.command(name="give-medal",
                             description="Award a medal to a user.")
@@ -209,7 +206,6 @@ class DevMedalsCog(basedApp.BasedCog):
                                                 ephemeral=True)
 
 
-    @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="medals")
     @app_commands.command(name="take-medal",
                             description="Un-award a medal from a user.")

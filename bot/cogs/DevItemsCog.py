@@ -40,7 +40,7 @@ class DevItemsCog(BasedCog):
         """
         requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
         if invalid:
-            await interaction.response.send_message(":x: Invalid user id")
+            await interaction.response.send_message(":x: Invalid user id", ephemeral=True)
             return
         intId = int(user_id)
         dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
