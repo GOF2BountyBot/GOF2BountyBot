@@ -211,6 +211,7 @@ includedCogs = (
     cogPath("DevHomeGuildsCog"),
     cogPath("DevItemsCog"),
     cogPath("DevKaamoCog"),
+    cogPath("DevLomaCog"),
     cogPath("DevMiscCog"),
 
     cogPath("AdminChannelsCog"),

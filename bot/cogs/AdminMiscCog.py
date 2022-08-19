@@ -247,7 +247,7 @@ class AdminMiscCog(basedApp.BasedCog):
             if userId and interaction.user.id != int(userId):
                 return
 
-            message = await embedEditorCog.messageForInteraction(interaction, "endReorderFields", StaticComponents.Admin_MakeRoleMenu_Reorder_Roles)
+            message = await embedEditorCog.messageForInteraction(interaction, self.endReorderRoles.__name__, StaticComponents.Admin_MakeRoleMenu_Reorder_Roles)
             if message is None: return
             embed = message.embeds[0]
 
@@ -259,7 +259,7 @@ class AdminMiscCog(basedApp.BasedCog):
                 swappedFields: Optional[Tuple[AnyEmbedField, AnyEmbedField]] = None
             elif not selected:
                 await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
-                self.bot.logger.log(type(self).__name__, "endReorderFields",
+                self.bot.logger.log(type(self).__name__, self.endReorderRoles.__name__,
                                     "select-based static component triggered for non-select interaction: " \
                                         + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Reorder_Roles),
                                     category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
@@ -299,7 +299,7 @@ class AdminMiscCog(basedApp.BasedCog):
 
         if selectedRaw is None:
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
-            self.bot.logger.log(type(self).__name__, "manageRoles",
+            self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
                                 category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
@@ -307,7 +307,7 @@ class AdminMiscCog(basedApp.BasedCog):
         else:
             for rawId in selectedRaw:
                 if not lib.stringTyping.isInt(rawId):
-                    self.bot.logger.log(type(self).__name__, "manageRoles",
+                    self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
                                 f"Non-int role ID received '{rawId}': " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
                                 category=LogCategory.staticComponents, eventType="ID_NOT_INT")
@@ -393,14 +393,14 @@ class AdminMiscCog(basedApp.BasedCog):
 
         if not selected:
             errorMsg = cfg.defaultEmojis.cancel + " This type of interaction is not valid here."
-            self.bot.logger.log(type(self).__name__, "endChangeEmoji",
+            self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
                                 category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
         else:
             rawId = selected[0]
             if not lib.stringTyping.isInt(rawId):
-                self.bot.logger.log(type(self).__name__, "endChangeEmoji",
+                self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                             f"Non-int role ID received '{rawId}': " \
                                 + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
                             category=LogCategory.staticComponents, eventType="ID_NOT_INT")

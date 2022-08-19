@@ -7,6 +7,7 @@ from discord.app_commands import Range
 from discord.utils import MISSING
 
 from .. import client, lib
+from ..lib.stringTyping import commaSplitNum, formatMultiplier
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory
@@ -16,22 +17,23 @@ from ..databases.bountyDB import BountyDB, nameForDivision
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from ..gameObjects.items import gameItem
 from ..gameObjects.items.shipItem import Ship
-from ..gameObjects.kaamoShop import KaamoShop
+from ..gameObjects.lomaShop import LomaShop
 from ..gameObjects import guildShop
 from ..logging import LogCategory
+from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
 
-class DevKaamoCog(basedApp.BasedCog):
+class DevLomaCog(basedApp.BasedCog):
     def __init__(self, bot: client.BasedClient, *args, **kwargs):
         self.bot = bot
         super().__init__(*args, **kwargs)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
-    @app_commands.command(name="kaamo-give",
-                            description="Developer command spawning the described item, and placing it in the given user's kaamo shop.")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
+    @app_commands.command(name="loma-give",
+                            description="Developer command spawning the described item, and placing it in the given user's loma shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_kaamo_give(self, interaction: Interaction, item_json: str, user_id: str = ""):
-        """developer command spawning the described item, and placing it in the given user's kaamo shop.
+    async def dev_cmd_loma_give(self, interaction: Interaction, item_json: str, user_id: str = ""):
+        """developer command spawning the described item, and placing it in the given user's loma shop.
         item must be a json format description in line with the item's deserialize function.
         """
         requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
@@ -45,10 +47,6 @@ class DevKaamoCog(basedApp.BasedCog):
             requestedUser = self.bot.usersDB.getOrAddID(intId)
         
         userMention = "<unknown user>" if dcUser is None else dcUser.mention
-
-        if requestedUser.kaamo is not None and requestedUser.kaamo.isFull():
-            await interaction.response.send_message(":x: That user's Kaamo storage is full!", ephemeral=True)
-            return
 
         try:
             itemDict = json.loads(item_json)
@@ -69,37 +67,37 @@ class DevKaamoCog(basedApp.BasedCog):
             await interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
             return
         
-        if requestedUser.kaamo is None:
-            requestedUser.kaamo = KaamoShop()
-        itemStock = requestedUser.kaamo.getStockByType(type(newItem))
+        if requestedUser.loma is None:
+            requestedUser.loma = LomaShop()
+        itemStock = requestedUser.loma.getStockByType(type(newItem))
         itemStock.addItem(newItem)
 
         await interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **" \
                                                 + userMention + "**!", ephemeral=True)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
     @app_commands.command(name="",
                             description="")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_debug_kaamo(self, interaction: Interaction, user_id: str = ""):
-        """developer command printing the requested user's kaamo, including object memory addresses.
+    async def dev_cmd_debug_loma(self, interaction: Interaction, user_id: str = ""):
+        """developer command printing the requested user's loma, including object memory addresses.
         """
         requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
-        if requestedBBUser.kaamo is None:
-            await interaction.response.send_message(":x: The requested pilot has no kaamo!", ephemeral=True)
+        if requestedBBUser.loma is None:
+            await interaction.response.send_message(":x: The requested pilot has no loma!", ephemeral=True)
             return
-        if requestedBBUser.kaamo.isEmpty():
-            await interaction.response.send_message(":x: The kaamo is empty!", ephemeral=True)
+        if requestedBBUser.loma.isEmpty():
+            await interaction.response.send_message(":x: The loma is empty!", ephemeral=True)
             return
 
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
         userProfile = "" if requestedUser is None else requestedUser.display_avatar.with_size(64).url
 
-        shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Kaamo",
+        shopEmbed = lib.discordUtil.makeEmbed(titleTxt="Loma",
                                                 desc=userMention,
                                                 footerTxt="All items",
                                                 thumb=userProfile)
@@ -108,24 +106,24 @@ class DevKaamoCog(basedApp.BasedCog):
 
         itemTypes = (ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool)
         for itemType in itemTypes:
-            itemInv = requestedBBUser.kaamo.getStock(itemType)
+            itemInv = requestedBBUser.loma.getStock(itemType)
             await interaction.user.send(f"{itemType.value.upper()} KEYS: {itemInv.keys}\n" +\
                                         f"{itemType.value.upper()} LISTING KEYS: {itemInv.items.keys()}")
 
         for itemType in itemTypes:
-            currentStock = requestedBBUser.kaamo.getStock(itemType)
+            currentStock = requestedBBUser.loma.getStock(itemType)
 
             shopEmbed.add_field(name="‎", value=f"__**{itemType.value.title()}s**__", inline=False)
             expectedNumKeys = len(currentStock.keys)
             if currentStock.numKeys != expectedNumKeys:
                 shopEmbed.description = f"Expected {currentStock.numKeys} keys, found {expectedNumKeys}"
-                self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
+                self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                     f"Unexpected number of keys in {itemType.value}sStock. Expected {currentStock.numKeys}, found {expectedNumKeys}.",
                                     category=LogCategory.shop, eventType="INVTY_KEY_COUNT")
 
             for itemNum, currentKey in enumerate(currentStock.keys):
                 if not isinstance(currentKey, gameItem.GameItem):
-                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
+                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Unexpected type in {itemType.value}sStock KEYS, index {itemNum}. " \
                                             + f"Got {type(currentKey).__name__}.\n" \
                                             + "Inventory keys: " \
@@ -139,7 +137,7 @@ class DevKaamoCog(basedApp.BasedCog):
                 try:
                     currentItem = currentStock[itemNum].item
                 except KeyError:
-                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
+                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Requested {itemType.value} '{currentKey.name}' (index {itemNum}), "
                                         + "which was not found in the shop stock",
                                         category=LogCategory.shop, eventType="UNKWN_KEY")
@@ -148,7 +146,7 @@ class DevKaamoCog(basedApp.BasedCog):
                     continue
 
                 if not isinstance(currentItem, gameItem.GameItem):
-                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
+                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Unexpected type in {itemType.value}sStock listing item, index {itemNum}. " \
                                             + f"Got {type(currentItem).__name__}.\n" \
                                             + "Inventory keys: " \
@@ -159,12 +157,27 @@ class DevKaamoCog(basedApp.BasedCog):
                     continue
                 
                 itemListing = currentStock.getListing(currentItem)
+                if not isinstance(itemListing, DiscountableItemListing):
+                    self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
+                                        f"Unexpected listing type in {itemType.value}sStock, index {itemNum}. " \
+                                            + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
+                                        category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+
+                    valueStr = f"{commaSplitNum(currentItem.value)} Credits\n*⚠ Non-discountable listing type*\n"
+                else:
+                    if itemListing.discounts:
+                        discountedValue = int(currentItem.value * itemListing.discounts[0].mult)
+                        discountAmountStr = formatMultiplier(itemListing.discounts[0].mult)
+                        valueStr = f"~~{commaSplitNum(currentItem.value)}~~ {commaSplitNum(discountedValue)} Credits\n" \
+                                + f"*{discountAmountStr}: {itemListing.discounts[0].desc}*\n"
+                    else:
+                        valueStr = f"{commaSplitNum(currentItem.value)} Credits\n*No discounts.*"
+
                 currentItemCount = itemListing.count
                 currentitemEmoji = currentItem.emoji.sendable + " " if currentItem.hasEmoji else ""
                 currentItemCountStr = (" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else ""
-                
                 shopEmbed.add_field(name=f"{itemNum+1}. {currentitemEmoji} {currentItemCountStr} **{currentItem.name}**",
-                                    value=currentItem.statsStringShort(), inline=True)
+                                    value=valueStr + currentItem.statsStringShort(), inline=True)
 
         try:
             await interaction.user.send(embed=shopEmbed)
@@ -175,26 +188,26 @@ class DevKaamoCog(basedApp.BasedCog):
             await interaction.followup.send("Debug sent to DMs.", ephemeral=True)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
-    @app_commands.command(name="del-kaamo-item",
-                            description="Delete one of an item in a requested user's kaamo. If the user has multiple, only one is affected.")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
+    @app_commands.command(name="del-loma-item",
+                            description="Delete one of an item in a requested user's loma. If the user has multiple, only one is affected.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_kaamo_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
-        """Delete an item in a requested user's kaamo.
+    async def dev_cmd_del_loma_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+        """Delete an item in a requested user's loma.
         """
         requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
-        if requestedBBUser.kaamo is None:
-            await interaction.response.send_message(":x: The requested pilot has no kaamo!", ephemeral=True)
+        if requestedBBUser.loma is None:
+            await interaction.response.send_message(":x: The requested pilot has no loma!", ephemeral=True)
             return
-        if requestedBBUser.kaamo.isEmpty():
-            await interaction.response.send_message(":x: The user's kaamo is empty!", ephemeral=True)
+        if requestedBBUser.loma.isEmpty():
+            await interaction.response.send_message(":x: The user's loma is empty!", ephemeral=True)
             return
 
-        kaamoItemStock = requestedBBUser.kaamo.getStock(item_type)
-        if item_number > kaamoItemStock.numKeys:
-            await interaction.response.send_message(f":x: Invalid item number! The user only has {kaamoItemStock.numKeys} {item_type.value}s.", ephemeral=True)
+        lomaItemStock = requestedBBUser.loma.getStock(item_type)
+        if item_number > lomaItemStock.numKeys:
+            await interaction.response.send_message(f":x: Invalid item number! The user only has {lomaItemStock.numKeys} {item_type.value}s.", ephemeral=True)
             return
         if item_number < 1:
             await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
@@ -203,7 +216,7 @@ class DevKaamoCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = kaamoItemStock[item_number - 1].item
+        requestedItem = lomaItemStock[item_number - 1].item
         itemName = ""
         itemEmbed = None
 
@@ -234,35 +247,35 @@ class DevKaamoCog(basedApp.BasedCog):
         else:
             itemName = requestedItem.name + "\n" + requestedItem.statsStringShort()
 
-        kaamoItemStock.removeItem(requestedItem)
-        await interaction.response.send_message(f":white_check_mark: One item deleted from {userMention}'s kaamo: {itemName}",
+        lomaItemStock.removeItem(requestedItem)
+        await interaction.response.send_message(f":white_check_mark: One item deleted from {userMention}'s loma: {itemName}",
                                                 embed=itemEmbed or MISSING, ephemeral=True)
 
-        # Destroy Kaamo object if it is now empty
-        if requestedBBUser.kaamo.isEmpty():
-            requestedBBUser.kaamo = None
+        # Destroy Loma object if it is now empty
+        if requestedBBUser.loma.isEmpty():
+            requestedBBUser.loma = None
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
-    @app_commands.command(name="del-kaamo-item-key",
-                            description="Delete ALL of an item in a requested user's kaamo.")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
+    @app_commands.command(name="del-loma-item-key",
+                            description="Delete ALL of an item in a requested user's loma.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_kaamo_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
-        """Delete ALL OF an item in a requested user's kaamo.
+    async def dev_cmd_del_loma_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+        """Delete ALL OF an item in a requested user's loma.
         """
         requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
-        if requestedBBUser.kaamo is None:
-            await interaction.response.send_message(":x: The requested pilot has no kaamo!", ephemeral=True)
+        if requestedBBUser.loma is None:
+            await interaction.response.send_message(":x: The requested pilot has no loma!", ephemeral=True)
             return
-        if requestedBBUser.kaamo.isEmpty():
-            await interaction.response.send_message(":x: The user's kaamo is empty!", ephemeral=True)
+        if requestedBBUser.loma.isEmpty():
+            await interaction.response.send_message(":x: The user's loma is empty!", ephemeral=True)
             return
 
-        kaamoItemStock = requestedBBUser.kaamo.getStock(item_type)
-        if item_number > kaamoItemStock.numKeys:
-            await interaction.response.send_message(f":x: Invalid item number! The user only has {kaamoItemStock.numKeys} {item_type.value}s.", ephemeral=True)
+        lomaItemStock = requestedBBUser.loma.getStock(item_type)
+        if item_number > lomaItemStock.numKeys:
+            await interaction.response.send_message(f":x: Invalid item number! The user only has {lomaItemStock.numKeys} {item_type.value}s.", ephemeral=True)
             return
         if item_number < 1:
             await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
@@ -271,7 +284,7 @@ class DevKaamoCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = kaamoItemStock[item_number - 1].item
+        requestedItem = lomaItemStock[item_number - 1].item
         itemName = ""
         itemEmbed = None
 
@@ -302,25 +315,126 @@ class DevKaamoCog(basedApp.BasedCog):
         else:
             itemName = requestedItem.name + "\n" + requestedItem.statsStringShort()
 
-        if requestedItem not in kaamoItemStock.items:
-            kaamoItemStock.keys.remove(requestedItem)
-            kaamoItemStock.numKeys -= 1
-            await interaction.response.send_message(f":white_check_mark: **Erroneous key** deleted from {userMention}'s kaamo: {itemName}",
+        if requestedItem not in lomaItemStock.items:
+            lomaItemStock.keys.remove(requestedItem)
+            lomaItemStock.numKeys -= 1
+            await interaction.response.send_message(f":white_check_mark: **Erroneous key** deleted from {userMention}'s loma: {itemName}",
                                                     embed=itemEmbed or MISSING, ephemeral=True)
         else:
-            itemCount = kaamoItemStock.items[requestedItem].count
-            del kaamoItemStock.items[requestedItem]
-            kaamoItemStock.keys.remove(requestedItem)
-            kaamoItemStock.numKeys -= 1
-            await interaction.response.send_message(f":white_check_mark: {itemCount} item(s) deleted from {userMention}'s kaamo: {itemName}",
+            itemCount = lomaItemStock.items[requestedItem].count
+            del lomaItemStock.items[requestedItem]
+            lomaItemStock.keys.remove(requestedItem)
+            lomaItemStock.numKeys -= 1
+            await interaction.response.send_message(f":white_check_mark: {itemCount} item(s) deleted from {userMention}'s loma: {itemName}",
                                                     embed=itemEmbed or MISSING, ephemeral=True)
 
-        # Destroy Kaamo object if it is now empty
-        if requestedBBUser.kaamo.isEmpty():
-            requestedBBUser.kaamo = None
+        # Destroy Loma object if it is now empty
+        if requestedBBUser.loma.isEmpty():
+            requestedBBUser.loma = None
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
+    @app_commands.command(name="loma-give-discount",
+                            description="Give a user a discount for an item in their loma shop.")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_loma_give_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_json: str, user_id: str = ""):
+        """developer command creating the described item item discount, and placing it in the given user's loma shop, for the described item.
+        """
+        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        if requestedBBUser is None: return
+
+        if requestedBBUser.loma is None:
+            await interaction.response.send_message(":x: The requested pilot has no loma!", ephemeral=True)
+            return
+        if requestedBBUser.loma.isEmpty():
+            await interaction.response.send_message(":x: The user's loma is empty!", ephemeral=True)
+            return
+
+        lomaItemStock = requestedBBUser.loma.getStock(item_type)
+        if item_number > lomaItemStock.numKeys:
+            await interaction.response.send_message(f":x: Invalid item number! The user only has {lomaItemStock.numKeys} {item_type.value}s.", ephemeral=True)
+            return
+        if item_number < 1:
+            await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
+            return
+
+        requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
+        userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
+
+        requestedItem = lomaItemStock[item_number - 1].item
+        itemListing = lomaItemStock.getListing(requestedItem)
+
+        if not isinstance(itemListing, DiscountableItemListing):
+            await interaction.response.send_message(f"ERR: Unexpected listing type received. Expected `{DiscountableItemListing.__name__}`, received `{type(itemListing.name)}`", ephemeral=True)
+            self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
+                                f"Unexpected listing type in {item_type.value}sStock, index {item_number - 1}. " \
+                                    + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
+                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+            return
+
+        try:
+            discountDict = json.loads(discount_json)
+        except json.JSONDecodeError as e:
+            await interaction.response.send_message(f":x: Invalid json: {e}", ephemeral=True)
+            return
+
+        newDiscount = ItemDiscount.deserialize(discountDict)
+        itemListing.pushDiscount(newDiscount)
+
+        await interaction.response.send_message(f":white_check_mark: Given one '{newDiscount.serialize()}' to **{userMention}**, for their {requestedItem.name}.",
+                                                ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
+    @app_commands.command(name="loma-del-discount",
+                            description="Delete a discount that a user has for an item in their loma shop.")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_del_loma_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_index: Range[int, 0, ...], user_id: str = ""):
+        """Delete a discount that a user has for an item in their loma shop.
+        """
+        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        if requestedBBUser is None: return
+
+        if requestedBBUser.loma is None:
+            await interaction.response.send_message(":x: The requested pilot has no loma!", ephemeral=True)
+            return
+        if requestedBBUser.loma.isEmpty():
+            await interaction.response.send_message(":x: The user's loma is empty!", ephemeral=True)
+            return
+
+        lomaItemStock = requestedBBUser.loma.getStock(item_type)
+        if item_number > lomaItemStock.numKeys:
+            await interaction.response.send_message(f":x: Invalid item number! The user only has {lomaItemStock.numKeys} {item_type.value}s.", ephemeral=True)
+            return
+        if item_number < 1:
+            await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
+            return
+
+        requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
+        userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
+
+        requestedItem = lomaItemStock[item_number - 1].item
+        itemListing = lomaItemStock.getListing(requestedItem)
+
+        if not isinstance(itemListing, DiscountableItemListing):
+            await interaction.response.send_message(f"ERR: Unexpected listing type received. Expected `{DiscountableItemListing.__name__}`, received `{type(itemListing.name)}`", ephemeral=True)
+            self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
+                                f"Unexpected listing type in {item_type.value}sStock, index {item_number - 1}. " \
+                                    + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
+                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+            return
+
+        if len(itemListing.discounts) < discount_index:
+            await interaction.response.send_message(f":x: The user only has {len(itemListing.discounts)} discounts.")
+            return
+
+        discount = itemListing.discounts.pop(discount_index)
+
+        await interaction.response.send_message(f":white_check_mark: Removed discount '{discount.desc}' (*{discount.mult}) from **{userMention}**, for their {requestedItem.name}.",
+                                                ephemeral=True)
 
 
 async def setup(bot: client.BasedClient):
     # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
     # even though it extends discord.Object
-    await bot.add_cog(DevKaamoCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(DevLomaCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))

@@ -64,7 +64,7 @@ class DevMiscCog(BasedCog):
     def getEmbedEditorCog(self) -> Optional["EmbedEditorCog.EmbedEditorCog"]:
         embedEditorCog = self.bot.get_cog("EmbedEditorCog")
         if embedEditorCog is None:
-            self.bot.logger.log("DevMiscCog", "startRemoveField", f"Unable to find cog on self.bot: EmbedEditorCog", eventType="COG_NOT_FOUND")
+            self.bot.logger.log(type(self).__name__, self.getEmbedEditorCog.__name__, f"Unable to find cog on self.bot: EmbedEditorCog", eventType="COG_NOT_FOUND")
             return None
         return cast("EmbedEditorCog.EmbedEditorCog", embedEditorCog)
 

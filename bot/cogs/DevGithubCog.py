@@ -2,6 +2,7 @@ from typing import List, Optional, cast, TYPE_CHECKING
 from .. import client, lib
 from discord import Colour, app_commands, Interaction, Embed
 from discord.abc import GuildChannel, Snowflake
+from discord.app_commands import Range
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
@@ -30,7 +31,7 @@ class DevGithubCog(BasedCog):
     @app_commands.command(name="announce-issue",
                             description="Send a pretty message saying that a Github issue has been opened/closed.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_announce_issue(self, interaction: Interaction, issue_number: int, action: OpenClose):
+    async def dev_cmd_announce_issue(self, interaction: Interaction, issue_number: Range[int, 1, ...], action: OpenClose):
         """Send a pretty looking message saying that an issue has been opened/closed.
         """
         issue = await self.GithubUtilCog.getIssueByNumber(issue_number)
