@@ -30,7 +30,10 @@ class DevKaamoCog(basedApp.BasedCog):
         """developer command spawning the described item, and placing it in the given user's kaamo shop.
         item must be a json format description in line with the item's deserialize function.
         """
-        requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        if invalid:
+            await interaction.response.send_message(":x: Invalid user id")
+            return
         intId = int(user_id)
         dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
 
@@ -81,7 +84,7 @@ class DevKaamoCog(basedApp.BasedCog):
     async def dev_cmd_debug_kaamo(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the requested user's kaamo, including object memory addresses.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.kaamo is None:
@@ -178,7 +181,7 @@ class DevKaamoCog(basedApp.BasedCog):
     async def dev_cmd_del_kaamo_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete an item in a requested user's kaamo.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.kaamo is None:
@@ -246,7 +249,7 @@ class DevKaamoCog(basedApp.BasedCog):
     async def dev_cmd_del_kaamo_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete ALL OF an item in a requested user's kaamo.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.kaamo is None:

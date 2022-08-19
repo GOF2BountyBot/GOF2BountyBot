@@ -21,16 +21,16 @@ class UsersUtilCog(BasedCog):
 
 #region util
 
-    async def getBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[Optional[basedUser.BasedUser], bool]:
-        """Gets a user if one is specified. If not, then get the author. Returns a (Optional[basedUser.BasedUser], bool) tuple, where the first item is the requested
-        basedUser, and the second indicates whether the user is the interaction author or not.
-        If the result cannot be found in the usersDB, respond to the interaction with an error, and return (..., None).
+    async def getBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[Optional[basedUser.BasedUser], bool, bool]:
+        """Gets a user if one is specified. If not, then get the author. Returns a (Optional[basedUser.BasedUser], bool, bool) tuple, where the first item is the requested
+        basedUser, the second indicates whether the user is the interaction author or not, and the third indicates whether a validation error occurred.
+        If the result cannot be found in the usersDB, respond to the interaction with an error, and return (..., None, False).
         """
         if user_id:
             if not lib.stringTyping.isInt(user_id):
                 if sendError:
                     await interaction.response.send_message(":x: Invalid user ID!", ephemeral=errorEphemeral)
-                return (None, False)
+                return (None, False, True)
             userId = int(user_id)
             isAuthor = False
         else:
@@ -40,9 +40,9 @@ class UsersUtilCog(BasedCog):
         if not self.bot.usersDB.idExists(userId):
             if sendError:
                 await interaction.response.send_message(":x: Unknown user!", ephemeral=errorEphemeral)
-            return (None, isAuthor)
+            return (None, isAuthor, False)
         
-        return (self.bot.usersDB.getUser(userId), isAuthor)
+        return (self.bot.usersDB.getUser(userId), isAuthor, False)
 
 
     async def getUserItemByIndex(self, interaction: Interaction, user: basedUser.BasedUser, item_type: ItemCategory, item_number: Range[int, 1, ...], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[Tuple[Inventory, GameItem]]:

@@ -170,7 +170,7 @@ class DevBountiesCog(basedApp.BasedCog):
 
 
     async def _setBountyXP(self, interaction: Interaction, xp: Range[int, 0, ...], user_id: str):
-        callingUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        callingUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if callingUser is None:
             return
 
@@ -247,7 +247,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_get_cooldown(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the calling user's checking cooldown
         """
-        callingUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        callingUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if callingUser is None:
             return
 
@@ -268,7 +268,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_reset_cooldown(self, interaction: Interaction, user_id: str = ""):
         """developer command resetting the checking cooldown of the calling user, or the specified user if one is given
         """
-        user, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        user, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if user is None:
             return
         
@@ -744,7 +744,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Decide whether a user can div-up/prestige
         """
-        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             await interaction.response.send_message(f"{u.canDivUp()} ({u.bountyHuntingXpSurplus}xp surplus)")
 
@@ -759,7 +759,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_set_user_divup_surplus(self, interaction: Interaction, xp_surplus: Range[int, -1, ...], user_id: str = ""):
         """Change a user's ability to div-up or prestige by setting their xp surplus
         """
-        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             oldSurplus = u.bountyHuntingXpSurplus
             canDivup = u.canDivUp()
@@ -778,7 +778,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_disable_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Disable a user's ability to div-up/prestige, setting their xp surplus to -1.
         """
-        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             oldSurplus = u.bountyHuntingXpSurplus
             canDivup = u.canDivUp()
@@ -794,7 +794,7 @@ class DevBountiesCog(basedApp.BasedCog):
     async def dev_cmd_enable_user_can_divup_or_prestige(self, interaction: Interaction, user_id: str = ""):
         """Enable a user's ability to div-up/prestige, setting their xp surplus to 0.
         """
-        u, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
             canDivup = u.canDivUp()
             if canDivup:

@@ -38,7 +38,10 @@ class DevItemsCog(BasedCog):
         user must be either an ID or empty (to give the item to the calling user).
         item must be a json format description in line with the item's to and deserialize functions.
         """
-        requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        if invalid:
+            await interaction.response.send_message(":x: Invalid user id")
+            return
         intId = int(user_id)
         dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
 
@@ -78,7 +81,7 @@ class DevItemsCog(BasedCog):
     async def dev_cmd_del_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete an item in a requested user's inventory.
         """
-        user, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        user, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if user is None: return None
         itemResult = await self.UsersUtilCog.getUserItemByIndex(interaction, user, item_type, item_number)
         if itemResult is None: return None
@@ -116,7 +119,7 @@ class DevItemsCog(BasedCog):
     async def dev_cmd_del_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete ALL of an item in a requested user's inventory.
         """
-        user, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        user, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if user is None: return None
         itemResult = await self.UsersUtilCog.getUserItemByIndex(interaction, user, item_type, item_number)
         if itemResult is None: return None
@@ -210,7 +213,7 @@ class DevItemsCog(BasedCog):
     async def dev_cmd_debug_hangar(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the requested user's hangar, including object memory addresses.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention

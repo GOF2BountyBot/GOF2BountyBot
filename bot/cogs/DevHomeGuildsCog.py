@@ -24,7 +24,7 @@ class DevHomeGuildsCog(BasedCog):
     async def dev_cmd_reset_transfer_cooldown(self, interaction: Interaction, user_id: str = ""):
         """Reset the requested user's cmd_transfer cooldown.
         """
-        requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedUser is None: return
 
         now = utcnow()

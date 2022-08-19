@@ -32,7 +32,10 @@ class DevLomaCog(basedApp.BasedCog):
         """developer command spawning the described item, and placing it in the given user's loma shop.
         item must be a json format description in line with the item's deserialize function.
         """
-        requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        if invalid:
+            await interaction.response.send_message(":x: Invalid user id")
+            return
         intId = int(user_id)
         dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
 
@@ -79,7 +82,7 @@ class DevLomaCog(basedApp.BasedCog):
     async def dev_cmd_debug_loma(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the requested user's loma, including object memory addresses.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.loma is None:
@@ -191,7 +194,7 @@ class DevLomaCog(basedApp.BasedCog):
     async def dev_cmd_del_loma_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete an item in a requested user's loma.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.loma is None:
@@ -259,7 +262,7 @@ class DevLomaCog(basedApp.BasedCog):
     async def dev_cmd_del_loma_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
         """Delete ALL OF an item in a requested user's loma.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.loma is None:
@@ -336,7 +339,7 @@ class DevLomaCog(basedApp.BasedCog):
     async def dev_cmd_loma_give_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_json: str, user_id: str = ""):
         """developer command creating the described item item discount, and placing it in the given user's loma shop, for the described item.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.loma is None:
@@ -388,7 +391,7 @@ class DevLomaCog(basedApp.BasedCog):
     async def dev_cmd_del_loma_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_index: Range[int, 0, ...], user_id: str = ""):
         """Delete a discount that a user has for an item in their loma shop.
         """
-        requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
 
         if requestedBBUser.loma is None:
