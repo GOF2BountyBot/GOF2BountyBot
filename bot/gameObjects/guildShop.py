@@ -20,6 +20,7 @@ from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
+StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)
 itemCategoriesStoredItemTypes = {
     ItemCategory.ship: Ship,
     ItemCategory.weapon: PrimaryWeapon,

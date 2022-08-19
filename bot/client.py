@@ -1,11 +1,11 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import List, Optional, Dict, Tuple, Type, Union, cast, overload
+from typing import Any, Coroutine, List, Optional, Dict, Tuple, Type, Union, cast, overload
 from pathlib import Path
 import aiohttp
 import discord # type: ignore[import]
-from discord import app_commands, TextChannel
+from discord import NotFound, User, app_commands, TextChannel
 from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
 from discord.ext import tasks # type: ignore[import]
 from discord.utils import MISSING # type: ignore[import]
@@ -638,3 +638,18 @@ class BasedClient(ClientBaseClass):
         :rtype: bool
         """
         return ID in self.staticComponentCallbacks
+
+
+    def tryFetchUser(self, id: int) -> Coroutine[Any, Any, Optional[User]]:
+        """Try to execute self.fetch_user. If the user is not found, return None.
+        This returns a coroutine that must be awaited.
+
+        :param id: The id of the user to look up
+        :type id: int
+        :return: The user if one is found, or None
+        :rtype: Optional[User]
+        """
+        try:
+            return self.fetch_user(id)
+        except NotFound:
+            return lib.discordUtil.dummyCoroutine(None)

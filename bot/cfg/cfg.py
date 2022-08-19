@@ -201,16 +201,21 @@ includedCogs = (
     cogPath("GithubUtilCog", basePackage="bot.cogs.util"),
     cogPath("GuildsUtilCog", basePackage="bot.cogs.util"),
     cogPath("UsersUtilCog", basePackage="bot.cogs.util"),
-    
-    cogPath("AdminChannelsCog"),
-    cogPath("AdminMiscCog"),
+
     cogPath("BASEDVersionCog"),
+    cogPath("HelpCog"),
+    
     cogPath("DevBountiesCog"),
     cogPath("DevChannelsCog"),
     cogPath("DevGithubCog"),
     cogPath("DevHomeGuildsCog"),
+    cogPath("DevItemsCog"),
+    cogPath("DevKaamoCog"),
     cogPath("DevMiscCog"),
-    cogPath("HelpCog"),
+
+    cogPath("AdminChannelsCog"),
+    cogPath("AdminMiscCog"),
+    
     cogPath("UserMiscCog")
 )
 

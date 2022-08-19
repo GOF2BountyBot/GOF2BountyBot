@@ -39,15 +39,16 @@ class DevItemsCog(BasedCog):
         item must be a json format description in line with the item's to and deserialize functions.
         """
         requestedUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
+        intId = int(user_id)
+        dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
+
         if requestedUser is None:
-            intId = int(user_id)
-            dcUser = self.bot.get_user(intId) or await self.bot.fetch_user(intId)
             if dcUser is None:
                 await interaction.response.send_message(":x: Unknown user.", ephemeral=True)
                 return
             requestedUser = self.bot.usersDB.getOrAddID(intId)
-        else:
-            dcUser = self.bot.get_user(requestedUser.id) or await self.bot.fetch_user(requestedUser.id)
+        
+        userMention = "<unknown user>" if dcUser is None else dcUser.mention
 
         try:
             itemDict = json.loads(item_json)
@@ -67,7 +68,7 @@ class DevItemsCog(BasedCog):
         requestedUser.getInventoryForItem(newItem).addItem(newItem)
 
         await interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **" \
-                                                + dcUser.mention + "**!", ephemeral=True)
+                                                + userMention + "**!", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="items")
@@ -211,7 +212,7 @@ class DevItemsCog(BasedCog):
         """
         requestedBBUser, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if requestedBBUser is None: return
-        requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.fetch_user(requestedBBUser.id)
+        requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
         userProfile = "" if requestedUser is None else requestedUser.display_avatar.with_size(64).url
 
@@ -226,8 +227,8 @@ class DevItemsCog(BasedCog):
 
         for itemType in ItemCategory:
             itemInv = requestedBBUser.getInventory(itemType)
-            await interaction.followup.send(itemType.value.upper() + " KEYS: " + str(itemInv.keys) + "\n" + itemType.value.upper() \
-                                                    + " LISTINGS: " + str(list(itemInv.items.keys())), ephemeral=True)
+            await interaction.user.send(f"{itemType.value.upper()} KEYS: {itemInv.keys}\n" +\
+                                        f"{itemType.value.upper()} LISTING KEYS: {itemInv.items.keys()}")
 
         for page in range(1, maxPage + 1):
 
@@ -292,7 +293,9 @@ class DevItemsCog(BasedCog):
                                                     + currentItemName + "\n`" + repr(itemKey) + "`",
                                                 value="unexpected type", inline=False)
 
-            await interaction.followup.send(embed=hangarEmbed, ephemeral=True)
+            await interaction.user.send(embed=hangarEmbed)
+        
+        await interaction.followup.send("Debug sent to DMs.", ephemeral=True)
 
 #endregion
 

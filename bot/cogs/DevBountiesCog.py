@@ -60,7 +60,7 @@ class DevBountiesCog(basedApp.BasedCog):
                 errors.append("Your `player_id` is not a valid user id")
             else:
                 playerIdInt = int(player_id)
-                if requestedUser := (self.bot.get_user(playerIdInt) or await self.bot.fetch_user(playerIdInt)):
+                if requestedUser := (self.bot.get_user(playerIdInt) or await self.bot.tryFetchUser(playerIdInt)):
                     if self.bot.usersDB.idExists(requestedUser.id):
                         requestedBUser = self.bot.usersDB.getUser(requestedUser.id)
                         config.activeShip = requestedBUser.activeShip

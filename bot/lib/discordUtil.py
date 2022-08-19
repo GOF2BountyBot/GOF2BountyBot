@@ -896,3 +896,14 @@ def timestamp(t: datetime, format=TimeStampStyle.ShortDateTime) -> str:
     :rtype: str
     """
     return f"<t:{int(t.timestamp())}:{format.value}"
+
+
+async def dummyCoroutine(value: Optional[Any]):
+    """Dummy coroutine function to return the given value. Acts as an analogue for C#'s Task.CompletedTask or Task.FromResult
+
+    :param value: The value to immediately return
+    :type value: Optional[Any]
+    :return: `value`
+    :rtype: Optional[Any]
+    """
+    return value

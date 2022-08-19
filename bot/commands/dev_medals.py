@@ -229,7 +229,7 @@ async def dev_cmd_give_medal(message: discord.Message, args: str, isDM: bool):
         return
 
     userID = int(argsSplit[0].lstrip("<@!").rstrip(">"))
-    requestedUser: discord.User = botState.client.get_user(userID) or await botState.client.fetch_user(userID)
+    requestedUser: discord.User = botState.client.get_user(userID) or await botState.client.tryFetchUser(userID)
     if requestedUser is None:
         await message.reply(":x: Unrecognisd user. Make sure we share a server.")
         return
@@ -269,7 +269,7 @@ async def dev_cmd_take_medal(message: discord.Message, args: str, isDM: bool):
         return
 
     userID = int(argsSplit[0].lstrip("<@!").rstrip(">"))
-    requestedUser: discord.User = botState.client.get_user(userID) or await botState.client.fetch_user(userID)
+    requestedUser: discord.User = botState.client.get_user(userID) or await botState.client.tryFetchUser(userID)
     if requestedUser is None:
         await message.reply(":x: Unrecognisd user. Make sure we share a server.")
         return
