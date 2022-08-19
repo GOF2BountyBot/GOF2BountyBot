@@ -1,7 +1,6 @@
 from typing import List, cast
 from discord import Forbidden, HTTPException, TextChannel, app_commands, Interaction, Guild
 from discord.abc import GuildChannel, Snowflake
-from discord.ext import commands
 
 from .. import client, lib
 from ..cfg import cfg

@@ -1,8 +1,7 @@
 import json
 from typing import List, cast
-from discord import Forbidden, HTTPException, TextChannel, app_commands, Interaction, Guild
-from discord.abc import GuildChannel, Snowflake
-from discord.ext import commands
+from discord import Forbidden, app_commands, Interaction
+from discord.abc import Snowflake
 from discord.app_commands import Range
 from discord.utils import MISSING
 
@@ -12,9 +11,6 @@ from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory
 from ..interactions import basedCommand, basedApp
-from ..users.basedGuild import GuildChannelType
-from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from ..gameObjects.items import gameItem
 from ..gameObjects.items.shipItem import Ship
 from ..gameObjects.lomaShop import LomaShop

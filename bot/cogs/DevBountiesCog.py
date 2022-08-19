@@ -1,21 +1,19 @@
 import discord
-from discord import Member, User, app_commands, Interaction, Colour
+from discord import app_commands, Interaction
 from discord.utils import utcnow
 from discord.abc import Snowflake
 from discord.ext.commands import Range
-from typing import Any, Awaitable, Callable, Coroutine, List, Optional, Tuple, Union, cast
+from typing import List, Optional, cast
 from datetime import datetime, timezone, timedelta
 from carica import SerializableTimedelta
 import json
 import random
 
-from bot.lib.stringTyping import isInt
-from bot.scheduling import timedTask
-
+from ..scheduling import timedTask
 from ..interactions import basedCommand, basedApp
 from .. import botState, lib, client
 from ..lib import gameMaths
-from ..cfg import cfg, bbData
+from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..gameObjects.items import shipItem
@@ -23,7 +21,6 @@ from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision, BountyDB
 from ..databases.bountyDivision import BountyDivision
 from ..logging import LogCategory
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 from .util.CommonAutocomplete import divisionAutoComplete, systemAutoComplete, criminalAutoComplete, factionAutoComplete
 from .util.transformers import BoolYesNo
 from .util.parameterVerifiers import verifyCriminalName, verifyDivName, verifyFactionName, verifySystemName

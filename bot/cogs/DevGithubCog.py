@@ -1,18 +1,14 @@
-from typing import List, Optional, cast, TYPE_CHECKING
-from .. import client, lib
+from typing import List, cast, TYPE_CHECKING
+from .. import client
 from discord import Colour, app_commands, Interaction, Embed
-from discord.abc import GuildChannel, Snowflake
+from discord.abc import Snowflake
 from discord.app_commands import Range
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog, useCog
-from ..databases.bountyDB import nameForDivision
+from ..interactions.basedApp import BasedCog
 from typing import List, cast
 from enum import Enum
-
-if TYPE_CHECKING:
-    from .util.GithubUtilCog import GithubUtilCog
 
 
 class OpenClose(Enum):
