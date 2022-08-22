@@ -141,7 +141,7 @@ def spawnableItem(cls: TClass) -> TClass:
         nameSubClasses[cls] = cls.__name__
     if cls.__name__ not in subClassNames:
         subClassNames[cls.__name__] = cls
-    return cls
+    return cast(TClass, cls)
 
 
 def spawnItem(data: dict) -> GameItem:

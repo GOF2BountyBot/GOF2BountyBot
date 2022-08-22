@@ -4,9 +4,10 @@
 from datetime import datetime, timedelta
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import Embed, Colour, Emoji, NotFound, HTTPException, Forbidden, PartialEmoji # type: ignore[import]
+from discord import ClientUser, Embed, Colour, Emoji, NotFound, HTTPException, Forbidden, PartialEmoji # type: ignore[import]
 from discord import Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
 from discord.abc import GuildChannel
+from discord.user import BaseUser
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
@@ -362,7 +363,7 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         return emoji in self.options
 
 
-    async def reactionAdded(self, emoji: lib.emojis.BasedEmoji, member: Union[Member, User]):
+    async def reactionAdded(self, emoji: lib.emojis.BasedEmoji, member: Union[Member, BaseUser]):
         """Invoke an option's behaviour when it is selected by a user.
         This method should be called during your discord client's on_reaction_add or on_raw_reaction_add event.
 
@@ -386,7 +387,7 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         return await self.options[emoji].add(member)
 
 
-    async def reactionRemoved(self, emoji: lib.emojis.BasedEmoji, member: Union[Member, User]):
+    async def reactionRemoved(self, emoji: lib.emojis.BasedEmoji, member: Union[Member, BaseUser]):
         """Invoke an option's behaviour when it is deselected by a user.
         This method should be called during your discord client's on_reaction_remove or on_raw_reaction_remove event.
 
@@ -731,7 +732,7 @@ def saveableMenu(cls: TMenuType) -> TMenuType:
         saveableMenuTypeNames[cls] = cls.__name__
     if cls.__name__ not in saveableNameMenuTypes:
         saveableNameMenuTypes[cls.__name__] = cls
-    return cls
+    return cast(TMenuType, cls)
 
 
 def isSaveableMenuClass(cls: Type[ReactionMenu]) -> bool:

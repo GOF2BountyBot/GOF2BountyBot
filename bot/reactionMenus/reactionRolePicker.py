@@ -49,8 +49,9 @@ async def markExpiredRoleMenu(menuID: int):
     :param int menuID: The message ID of the menu to expire
     """
     menu = botState.client.reactionMenusDB[menuID]
-    if botState.client.guildsDB.idExists(menu.msg.guild.id):
-        botState.client.guildsDB.getGuild(menu.msg.guild.id).ownedRoleMenus -= 1
+    if menu.msg.guild is not None:
+        if botState.client.guildsDB.idExists(menu.msg.guild.id):
+            botState.client.guildsDB.getGuild(menu.msg.guild.id).ownedRoleMenus -= 1
     await expiryFunctions.markExpiredMenu(menuID)
 
 

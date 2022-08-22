@@ -1,14 +1,14 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import Any, Coroutine, List, Optional, Dict, Tuple, Type, Union, cast, overload
+from typing import Any, Coroutine, List, Optional, Dict, Union, cast, overload
 from pathlib import Path
 import aiohttp
-import discord # type: ignore[import]
+import discord
 from discord import NotFound, User, app_commands, TextChannel
-from discord.ext.commands import Bot as ClientBaseClass # type: ignore[import]
-from discord.ext import tasks # type: ignore[import]
-from discord.utils import MISSING # type: ignore[import]
+from discord.ext.commands import Bot as ClientBaseClass
+from discord.ext import tasks
+from discord.utils import MISSING
 from datetime import datetime, timedelta
 
 from .interactions import accessLevels, commandChecks
@@ -143,6 +143,10 @@ class BasedClient(ClientBaseClass):
         self._skinStorageChannel: Optional[TextChannel] = None
         self._bountyRouteImagesChannel: Optional[TextChannel] = None
         self._mediaServersLoaded = False
+
+        self._githubRepo = None
+        self._githubClient = False
+        self._githubLoaded = False
 
 
     async def on_interaction(self, interaction: discord.Interaction):
@@ -479,6 +483,34 @@ class BasedClient(ClientBaseClass):
         return cast(timedTaskHeap.AutoCheckingTimedTaskHeap, self._taskScheduler)
 
 
+    @property
+    def githubClient(self):
+        """The bot's authenticated GitHub API client
+        Only available after on_ready.
+
+        :raises lib.exceptions.NotReady: client not loaded yet
+        :return: The bot's authenticated GitHub API client.
+        :rtype: Github
+        """
+        if not self._githubLoaded:
+            raise lib.exceptions.NotReady("GitHub client not yet loaded. BasedClient.githubClient is only available after on_ready.")
+        return cast(Github, self._githubClient)
+
+
+    @property
+    def githubRepo(self):
+        """The bot's authenticated GitHub repository API client
+        Only available after on_ready.
+
+        :raises lib.exceptions.NotReady: client not loaded yet
+        :return: The bot's authenticated GitHub repository API client.
+        :rtype: Repository
+        """
+        if not self._githubLoaded:
+            raise lib.exceptions.NotReady("GitHub repo not yet loaded. BasedClient.githubRepo is only available after on_ready.")
+        return cast(Repository, self._githubRepo)
+
+
     async def reloadDBs(self):
         """Save all savedata to file, and start the db saving task if it is not running.
         """
@@ -569,27 +601,34 @@ class BasedClient(ClientBaseClass):
 
     
     async def _asyncInit(self, dispatchReady: bool = True, *args, **kwargs):
-        ##### GAME OBJECTS LOADING #####
+        if not self._mediaServersLoaded:
+            mediaServer = self.get_guild(cfg.mediaServer)
+            if mediaServer is None:
+                raise ValueError(f"Unknown guild ID for cfg.mediaServer: {cfg.mediaServer}")
+
+            skinsChannel = mediaServer.get_channel(cfg.skinRendersChannel)
+            if skinsChannel is None:
+                raise ValueError(f"Unknown channel ID for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
+            if not isinstance(skinsChannel, TextChannel):
+                raise ValueError(f"Channel is not a TextChannel for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
+            self._skinStorageChannel = skinsChannel
+
+            routesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
+            if routesChannel is None:
+                raise ValueError(f"Unknown channel ID for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
+            if not isinstance(routesChannel, TextChannel):
+                raise ValueError(f"Channel is not a TextChannel for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
+            self._bountyRouteImagesChannel = routesChannel
+
+            self._mediaServersLoaded = True
+
+        if not self._githubLoaded:
+            self._githubClient = Github(cfg.githubAccessToken)
+            self._githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
+            self._githubLoaded = True
 
         gameConfigurator.loadAllGameObjectData()
         gameConfigurator.loadAllGameObjects()
-
-        mediaServer = self.get_guild(cfg.mediaServer)
-        if mediaServer is None:
-            raise ValueError(f"Unknown guild ID for cfg.mediaServer: {cfg.mediaServer}")
-        skinsChannel = mediaServer.get_channel(cfg.skinRendersChannel)
-        if skinsChannel is None:
-            raise ValueError(f"Unknown channel ID for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
-        if not isinstance(skinsChannel, TextChannel):
-            raise ValueError(f"Channel is not a TextChannel for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
-        self._skinStorageChannel = skinsChannel
-        routesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
-        if routesChannel is None:
-            raise ValueError(f"Unknown channel ID for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
-        if not isinstance(routesChannel, TextChannel):
-            raise ValueError(f"Channel is not a TextChannel for cfg.bbcRouteImageChannel: {cfg.bbcRouteImageChannel}")
-        self._bountyRouteImagesChannel = routesChannel
-        self._mediaServersLoaded = True
 
         if not self._schedulerLoaded:
             self._taskScheduler = timedTaskHeap.AutoCheckingTimedTaskHeap(asyncio.get_running_loop())

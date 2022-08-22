@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 from typing import Optional, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
+from datetime import datetime, timedelta
+from discord import Guild, Member
+from enum import Enum
+
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
 from ..baseClasses.serializable import SerializesToJson, JsonType
-
+from ..baseClasses.basedEnum import BasedEnum
 from ..cfg import cfg, bbData
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
 from ..gameObjects import kaamoShop, lomaShop
@@ -17,8 +21,6 @@ from ..gameObjects.items.modules import moduleItem
 from ..gameObjects.userProfile.medal import Medal
 from ..gameObjects.inventories import inventory, userInventory
 from ..userAlerts import userAlerts
-from datetime import datetime, timedelta
-from discord import Guild, Member # type: ignore[import]
 from ..users import basedGuild
 from .. import lib, botState
 from ..lib import gameMaths
@@ -59,6 +61,9 @@ defaultUserDict: JsonType = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBoun
 defaultUserValue = 28970
 
 TItem = TypeVar("TItem", bound=gameItem.GameItem)
+
+class OwnedMenuType(BasedEnum):
+    poll = "poll"
 
 
 class BasedUser(SerializesToJson):
@@ -117,8 +122,8 @@ class BasedUser(SerializesToJson):
     :vartype loma: Union[LomaShop, None]
     :var prestiges: The number of times the user has prestiged
     :vartype prestiges: int
-    :var ownedMenus: Sets of IDs for all menus that user owns, by string type IDs.
-    :vartype ownedMenus: Dict[str, MutableSet[int]]
+    :var ownedMenus: Sets of IDs for all menus that user owns, by IDs.
+    :vartype ownedMenus: Dict[OwnedMenuType, MutableSet[int]]
     :var medals: References to all medals awareded to this user
     :vartype medals: MutableSet[Medal]
     :var classicModeEnabled: Whether or not this user is set to use classic mode
@@ -139,7 +144,7 @@ class BasedUser(SerializesToJson):
                     duelCreditsLosses: int = 0, alerts: Dict[Union[Type[userAlerts.UABase], str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID: int = -1, guildTransferCooldownEnd: Optional[datetime] = None, prestiges: int = 0,
                     kaamo: Union[kaamoShop.KaamoShop, None] = None, loma: Union[lomaShop.LomaShop, None] = None,
-                    ownedMenus: Dict[str, MutableSet[int]] = {}, medals: Optional[MutableSet[Medal]] = None,
+                    ownedMenus: Dict[OwnedMenuType, MutableSet[int]] = {}, medals: Optional[MutableSet[Medal]] = None,
                     classicModeEnabled: bool = False, bountyHuntingXpSurplus: int = -1):
         """
         :param int id: The user's unique ID. The same as their unique discord ID.
@@ -181,8 +186,8 @@ class BasedUser(SerializesToJson):
                         this is None until the user first uses it. (default None)
         :type loma: Union[LomaShop, None]
         :param int prestiges: The number of times the user has prestiged (default 0)
-        :param ownedMenus: Sets of IDs for all menus that user owns, by string type IDs. (default {})
-        :type ownedMenus: Dict[str, MutableSet[int]]
+        :param ownedMenus: Sets of IDs for all menus that user owns, by IDs. (default {})
+        :type ownedMenus: Dict[OwnedMenuType, MutableSet[int]]
         :param MutableSet[Medal] medals: References to all medals awareded to this user (Default [])
         :param bool classicModeEnabled: Whether this user has classic mode enabled (Default False)
         :param int bountyHuntingXpSurplus: Extra experience to be awarded to the user when they choose to div-up (Default -1)
@@ -524,11 +529,11 @@ class BasedUser(SerializesToJson):
             data["ownedMenus"] = {}
             for menuTypeID in self.ownedMenus:
                 if self.ownedMenus[menuTypeID]:
-                    data["ownedMenus"][menuTypeID] = []
+                    data["ownedMenus"][menuTypeID.value] = []
                     for menuID in self.ownedMenus[menuTypeID]:
                         if menuID in botState.client.reactionMenusDB \
                                 and reactionMenu.isSaveableMenuInstance(botState.client.reactionMenusDB[menuID]):
-                            data["ownedMenus"][menuTypeID].append(menuID)
+                            data["ownedMenus"][menuTypeID.value].append(menuID)
         
         if self.medals:
             for m in [i for i in self.medals if i.name.lower() not in bbData.medalObjs]:
@@ -821,22 +826,22 @@ class BasedUser(SerializesToJson):
         raise ValueError(f"No inventory is stored for item type {type(item).__name__}")
 
 
-    def hasMenuOfTypeID(self, menuTypeID: str) -> bool:
+    def hasMenuOfTypeID(self, menuTypeID: OwnedMenuType) -> bool:
         """Decide whether the user owns a menu of the given menu type.
         The menu type is specified as a string type ID, e.g 'help'.
 
-        :param str menuTypeID: The ID of the menu type to look up
+        :param OwnedMenuType menuTypeID: The ID of the menu type to look up
         :return: True if the user has at least one menu with the given type ID, False otherwise
         :rtype: bool
         """
         return (menuTypeID in self.ownedMenus) and len(self.ownedMenus[menuTypeID]) != 0
 
 
-    def addOwnedMenu(self, menuTypeID: str, menu: reactionMenu.ReactionMenu):
+    def addOwnedMenu(self, menuTypeID: OwnedMenuType, menu: reactionMenu.ReactionMenu):
         """Add the given menu as 'owned' by the user. This does not prevent claiming by other users.
         The menu type is specified as a string type ID, e.g 'help'.
 
-        :param str menuTypeID: The ID of the menu type to register menu as
+        :param OwnedMenuType menuTypeID: The ID of the menu type to register menu as
         :param reactionMenu.ReactionMenu menu: The menu to register ownership for
         """
         if menuTypeID not in self.ownedMenus:
@@ -844,12 +849,12 @@ class BasedUser(SerializesToJson):
         self.ownedMenus[menuTypeID].add(menu.msg.id)
 
     
-    def removeAllOwnedMenusOfTypeID(self, menuTypeID: str) -> int:
+    def removeAllOwnedMenusOfTypeID(self, menuTypeID: OwnedMenuType) -> int:
         """Remove ownership of all menus of the given type ID.
         The number of menus removed is returned.
-        The menu type is specified as a string type ID, e.g 'help'.
+        The menu type is specified as an ID.
 
-        :param str menuTypeID: The ID of the menu type to clear ownership of
+        :param OwnedMenuType menuTypeID: The ID of the menu type to clear ownership of
         :return: The number of menus removed from this user's ownership, possibly zero
         :rtype: int
         """
@@ -860,17 +865,18 @@ class BasedUser(SerializesToJson):
         return menusOwned
 
 
-    def removeOwnedMenu(self, menuTypeID: str, menu: reactionMenu.ReactionMenu):
+    def removeOwnedMenu(self, menuTypeID: Union[str, OwnedMenuType], menu: reactionMenu.ReactionMenu):
         """Remove the given menu as 'owned' by the user.
-        The menu type is specified as a string type ID, e.g 'help'.
+        The menu type is specified as a type ID.
 
-        :param str menuTypeID: The ID of the menu type to unregister menu as
+        :param OwnedMenuType menuTypeID: The ID of the menu type to unregister menu as
         :param reactionMenu.ReactionMenu menu: The menu to unregister ownership for
         """
+        if isinstance(menuTypeID, str): menuTypeID = OwnedMenuType(menuTypeID)
         if menuTypeID not in self.ownedMenus:
             raise KeyError(f"No menus owned with type ID '{menuTypeID}'")
         if menu.msg.id not in self.ownedMenus[menuTypeID]:
-            raise ValueError(f"{type(menu).__name__} #{menu.msg.id} not registered to this user as '{menuTypeID}'")
+            raise ValueError(f"{type(menu).__name__} #{menu.msg.id} not registered to this user as '{menuTypeID.value}'")
         self.ownedMenus[menuTypeID].remove(menu.msg.id)
         if not self.ownedMenus[menuTypeID]:
             del self.ownedMenus[menuTypeID]
@@ -971,10 +977,12 @@ class BasedUser(SerializesToJson):
         serializedOwnedMenus = cast(Dict[str, List[int]], userDict["ownedMenus"])
         ownedMenus = {}
         if "ownedMenus" in userDict:
-            for menuType in serializedOwnedMenus:
-                ownedMenus[menuType] = []
-                for menuID in serializedOwnedMenus[menuType]:
-                    ownedMenus[menuType].append(menuID)
+            for _menuType in serializedOwnedMenus:
+                if OwnedMenuType.hasValue(_menuType):
+                    menuType = OwnedMenuType(_menuType)
+                    ownedMenus[menuType] = [menuID for menuID in serializedOwnedMenus[_menuType]]
+                else:
+                    print(f"WARN: Skipping unrecognised owned menu type ID '{_menuType}' for user {userID}")
         
         medals = set()
         if "medals" in userDict and userDict["medals"]:

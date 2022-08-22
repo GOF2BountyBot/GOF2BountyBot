@@ -35,8 +35,8 @@ class UserMiscCog(basedApp.BasedCog):
                             value="[Discord.py " + discord.__version__ + "](https://github.com/Rapptz/discord.py/)")
         srcEmbed.add_field(name="BASED",
                                 value=f"[BASED {getBASEDVersion().BASED_version}]({BASED_REPO_URL})")
-        srcEmbed.add_field(name="GitHub",
-                            value="Please ask the bot developer to post their GitHub repository here!")
+        srcEmbed.add_field(name="Source Code",
+                            value=f"[GitHub]({self.bot.githubRepo.html_url})")
         srcEmbed.add_field(name="Invite",
                             value="Please ask the bot developer to post the bot's invite link here!")
         await interaction.response.send_message(embed=srcEmbed)

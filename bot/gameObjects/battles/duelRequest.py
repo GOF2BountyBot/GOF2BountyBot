@@ -189,7 +189,7 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
               (player2, ship2, cfg.duelResultsP2Pos, cfg.duelResultsP2StatsPos, cfg.duelResultsP2ShipPos, "ship2"))
     for player, ship, iconPos, statsPos, shipPos, shipKey in params:
         if isinstance(player, basedUser.BasedUser):
-            dcUser: User = botState.client.get_user(player.id) or await botState.client.tryFetchUser(player.id)
+            dcUser = botState.client.get_user(player.id) or await botState.client.tryFetchUser(player.id)
             if dcUser is None:
                 raise ValueError(f"Failed to find discord User for BasedUser {player}")
 

@@ -160,7 +160,7 @@ async def err_tempDisabled(message: discord.Message, args: str, isDM: bool):
     :param str args: ignored
     :param bool isDM: ignored
     """
-    await message.reply(":x: All bounty/shop behaviour is currently disabled while I work on new features \:)",
+    await message.reply(":x: All bounty/shop behaviour is currently disabled while I work on new features \\:)",
                         mention_author=False)
 
 
@@ -172,7 +172,7 @@ async def err_tempPerfDisabled(message: discord.Message, args: str, isDM: bool):
     :param bool isDM: ignored
     """
     await message.reply(":x: This command has been temporarily disabled as it requires too much processing power. " \
-                                + "It may return in the future once hosting hardware has been upgraded! \:)",
+                                + "It may return in the future once hosting hardware has been upgraded! \\:)",
                         mention_author=False)
 
 
@@ -368,7 +368,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
         # Get rich, useable reaction data
         _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
-        if None in [user, emoji]:
+        if user is None or emoji is None:
             return
 
         # If the message reacted to is a reaction menu
@@ -394,7 +394,7 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     if payload.user_id != botState.client.user.id: # type: ignore[reportOptionalMemberAccess] 
         # Get rich, useable reaction data
         _, user, emoji = await lib.discordUtil.reactionFromRaw(payload)
-        if None in [user, emoji]:
+        if user is None or emoji is None:
             return
 
         # If the message reacted to is a reaction menu

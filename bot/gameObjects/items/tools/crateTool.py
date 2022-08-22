@@ -270,6 +270,21 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
 
 
     @classmethod
+    def crateTypeExists(cls, crateType: str) -> bool:
+        """Decide whether a crateType exists.
+        """
+        return crateType in bbData.builtInCrateObjs
+
+
+    @classmethod
+    def crateTypeNumExists(cls, crateType: str, typeNum: int) -> bool:
+        """Decide whether a typeNum exists for a given crateType.
+        crateType must exist (see `crateTypeExists`)
+        """
+        return typeNum >= 0 and typeNum < len(bbData.builtInCrateObjs[crateType])
+
+
+    @classmethod
     def deserialize(cls, crateDict: dict, **kwargs) -> CrateTool:
         """Deserialize a CrateTool instance from its dictionary representation.
 
@@ -281,20 +296,18 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
 
         if "builtIn" in crateDict and crateDict["builtIn"]:
             if "crateType" in crateDict:
-                if crateDict["crateType"] in bbData.builtInCrateObjs:
-                    return bbData.builtInCrateObjs[crateDict["crateType"]][crateDict["typeNum"]]
-                else:
-                    raise ValueError("Unknown crateType: " + str(crateDict["crateType"]))
-            else:
-                raise ValueError("Attempted to spawn builtIn CrateTool with no given crateType")
-        else:
-            crateToSpawn = crateDict
+                if cls.crateTypeExists(crateDict["crateType"]):
+                    if cls.crateTypeNumExists(crateDict["crateType"], crateDict["typeNum"]):
+                        return bbData.builtInCrateObjs[crateDict["crateType"]][crateDict["typeNum"]]
+                    raise KeyError(f"typeNum {crateDict['typeNum']} does not exist for crateType {crateDict['crateType']}")
+                raise KeyError("Unknown crateType: " + str(crateDict["crateType"]))
+            raise ValueError("Attempted to spawn builtIn CrateTool with no given crateType")
 
         itemPool = []
         singleType: Optional[Type[gameItem.GameItem]] = None
         allSingleType = True
-        if "itemPool" in crateToSpawn:
-            for itemDict in crateToSpawn["itemPool"]:
+        if "itemPool" in crateDict:
+            for itemDict in crateDict["itemPool"]:
                 errorStr = ""
                 errorType = ""
                 if "type" not in itemDict:

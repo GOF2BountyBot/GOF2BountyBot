@@ -177,23 +177,15 @@ class DevMedalsCog(basedApp.BasedCog):
     async def dev_cmd_give_medal(self, interaction: Interaction, medal_name: str, user_id: str = ""):
         """Developer command adding a medal to a user's profile
         """
-        requestedBUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
-        if invalid:
-            await interaction.response.send_message(":x: Invalid user id", ephemeral=True)
-            return
-        requestedUser = self.bot.get_user(int(user_id)) or await self.bot.tryFetchUser(int(user_id))
+        requestedBUser, _, _, _ = await self.UsersUtilCog.getOrCreateBasedUserOrAuthor(interaction, user_id)
+        if requestedBUser is None: return
 
-        if requestedBUser is None:
-            if requestedUser is None:
-                await interaction.response.send_message(":x: Unknown user. Make sure we share a server.", ephemeral=True)
-                return
-            requestedBUser = self.bot.usersDB.addID(requestedUser.id)
+        dcUser = self.bot.get_user(requestedBUser.id) or await self.bot.tryFetchUser(requestedBUser.id)
+        userMention = "<unknown user>" if dcUser is None else dcUser.mention
 
         if medal_name not in bbData.medalObjs:
             await interaction.response.send_message(f":x: Unknown medal: '{medal_name}'", ephemeral=True)
             return
-
-        userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
         medal: Medal = bbData.medalObjs[medal_name]
         if medal in requestedBUser.medals:
@@ -213,23 +205,16 @@ class DevMedalsCog(basedApp.BasedCog):
     async def dev_cmd_take_medal(self, interaction: Interaction, medal_name: str, user_id: str = ""):
         """Developer command removing a medal from a user's profile
         """
-        requestedBUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
-        if invalid:
-            await interaction.response.send_message(":x: Invalid user id", ephemeral=True)
-            return
+        requestedBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
+        if requestedBUser is None: return
+        
         requestedUser = self.bot.get_user(int(user_id)) or await self.bot.tryFetchUser(int(user_id))
-
-        if requestedBUser is None:
-            if requestedUser is None:
-                await interaction.response.send_message(":x: Unknown user. Make sure we share a server.", ephemeral=True)
-                return
-            requestedBUser = self.bot.usersDB.addID(requestedUser.id)
+        userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
         if medal_name not in bbData.medalObjs:
             await interaction.response.send_message(f":x: Unknown medal: '{medal_name}'", ephemeral=True)
             return
 
-        userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
         medal: Medal = bbData.medalObjs[medal_name]
         if medal not in requestedBUser.medals:
             await interaction.response.send_message(f":x: {userMention} already does not have the {medal.name} medal.", ephemeral=True)

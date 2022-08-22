@@ -3,7 +3,7 @@ import discord
 import time
 from datetime import timedelta
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from . import util_help
 from .. import botState, lib
 from ..cfg import cfg
@@ -45,7 +45,7 @@ async def admin_cmd_showmeHD(message: discord.Message, args: str, isDM: bool):
     await util_autoskin.doAutoSkin(message, rendererArgs, shipName, "HD")
 
 
-botCommands.register("showmehd", admin_cmd_showmeHD, 2, allowDM=True, signatureStr="**showmeHD <ship-name>** *[-full]*",
+textCommandsDB.register("showmehd", admin_cmd_showmeHD, 2, allowDM=True, signatureStr="**showmeHD <ship-name>** *[-full]*",
                         shortHelp="Render your specified ship with the given skin, in full HD 1080p! " \
                                     + "⚠ WARNING: THIS WILL TAKE A LONG TIME.",
                         longHelp="You must attach a 2048x2048 jpg to your message. Render your specified ship with the " \

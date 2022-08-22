@@ -12,10 +12,11 @@ from .items.modules import moduleItem
 from .items.tools import toolItem, toolItemFactory
 from .. import botState
 from .inventories import inventory
+from .inventories.inventoryListing import InventoryListing
 from ..logging import LogCategory
 
 
-class KaamoShop(guildShop.GuildShop):
+class KaamoShop(guildShop.ShopBase[InventoryListing]):
     """A "shop" where all transactions are free, essentially operating an item storage service.
     KaamoShops have a maximum capacity defined in cfg. Items equipped onto ships count towards this cap.
     """
@@ -33,8 +34,11 @@ class KaamoShop(guildShop.GuildShop):
         :param Inventory toolsStock: The shop's current stock of tools (Default empty Inventory)
         """
 
-        super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock, turretsStock=turretsStock,
-                            toolsStock=toolsStock)
+        super().__init__(shipsStock=shipsStock or inventory.Inventory(shipItem.Ship),
+                            weaponsStock=weaponsStock or inventory.Inventory(primaryWeapon.PrimaryWeapon),
+                            modulesStock=modulesStock or inventory.Inventory(moduleItem.ModuleItem),
+                            turretsStock=turretsStock or inventory.Inventory(turretWeapon.TurretWeapon),
+                            toolsStock=toolsStock or inventory.Inventory(toolItem.ToolItem))
         self.totalItems = self.weaponsStock.totalItems + self.modulesStock.totalItems + self.turretsStock.totalItems \
                             + self.toolsStock.totalItems
         for ship in self.shipsStock.items:
@@ -305,35 +309,6 @@ class KaamoShop(guildShop.GuildShop):
         self.userSellToolObj(user, user.inactiveTools.itemAtIndex(index))
 
 
-
-
-    def serialize(self, **kwargs) -> dict:
-        """Get a dictionary containing all information needed to reconstruct this shop instance.
-        This includes maximum item counts and current stocks.
-        :return: A dictionary containing all information needed to reconstruct this shop object
-        :rtype: dict
-        """
-        if "saveType" not in kwargs or not kwargs["saveType"]:
-            kwargs["saveType"] = True
-
-        data = {}
-        for invType in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
-            stockDict = []
-            currentStock = self.getStock(invType)
-
-            for currentItem in currentStock.keys:
-                if currentItem in currentStock.items:
-                    stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
-                else:
-                    botState.client.logger.log("kaamoShop", "serialize",
-                                        f"Failed to save invalid {invType.value} key '{currentItem}' - not found in items dict",
-                                        category=LogCategory.shop, eventType="UNKWN_KEY")
-
-            data[invType.value + "sStock"] = stockDict
-
-        return data
-
-
     @classmethod
     def deserialize(cls, shopDict: dict, **kwargs) -> KaamoShop:
         """Recreate a bbShop instance from its dictionary-serialized representation - the opposite of bbShop.serialize
@@ -342,23 +317,5 @@ class KaamoShop(guildShop.GuildShop):
         :return: A new bbShop object as described by shopDict
         :rtype: bbShop
         """
-        shipsStock = inventory.Inventory(shipItem.Ship)
-        weaponsStock = inventory.Inventory(primaryWeapon.PrimaryWeapon)
-        modulesStock = inventory.Inventory(moduleItem.ModuleItem)
-        turretsStock = inventory.Inventory(turretWeapon.TurretWeapon)
-        toolsStock = inventory.Inventory(toolItem.ToolItem)
-
-        for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship),
-                                        ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon),
-                                        ("modulesStock", modulesStock, moduleItemFactory.ModuleItemFactory),
-                                        ("turretsStock", turretsStock, turretWeapon.TurretWeapon),
-                                        ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
-            if key in shopDict:
-                for listingDict in shopDict[key]:
-                    # I can't find a way to show pyright that the types from the for loop params tuple match
-                    stock.addItem(deserializer.deserialize(listingDict["item"]), # type: ignore[reportGeneralTypeIssues]
-                                    quantity=listingDict["count"])
-
-        return KaamoShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
-                                turretsStock=turretsStock, toolsStock=toolsStock)
+        return super().deserialize(shopDict)
                                 

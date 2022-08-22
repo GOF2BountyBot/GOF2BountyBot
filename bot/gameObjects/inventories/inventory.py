@@ -6,7 +6,7 @@ from ..items import gameItem
 from ..itemDiscount import ItemDiscount
 
 TListingType = TypeVar("TListingType", bound="inventoryListing.InventoryListing")
-TItemType = TypeVar("TItemType", bound="gameItem.GameItem",)
+TItemType = TypeVar("TItemType", bound="gameItem.GameItem")
 TSelf = TypeVar("TSelf", bound="_InventoryBase")
 
 

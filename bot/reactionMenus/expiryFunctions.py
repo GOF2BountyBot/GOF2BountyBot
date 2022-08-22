@@ -1,6 +1,11 @@
+from typing import TYPE_CHECKING, cast
+if TYPE_CHECKING:
+    from . import pagedReactionMenu
+
 from .. import botState
-from discord import NotFound, HTTPException, Forbidden # type: ignore[import]
+from discord import ClientUser, NotFound, HTTPException, Forbidden # type: ignore[import]
 from ..cfg import cfg
+
 
 
 async def deleteReactionMenu(menuID: int):
@@ -26,9 +31,9 @@ async def removeEmbedAndOptions(menuID: int):
     if menuID in botState.client.reactionMenusDB:
         menu = botState.client.reactionMenusDB[menuID]
         await menu.msg.edit(suppress=True)
-
+        
         for react in menu.options:
-            await menu.msg.remove_reaction(react.sendable, menu.msg.guild.me)
+            await menu.msg.remove_reaction(react.sendable, cast(ClientUser, botState.client.user))
 
         del botState.client.reactionMenusDB[menu.msg.id]
 
@@ -61,7 +66,7 @@ async def markExpiredMenuAndRemoveOptions(menuID: int):
     except Forbidden:
         for reaction in menu.msg.reactions:
             try:
-                await reaction.remove(botState.client.user)
+                await reaction.remove(cast(ClientUser, botState.client.user))
             except (HTTPException, NotFound):
                 pass
 
@@ -72,6 +77,7 @@ async def expireHelpMenu(menuID: int):
     """Expire a reaction help menu, and mark it so in the discord message.
     Unregister the menu as owned by the owning user, allowing them to make more help menus.
     """
-    menu = botState.client.reactionMenusDB[menuID]
-    menu.owningBasedUser.removeOwnedMenu("help", menu)
+    menu = cast(pagedReactionMenu.PagedReactionMenu, botState.client.reactionMenusDB[menuID])
+    if menu.owningBasedUser is not None:
+        menu.owningBasedUser.removeOwnedMenu("help", menu)
     await markExpiredMenuAndRemoveOptions(menuID)

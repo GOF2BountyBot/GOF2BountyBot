@@ -1,6 +1,10 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Type, TypeVar, Union, cast
+
+from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
+from abc import abstractmethod
+import random
+
 if TYPE_CHECKING:
     from ..users import basedUser
 
@@ -12,12 +16,13 @@ from .items.weapons.turretWeapon import TurretWeapon
 from .items import moduleItemFactory, gameItem
 from .items.modules import moduleItem
 from .items.tools import toolItem, toolItemFactory
-from .inventories.inventory import Inventory, _InventoryBase, TListingType
-import random
+from .inventories.inventory import Inventory, _InventoryBase
+from .inventories.inventoryListing import InventoryListing
 from .. import botState
 from ..lib import gameMaths
 from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import JsonType
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
 StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)
@@ -29,7 +34,11 @@ itemCategoriesStoredItemTypes = {
     ItemCategory.tool: toolItem.ToolItem
 }
 
-class GuildShop(Serializable):
+TListingType = TypeVar("TListingType", bound="InventoryListing")
+TItemType = TypeVar("TItemType", bound=StoredItemType)
+TSelf = TypeVar("TSelf", bound="ShopBase")
+
+class ShopBase(Serializable, Generic[TListingType]):
     """A shop containing a selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
 
@@ -45,23 +54,23 @@ class GuildShop(Serializable):
     :vartype toolsStock: inventory
     """
 
-    def __init__(self, shipsStock: Optional[_InventoryBase[TListingType, Ship]] = None,
-                    weaponsStock: Optional[_InventoryBase[TListingType, PrimaryWeapon]] = None,
-                    modulesStock: Optional[_InventoryBase[TListingType, moduleItem.ModuleItem]] = None,
-                    turretsStock: Optional[_InventoryBase[TListingType, TurretWeapon]] = None,
-                    toolsStock: Optional[_InventoryBase[TListingType, toolItem.ToolItem]] = None):
+    def __init__(self, shipsStock: _InventoryBase[TListingType, Ship],
+                    weaponsStock: _InventoryBase[TListingType, PrimaryWeapon],
+                    modulesStock: _InventoryBase[TListingType, moduleItem.ModuleItem],
+                    turretsStock: _InventoryBase[TListingType, TurretWeapon],
+                    toolsStock: _InventoryBase[TListingType, toolItem.ToolItem]):
         """
-        :param Inventory shipsStock: The shop's current stock of ships (Default empty Inventory)
-        :param Inventory weaponsStock: The shop's current stock of weapons (Default empty Inventory)
-        :param Inventory modulesStock: The shop's current stock of modules (Default empty Inventory)
-        :param Inventory turretsStock: The shop's current stock of turrets (Default empty Inventory)
-        :param Inventory toolsStock: The shop's current stock of tools (Default empty Inventory)
+        :param Inventory shipsStock: The shop's current stock of ships
+        :param Inventory weaponsStock: The shop's current stock of weapons
+        :param Inventory modulesStock: The shop's current stock of modules
+        :param Inventory turretsStock: The shop's current stock of turrets
+        :param Inventory toolsStock: The shop's current stock of tools
         """
-        self.shipsStock = shipsStock or Inventory(Ship)
-        self.weaponsStock = weaponsStock or Inventory(PrimaryWeapon)
-        self.modulesStock = modulesStock or Inventory(moduleItem.ModuleItem)
-        self.turretsStock = turretsStock or Inventory(TurretWeapon)
-        self.toolsStock = toolsStock or Inventory(toolItem.ToolItem)
+        self.shipsStock = shipsStock
+        self.weaponsStock = weaponsStock
+        self.modulesStock = modulesStock
+        self.turretsStock = turretsStock
+        self.toolsStock = toolsStock
 
 
     def isEmpty(self) -> bool:
@@ -73,7 +82,7 @@ class GuildShop(Serializable):
             (self.shipsStock, self.weaponsStock, self.modulesStock, self.turretsStock, self.toolsStock))
 
 
-    def getStockByType(self, itemType: Type[StoredItemType]) -> _InventoryBase:
+    def getStockByType(self, itemType: Type[TItemType]) -> _InventoryBase[TListingType, TItemType]:
         """Get the inventory containing all current stock of the given type.
         This object is mutable and can alter the stock of the shop.
 
@@ -82,21 +91,23 @@ class GuildShop(Serializable):
         :rtype: inventory
         :raise KeyError: When requesting an unknown item type
         """
-        if itemType == Ship:
-            return self.shipsStock
-        elif itemType == PrimaryWeapon:
-            return self.weaponsStock
-        elif itemType == moduleItem.ModuleItem:
-            return self.modulesStock
-        elif itemType == TurretWeapon:
-            return self.turretsStock
-        elif itemType == toolItem.ToolItem:
-            return self.toolsStock
+        # TODO: The type hints in this method behave as they should, but pyright doesn't like these lines - it thinks they don't respect
+        # the generic. Find out how to do this properly
+        if itemType is Ship:
+            return cast(_InventoryBase[TListingType, TItemType], self.shipsStock)
+        elif itemType is PrimaryWeapon:
+            return cast(_InventoryBase[TListingType, TItemType], self.weaponsStock)
+        elif itemType is moduleItem.ModuleItem:
+            return cast(_InventoryBase[TListingType, TItemType], self.modulesStock)
+        elif itemType is TurretWeapon:
+            return cast(_InventoryBase[TListingType, TItemType], self.turretsStock)
+        elif itemType is toolItem.ToolItem:
+            return cast(_InventoryBase[TListingType, TItemType], self.toolsStock)
         else:
             raise KeyError(f"Unknown item type: {itemType.__name__}")
 
 
-    def getStock(self, item: ItemCategory) -> _InventoryBase:
+    def getStock(self, item: ItemCategory) -> _InventoryBase[TListingType, StoredItemType]:
         """Get the inventory containing all current stock of the named type.
         This object is mutable and can alter the stock of the shop.
 
@@ -105,16 +116,18 @@ class GuildShop(Serializable):
         :rtype: inventory
         :raise ValueError: When requesting an unknown item type
         """
+        # TODO: The type hints in this method behave as they should, but pyright doesn't like these lines - it seems to think that
+        # the item types are incompatible with StoredItemType?
         if item is ItemCategory.ship:
-            return self.shipsStock
+            return cast(_InventoryBase[TListingType, StoredItemType], self.shipsStock)
         if item is ItemCategory.weapon:
-            return self.weaponsStock
+            return cast(_InventoryBase[TListingType, StoredItemType], self.weaponsStock)
         if item is ItemCategory.module:
-            return self.modulesStock
+            return cast(_InventoryBase[TListingType, StoredItemType], self.modulesStock)
         if item is ItemCategory.turret:
-            return self.turretsStock
+            return cast(_InventoryBase[TListingType, StoredItemType], self.turretsStock)
         if item is ItemCategory.tool:
-            return self.toolsStock
+            return cast(_InventoryBase[TListingType, StoredItemType], self.toolsStock)
         else:
             raise ValueError("unrecognised item type: " + item)
 
@@ -490,7 +503,7 @@ class GuildShop(Serializable):
                 if currentItem in currentStock.items:
                     stockDict.append(currentStock.items[currentItem].serialize(**kwargs))
                 else:
-                    botState.client.logger.log("bbShp", "serialize",
+                    botState.client.logger.log(type(self).__name__, ShopBase.serialize.__name__,
                                 "Failed to save invalid " + invType.value + " key '" + str(currentItem) \
                                     + "' - not found in items dict",
                                 category=LogCategory.shop, eventType="UNKWN_KEY")
@@ -500,9 +513,12 @@ class GuildShop(Serializable):
         return data
 
 
+    @abstractmethod
     @classmethod
-    def deserialize(cls, shopDict: dict, **kwargs) -> GuildShop:
+    def deserialize(cls: Type[TSelf], shopDict: JsonType, **kwargs) -> TSelf:
         """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.serialize
+        A default implementation is provided here, to load plain old Inventory objects.
+        For inventories with a different listing type, you could copy paste this with your new listing type.
 
         :param dict shopDict: A dictionary containing all information needed to construct the shop
         :return: A new guildShop object as described by shopDict
@@ -520,19 +536,19 @@ class GuildShop(Serializable):
                                         ("turretsStock", turretsStock, TurretWeapon),
                                         ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
             if key in shopDict:
-                for listingDict in shopDict[key]:
+                for listingDict in cast(List[JsonType], shopDict[key]):
                     # I can't find a way to convince pyright that each tuple in the the params only contains matching types,
                     # Even if I cast the items in the tuple!
-                    stock.addItem(deserializer.deserialize(listingDict["item"]), # type: ignore[reportGeneralTypeIssues]
-                                    quantity=listingDict["count"])
+                    stock.addItem(deserializer.deserialize(listingDict["item"], **kwargs), # type: ignore[reportGeneralTypeIssues]
+                                    quantity=cast(int, listingDict["count"]))
 
-        return GuildShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
+        return cls(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
 
 #endregion
 
 
-class TechLeveledShop(GuildShop):
+class TechLeveledShop(ShopBase[InventoryListing]):
     """A shop containing a random selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
     Shops are assigned a random tech level, which influences ths stock generated.
@@ -545,8 +561,8 @@ class TechLeveledShop(GuildShop):
     :vartype maxLevel: int
     """
 
-    def __init__(self, minLevel: int, maxLevel: int, shipsStock: Optional[Inventory] = None, weaponsStock: Optional[Inventory] = None,
-                    modulesStock: Optional[Inventory] = None, turretsStock: Optional[Inventory] = None, toolsStock: Optional[Inventory] = None,
+    def __init__(self, minLevel: int, maxLevel: int, shipsStock: Optional[Inventory[Ship]] = None, weaponsStock: Optional[Inventory[PrimaryWeapon]] = None,
+                    modulesStock: Optional[Inventory[moduleItem.ModuleItem]] = None, turretsStock: Optional[Inventory[TurretWeapon]] = None, toolsStock: Optional[Inventory[toolItem.ToolItem]] = None,
                     currentTechLevel: Optional[int] = None, noRefresh: bool = False):
         """
         :param int currentTechLevel: The current tech level of the shop, influencing the tech levels of the stock generated
@@ -560,8 +576,11 @@ class TechLeveledShop(GuildShop):
         :param inventory toolsStock: The shop's current stock of tools (Default empty inventory)
         :param bool noRefresh: If the shop is empty on creation, it will be restocked unless noRefresh is True (Default False)
         """
-        super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
-                            turretsStock=turretsStock, toolsStock=toolsStock)
+        super().__init__(shipsStock=shipsStock or Inventory(Ship),
+                        weaponsStock=weaponsStock or Inventory(PrimaryWeapon),
+                        modulesStock=modulesStock or Inventory(moduleItem.ModuleItem),
+                        turretsStock=turretsStock or Inventory(TurretWeapon),
+                        toolsStock=toolsStock or Inventory(toolItem.ToolItem))
 
         if maxLevel > cfg.maxTechLevel:
             raise ValueError(f"Attempted to create a shop with a max tech level above cfg.maxTechLevel: {maxLevel}")

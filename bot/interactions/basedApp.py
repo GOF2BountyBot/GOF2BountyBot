@@ -241,7 +241,7 @@ class BasedCog(Cog):
             basedApp(func, BasedAppType.StaticComponent)
             setattr(func, "__static_component_meta__", basedComponent.StaticComponentCallbackMeta(func, ID, cbSelf))
 
-            return func
+            return cast(TStaticComponentCallback, func)
 
         return decorator
 

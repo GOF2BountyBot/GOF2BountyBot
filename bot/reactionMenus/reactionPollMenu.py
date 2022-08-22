@@ -21,13 +21,14 @@ async def printAndExpirePollResults(msgID: int):
 
     :param int msgID: The id of the discord message containing the menu to expire
     """
-    menu: ReactionPollMenu = botState.client.reactionMenusDB[msgID]
+    menu = botState.client.reactionMenusDB[msgID]
+    if not isinstance(menu, ReactionPollMenu): return
     menuMsg: Message = await menu.msg.channel.fetch_message(menu.msg.id)
     results = {}
 
     if menu.owningBBUser is not None:
         try:
-            menu.owningBBUser.removeOwnedMenu("poll", menu)
+            menu.owningBBUser.removeOwnedMenu(basedUser.OwnedMenuType.poll, menu)
         except KeyError:
             pass
 

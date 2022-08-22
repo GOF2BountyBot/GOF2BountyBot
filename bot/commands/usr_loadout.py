@@ -1,7 +1,7 @@
 from typing import cast
 import discord
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from .. import lib, botState
 from ..cfg import cfg, bbData
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
@@ -10,7 +10,7 @@ from ..gameObjects.items import shipItem, gameItem
 from ..gameObjects.inventories import inventory
 
 
-botCommands.addHelpSection(0, "loadout")
+textCommandsDB.addHelpSection(0, "loadout")
 
 
 async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
@@ -252,11 +252,11 @@ async def cmd_hangar(message: discord.Message, args: str, isDM: bool):
             await message.reply(mention_author=False, content=":x: I can't DM you, " + message.author.display_name \
                                         + "! Please enable DMs from users who are not friends.")
 
-botCommands.register("hangar", cmd_hangar, 0, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("hangar", cmd_hangar, 0, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
                     helpSection="loadout", signatureStr="**hangar** *[item-type]* *[page-number]*",
                     longHelp="Display the items stored in your hangar. Give an item type (ship/weapon/turret/module) to " \
                                 + "only list items of that type.")
-botCommands.register("hangar", cmd_hangar, 2, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("hangar", cmd_hangar, 2, aliases=["hanger"], forceKeepArgsCasing=True, allowDM=True,
                     signatureStr="**hangar** *[item-type]* *[page-number]* *[user]*", shortHelp="Administrators have permission to view " \
                                     + "the hangars of other users.", longHelp="Display the items stored in your hangar. " \
                                     + "Give an item type (ship/weapon/turret/module) to only list items of that type.\n" \
@@ -359,7 +359,7 @@ async def cmd_loadout(message: discord.Message, args: str, isDM: bool):
 
         await message.reply(mention_author=False, embed=loadoutEmbed)
 
-botCommands.register("loadout", cmd_loadout, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="loadout",
+textCommandsDB.register("loadout", cmd_loadout, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="loadout",
                     signatureStr="**loadout** *[user]*",
                     shortHelp="Display your current ship and the items equipped onto it, " \
                                 + "or those equipped by another player.")
@@ -577,7 +577,7 @@ async def cmd_equip(message: discord.Message, args: str, isDM: bool):
         else:
             raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
-botCommands.register("equip", cmd_equip, 0, allowDM=True, helpSection="loadout",
+textCommandsDB.register("equip", cmd_equip, 0, allowDM=True, helpSection="loadout",
                     signatureStr="**equip <item-type> <item-num>** *[transfer]*",
                     shortHelp="Equip the requested item from your hangar onto your active ship. " \
                                 + "Item numbers can be gotten from `hangar`.",
@@ -701,7 +701,7 @@ async def cmd_unequip(message: discord.Message, args: str, isDM: bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
-botCommands.register("unequip", cmd_unequip, 0, allowDM=True, helpSection="loadout",
+textCommandsDB.register("unequip", cmd_unequip, 0, allowDM=True, helpSection="loadout",
                     signatureStr="**unequip <item-type> <item-num>**",
                     shortHelp="Move an item from your active ship to your hangar. Item numbers can be gotten from `loadout`.",
                     longHelp="Unequip the requested item from your active ship, into your hangar. Item numbers are shown " \
@@ -736,7 +736,7 @@ async def cmd_nameship(message: discord.Message, args: str, isDM: bool):
     requestedBBUser.activeShip.changeNickname(args)
     await message.reply(mention_author=False, content=":pencil: You named your " + requestedBBUser.activeShip.name + ": **" + args + "**.")
 
-botCommands.register("nameship", cmd_nameship, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="loadout",
+textCommandsDB.register("nameship", cmd_nameship, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="loadout",
                     signatureStr="**nameShip <nickname>**", shortHelp="Give your active ship a nickname!",
                     longHelp="Give your active ship a nickname! The character limit for ship nicknames is 30.")
 
@@ -764,5 +764,5 @@ async def cmd_unnameship(message: discord.Message, args: str, isDM: bool):
     requestedBBUser.activeShip.removeNickname()
     await message.reply(mention_author=False, content=":pencil: You reset your **" + requestedBBUser.activeShip.name + "**'s nickname.")
 
-botCommands.register("unnameship", cmd_unnameship, 0, allowDM=True, helpSection="loadout", signatureStr="**unnameShip**",
+textCommandsDB.register("unnameship", cmd_unnameship, 0, allowDM=True, helpSection="loadout", signatureStr="**unnameShip**",
                     shortHelp="Reset your active ship's nickname.")

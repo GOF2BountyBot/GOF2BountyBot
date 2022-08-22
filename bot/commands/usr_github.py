@@ -1,7 +1,7 @@
 from typing import Dict, List, Union, cast
 import discord
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from .. import botState, lib
 from ..lib.discordUtil import asyncWrap
 from ..cfg import cfg
@@ -16,7 +16,7 @@ import re
 from urllib.parse import quote_plus
 
 
-botCommands.addHelpSection(0, "github")
+textCommandsDB.addHelpSection(0, "github")
 
 
 ISSUE_TEMPLATE_NAME_SEARCH = re.compile("name: ")
@@ -114,7 +114,7 @@ async def cmd_issue_search(message: discord.Message, args: str, isDM: bool):
     await message.reply(embed=resultsEmbed)
     await lib.discordUtil.endLongProcess(message)
 
-botCommands.register("issue search", cmd_issue_search, 0, forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("issue search", cmd_issue_search, 0, forceKeepArgsCasing=True, allowDM=True,
                         aliases=["bug search", "issues search", "git search", "github search", "feature search"],
                         helpSection="github", signatureStr="**issue search <issue-name>**",
                         shortHelp="Search for GitHub issues with the given name, getting the " \
@@ -163,7 +163,7 @@ async def cmd_issue_get(message: discord.Message, args: str, isDM: bool):
     await message.reply(embed=resultsEmbed)
     await lib.discordUtil.endLongProcess(message)
 
-botCommands.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("issue get", cmd_issue_get, 0, forceKeepArgsCasing=True, allowDM=True,
                         aliases=["bug get", "issues get", "git get", "github get", "feature get"],
                         helpSection="github", signatureStr="**issue get <issue-number>**",
                         shortHelp="Get the GitHub issue with the given number.")
@@ -243,7 +243,7 @@ async def cmd_issue(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False,
                             content=f":x: Unknown subcommand! See `{prefix}help issue` for possible commands.")
 
-botCommands.register("issue", cmd_issue, 0, allowDM=True, helpSection="github", signatureStr="**issue <subcommand> <args>**",
+textCommandsDB.register("issue", cmd_issue, 0, allowDM=True, helpSection="github", signatureStr="**issue <subcommand> <args>**",
                         aliases=["git", "github", "bug", "feature", "issues"], forceKeepArgsCasing=True,
                         shortHelp="Look up and submit new bug reports and feature requests.",
                         longHelp="Look up bugs and feature requests, and submit new ones!\n" \

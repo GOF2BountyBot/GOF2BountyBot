@@ -4,7 +4,7 @@ from aiohttp.client import request
 import discord
 from datetime import datetime, timedelta
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from .. import botState, lib
 from ..logging import LogCategory
 from ..lib.stringTyping import commaSplitNum
@@ -16,7 +16,7 @@ from ..databases.bountyDB import divisionNameForLevel
 from ..reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 
 
-botCommands.addHelpSection(0, "economy")
+textCommandsDB.addHelpSection(0, "economy")
 
 
 async def cmd_balance(message: discord.Message, args: str, isDM: bool):
@@ -47,7 +47,7 @@ async def cmd_balance(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False, content=":moneybag: **" + lib.discordUtil.userOrMemberName(requestedUser, message.guild) \
                                     + "** has **" + commaSplitNum(botState.client.usersDB.getUser(requestedUser.id).credits) + " Credits**.")
 
-botCommands.register("balance", cmd_balance, 0, aliases=["bal", "credits"], forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("balance", cmd_balance, 0, aliases=["bal", "credits"], forceKeepArgsCasing=True, allowDM=True,
                         helpSection="economy", signatureStr="**balance** *[user]*",
                         shortHelp="Get the credits balance of yourself, or another user if one is given.",
                         longHelp="Get the credits balance of yourself, or another user if one is given. If used from inside" \
@@ -191,7 +191,7 @@ async def cmd_shop(message: discord.Message, args: str, isDM: bool):
     if sendDM:
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
-botCommands.register("shop", cmd_shop, 0, aliases=["store"], allowDM=False, helpSection="economy",
+textCommandsDB.register("shop", cmd_shop, 0, aliases=["store"], allowDM=False, helpSection="economy",
                         signatureStr="**shop** *[division-name]* *[item-type]*",
                         shortHelp="Display all items currently for sale. Shop stock is refreshed every six hours. Give an " \
                                     + "item type to only list items of that type.",
@@ -397,7 +397,7 @@ async def cmd_shop_buy(message: discord.Message, args: str, isDM: bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
-botCommands.register("buy", cmd_shop_buy, 0, allowDM=False, helpSection="economy",
+textCommandsDB.register("buy", cmd_shop_buy, 0, allowDM=False, helpSection="economy",
                         signatureStr="**buy** *[division-name]* **<item-type> <item-number>** *[transfer] [sell]*",
                         shortHelp="Buy the requested item from the shop. Item numbers can be seen in the `shop`." \
                                     + "\n🌎 This command must be used in your **home server**.",
@@ -545,7 +545,7 @@ async def cmd_shop_sell(message: discord.Message, args: str, isDM: bool):
     else:
         raise NotImplementedError("Valid but unsupported item name: " + item.value)
 
-botCommands.register("sell", cmd_shop_sell, 0, allowDM=False, helpSection="economy",
+textCommandsDB.register("sell", cmd_shop_sell, 0, allowDM=False, helpSection="economy",
                         signatureStr="**sell** *[division-name]* **<item-type> <item-number>** *[clear]*",
                         shortHelp="Sell the requested item from your hangar. Item numbers can be gotten from `hangar`.\n" \
                                     + "🌎 This command must be used in your **home server**.",
@@ -650,7 +650,7 @@ async def cmd_pay(message: discord.Message, args: str, isDM: bool):
                                     exception=e)
         
 
-botCommands.register("pay", cmd_pay, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="economy",
+textCommandsDB.register("pay", cmd_pay, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="economy",
                         signatureStr="**pay <user> <amount>**",
                         shortHelp="Pay the given user an amount of credits from your balance.",
                         longHelp="Pay the given user an amount of credits from your balance.\n" \
@@ -695,7 +695,7 @@ async def cmd_total_value(message: discord.Message, args: str, isDM: bool):
                                     + "**'s items and balance have a total value of **" \
                                     + str(botState.client.usersDB.getUser(requestedUser.id).getStatByName("value")) + " Credits**.")
 
-botCommands.register("total-value", cmd_total_value, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="economy",
+textCommandsDB.register("total-value", cmd_total_value, 0, forceKeepArgsCasing=True, allowDM=True, helpSection="economy",
                         signatureStr="**total-value** *[user]*",
                         shortHelp="Get the total value of all of your items, including your credits balance, or that of " \
                                     + "another user.",

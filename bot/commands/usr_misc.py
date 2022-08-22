@@ -8,7 +8,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import random
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from . import util_help
 from .. import lib, botState
 from ..logging import LogCategory
@@ -32,7 +32,7 @@ async def cmd_help(message: discord.Message, args: str, isDM: bool):
     """
     await util_help.util_autohelp(message, args, isDM, 0)
 
-botCommands.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
+textCommandsDB.register("help", cmd_help, 0, allowDM=True, signatureStr="**help** *[page number, section or command]*",
                      shortHelp="Show usage information for available commands.\nGive a specific command for detailed info " \
                                 + "about it, or give a page number or give a section name for brief info.",
                      longHelp="Show usage information for available commands.\nGive a specific command for detailed info " \
@@ -76,7 +76,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
                                                             + "contributions and insights", inline=False)
     await message.reply(mention_author=False, embed=srcEmbed)
 
-botCommands.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
+textCommandsDB.register("source", cmd_source, 0, allowDM=True, signatureStr="**source**",
                      shortHelp="Show links to the project's GitHub page and todo list, and some information about the " \
                                 + "people behind BountyBot.")
 
@@ -155,7 +155,7 @@ async def cmd_how_to_play(message: discord.Message, args: str, isDM: bool):
     if sendDM:
         await message.add_reaction(cfg.defaultEmojis.dmSent.sendable)
 
-botCommands.register("how-to-play", cmd_how_to_play, 0, aliases=["guide"], allowDM=True, signatureStr="**how-to-play**",
+textCommandsDB.register("how-to-play", cmd_how_to_play, 0, aliases=["guide"], allowDM=True, signatureStr="**how-to-play**",
                         shortHelp="Get a short introduction on how to play bounties!")
 
 
@@ -168,7 +168,7 @@ async def cmd_hello(message: discord.Message, args: str, isDM: bool):
     """
     await message.reply(mention_author=False, content="Greetings, pilot! **o7**")
 
-botCommands.register("hello", cmd_hello, 0, allowDM=True, noHelp=True)
+textCommandsDB.register("hello", cmd_hello, 0, allowDM=True, noHelp=True)
 
 
 async def cmd_stats(message: discord.Message, args: str, isDM: bool):
@@ -407,7 +407,7 @@ async def cmd_stats(message: discord.Message, args: str, isDM: bool):
         closeAll()
         filesOpen = False
 
-botCommands.register("stats", cmd_stats, 0, aliases=["profile"], forceKeepArgsCasing=True, allowDM=True,
+textCommandsDB.register("stats", cmd_stats, 0, aliases=["profile"], forceKeepArgsCasing=True, allowDM=True,
                         signatureStr="**stats** *[user]*",
                         shortHelp="Get various credits and bounty statistics about yourself, or another user.")
 
@@ -543,7 +543,7 @@ async def cmd_leaderboard(message: discord.Message, args: str, isDM: bool):
     # send the embed
     await message.reply(mention_author=False, embed=leaderboardEmbed)
 
-botCommands.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signatureStr="**leaderboard** *[global] [stat]*",
+textCommandsDB.register("leaderboard", cmd_leaderboard, 0, allowDM=False, signatureStr="**leaderboard** *[global] [stat]*",
                         longHelp="Show the leaderboard for total player value. Give `g` or `global` for the global " \
                             + "leaderboard, not just this server." + ("" if not cfg.leaderboardHelpDescriptions else "\n\n" \
                             + "\n".join(f"> Give `{'`/`'.join(cfg.leaderboardNames[boardType])}` for " \
@@ -679,7 +679,7 @@ async def cmd_notify(message: discord.Message, args: str, isDM: bool):
                                                         + str(message.guild.id) + ".",
                                 category=LogCategory.userAlerts, exception=e)
 
-botCommands.register("notify", cmd_notify, 0, allowDM=False, signatureStr="**notify <type>** *[alert]*",
+textCommandsDB.register("notify", cmd_notify, 0, allowDM=False, signatureStr="**notify <type>** *[alert]*",
                         longHelp="Subscribe to pings when events take place. Currently, **type** can be `bounties`, " \
                             + "`shop`, `duels`, or `bot`.\n" \
                             + "> `shop` requires the `refresh` option.\n" \
@@ -719,7 +719,7 @@ async def cmd_poll(message: discord.Message, args: str, isDM: bool):
                         in this function's docstring
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    if botState.client.usersDB.getOrAddID(message.author.id).hasMenuOfTypeID("poll"):
+    if botState.client.usersDB.getOrAddID(message.author.id).hasMenuOfTypeID(basedUser.OwnedMenuType.poll):
         await message.reply(mention_author=False, content=":x: You can only make one poll at a time!")
         return
 
@@ -847,9 +847,9 @@ async def cmd_poll(message: discord.Message, args: str, isDM: bool):
                                                 desc=pollSubject)
     await menu.updateMessage()
     botState.client.reactionMenusDB[menuMsg.id] = menu
-    botState.client.usersDB.getUser(message.author.id).addOwnedMenu("poll", menu)
+    botState.client.usersDB.getUser(message.author.id).addOwnedMenu(basedUser.OwnedMenuType.poll, menu)
 
-botCommands.register("poll", cmd_poll, 0, forceKeepArgsCasing=True, allowDM=False,
+textCommandsDB.register("poll", cmd_poll, 0, forceKeepArgsCasing=True, allowDM=False,
                         signatureStr="**poll** *<subject>*\n**<option1 emoji> <option1 name>**\n...    ...\n*[kwargs]*",
                         shortHelp="Start a reaction-based poll. Each option must be on its own new line, as an emoji, " \
                             + "followed by a space, followed by the option name.",
@@ -874,7 +874,7 @@ async def cmd_drink(message: discord.Message, args: str, isDM: bool):
     """
     await message.reply(random.choice(bbData.drinkMessages), mention_author=False)
 
-botCommands.register("drink", cmd_drink, 0, allowDM=True, signatureStr="**drink**",
+textCommandsDB.register("drink", cmd_drink, 0, allowDM=True, signatureStr="**drink**",
                         shortHelp="Order a refreshing drink from the bar.")
 
 
@@ -892,5 +892,5 @@ async def cmd_drink_premium(message: discord.Message, args: str, isDM: bool):
     else:
         await message.reply(bbData.premiumDrinkTimeoutMessage, mention_author=False)
 
-botCommands.register("premium", cmd_drink_premium, 0, allowDM=True, signatureStr="**premium**",
+textCommandsDB.register("premium", cmd_drink_premium, 0, allowDM=True, signatureStr="**premium**",
                         shortHelp="Order something extra-special from the bar. Supply is very limited on these goodies!")

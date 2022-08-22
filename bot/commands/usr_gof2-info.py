@@ -5,7 +5,7 @@ import os
 import asyncio
 from PIL import Image
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from ..cfg import bbData, cfg
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
@@ -20,7 +20,7 @@ from . import util_autoskin
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
 
 
-botCommands.addHelpSection(0, "gof2 info")
+textCommandsDB.addHelpSection(0, "gof2 info")
 CWD = os.getcwd()
 robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 SCROLL_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/scroll_1f4dc.png"
@@ -40,7 +40,7 @@ async def cmd_map(message: discord.Message, args: str, isDM: bool):
     else:
         await message.reply(mention_author=False, content=bbData.mapImageNoGraphLink)
 
-botCommands.register("map", cmd_map, 0, aliases=["starmap"], allowDM=True, helpSection="gof2 info", signatureStr="**map**",
+textCommandsDB.register("map", cmd_map, 0, aliases=["starmap"], allowDM=True, helpSection="gof2 info", signatureStr="**map**",
                         shortHelp="Send the complete GOF2 starmap.",
                         longHelp="Send the complete GOF2 starmap with jumpgate routes, including all secret and DLC systems.")
 
@@ -125,7 +125,7 @@ async def cmd_make_route(message: discord.Message, args: str, isDM: bool):
             routeImageBytes.close()
             routeFile.close()
 
-botCommands.register("make-route", cmd_make_route, 0, allowDM=True, helpSection="gof2 info",
+textCommandsDB.register("make-route", cmd_make_route, 0, allowDM=True, helpSection="gof2 info",
                         signatureStr="**make-route <startSystem>, <endSystem>**",
                         shortHelp="Find the shortest route from `startSystem` to `endSystem`.",
                         longHelp="Find the shortest route from `startSystem` to `endSystem`. Both systems must have jump " \
@@ -795,7 +795,7 @@ async def cmd_info(message: discord.Message, args: str, isDM: bool):
         await message.reply(mention_author=False,
                             content=f":x: Unknown object type! ({'/'.join(INFO_CMDS)})")
 
-botCommands.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info", signatureStr="**info <object-type> <name>**",
+textCommandsDB.register("info", cmd_info, 0, allowDM=True, helpSection="gof2 info", signatureStr="**info <object-type> <name>**",
                         shortHelp="Display information about something from GOF2. Also gives useful aliases for things.",
                         longHelp=f"Display information about something from GOF2." \
                                 + f" object-type must be {'/'.join(INFO_CMDS)}." \
@@ -1120,7 +1120,7 @@ async def cmd_showme(message: discord.Message, args: str, isDM: bool):
 
     await SHOWME_CMDS[argsSplit[0]](message, args[len(argsSplit[0]) + 1:], isDM)
 
-botCommands.register("showme", cmd_showme, 0, allowDM=True, aliases=["show", "render"], helpSection="gof2 info",
+textCommandsDB.register("showme", cmd_showme, 0, allowDM=True, aliases=["show", "render"], helpSection="gof2 info",
                         signatureStr="**showme <object-type> <name>** *[[full]+ [skinName]]*",
                         shortHelp="Get an image of the named item. This command can also render ships with a given skin.",
                         longHelp="Get a larger image of the requested item. If your item is a ship, you may also specify a " \
@@ -1286,7 +1286,7 @@ async def cmd_list(message: discord.Message, args: str, isDM: bool):
         # resultsMenu = PagedReactionMenu.PagedReactionMenu()
         # resultsEmbed = lib.discordUtil.makeEmbed()
 
-botCommands.register("list", cmd_list, 0, allowDM=True, helpSection="gof2 info",
+textCommandsDB.register("list", cmd_list, 0, allowDM=True, helpSection="gof2 info",
                         signatureStr="**list** *[level <tech-level>]* *[manufacturer]* **<object-type>**",
                         shortHelp="List all objects in the game that match the given criteria. For example: " \
                             + "`list vossk criminals` or `list level 3 terran ships`",
@@ -1433,7 +1433,7 @@ async def cmd_texture(message: discord.Message, args: str, isDM: bool):
             os.remove(skinPath)
 
 
-botCommands.register("texture", cmd_texture, 0, aliases=["tex"], helpSection="gof2 info", signatureStr="**texture <ship-name>**",
+textCommandsDB.register("texture", cmd_texture, 0, aliases=["tex"], helpSection="gof2 info", signatureStr="**texture <ship-name>**",
                     shortHelp="Generate a ship texture file from your own images with autoskin. This is the same system as " \
                                 + "`showmme ship`.",
                     longHelp="Generate the texture file for custom ship skin with autoskin. This is the system used by" \

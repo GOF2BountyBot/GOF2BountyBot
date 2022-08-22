@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from PIL import Image
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..lib.discordUtil import truncateWithEllipse
@@ -23,7 +23,7 @@ from ..databases.bountyDB import nameForDivision
 from ..lib import gameMaths
 
 
-botCommands.addHelpSection(0, "bounty hunting")
+textCommandsDB.addHelpSection(0, "bounty hunting")
 
 
 async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: bool):
@@ -82,7 +82,7 @@ async def cmd_toggle_classic_mode(message: discord.Message, args: str, isDM: boo
     else:
         raise RuntimeError(f"Unsupported result: {confirmResults}")
 
-botCommands.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "classic-mode", "retro-mode"],
+textCommandsDB.register("classic", cmd_toggle_classic_mode, 0, aliases=["retro", "classic-mode", "retro-mode"],
                     shortHelp="Toggle \"classic mode\", which emulates the BountyBot beta. " \
                             + "See `help classic` for more info.",
                     longHelp="Toggle BountyBot's \"classic mode\", which emulates the BountyBot beta.\n" \
@@ -409,7 +409,7 @@ async def cmd_check(message: discord.Message, args: str, isDM: bool):
                             content=f":stopwatch: **{message.author.display_name}**, your *Khador Drive* is still charging!" \
                                     + f" please wait **{lib.timeUtil.td_format_noYM(diff)}.**")
 
-botCommands.register("check", cmd_check, 0, aliases=["search"], allowDM=False, helpSection="bounty hunting",
+textCommandsDB.register("check", cmd_check, 0, aliases=["search"], allowDM=False, helpSection="bounty hunting",
                         signatureStr="**check <system>**",
                         shortHelp="Check if any criminals are in the given system, arrest them, and get paid! 💰" \
                         + "\n🌎 This command must be used in your **home server**.")
@@ -494,7 +494,7 @@ async def cmd_bounties(message: discord.Message, args: str, isDM: bool):
     await message.reply(mention_author=False, embed=msgEmbed)
 
 
-botCommands.register("bounties", cmd_bounties, 0, allowDM=False, helpSection="bounty hunting",
+textCommandsDB.register("bounties", cmd_bounties, 0, allowDM=False, helpSection="bounty hunting",
                         signatureStr="**bounties** *[level or division]*",
                         shortHelp="List all active bounties in your division, or the one specified",
                         longHelp="If no division is given, name all currently active bounties. In your division.\n" \
@@ -542,7 +542,7 @@ async def cmd_route(message: discord.Message, args: str, isDM: bool):
                         + callingGuild.commandPrefix + "route Trimatix#2244`"
         await message.reply(mention_author=False, content=outmsg)
 
-botCommands.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting",
+textCommandsDB.register("route", cmd_route, 0, allowDM=False, helpSection="bounty hunting",
                         signatureStr="**route <criminal name>**",
                         shortHelp="Get the named criminal's current route.",
                         longHelp="Get the named criminal's current route.\n" \
@@ -749,7 +749,7 @@ async def cmd_duel(message: discord.Message, args: str, isDM: bool):
 
         await duelRequest.fightDuel(message.author, requestedUser, requestedDuel, message)
 
-botCommands.register("duel", cmd_duel, 0, forceKeepArgsCasing=True, allowDM=False, helpSection="bounty hunting",
+textCommandsDB.register("duel", cmd_duel, 0, forceKeepArgsCasing=True, allowDM=False, helpSection="bounty hunting",
                         signatureStr="**duel [action] [user]** *<stakes>*",
                         shortHelp="Fight other players! Action can be `challenge`, `cancel`, `accept` or `reject`.",
                         longHelp="Fight other players! Action can be `challenge`, `cancel`, `accept` or `reject`. " \
@@ -798,7 +798,7 @@ async def cmd_use(message: discord.Message, args: str, isDM: bool):
                 await message.reply(mention_author=False, content=result)
 
 
-botCommands.register("use", cmd_use, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**use [tool number]**",
+textCommandsDB.register("use", cmd_use, 0, allowDM=False, helpSection="bounty hunting", signatureStr="**use [tool number]**",
                         shortHelp="Use the tool in your hangar with the given number. See `hangar` for tool numbers.",
                         longHelp="Use the tool in your hangar with the given number. Tool numbers can be seen next your " \
                                     + "items in `hangar tool`. For example, if tool number `1` is a ship skin, `use 1` will" \
@@ -896,7 +896,7 @@ async def cmd_prestige(message: discord.Message, args: str, isDM: bool):
         await message.channel.send("🛑 Prestige cancelled.")
 
 
-botCommands.register("prestige", cmd_prestige, 0, helpSection="bounty hunting", signatureStr="**prestige**",
+textCommandsDB.register("prestige", cmd_prestige, 0, helpSection="bounty hunting", signatureStr="**prestige**",
                         shortHelp="Reset your items and bounty hunting XP, in exchange for a ship upgrade! " \
                             + "Command unlocked at level 10. Kaamo items are saved.",
                         longHelp="Reset your save data, including your bounty hunter level, loadout, balance, hangar and " \
@@ -987,7 +987,7 @@ async def cmd_div_up(message: discord.Message, args: str, isDM: bool):
         await confirmMsg.edit(content="🛑 Div-up cancelled.")
 
 
-botCommands.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", signatureStr="**div-up**",
+textCommandsDB.register("div-up", cmd_div_up, 0, helpSection="bounty hunting", signatureStr="**div-up**",
                         aliases=["divup", "division-up", "divisionup"],
                         shortHelp="Level up into the next division of bounties. Higher level bounties are stronger, but" \
                                 + " give bigger rewards.",
@@ -1080,7 +1080,7 @@ async def cmd_div_down(message: discord.Message, args: str, isDM: bool):
         await confirmMsg.edit(content="🛑 Div-down cancelled.", embed=None)
 
 
-botCommands.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
+textCommandsDB.register("div-down", cmd_div_down, 0, helpSection="bounty hunting", signatureStr="**div-down**",
                         aliases=["divdown", "division-down", "divisiondown",
                                 "drop-div", "dropdiv", "drop-division", "dropdivision"],
                         shortHelp="Drop to the top of the next lowest division of bounties, to work your way back up again." \

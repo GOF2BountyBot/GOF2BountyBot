@@ -10,9 +10,10 @@ from .items.modules import moduleItem
 from .inventories import inventory, inventoryListing
 from .items.tools import toolItem, toolItemFactory
 from . import guildShop, itemDiscount
+from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
 
 
-class LomaShop(guildShop.GuildShop):
+class LomaShop(guildShop.ShopBase[DiscountableItemListing]):
     """A private shop unique to each player, for purchasing special items intended only for that player.
     Items cannot be sold to Loma.
     """
@@ -52,7 +53,7 @@ class LomaShop(guildShop.GuildShop):
         :return: True if user's credits balance is greater than or equal to item's discounted value. False otherwise
         :rtype: bool
         """
-        listing: inventoryListing.DiscountableItemListing = self.getStockByType(type(item)).getListing(item)
+        listing = self.getStockByType(type(item)).getListing(item)
         itemValue = int(item.value * listing.discounts[0].mult) if listing.discounts else item.value
         return user.credits >= itemValue
 

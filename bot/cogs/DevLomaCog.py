@@ -32,19 +32,10 @@ class DevLomaCog(basedApp.BasedCog):
         """developer command spawning the described item, and placing it in the given user's loma shop.
         item must be a json format description in line with the item's deserialize function.
         """
-        requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
-        if invalid:
-            await interaction.response.send_message(":x: Invalid user id", ephemeral=True)
-            return
-        intId = int(user_id)
-        dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
+        requestedUser, _, _, _ = await self.UsersUtilCog.getOrCreateBasedUserOrAuthor(interaction, user_id)
+        if requestedUser is None: return
 
-        if requestedUser is None:
-            if dcUser is None:
-                await interaction.response.send_message(":x: Unknown user.", ephemeral=True)
-                return
-            requestedUser = self.bot.usersDB.getOrAddID(intId)
-        
+        dcUser = self.bot.get_user(requestedUser.id) or await self.bot.tryFetchUser(requestedUser.id)
         userMention = "<unknown user>" if dcUser is None else dcUser.mention
 
         try:
@@ -134,7 +125,7 @@ class DevLomaCog(basedApp.BasedCog):
                     continue
 
                 try:
-                    currentItem = currentStock[itemNum].item
+                    currentItem = cast(guildShop.StoredItemType, currentStock[itemNum].item)
                 except KeyError:
                     self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Requested {itemType.value} '{currentKey.name}' (index {itemNum}), "
@@ -215,7 +206,7 @@ class DevLomaCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = lomaItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, lomaItemStock[item_number - 1].item)
         itemName = ""
         itemEmbed = None
 
@@ -283,7 +274,7 @@ class DevLomaCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = lomaItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, lomaItemStock[item_number - 1].item)
         itemName = ""
         itemEmbed = None
 
@@ -360,7 +351,7 @@ class DevLomaCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = lomaItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, lomaItemStock[item_number - 1].item)
         itemListing = lomaItemStock.getListing(requestedItem)
 
         if not isinstance(itemListing, DiscountableItemListing):
@@ -412,7 +403,7 @@ class DevLomaCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = lomaItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, lomaItemStock[item_number - 1].item)
         itemListing = lomaItemStock.getListing(requestedItem)
 
         if not isinstance(itemListing, DiscountableItemListing):

@@ -1,10 +1,11 @@
 from typing import Dict, Optional, Tuple, Callable, Any, cast, Coroutine, List
 
-from discord import Interaction
+from discord import Guild, HTTPException, Interaction, TextChannel
 from discord.abc import Snowflake
 
 from ...interactions.basedApp import BasedCog
 from ... import client, lib
+from ...lib.stringTyping import isInt
 from ...users import basedGuild
 from ...databases.bountyDB import BountyDB
 from ...databases.bountyDivision import BountyDivision
@@ -44,7 +45,7 @@ class GuildsUtilCog(BasedCog):
             callingBBGuild = None
         elif not lib.stringTyping.isInt(guild_id):
             if sendError:
-                await interaction.response.send_message(":x: Invalid guild id - not a number. Please give an ID, `all` or `this`.", ephemeral=sendErrorEphemeral)
+                await interaction.response.send_message(f":x: Invalid guild id - not a number. Please give an ID, {'`all`, ' if allowAllGuilds else ''}`here` or `this`.", ephemeral=sendErrorEphemeral)
             return False, None
         else:
             guildID = int(guild_id)
@@ -95,6 +96,42 @@ class GuildsUtilCog(BasedCog):
             return False, None
 
         return True, callingBBGuild
+
+
+    @classmethod
+    async def textChannelOrThreadByIdOrContext(cls, interaction: Interaction, channel_id: str, guild: Guild, sendError: bool = True, sendErrorEphemeral: bool = True) -> Optional[TextChannel]:
+        """Get a text channel for a command.
+        If `channel_id` is specified, make sure it's an int, and send an error if it's not.
+            Then get the channel from `guild`, and make sure it's a text channel, and send an error if it's not.
+        If `channel_id` is not specified, get the channel from which `interaction` was sent, and send an error if it is not a text channel.
+
+        if no errors occurred, return the channel.
+        """
+        if channel_id == "here":
+            if not isinstance(interaction.channel, TextChannel):
+                if sendError:
+                    await interaction.response.send_message(":x: Invalid channel! Make sure you are calling from, or specifying, a **text channel** in a guild.", ephemeral=sendErrorEphemeral)
+                return None
+            channel = interaction.channel
+
+        elif not isInt(channel_id):
+            await interaction.response.send_message(":x: Invalid `channel_id` - must be a number.", ephemeral=sendErrorEphemeral)
+            return None
+        else:
+            channelId = int(channel_id)
+            channel = guild.get_channel_or_thread(channelId)
+            if channel is None:
+                try:
+                    channel = await guild.fetch_channel(channelId)
+                except HTTPException as e:
+                    await interaction.response.send_message(f":x: I can't find channel '{channelId}': {e}", ephemeral=sendErrorEphemeral)
+                    return None
+        
+        if not isinstance(channel, TextChannel):
+            await interaction.response.send_message(f":x: Invalid channel! Make sure you are calling from, or specifying, a **text channel** in a guild.", ephemeral=sendErrorEphemeral)
+            return None
+
+        return channel
 
 #endregion guild lookups
 #region iterators

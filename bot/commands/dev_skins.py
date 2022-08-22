@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable, cast
 import discord
 
-from . import commandsDB as botCommands
+from . import commandsDB as textCommandsDB
 from ..cfg import cfg, bbData
 from ..gameObjects.items import shipItem
 from .. import lib, botState
@@ -16,7 +16,7 @@ CWD = os.getcwd()
 PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
 
 
-botCommands.addHelpSection(3, "skins")
+textCommandsDB.addHelpSection(3, "skins")
 
 
 async def dev_cmd_addSkin(message: discord.Message, args: str, isDM: bool):
@@ -79,7 +79,7 @@ async def dev_cmd_addSkin(message: discord.Message, args: str, isDM: bool):
     else:
         await message.reply(mention_author=False, content=":x: Please provide a skin, prefaced by a `+`!")
 
-botCommands.register("addSkin", dev_cmd_addSkin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("addSkin", dev_cmd_addSkin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_delSkin(message: discord.Message, args: str, isDM: bool):
@@ -140,7 +140,7 @@ async def dev_cmd_delSkin(message: discord.Message, args: str, isDM: bool):
     else:
         await message.reply(mention_author=False, content=":x: Please provide a skin, prefaced by a `+`!")
 
-botCommands.register("delSkin", dev_cmd_delSkin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("delSkin", dev_cmd_delSkin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_makeSkin(message: discord.Message, args: str, isDM: bool):
@@ -201,7 +201,7 @@ async def dev_cmd_makeSkin(message: discord.Message, args: str, isDM: bool):
     else:
         await message.reply(mention_author=False, content=":x: Please provide a skin, prefaced by a `+`!")
 
-botCommands.register("makeSkin", dev_cmd_makeSkin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("makeSkin", dev_cmd_makeSkin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_applySkin(message: discord.Message, args: str, isDM: bool):
@@ -236,7 +236,7 @@ async def dev_cmd_applySkin(message: discord.Message, args: str, isDM: bool):
             activeShip.applySkin(bbData.builtInShipSkins[skin])
             await message.reply(mention_author=False, content="Done!")
 
-botCommands.register("applySkin", dev_cmd_applySkin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("applySkin", dev_cmd_applySkin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_unapplySkin(message: discord.Message, args: str, isDM: bool):
@@ -258,7 +258,7 @@ async def dev_cmd_unapplySkin(message: discord.Message, args: str, isDM: bool):
         activeShip.isSkinned = False
         await message.reply(mention_author=False, content="Done!")
 
-botCommands.register("unApplySkin", dev_cmd_unapplySkin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("unApplySkin", dev_cmd_unapplySkin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_add_skin_to_all_ships(message: discord.Message, args: str, isDM: bool):
@@ -293,7 +293,7 @@ async def dev_cmd_add_skin_to_all_ships(message: discord.Message, args: str, isD
     await lib.discordUtil.endLongProcess(message)
     await message.reply(mention_author=False, content="Done!")
 
-botCommands.register("add-skin-to-all-ships", dev_cmd_add_skin_to_all_ships, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("add-skin-to-all-ships", dev_cmd_add_skin_to_all_ships, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_del_skin_from_all_ships(message: discord.Message, args: str, isDM: bool):
@@ -324,7 +324,7 @@ async def dev_cmd_del_skin_from_all_ships(message: discord.Message, args: str, i
     await lib.discordUtil.endLongProcess(message)
     await message.reply(mention_author=False, content="Done!")
 
-botCommands.register("del-skin-from-all-ships", dev_cmd_del_skin_from_all_ships, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("del-skin-from-all-ships", dev_cmd_del_skin_from_all_ships, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_show_incompatible_skin(message: discord.Message, args: str, isDM: bool):
@@ -397,7 +397,7 @@ async def dev_cmd_show_incompatible_skin(message: discord.Message, args: str, is
             await lib.discordUtil.endLongProcess(message)
 
 
-botCommands.register("show-incompatible-skin", dev_cmd_show_incompatible_skin, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("show-incompatible-skin", dev_cmd_show_incompatible_skin, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_try_all_skins(message: discord.Message, args: str, isDM: bool):
@@ -455,7 +455,7 @@ async def dev_cmd_try_all_skins(message: discord.Message, args: str, isDM: bool)
 
     await message.channel.send("ALL SKINS SENT")
 
-botCommands.register("try-all-skins", dev_cmd_try_all_skins, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("try-all-skins", dev_cmd_try_all_skins, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_set_autoskin_resolution(message: discord.Message, args: str, isDM: bool):
@@ -481,7 +481,7 @@ async def dev_cmd_set_autoskin_resolution(message: discord.Message, args: str, i
     cfg.skinRenderShowmeResolution = [int(resX), int(resY)]
     await message.reply(f"✅ Done!", mention_author=False)
 
-botCommands.register("set-showme-res", dev_cmd_set_autoskin_resolution, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("set-showme-res", dev_cmd_set_autoskin_resolution, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_set_autoskin_samples(message: discord.Message, args: str, isDM: bool):
@@ -498,7 +498,7 @@ async def dev_cmd_set_autoskin_samples(message: discord.Message, args: str, isDM
     cfg.skinRenderShowmeSamples = int(args)
     await message.reply(f"✅ Done!", mention_author=False)
 
-botCommands.register("set-showme-samples", dev_cmd_set_autoskin_samples, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("set-showme-samples", dev_cmd_set_autoskin_samples, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_get_autoskin_configuration(message: discord.Message, args: str, isDM: bool):
@@ -515,7 +515,7 @@ async def dev_cmd_get_autoskin_configuration(message: discord.Message, args: str
     e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeResolution[0]}\ny: {cfg.skinRenderShowmeResolution[1]}")
     await message.reply(mention_author=False, embed=e)
 
-botCommands.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("showme-config", dev_cmd_get_autoskin_configuration, 3, helpSection="skins", useDoc=True)
 
 
 async def dev_cmd_timed_showme_ship(message: discord.Message, args: str, isDM: bool):
@@ -530,4 +530,4 @@ async def dev_cmd_timed_showme_ship(message: discord.Message, args: str, isDM: b
     await message.reply(f"This command took: {lib.timeUtil.td_format_noYM(datetime.utcnow() - now)}", mention_author=False)
     
 
-botCommands.register("timed-showme-ship", dev_cmd_timed_showme_ship, 3, helpSection="skins", useDoc=True)
+textCommandsDB.register("timed-showme-ship", dev_cmd_timed_showme_ship, 3, helpSection="skins", useDoc=True)

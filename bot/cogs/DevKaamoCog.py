@@ -30,19 +30,10 @@ class DevKaamoCog(basedApp.BasedCog):
         """developer command spawning the described item, and placing it in the given user's kaamo shop.
         item must be a json format description in line with the item's deserialize function.
         """
-        requestedUser, _, invalid = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id, sendError=False)
-        if invalid:
-            await interaction.response.send_message(":x: Invalid user id", ephemeral=True)
-            return
-        intId = int(user_id)
-        dcUser = self.bot.get_user(intId) or await self.bot.tryFetchUser(intId)
+        requestedUser, _, _, _ = await self.UsersUtilCog.getOrCreateBasedUserOrAuthor(interaction, user_id)
+        if requestedUser is None: return
 
-        if requestedUser is None:
-            if dcUser is None:
-                await interaction.response.send_message(":x: Unknown user.", ephemeral=True)
-                return
-            requestedUser = self.bot.usersDB.getOrAddID(intId)
-        
+        dcUser = self.bot.get_user(requestedUser.id) or await self.bot.tryFetchUser(requestedUser.id)
         userMention = "<unknown user>" if dcUser is None else dcUser.mention
 
         if requestedUser.kaamo is not None and requestedUser.kaamo.isFull():
@@ -136,7 +127,7 @@ class DevKaamoCog(basedApp.BasedCog):
                     continue
 
                 try:
-                    currentItem = currentStock[itemNum].item
+                    currentItem = cast(guildShop.StoredItemType, currentStock[itemNum].item)
                 except KeyError:
                     self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
                                         f"Requested {itemType.value} '{currentKey.name}' (index {itemNum}), "
@@ -202,7 +193,7 @@ class DevKaamoCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = kaamoItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, kaamoItemStock[item_number - 1].item)
         itemName = ""
         itemEmbed = None
 
@@ -270,7 +261,7 @@ class DevKaamoCog(basedApp.BasedCog):
         requestedUser = self.bot.get_user(requestedBBUser.id) or await self.bot.tryFetchUser(requestedBBUser.id)
         userMention = "<unknown user>" if requestedUser is None else requestedUser.mention
 
-        requestedItem = kaamoItemStock[item_number - 1].item
+        requestedItem = cast(guildShop.StoredItemType, kaamoItemStock[item_number - 1].item)
         itemName = ""
         itemEmbed = None
 

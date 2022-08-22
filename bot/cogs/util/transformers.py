@@ -1,5 +1,6 @@
 from enum import Enum, EnumMeta
 from typing import Protocol
+from ...baseClasses.basedEnum import BasedEnum
 
 class Equatable(Protocol):
     def __eq__(self, __o) -> bool: ...
@@ -48,3 +49,9 @@ class BoolTrueFalse(BoolTransformerBase, trueVal="True"):
     # lower cased here to avoid clashing with the reserved words
     true = "True"
     false = "False"
+
+
+class PlayOrAnnounceChannel(BasedEnum):
+    bountyPlay = "play"
+    announcements = "announce"
+

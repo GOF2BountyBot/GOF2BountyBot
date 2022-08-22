@@ -126,6 +126,22 @@ class StaticComponents(StaticComponentIDsEnum):
     Dev_Say_Embed_Reorder_Fields = 12
     Dev_Say_Embed_Reorder_Fields_Select = 13
 
+    Dev_Broadcast_Embed_Remove_Field = 24
+    Dev_Broadcast_Embed_Remove_Field_Select = 25
+    Dev_Broadcast_Embed_Edit_Field = 26
+    Dev_Broadcast_Embed_Edit_Field_Select = 27
+    Dev_Broadcast_Embed_Reorder_Fields = 28
+    Dev_Broadcast_Embed_Reorder_Fields_Select = 29
+    Dev_Broadcast_Submit = 29
+
+    Dev_Announce_Broadcast_Embed_Remove_Field = 30
+    Dev_Announce_Broadcast_Embed_Remove_Field_Select = 31
+    Dev_Announce_Broadcast_Embed_Edit_Field = 32
+    Dev_Announce_Broadcast_Embed_Edit_Field_Select = 33
+    Dev_Announce_Broadcast_Embed_Reorder_Fields = 34
+    Dev_Announce_Broadcast_Embed_Reorder_Fields_Select = 35
+    Dev_Announce_Broadcast_Submit = 36
+
     # AdminMiscCog
     Admin_MakeRoleMenu_Submit_New_Menu = 14
     Admin_MakeRoleMenu_Cancel_New_Menu = 15
@@ -250,7 +266,7 @@ def staticComponentCallback(ID: StaticComponents):
         basedApp.basedApp(func, basedApp.BasedAppType.StaticComponent)
         setattr(func, "__static_component_meta__", StaticComponentCallbackMeta(func, ID, cbSelf))
 
-        return func
+        return cast(TStaticComponentCallback, func)
 
     return decorator
 

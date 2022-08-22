@@ -1,7 +1,7 @@
 from ..cfg import cfg
 import math
 import random
-from typing import List, Union
+from typing import List, Union, cast
 
 
 def makeMatrix(xDim: int, yDim: int) -> List[List[float]]:
@@ -48,7 +48,7 @@ def truncItemSpawnResolution(num: float) -> float:
     return math.trunc(num * itemSpawnRateResDigits) / itemSpawnRateResDigits
 
 
-def normalizeArray(nums: List[Union[int, float]]) -> List[Union[int, float]]:
+def normalizeArray(nums: List[Union[int, float]]) -> List[float]:
     """Rescale the array elements to the range [0, 1], in place.
 
     :param nums: Array of numbers to normalize
@@ -60,7 +60,7 @@ def normalizeArray(nums: List[Union[int, float]]) -> List[Union[int, float]]:
     return [truncItemSpawnResolution(i / numSum) for i in nums]
 
 
-def makeCumulative(nums: List[Union[int, float]]) -> List[Union[int, float]]:
+def makeCumulative(nums: List[Union[int, float]]) -> List[float]:
     """Add the items in the array in series, from left to right, to create a cumulative scale.
     0-valued elements are ignored in rescaling.
     This operation is performed in place.
@@ -70,9 +70,11 @@ def makeCumulative(nums: List[Union[int, float]]) -> List[Union[int, float]]:
     :return: nums, with each element added to the next iteratively.
     :rtype: List[Union[int, float]
     """
+    nums[0] = float(nums[0])
     for i in range(1,len(nums)):
         nums[i] = truncItemSpawnResolution(nums[i] + nums[i-1])
-    return nums
+    # Casting here because every item is tranformed as part of this function
+    return cast(List[float], nums)
 
 
 def pickRandomShopTL() -> int:

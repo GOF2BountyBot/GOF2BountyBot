@@ -21,21 +21,26 @@ class UsersUtilCog(BasedCog):
 
 #region util
 
-    async def getBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[Optional[basedUser.BasedUser], bool, bool]:
-        """Gets a user if one is specified. If not, then get the author. Returns a (Optional[basedUser.BasedUser], bool, bool) tuple, where the first item is the requested
-        basedUser, the second indicates whether the user is the interaction author or not, and the third indicates whether a validation error occurred.
-        If the result cannot be found in the usersDB, respond to the interaction with an error, and return (..., None, False).
+    async def userOrAuthorId(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[int, bool]:
+        """If user_id is given, make sure it is an int (return `id, False`), and send an error otherwise (return `-1, False`).
+        If user_id is not given, return the id of the interaction author (`id, True`)
         """
         if user_id:
             if not lib.stringTyping.isInt(user_id):
                 if sendError:
                     await interaction.response.send_message(":x: Invalid user ID!", ephemeral=errorEphemeral)
-                return (None, False, True)
-            userId = int(user_id)
-            isAuthor = False
-        else:
-            userId = interaction.user.id
-            isAuthor = True
+                return -1, False
+            return int(user_id), False
+        return interaction.user.id, True
+
+
+    async def getBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[Optional[basedUser.BasedUser], bool, bool]:
+        """Gets a user if one is specified. If not, then get the author. Returns a (Optional[basedUser.BasedUser], bool, bool) tuple, where the first item is the requested
+        basedUser, the second indicates whether the user is the interaction author or not, and the third indicates whether a validation error occurred.
+        If the result cannot be found in the usersDB, respond to the interaction with an error, and return (None, False, False).
+        """
+        userId, isAuthor = await self.userOrAuthorId(interaction, user_id, sendError=sendError, errorEphemeral=errorEphemeral)
+        if userId == -1: return None, isAuthor, True
 
         if not self.bot.usersDB.idExists(userId):
             if sendError:
@@ -43,6 +48,28 @@ class UsersUtilCog(BasedCog):
             return (None, isAuthor, False)
         
         return (self.bot.usersDB.getUser(userId), isAuthor, False)
+
+
+    async def getOrCreateBasedUserOrAuthor(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[Optional[basedUser.BasedUser], bool, bool, bool]:
+        """Gets a user if one is specified. If not, then get the author. If the resulting user does not exist in the users DB, then create them.
+        You should only use this method if you plan to mutate the user in a saveable way (i.e they need to have a db entry). Otherwise, use `getBasedUserOrAuthor`.
+
+        Returns a (Optional[basedUser.BasedUser], bool, bool, bool) tuple, where the first item is the requested
+        basedUser, the second indicates whether the user is the interaction author or not, the third indicates whether a validation error occurred, and the fourth indicates whether a new db user was created.
+        If the result cannot be found in discord, respond to the interaction with an error, and return (None, ..., False, False).
+        """
+        userId, isAuthor = await self.userOrAuthorId(interaction, user_id, sendError=sendError, errorEphemeral=errorEphemeral)
+        if userId == -1: return None, isAuthor, True, False
+        
+        userCreated = not self.bot.usersDB.idExists(userId)
+        if userCreated:
+            dcUser = self.bot.get_user(userId) or await self.bot.tryFetchUser(userId)
+            if dcUser is None:
+                if sendError:
+                    await interaction.response.send_message(":x: Unknown user!", ephemeral=errorEphemeral)
+                return (None, isAuthor, False, False)
+        
+        return (self.bot.usersDB.getOrAddID(userId), isAuthor, False, userCreated)
 
 
     async def getUserItemByIndex(self, interaction: Interaction, user: basedUser.BasedUser, item_type: ItemCategory, item_number: Range[int, 1, ...], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[Tuple[Inventory, GameItem]]:
