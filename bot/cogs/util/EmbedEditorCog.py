@@ -78,7 +78,7 @@ class EmbedEditorCog(BasedCog):
         if interaction.message is not None: return interaction.message
         # await interaction.response.defer(thinking=False)
         try:
-            message = await interaction.original_message()
+            message = await interaction.original_response()
         except (HTTPException, ClientException, NotFound) as e:
             self.bot.logger.log(type(self).__name__, funcName,
                                 "on-message static component triggered for non-message-based interaction: " \
@@ -119,7 +119,7 @@ class EmbedEditorCog(BasedCog):
         
         embed.add_field(name=modal.fieldName.value or ZWSP, value=modal.fieldValue.value or ZWSP,
                         inline=(modal.fieldInline.value or EMBED_FIELD_INLINE_DEFAULT).lower() == "y")
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
         return embed.fields[-1]
 
 
@@ -263,7 +263,7 @@ class EmbedEditorCog(BasedCog):
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
 
-        await interaction.edit_original_message(embed=embed, view=view)
+        await interaction.edit_original_response(embed=embed, view=view)
         return result
 
 
@@ -322,7 +322,7 @@ class EmbedEditorCog(BasedCog):
 
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.User_Embed_Edit_Images)
@@ -361,7 +361,7 @@ class EmbedEditorCog(BasedCog):
 
         if lib.discordUtil.embedEmpty(embed):
             embed.description = ZWSP
-        await interaction.edit_original_message(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
 
     async def startReorderFields(self, interaction: Interaction, userId: str, staticComponentId: StaticComponents, makeView: ViewFactoryType, endReorderFields: StaticComponents):

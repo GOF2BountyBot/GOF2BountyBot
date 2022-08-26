@@ -429,15 +429,15 @@ class AdminMiscCog(basedApp.BasedCog):
                     try:
                         reaction, _ = await self.bot.wait_for("reaction_add", check=check, timeout=int(cfg.timeouts.menuInteractionDefault.total_seconds()))
                     except TimeoutError:
-                        await interaction.edit_original_message(content=f"~~React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}~~\nOut of time!")
+                        await interaction.edit_original_response(content=f"~~React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}~~\nOut of time!")
                     else:
                         try:
                             newEmoji = lib.emojis.BasedEmoji.fromReaction(reaction.emoji, rejectInvalid=True)
                         except lib.exceptions.UnrecognisedCustomEmoji:
-                            await interaction.edit_original_message(content=":x: I can't access that emoji! Please use either a stock emoji, or one from a server that I am a member of.")
+                            await interaction.edit_original_response(content=":x: I can't access that emoji! Please use either a stock emoji, or one from a server that I am a member of.")
                         else:
                             if newEmoji in menu.options:
-                                await interaction.edit_original_message(content=":x: That emoji is already in use for another role.")
+                                await interaction.edit_original_response(content=":x: That emoji is already in use for another role.")
                             else:
                                 menu.options[newEmoji] = option
                                 del menu.options[option.emoji]
@@ -496,7 +496,7 @@ class AdminMiscCog(basedApp.BasedCog):
         await interaction.response.send_message("Ping...")
         end = perf_counter()
         duration = (end - start) * 1000
-        msg = await interaction.original_message()
+        msg = await interaction.original_response()
         await msg.edit(content='Pong! {:.2f}ms'.format(duration))
 
     
@@ -670,7 +670,7 @@ class AdminMiscCog(basedApp.BasedCog):
         requestedBBGuild.ownedRoleMenus += 1
 
         await interaction.response.send_message(f"{cfg.defaultEmojis.longProcess} Loading...")
-        menuMsg = await interaction.original_message()
+        menuMsg = await interaction.original_response()
 
         embed = Embed(description="React to this message to choose your role(s):", title="Role Menu")
         embed.set_footer(text=f"Menu ID: {menuMsg.id}")

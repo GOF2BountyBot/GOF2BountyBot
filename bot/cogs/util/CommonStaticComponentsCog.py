@@ -19,7 +19,7 @@ class CommonStaticComponentsCog(BasedCog):
             return False
 
         if interaction.response.is_done():
-            await interaction.edit_original_message(view=None)
+            await interaction.edit_original_response(view=None)
         else:
             await interaction.response.edit_message(view=None)
 
@@ -34,7 +34,7 @@ class CommonStaticComponentsCog(BasedCog):
 
         if not interaction.response.is_done():
             await interaction.response.defer(thinking=False)
-        await interaction.delete_original_message()
+        await interaction.delete_original_response()
 
         return True
 

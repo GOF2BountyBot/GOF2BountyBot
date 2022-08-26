@@ -294,7 +294,7 @@ class DevMiscCog(BasedCog):
                 await guild.getPlayChannel().send(content=message.content, embed=embed or MISSING)
 
         await self.GuildsUtilCog.operateOverBasedGuildsAsync(self.broadcast_broadcastMessage.__name__, announce, "", interaction, None, sendSuccess=False, className=type(self).__name__)
-        await interaction.edit_original_message(content="Complete! ✅")
+        await interaction.edit_original_response(content="Complete! ✅")
 
 #endregion
 #region announce channel
@@ -363,7 +363,7 @@ class DevMiscCog(BasedCog):
                 await guild.getAnnounceChannel().send(content=message.content, embed=embed or MISSING)
 
         await self.GuildsUtilCog.operateOverBasedGuildsAsync(self.broadcast_broadcastMessage.__name__, announce, "", interaction, None, sendSuccess=False, className=type(self).__name__)
-        await interaction.edit_original_message(content="Complete! ✅")
+        await interaction.edit_original_response(content="Complete! ✅")
 
 #endregion
 #endregion

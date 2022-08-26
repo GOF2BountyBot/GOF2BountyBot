@@ -360,7 +360,7 @@ async def maybeDefer(interaction: Interaction, ephemeral: bool = False, thinking
     :param thinking: Whether the deferral message should show the 'thinking' message, defaults to False
     :type thinking: bool, optional
     """
-    if not interaction.response._responded:
+    if not interaction.response.is_done():
         await interaction.response.defer(ephemeral=ephemeral, thinking=thinking)
 
 
@@ -373,10 +373,10 @@ async def editWithFallback(interaction: Interaction, msg: Message, *args, **kwar
     :param msg: A message to fallback onto editing, if `interaction` has been reseponded to
     :type msg: Message
     """
-    if interaction.response._responded:
+    if interaction.response.is_done():
         await msg.edit(*args, **kwargs)
     else:
-        await interaction.edit_original_message(*args, **kwargs)
+        await interaction.edit_original_response(*args, **kwargs)
 
 
 class Menu:

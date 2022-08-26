@@ -96,18 +96,6 @@ class TimedTaskHeap:
                 heappush(self.tasksHeap, task)
 
 
-def startSleeper(delay: int, loop: asyncio.AbstractEventLoop, result: Optional[bool] = None) -> asyncio.Task:
-    async def _start(delay, loop, result=None):
-        coro = asyncio.sleep(delay, result=result, loop=loop)
-        task = asyncio.create_task(coro)
-        try:
-            return await task
-        except asyncio.CancelledError:
-            return result
-
-    return loop.create_task(_start(delay, loop, result=result))
-
-
 class AutoCheckingTimedTaskHeap(TimedTaskHeap):
     """A TimedTaskHeap that spawns a new thread to periodically perform expiry checking for you.
     Sleeping between task checks is handled by asyncio.sleep-ing precicely to the expiry time of the
@@ -153,7 +141,7 @@ class AutoCheckingTimedTaskHeap(TimedTaskHeap):
         while self.active:
             if len(self.tasksHeap) > 0:
                 sleepDelta = self.tasksHeap[0].expiryTime - discord.utils.utcnow()
-                coro = asyncio.sleep(sleepDelta.total_seconds(), loop=self.loop)
+                coro = asyncio.sleep(sleepDelta.total_seconds())
                 self.sleepTask = asyncio.create_task(coro)
 
                 try:

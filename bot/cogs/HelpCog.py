@@ -1,19 +1,19 @@
 """https://gist.github.com/Rapptz/0ad5914e42aeaa1cecea334f6508b8d5"""
 
 from __future__ import annotations
+
 from typing import Dict, List, Optional, Tuple, Union, cast
-from .. import client, lib
-from discord import AppCommandType, Colour, Embed, InteractionType, app_commands, Interaction, Object, ChannelType, Guild
-from discord.app_commands.transformers import CommandParameter
+from discord import AppCommandType, Colour, Embed, InteractionType, app_commands, Interaction, Object, ChannelType, Guild, HTTPException
 from discord.utils import MISSING
 from discord.ui import View, Button
-from discord import HTTPException
+from discord.abc import Snowflake
+from discord.app_commands import Parameter
+
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
 from .util.helpUtil import *
-from typing import List, cast
-from discord.abc import Snowflake
+from .. import client, lib
 
 
 def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild]) -> Optional[Union[app_commands.Command, app_commands.Group]]:
@@ -30,7 +30,7 @@ def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild
 
 def formatSignatureParams(command: app_commands.Command) -> str:
     return " ".join(f'**<{param.display_name}>**' if param.required else \
-                    f'*[{param.display_name}]*' for param in command._params.values())
+                    f'*[{param.display_name}]*' for param in command.parameters)
 
 
 def formatChannelType(c: ChannelType) -> str:
@@ -42,16 +42,16 @@ def formatSignature(command: Union[app_commands.Command, app_commands.Group]) ->
     return f"**{command.qualified_name}**{f' {params}' if params else ''}"
 
 
-def paramDescription(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
+def paramDescription(param: Parameter, meta: basedCommand.BasedCommandMeta) -> str:
     return meta.formattedParamDescs.get(param.name, '') if meta.formattedParamDescs is not None else '' \
             or (param.description if param.description != '…' else '')
 
 
-def paramDescribable(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> bool:
+def paramDescribable(param: Parameter, meta: basedCommand.BasedCommandMeta) -> bool:
     return any((paramDescription(param, meta), param.channel_types, param.min_value is not None, param.max_value is not None))
 
 
-def formatParamRequirements(param: CommandParameter, meta: basedCommand.BasedCommandMeta) -> str:
+def formatParamRequirements(param: Parameter, meta: basedCommand.BasedCommandMeta) -> str:
     base = f"**{param.display_name}**: {paramDescription(param, meta)}"
     rest = ", ".join(i for i in
     (
@@ -63,7 +63,7 @@ def formatParamRequirements(param: CommandParameter, meta: basedCommand.BasedCom
 
 
 def formatDescriptionParams(command: app_commands.Command, meta: basedCommand.BasedCommandMeta) -> str:
-    return "\n".join(formatParamRequirements(param, meta) for param in command._params.values() if paramDescribable(param, meta))
+    return "\n".join(formatParamRequirements(param, meta) for param in command.parameters if paramDescribable(param, meta))
 
 
 def commandDescription(command: Union[app_commands.Command, app_commands.Group], meta: basedCommand.BasedCommandMeta) -> str:
@@ -351,8 +351,8 @@ class HelpCog(basedApp.BasedCog):
             view = MISSING
         
         if interaction.type == InteractionType.component:
-            if interaction.response._responded:
-                await interaction.edit_original_message(embed=embed, view=view)
+            if interaction.response.is_done():
+                await interaction.edit_original_response(embed=embed, view=view)
             else:
                 # TODO: I'm not sure why I keep getting 'interaction already acknowledged' here. The interaction should be new for each button press?
                 try:

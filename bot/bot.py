@@ -462,7 +462,7 @@ async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str
     except ExtensionNotLoaded:
         view = discord.ui.View()
         cancelButton = discord.ui.Button(style=discord.ButtonStyle.red, label="cancel")
-        cancelButton.callback = removeViewFromMessageCallback(await interaction.original_message())
+        cancelButton.callback = removeViewFromMessageCallback(await interaction.original_response())
         acceptButton = discord.ui.Button(style=discord.ButtonStyle.green, label="load")
         acceptButton.callback = loadExtensionCallback(extension_name)
         view.add_item(cancelButton).add_item(acceptButton)
