@@ -1,8 +1,17 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedMiningDrillModule(moduleItem.SerializedModuleItem):
+    oreYield: float
+    drillHandling: float
+
+class TypedSerializedMiningDrillModule(SerializedMiningDrillModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedMiningDrillModuleUnion = Union[SerializedMiningDrillModule, TypedSerializedMiningDrillModule]
+SerializedMiningDrillModuleUnion = Union[SerializedMiningDrillModule, TypedSerializedMiningDrillModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -11,11 +20,11 @@ class MiningDrillModule(moduleItem.ModuleItem):
 
     :var oreYield: The percentage of the maximum ore this drill will receive from an asteroid
     :vartype oreYield: float
-    :var handling: The drill's ease of use
-    :vartype handling: float
+    :var drillHandling: The drill's ease of use
+    :vartype drillHandling: float
     """
 
-    def __init__(self, name: str, aliases: List[str], oreYield: int = 0, handling: int = 0, value: int = 0,
+    def __init__(self, name: str, aliases: List[str], oreYield: float = 0, drillHandling: float = 0, value: int = 0,
             wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
             builtIn: bool = False):
@@ -23,7 +32,7 @@ class MiningDrillModule(moduleItem.ModuleItem):
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
         :param float oreYield: The percentage of the maximum ore this drill will receive from an asteroid (Default 0)
-        :param float handling: The drill's ease of use (Default 0)
+        :param float drillHandling: The drill's ease of use (Default 0)
         :param int value: The number of credits this module may be sold or bought or at a shop (Default 0)
         :param str wiki: A web page that is displayed as the wiki page for this module. (Default "")
         :param str manufacturer: The name of the manufacturer of this module (Default "")
@@ -38,15 +47,15 @@ class MiningDrillModule(moduleItem.ModuleItem):
                                                 emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
         self.oreYield = oreYield
-        self.handling = handling
+        self.drillHandling = drillHandling
 
 
     def statsStringShort(self):
         return "*Yield: " + moduleItem.lib.stringTyping.formatMultiplier(self.oreYield) \
-                + ", Handling: " + lib.stringTyping.formatMultiplier(self.handling) + "*"
+                + ", Handling: " + lib.stringTyping.formatMultiplier(self.drillHandling) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedMiningDrillModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -55,13 +64,15 @@ class MiningDrillModule(moduleItem.ModuleItem):
         """
         itemDict = super(MiningDrillModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedMiningDrillModuleUnion, itemDict)
             itemDict["oreYield"] = self.oreYield
-            itemDict["handling"] = self.handling
+            itemDict["drillHandling"] = self.drillHandling
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedMiningDrillModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -72,6 +83,8 @@ class MiningDrillModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedMiningDrillModuleUnion, moduleDict)
         return MiningDrillModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

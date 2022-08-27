@@ -1,8 +1,17 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedTransfusionBeamModule(moduleItem.SerializedModuleItem):
+    HPps: int
+    count: int
+
+class TypedSerializedTransfusionBeamModule(SerializedTransfusionBeamModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule]
+SerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -15,7 +24,7 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
     :vartype count: int
     """
 
-    def __init__(self, name: str, aliases: List[str], HPps: float = 0, count: int = 0,
+    def __init__(self, name: str, aliases: List[str], HPps: int = 0, count: int = 0,
             value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
             builtIn: bool = False):
@@ -45,7 +54,7 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
         return "*HP/s: " + str(self.HPps) + ", Count: " + str(self.count) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedTransfusionBeamModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
         serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -54,13 +63,15 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
         """
         itemDict = super(TransfusionBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedTransfusionBeamModuleUnion, itemDict)
             itemDict["HPps"] = self.HPps
             itemDict["count"] = self.count
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedTransfusionBeamModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -71,6 +82,8 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedTransfusionBeamModuleUnion, moduleDict)
         return TransfusionBeamModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

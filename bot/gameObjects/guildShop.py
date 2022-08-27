@@ -656,11 +656,11 @@ class TechLeveledShop(ShopBase[InventoryListing]):
                 # Iterate over all item types
                 for itemType, minCount in typeMins.items():
                     # Find the items of the required type that could spawn at the shop's current level
+                    possibleItems: Dict[int, List[gameItem.GameItem]] = {}
+                    for tl in gameMaths.possibleItemTLs(self.currentTechLevel):
+                        possibleItems[tl] = [item for item in keys[tl - 1] if isinstance(item, itemType)]
 
-                    possibleItems: Dict[int, List[gameItem.GameItem]] = {tl: i for tl, i in {
-                        tl: [i for i in (keys[tl - 1] if tl >= len(keys) else []) if isinstance(i, itemType)]
-                            for tl in gameMaths.possibleItemTLs(self.currentTechLevel)
-                    }.items() if i}
+                    possibleItems = {tl: tlItems for tl, tlItems in possibleItems.items() if tlItems}
 
                     if possibleItems:
                         # Add a random selection of minCount items from possibleItems

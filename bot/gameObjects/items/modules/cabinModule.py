@@ -1,8 +1,16 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedCabinModule(moduleItem.SerializedModuleItem):
+    cabinSize: int
+
+class TypedSerializedCabinModule(SerializedCabinModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedCabinModuleUnion = Union[SerializedCabinModule, TypedSerializedCabinModule]
+SerializedCabinModuleUnion = Union[SerializedCabinModule, TypedSerializedCabinModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -41,7 +49,7 @@ class CabinModule(moduleItem.ModuleItem):
         return "*Cabin Size: " + str(self.cabinSize) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedCabinModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
         serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -50,12 +58,14 @@ class CabinModule(moduleItem.ModuleItem):
         """
         itemDict = super(CabinModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedCabinModuleUnion, itemDict)
             itemDict["cabinSize"] = self.cabinSize
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedCabinModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -66,6 +76,8 @@ class CabinModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedCabinModuleUnion, moduleDict)
         return CabinModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

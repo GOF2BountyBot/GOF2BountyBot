@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Coroutine
+from typing import TYPE_CHECKING, Any, Coroutine, Union, cast
 if TYPE_CHECKING:
     from ....users import basedUser
 from .. import gameItem
@@ -6,6 +6,15 @@ from abc import abstractmethod
 from .... import lib, botState
 from discord import Message
 from typing import Callable, List
+
+
+class SerializedToolItem(gameItem.CustomSerializedGameItem):
+    autoUse: bool
+
+class TypedSerializedToolItem(SerializedToolItem, gameItem.TypedCustomSerializedGameItem): pass
+
+CustomSerializedToolItemUnion = Union[SerializedToolItem, TypedSerializedToolItem]
+SerializedToolItemUnion = Union[SerializedToolItem, TypedSerializedToolItem]
 
 
 class ToolItem(gameItem.GameItem):
@@ -76,7 +85,7 @@ class ToolItem(gameItem.GameItem):
 
 
     @abstractmethod
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedToolItemUnion:
         """Serialize this tool into dictionary format.
         This step of implementation adds a 'type' string indicating the name of this tool's subclass.
 
@@ -84,7 +93,8 @@ class ToolItem(gameItem.GameItem):
         :return: The default gameItem serialize implementation, with an added 'type' field
         :rtype: dict
         """
-        data = super().serialize(**kwargs)
+        # Casting here so I can add the new field
+        data = cast(SerializedToolItemUnion, super().serialize(**kwargs))
         data["autoUse"] = self.autoUse
         return data
 

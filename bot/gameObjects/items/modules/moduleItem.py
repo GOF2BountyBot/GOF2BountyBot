@@ -1,8 +1,27 @@
-from ..gameItem import GameItem, spawnableItem
-from ....cfg import bbData
+from typing_extensions import NotRequired
+from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem
 from .... import lib
-from typing import List
+from typing import List, TypedDict, Union
 from ....baseClasses.serializable import JsonType
+
+
+class SerializedModuleItem(CustomSerializedGameItem):
+    armour: NotRequired[int]
+    shield: NotRequired[int]
+    dps: NotRequired[float]
+    cargo: NotRequired[int]
+    handling: NotRequired[int]
+    armourMultiplier: NotRequired[int]
+    shieldMultiplier: NotRequired[int]
+    dpsMultiplier: NotRequired[float]
+    cargoMultiplier: NotRequired[int]
+    handlingMultiplier: NotRequired[int]
+
+class TypedSerializedModuleItem(SerializedModuleItem, TypedCustomSerializedGameItem): pass
+
+CustomSerializedModuleItemUnion = Union[SerializedModuleItem, TypedSerializedModuleItem]
+
+SerializedModuleItemUnion = Union[BuiltInSerializedGameItem, SerializedModuleItem, TypedSerializedModuleItem]
 
 
 @spawnableItem
@@ -106,7 +125,7 @@ class ModuleItem(GameItem):
         return statsStr if len(statsStr) > 1 else "*No effect*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedModuleItemUnion:
         """Serialize this moduleItem into dictionary format, for saving to file.
         This method should be overriden and used as a base in any modules that implement
         custom behaviour, outside of simple stat boosts.
@@ -126,8 +145,8 @@ class ModuleItem(GameItem):
         if not self.builtIn:
             additiveStats = {   "armour": self.armour, "shield": self.shield, "dps": self.dps,
                                 "cargo": self.cargo, "handling": self.handling}
-            multiplierStats = { "armour": self.armourMultiplier, "shield": self.shieldMultiplier, "dps": self.dpsMultiplier,
-                                "cargo": self.cargoMultiplier, "handling": self.handlingMultiplier}
+            multiplierStats = { "armourMultiplier": self.armourMultiplier, "shieldMultiplier": self.shieldMultiplier, "dpsMultiplier": self.dpsMultiplier,
+                                "cargoMultiplier": self.cargoMultiplier, "handlingMultiplier": self.handlingMultiplier}
 
             for statName in additiveStats:
                 if additiveStats[statName] != 0:
@@ -140,7 +159,7 @@ class ModuleItem(GameItem):
 
 
     @classmethod
-    def deserialize(cls, moduleDict: JsonType, **kwargs):
+    def deserialize(cls, moduleDict: SerializedModuleItemUnion, **kwargs):
         """Factory function constructing a new moduleItem object from a dictionary serialised
         representation - the opposite of moduleItem.serialize. This generic module factory function is unlikely
         to ever be called, your module type-specific deserialize should be used instead. Except of course, in the

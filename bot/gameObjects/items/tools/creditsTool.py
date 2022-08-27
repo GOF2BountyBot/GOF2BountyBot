@@ -64,20 +64,8 @@ class CreditsTool(toolItem.ToolItem):
         return f"*{self.value} credits*"
 
 
-    def serialize(self, **kwargs) -> dict:
-        """Serialize this tool into dictionary format.
-        This step of implementation adds a 'type' string indicating the name of this tool's subclass.
-        :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem serialize implementation, with an added 'type' field
-        :rtype: dict
-        """
-        data = super().serialize(**kwargs)
-        data["autoUse"] = self.autoUse
-        return data
-
-
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> "CreditsTool":
+    def deserialize(cls, data: toolItem.SerializedToolItemUnion, **kwargs) -> "CreditsTool":
         """Deserialize a CreditsTool from dictionary format.
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool

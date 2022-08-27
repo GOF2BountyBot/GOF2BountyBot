@@ -1,8 +1,16 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedRepairBotModule(moduleItem.SerializedModuleItem):
+    HPps: float
+
+class TypedSerializedRepairBotModule(SerializedRepairBotModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule]
+SerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -13,7 +21,7 @@ class RepairBotModule(moduleItem.ModuleItem):
     :vartype HPps: int
     """
 
-    def __init__(self, name: str, aliases: List[str], HPps: float = 0, value: int = 0,
+    def __init__(self, name: str, aliases: List[str], HPps: int = 0, value: int = 0,
             wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
             builtIn: bool = False):
@@ -41,7 +49,7 @@ class RepairBotModule(moduleItem.ModuleItem):
         return "*HP/s: " + str(self.HPps) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedRepairBotModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -50,12 +58,14 @@ class RepairBotModule(moduleItem.ModuleItem):
         """
         itemDict = super(RepairBotModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedRepairBotModuleUnion, itemDict)
             itemDict["HPps"] = self.HPps
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedRepairBotModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -66,6 +76,8 @@ class RepairBotModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedRepairBotModuleUnion, moduleDict)
         return RepairBotModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

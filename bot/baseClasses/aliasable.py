@@ -1,10 +1,16 @@
 # Typing imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypedDict
+from abc import abstractmethod
+from typing_extensions import NotRequired
 
 from .serializable import Serializable
 
-from abc import abstractmethod
+
+class SerializedAliasable(TypedDict):
+    name: str
+    aliases: NotRequired[List[str]]
+
 
 class AliasableMixin(Serializable):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
@@ -17,7 +23,7 @@ class AliasableMixin(Serializable):
     :var aliases: A list of alternative identifiers for the object
     :vartype aliases: list[str]
     """
-    def __init__(self, name: str, aliases: List[str], *args, forceAllowEmpty: bool = False, **kwargs):
+    def __init__(self, name: str, aliases: List[str] = [], *args, forceAllowEmpty: bool = False, **kwargs):
         """
         :param str name: The main identifier for the object
         :param list[str] aliases: A list of alternative identifiers for the object
@@ -68,10 +74,13 @@ class AliasableMixin(Serializable):
 
 
     @abstractmethod
-    def serialize(self, **kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def serialize(self, **kwargs: Dict[str, Any]) -> SerializedAliasable:
         """Serialize this object into dictionary format, to be recreated completely.
 
         :return: A dictionary containing all information needed to recreate this object
         :rtype: dict
         """
-        return {"name": self.name, "aliases": self.aliases}
+        data: SerializedAliasable = {"name": self.name}
+        if self.aliases:
+            data["aliases"] = self.aliases
+        return data

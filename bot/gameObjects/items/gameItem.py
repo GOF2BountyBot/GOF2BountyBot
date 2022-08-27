@@ -1,12 +1,36 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, List, Optional, Type, TypeVar, cast
+from typing import Dict, List, Optional, Type, TypeVar, Union, cast, TypedDict
 
 from ...baseClasses import aliasable
 from abc import abstractmethod
 from ... import lib
-from..gameObject import LoadedObject
+from..gameObject import LoadedObject, SerializedLoadedObject
 
+
+class BuiltInSerializedGameItem(SerializedLoadedObject, aliasable.SerializedAliasable): pass
+
+class CustomSerializedGameItem(BuiltInSerializedGameItem):
+    value: int
+    wiki: str
+    manufacturer: str
+    icon: str
+    emoji: lib.emojis.SerializedBasedEmoji
+    techLevel: int
+
+
+class TypedCustomSerializedGameItem(CustomSerializedGameItem):
+    type: str
+
+class TypedBuiltInSerializedGameItem(BuiltInSerializedGameItem):
+    type: str
+
+
+CustomSerializedGameItemUnion = Union[CustomSerializedGameItem, TypedCustomSerializedGameItem]
+BuiltInSerializedGameItemUnion = Union[BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem]
+SerializedGameItemUnion = Union[CustomSerializedGameItem, BuiltInSerializedGameItemUnion]
+
+TypedSerializedGameItemUnion = Union[TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem]
 
 subClassNames: Dict[str, Type["GameItem"]] = {}
 nameSubClasses: Dict[Type["GameItem"], str] = {}
@@ -102,7 +126,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject):
 
 
     @abstractmethod
-    def serialize(self, saveType: Optional[bool] = False, **kwargs) -> dict:
+    def serialize(self, saveType: Optional[bool] = False, **kwargs) -> SerializedGameItemUnion:
         """Serialize this item into dictionary format, for saving to file.
         This base implementation should be used in gameItem implementations, and custom attributes saved into it.
 
@@ -112,9 +136,9 @@ class GameItem(aliasable.AliasableMixin, LoadedObject):
         :rtype: dict
         """
         if self.builtIn:
-            data = {"name": self.name, "builtIn": True}
+            data: BuiltInSerializedGameItem = {"name": self.name, "builtIn": True}
         else:
-            data = super().serialize(**kwargs)
+            data = cast(CustomSerializedGameItemUnion, super().serialize(**kwargs))
             data["value"] = self.value
             data["wiki"] = self.wiki
             data["manufacturer"] = self.manufacturer
@@ -124,6 +148,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject):
             data["builtIn"] = False
 
         if saveType:
+            data = cast(TypedSerializedGameItemUnion, data)
             data["type"] = type(self).__name__
 
         return data
@@ -144,7 +169,7 @@ def spawnableItem(cls: TClass) -> TClass:
     return cast(TClass, cls)
 
 
-def spawnItem(data: dict) -> GameItem:
+def spawnItem(data: TypedCustomSerializedGameItem) -> GameItem:
     if "type" not in data or data["type"] == "":
         raise NameError("Not given a type")
     elif data["type"] not in subClassNames:

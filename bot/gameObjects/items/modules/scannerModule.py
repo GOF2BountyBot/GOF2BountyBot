@@ -1,8 +1,18 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedScannerModule(moduleItem.SerializedModuleItem):
+    timeToLock: float
+    showClassAAsteroids: bool
+    showCargo: bool
+
+class TypedSerializedScannerModule(SerializedScannerModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule]
+SerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -17,7 +27,7 @@ class ScannerModule(moduleItem.ModuleItem):
     :vartype showCargo: bool
     """
 
-    def __init__(self, name: str, aliases: List[str], timeToLock: int = 0,
+    def __init__(self, name: str, aliases: List[str], timeToLock: float = 0,
             showClassAAsteroids: bool = False, showCargo: bool = False, value: int = 0,
             wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
@@ -55,7 +65,7 @@ class ScannerModule(moduleItem.ModuleItem):
                 + ", Show Cargo: " + ("Yes" if self.showCargo else "No") + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedScannerModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -64,6 +74,8 @@ class ScannerModule(moduleItem.ModuleItem):
         """
         itemDict = super(ScannerModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedScannerModuleUnion, itemDict)
             itemDict["timeToLock"] = self.timeToLock
             itemDict["showClassAAsteroids"] = self.showClassAAsteroids
             itemDict["showCargo"] = self.showCargo
@@ -71,7 +83,7 @@ class ScannerModule(moduleItem.ModuleItem):
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedScannerModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -82,6 +94,8 @@ class ScannerModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedScannerModuleUnion, moduleDict)
         return ScannerModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

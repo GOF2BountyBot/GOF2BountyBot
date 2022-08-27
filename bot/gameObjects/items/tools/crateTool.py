@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Union, cast
 if TYPE_CHECKING:
     from ....users import basedUser
 import random
@@ -14,6 +14,19 @@ from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
 from ....baseClasses.hasRarity import HasRarityMixin
+
+
+class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
+    crateType: str
+    typeNum: int
+
+
+class CustomSerializedCrateTool(toolItem.SerializedToolItem, BuiltInSerializedCrateTool):
+    itemPool: List[gameItem.TypedSerializedGameItemUnion]
+
+class TypedSerializedCrateTool(CustomSerializedCrateTool, toolItem.TypedSerializedToolItem): pass
+
+SerializedCrateToolUnion = Union[CustomSerializedCrateTool, TypedSerializedCrateTool, BuiltInSerializedCrateTool]
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
@@ -247,7 +260,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
                 + "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedCrateToolUnion:
         """Serialize this crate into dictionary format.
 
         :return: A dictionary fully describing this crate instance
@@ -257,15 +270,20 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
         if "aliases" in data:
             del data["aliases"]
         if self.builtIn:
+            # Casting here because I know that the crate is builtIn
+            data = cast(SerializedCrateToolUnion, data)
             data["crateType"] = self.crateType
             data["typeNum"] = self.typeNum
         else:
+            # Casting here because I know that the crate is not builtIn, so it will have all fields
+            data = cast(CustomSerializedCrateTool, data)
             if "saveType" not in kwargs:
                 kwargs["saveType"] = True
 
             data["itemPool"] = []
             for item in self.itemPool:
-                data["itemPool"].append(item.serialize(**kwargs))
+                # Casting because the saveType kwarg above **should** guarantee the type field
+                data["itemPool"].append(cast(gameItem.TypedSerializedGameItemUnion, item.serialize(**kwargs)))
         return data
 
 

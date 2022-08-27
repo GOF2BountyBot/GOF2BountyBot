@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TypeVar, Union, cast
+from typing import TypeVar, Union, cast, TypedDict
 
 import emoji
 import traceback
@@ -57,6 +57,18 @@ def strIsCustomEmoji(s: str) -> bool:
             return False
         return stringTyping.isInt(s[second + 1:-1])
     return False
+
+
+class SerializedUnicodeBasedEmoji(TypedDict):
+    unicode: str
+
+class SerializedCustomBasedEmoji(TypedDict):
+    id: int
+
+class SerializedEmptyBasedEmoji(TypedDict):
+    empty: bool
+
+SerializedBasedEmoji = Union[SerializedUnicodeBasedEmoji, SerializedCustomBasedEmoji, SerializedEmptyBasedEmoji]
 
 
 T = TypeVar("T")
@@ -237,7 +249,7 @@ class BasedEmoji(IBasedEmoji):
         self._classInit = True
 
 
-    def serialize(self, **kwargs):
+    def serialize(self, **kwargs) -> SerializedBasedEmoji:
         """Serialize this emoji to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this emoji.
@@ -290,7 +302,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def deserialize(cls, emojiDict: JsonType, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
+    def deserialize(cls, emojiDict: SerializedBasedEmoji, rejectInvalid: bool = False, **kwargs) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 
@@ -366,7 +378,7 @@ class BasedEmoji(IBasedEmoji):
 
 
     @classmethod
-    def fromStr(cls, s: str, rejectInvalid: bool = False) -> BasedEmoji:
+    def fromStr(cls, s: Union[BasedEmoji, SerializedBasedEmoji, str], rejectInvalid: bool = False) -> BasedEmoji:
         """Construct a BasedEmoji object from a string containing either a unicode emoji or a discord custom emoji.
         
         s may also be a BasedEmoji (returns s), a dictionary-serialized BasedEmoji (returns BasedEmoji.deserialize(s)), or

@@ -2,7 +2,7 @@ from __future__ import annotations
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
+from typing import List, cast
 from ..gameItem import spawnableItem
 
 
@@ -32,19 +32,8 @@ class ArmourModule(moduleItem.ModuleItem):
                                             icon=icon, emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
 
-    def serialize(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file.
-        No extra attributes implemented by this class, so just eses the base moduleItem serialize method.
-
-        :return: A dictionary containing all information needed to reconstruct this module
-        :rtype: dict
-        """
-        itemDict = super(ArmourModule, self).serialize(**kwargs)
-        return itemDict
-
-
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs) -> ArmourModule:
+    def deserialize(cls, moduleDict: moduleItem.SerializedModuleItemUnion, **kwargs) -> ArmourModule:
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -54,8 +43,12 @@ class ArmourModule(moduleItem.ModuleItem):
         """
         if moduleDict.get("builtIn", False):
             m = bbData.builtInModuleObjs[moduleDict["name"]]
-            if isinstance(m, ArmourModule): return m
+            if not isinstance(m, ArmourModule):
+                raise TypeError(f"Module {m.name} is not a {ArmourModule.__name__}. It is a {type(m).__name__}")    
+            return m
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(moduleItem.CustomSerializedModuleItemUnion, moduleDict)
         return ArmourModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

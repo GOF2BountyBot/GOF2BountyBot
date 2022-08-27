@@ -1,4 +1,13 @@
+from typing import TypedDict, TypeVar, Type
+from abc import abstractmethod
+
 from ..baseClasses.serializable import SerializesToJson
+
+TSelf = TypeVar("TSelf", bound="LoadedObject")
+
+class SerializedLoadedObject(TypedDict):
+    builtIn: bool
+
 
 class LoadedObject(SerializesToJson):
     """ABC for objects that were loaded into the game from file.
@@ -7,3 +16,10 @@ class LoadedObject(SerializesToJson):
     """
     def __init__(self, builtIn: bool = False):
         self.builtIn = builtIn
+
+    @abstractmethod
+    def serialize(self, **kwargs) -> SerializedLoadedObject: ...
+
+    @abstractmethod
+    @classmethod
+    def deserialize(cls: Type[TSelf], data: SerializedLoadedObject, **kwargs) -> TSelf: ...

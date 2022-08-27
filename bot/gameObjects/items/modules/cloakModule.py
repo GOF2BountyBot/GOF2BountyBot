@@ -1,8 +1,16 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedCloakModule(moduleItem.SerializedModuleItem):
+    duration: float
+
+class TypedSerializedCloakModule(SerializedCloakModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedCloakModuleUnion = Union[SerializedCloakModule, TypedSerializedCloakModule]
+SerializedCloakModuleUnion = Union[SerializedCloakModule, TypedSerializedCloakModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -13,7 +21,7 @@ class CloakModule(moduleItem.ModuleItem):
     :vartype duration: float
     """
 
-    def __init__(self, name: str, aliases: List[str], duration: int = 0, value: int = 0,
+    def __init__(self, name: str, aliases: List[str], duration: float = 0, value: int = 0,
             wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
             builtIn: bool = False):
@@ -41,7 +49,7 @@ class CloakModule(moduleItem.ModuleItem):
         return "*Duration: " + moduleItem.lib.stringTyping.formatAdditive(self.duration) + "s*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedCloakModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -50,12 +58,14 @@ class CloakModule(moduleItem.ModuleItem):
         """
         itemDict = super(CloakModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedCloakModuleUnion, itemDict)
             itemDict["duration"] = self.duration
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedCloakModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -66,6 +76,8 @@ class CloakModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedCloakModuleUnion, moduleDict)
         return CloakModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

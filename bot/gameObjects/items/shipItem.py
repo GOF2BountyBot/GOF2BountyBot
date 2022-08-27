@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Optional, Union, TYPE_CHECKING, cast
+from typing import List, Optional, Union, TYPE_CHECKING, cast, TypedDict
 if TYPE_CHECKING:
     from .modules import moduleItem
 
@@ -13,8 +13,12 @@ from .weapons.turretWeapon import TurretWeapon
 from .. import shipSkin, shipUpgrade
 from ...cfg import cfg, bbData
 from ...cfg.bbData import ItemCategory
-from ... import lib
 from ...lib.emojis import BasedEmoji
+from ...baseClasses.serializable import JsonType
+
+
+class SerializedShip(TypedDict):
+    weapons: List[]
 
 
 @spawnableItem

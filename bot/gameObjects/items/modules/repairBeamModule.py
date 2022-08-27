@@ -1,8 +1,17 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedRepairBeamModule(moduleItem.SerializedModuleItem):
+    effect: float
+    count: int
+
+class TypedSerializedRepairBeamModule(SerializedRepairBeamModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedRepairBeamModuleUnion = Union[SerializedRepairBeamModule, TypedSerializedRepairBeamModule]
+SerializedRepairBeamModuleUnion = Union[SerializedRepairBeamModule, TypedSerializedRepairBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -10,19 +19,19 @@ class RepairBeamModule(moduleItem.ModuleItem):
     """A module providing a ship with the ability to slowly add health points to nearby friendly ships
 
     :var effect: The amount of health added to nearby ships per time quantum
-    :vartype effect: int
+    :vartype effect: float
     :var count: The number of nearby ships that can be healed simultaneously
     :vartype count: int
     """
 
-    def __init__(self, name: str, aliases: List[str], effect: int = 0, count: int = 0, value: int = 0,
+    def __init__(self, name: str, aliases: List[str], effect: float = 0, count: int = 0, value: int = 0,
             wiki: str = "", manufacturer: str = "", icon: str = "",
             emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
             builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
-        :param int effect: The amount of health added to nearby ships per time quantum (Default 0)
+        :param float effect: The amount of health added to nearby ships per time quantum (Default 0)
         :param int count: The number of nearby ships that can be healed simultaneously (Default 0)
         :param int value: The number of credits this module may be sold or bought or at a shop (Default 0)
         :param str wiki: A web page that is displayed as the wiki page for this module. (Default "")
@@ -46,7 +55,7 @@ class RepairBeamModule(moduleItem.ModuleItem):
                 + ", Count: " + lib.stringTyping.formatAdditive(self.count) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedRepairBeamModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
         serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -55,13 +64,15 @@ class RepairBeamModule(moduleItem.ModuleItem):
         """
         itemDict = super(RepairBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedRepairBeamModuleUnion, itemDict)
             itemDict["effect"] = self.effect
             itemDict["count"] = self.count
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedRepairBeamModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -72,6 +83,8 @@ class RepairBeamModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedRepairBeamModuleUnion, moduleDict)
         return RepairBeamModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

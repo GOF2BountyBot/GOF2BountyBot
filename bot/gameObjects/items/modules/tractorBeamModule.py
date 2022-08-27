@@ -1,8 +1,16 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+
+class SerializedTractorBeamModule(moduleItem.SerializedModuleItem):
+    timeToLock: float
+
+class TypedSerializedTractorBeamModule(SerializedTractorBeamModule, moduleItem.TypedSerializedModuleItem): ...
+
+CustomSerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule]
+SerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
@@ -42,7 +50,7 @@ class TractorBeamModule(moduleItem.ModuleItem):
         return "*Time To Lock: " + str(self.timeToLock) + "s*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedTractorBeamModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
         serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
@@ -51,12 +59,14 @@ class TractorBeamModule(moduleItem.ModuleItem):
         """
         itemDict = super(TractorBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedTractorBeamModuleUnion, itemDict)
             itemDict["timeToLock"] = self.timeToLock
         return itemDict
 
 
     @classmethod
-    def deserialize(cls, moduleDict: dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedTractorBeamModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
         The opposite of this class's serialize function.
 
@@ -67,6 +77,8 @@ class TractorBeamModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedTractorBeamModuleUnion, moduleDict)
         return TractorBeamModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))
