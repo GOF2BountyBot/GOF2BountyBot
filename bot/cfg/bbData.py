@@ -1,8 +1,24 @@
-from typing import Union
+from typing import Dict, List, Union, TYPE_CHECKING
+from typing_extensions import Never
 from discord import Colour
 from datetime import timedelta
-from ..baseClasses.basedEnum import _BasedEnumMeta
 from enum import Enum
+
+from ..baseClasses.serializable import JsonType
+from ..baseClasses.basedEnum import _BasedEnumMeta
+if TYPE_CHECKING:
+    from ..gameObjects.bounties import solarSystem
+    from ..gameObjects.items.tools import toolItem
+    from ..gameObjects import shipSkin
+    from ..gameObjects.bounties import criminal
+    from ..gameObjects.items.modules import moduleItem
+    from ..gameObjects.items.weapons import primaryWeapon
+    from ..gameObjects.items.weapons import turretWeapon
+    from ..gameObjects.userProfile import medal
+    from ..gameObjects.userProfile import xpBar
+    from ..gameObjects import shipUpgrade
+    from ..gameObjects.items.tools import crateTool
+    from ..gameObjects.items.tools import shipSkinTool
 
 class _ItemCategoryMeta(_BasedEnumMeta):
     @classmethod
@@ -89,7 +105,7 @@ factionColours = {  "terran": Colour.gold(),
 # which are stored in builtInShipObjs in a similar dict format.
 # Ships to not have tech levels in GOF2, so tech levels will be automaticaly generated
 # for the sake of the bot during bot.on_ready.
-builtInShipData = {}
+builtInShipData: Dict[str, JsonType] = {}
 
 def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
     """Look up ship data in builtInShipData by name or alias
@@ -103,13 +119,14 @@ def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
     :rtype: dict
     """
     try:
+        # A few ignores in here because pyright can't know the structure of a serialized ship
         return next(
             i for i in builtInShipData.values()
-            if shipName == i["name"].lower() \
+            if shipName == i["name"].lower() # type: ignore
             or shipName in \
-                ([n.lower() for n in i.get("aliases", [])] \
+                ([n.lower() for n in i.get("aliases", [])] # type: ignore
                 if ignoreCase else \
-                i.get("aliases", []))
+                i.get("aliases", [])) # type: ignore
         )
     except StopIteration:
         raise KeyError(f"Unknown ship: {shipName}")
@@ -118,92 +135,94 @@ def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
 # Data representing all module items in the game. These are used to create bbModule objects,
 # which are stored in builtInModuleObjs in a similar dict format.
 # Keys are ordered by name.
-builtInModuleData = {}
+builtInModuleData: Dict[str, JsonType] = {}
 
 # Data representing all primary weapon items in the game. These are used to create bbWeapon objects,
 # which are stored in builtInWeaponObjs in a similar dict format.
 # Keys are ordered by name.
-builtInWeaponData = {}
+builtInWeaponData: Dict[str, JsonType] = {}
 
 # Data representing all ship upgrades in the game. These are used to create bbShipUpgrade objects,
 # which are stored in builtInUpgradeObjs in a similar dict format.
 # Keys are ordered by name.
-builtInUpgradeData = {}
+builtInUpgradeData: Dict[str, JsonType] = {}
 
 # data for builtIn criminals to be used in Criminal.deserialize
 # criminals marked as not builtIn to allow for dictionary init.
 # The criminal object is then marked as builtIn during bot.on_ready
 # Keys are ordered by name.
-builtInCriminalData = {}
+builtInCriminalData: Dict[str, JsonType] = {}
 
 # data for builtIn systems to be used in SolarSystem.deserialize
 # Keys are ordered by name.
-builtInSystemData = {}
+builtInSystemData: Dict[str, JsonType] = {}
 
 # data for builtIn Turrets to be used in bbTurret.deserialize
 # Keys are ordered by name.
-builtInTurretData = {}
+builtInTurretData: Dict[str, JsonType] = {}
 
 # data for builtIn commodities to be used in bbCommodity.deserialize (unimplemented)
 # Keys are ordered by name.
-builtInCommodityData = {}
+builtInCommodityData: Dict[str, JsonType] = {}
 
-builtInToolData = {}
+builtInToolData: Dict[str, JsonType] = {}
 
 # data for builtIn secondaries to be used in bbSecondary.deserialize (unimplemented)
 # Keys are ordered by name.
-builtInSecondariesData = {}
+builtInSecondariesData: Dict[str, JsonType] = {}
 
 # data for builtIn ShipSkins to be used in ShipSkin.deserialize
 # Keys are ordered by name.
-builtInShipSkinsData = {}
+builtInShipSkinsData: Dict[str, JsonType] = {}
 
 # data for Medals to be used in Medal.deserialize. builtIn is not applicable to Medals, as custom Medals cannot be created
 # Keys are ordered by name.
-medalsData = {}
+medalsData: Dict[str, JsonType] = {}
 
 
 # To be populated during bot.on_ready
 # These dicts contain item name: item object for the object described in the variable name.
 # Keys are ordered by name.
-builtInShipSkins = {}
-builtInToolObjs = {}
-builtInSystemObjs = {}
-builtInCriminalObjs = {}
-builtInModuleObjs = {}
-builtInWeaponObjs = {}
-builtInUpgradeObjs = {}
-builtInTurretObjs = {}
-builtInSecondaryObjs = {}
-builtInCommodityObjs = {}
-medalObjs = {}
+builtInShipSkins: Dict[str, "shipSkinTool.ShipSkin"] = {}
+builtInToolObjs: Dict[str, "toolItem.ToolItem"] = {}
+builtInSystemObjs: Dict[str, "solarSystem.SolarSystem"] = {}
+builtInCriminalObjs: Dict[str, "criminal.Criminal"] = {}
+builtInModuleObjs: Dict[str, "moduleItem.ModuleItem"] = {}
+builtInWeaponObjs: Dict[str, "primaryWeapon.PrimaryWeapon"] = {}
+builtInUpgradeObjs: Dict[str, "shipUpgrade.ShipUpgrade"] = {}
+builtInTurretObjs: Dict[str, "turretWeapon.TurretWeapon"] = {}
+# Typing these as Never because they have not yet been implemented
+builtInSecondaryObjs: Dict[str, Never] = {}
+builtInCommodityObjs: Dict[str, Never] = {}
+medalObjs: Dict[str, "medal.Medal"] = {}
 
 # References to the above item objects, sorted by techLevel.
 # Keys are ordered by name.
-shipKeysByTL = []
-moduleObjsByTL = []
-weaponObjsByTL = []
-turretObjsByTL = []
+shipKeysByTL: List[List[str]] = []
+moduleObjsByTL: List[List["moduleItem.ModuleItem"]] = []
+weaponObjsByTL: List[List["primaryWeapon.PrimaryWeapon"]] = []
+turretObjsByTL: List[List["turretWeapon.TurretWeapon"]] = []
 
 
 # names of criminals in builtIn bounties
 # Keys are ordered by name.
-bountyNames = {}
+bountyNames: Dict[str, List[str]] = {}
 # the length of the longest criminal name, to be used in padding during cmd_bounties
 longestBountyNameLength = 0
 
-shipSkinToolsBySkin = {}
-shipUpgradeToolsByUpgrade = {}
+shipSkinToolsBySkin: Dict["shipSkin.ShipSkin", "shipSkinTool.ShipSkinTool"] = {}
+# Typing this as Never because it have not yet been implemented
+shipUpgradeToolsByUpgrade: Dict[str, Never] = {}
 
 # Dict of crate type (str): list of crates
 # Keys are ordered by name.
-builtInCrateObjs = {}
+builtInCrateObjs: Dict[str, List["crateTool.CrateTool"]] = {}
 
 
 # Profile Customisation items
 # XP bar fills
 # Keys are ordered by name.
-builtInXPBars = {}
+builtInXPBars: Dict[str, "xpBar.XPBarFill"] = {}
 
 drinkMessages = [
     "An Aquila Cocktail, just for you. <:Aquila:925539224445407324>",

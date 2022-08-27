@@ -164,7 +164,8 @@ def _loadToolObjects(dataDB: Dict[str, JsonType], objsDB: Dict[str, TTool], dese
                 raise ValueError("Unknown cratetype for crate '" + newTool.name + "': " + newTool.crateType)
             if len(bbData.builtInCrateObjs[newTool.crateType]) < newTool.typeNum + 1:
                 slotsToAdd = newTool.typeNum - len(bbData.builtInCrateObjs[newTool.crateType]) + 1
-                bbData.builtInCrateObjs[newTool.crateType] += [None] * slotsToAdd
+                # casting here because builtInCrateObjs can't contain nulls, but all of the nulls should be replaced at the end of data load
+                bbData.builtInCrateObjs[newTool.crateType] += cast(List[crateTool.CrateTool], [None] * slotsToAdd)
             bbData.builtInCrateObjs[newTool.crateType][newTool.typeNum] = newTool
 
 
@@ -180,7 +181,8 @@ def _populateTLSortedShips():
             print("[gameConfig] techLevel -1 found for ShipItem. Excluding this Ship from bbData.shipKeysByTL: " \
                     + currentShipKey)
         else:
-            bbData.shipKeysByTL[bbData.builtInShipData[currentShipKey]["techLevel"] - 1].append(currentShipKey)
+            # Ignoring here because pyright doesn't know the structure of a serialized ship
+            bbData.shipKeysByTL[bbData.builtInShipData[currentShipKey]["techLevel"] - 1].append(currentShipKey) # type: ignore[reportGeneralTypeIssues]
 
 
 def populateTLSortedGameObjects(objsDB: Dict[str, Any]) -> List[List[Any]]:
@@ -200,8 +202,9 @@ def _makeShipSpawnRates():
     """Calculate spawn rates for the ship metadatas found in bbData.builtInShipData, based on their techLevels.
     """
     for ship in bbData.builtInShipData.values():
-        unnormalizedChance = gameMaths.itemTLSpawnChanceForShopTL[ship["techLevel"] - 1][ship["techLevel"] - 1]
-        normalizedChance = unnormalizedChance / len(bbData.shipKeysByTL[ship["techLevel"] - 1])
+            # Ignoring here because pyright doesn't know the structure of a serialized ship
+        unnormalizedChance = gameMaths.itemTLSpawnChanceForShopTL[ship["techLevel"] - 1][ship["techLevel"] - 1] # type: ignore[reportGeneralTypeIssues]
+        normalizedChance = unnormalizedChance / len(bbData.shipKeysByTL[ship["techLevel"] - 1]) # type: ignore[reportGeneralTypeIssues]
         ship["shopSpawnRate"] = gameMaths.truncItemSpawnResolution(normalizedChance * 100)
 
 
@@ -225,7 +228,8 @@ def _makeLevelUpCrates() -> List[crateTool.CrateTool]:
         shipSkins = set()
         for shipName in bbData.shipKeysByTL[level-1]:
             if "compatibleSkins" in bbData.builtInShipData[shipName]:
-                for skinName in bbData.builtInShipData[shipName]["compatibleSkins"]:
+            # Ignoring here because pyright doesn't know the structure of a serialized ship
+                for skinName in bbData.builtInShipData[shipName]["compatibleSkins"]: # type: ignore[reportGeneralTypeIssues]
                     if bbData.builtInShipSkins[skinName] not in shipSkins:
                         shipSkins.add(bbData.builtInShipSkins[skinName])
 
@@ -327,7 +331,8 @@ def loadAllGameObjects():
 
         # Register skin tools in shipSkinToolsBySkin
         if currentSkin not in bbData.shipSkinToolsBySkin:
-            bbData.shipSkinToolsBySkin[currentSkin] = bbData.builtInToolObjs[toolName]
+            # Casting here because this key is guaranteed to map to a ShipSkinTool (it's set a couple of lines above)
+            bbData.shipSkinToolsBySkin[currentSkin] = cast(shipSkinTool.ShipSkinTool, bbData.builtInToolObjs[toolName])
 
     _populateTLSortedShips()
     _makeShipSpawnRates()
@@ -346,8 +351,9 @@ def loadAllGameObjects():
 
     # Fetch bounty names and longest bounty name
     for criminalName in bbData.builtInCriminalData:
+        # Ignoring here because pyright doesn't know the structure of a serialized ship
         if bbData.builtInCriminalData[criminalName]["faction"] not in bbData.bountyNames:
-            bbData.bountyNames[bbData.builtInCriminalData[criminalName]["faction"]] = []
-        bbData.bountyNames[bbData.builtInCriminalData[criminalName]["faction"]].append(criminalName)
+            bbData.bountyNames[bbData.builtInCriminalData[criminalName]["faction"]] = [] # type: ignore[reportGeneralTypeIssues]
+        bbData.bountyNames[bbData.builtInCriminalData[criminalName]["faction"]].append(criminalName) # type: ignore[reportGeneralTypeIssues]
         if len(criminalName) > bbData.longestBountyNameLength:
             bbData.longestBountyNameLength = len(criminalName)

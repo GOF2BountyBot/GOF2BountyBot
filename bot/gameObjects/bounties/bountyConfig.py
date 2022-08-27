@@ -106,7 +106,8 @@ def shipTLHasPrimaries(tl: int) -> bool:
     """
     for shipKey in bbData.shipKeysByTL[tl]:
         shipData = bbData.builtInShipData[shipKey]
-        if "maxPrimaries" in shipData and shipData["maxPrimaries"] > 0:
+        # Ignoring here because pyright doesn't know the structure of a serialized ship
+        if "maxPrimaries" in shipData and shipData["maxPrimaries"] > 0: # type: ignore[reportGeneralTypeIssues]
             return True
     return False
 
@@ -381,12 +382,14 @@ class BountyConfig:
                 
                 shipKey = random.choice(bbData.shipKeysByTL[shipTL])
                 if shipWithPrimaryExists:
+                    # Ignoring here because pyright doesn't know the structure of a serialized ship
                     shipHasPrimary = "maxPrimaries" in bbData.builtInShipData[shipKey] \
-                                            and bbData.builtInShipData[shipKey]["maxPrimaries"] > 0
+                                            and bbData.builtInShipData[shipKey]["maxPrimaries"] > 0 # type: ignore[reportGeneralTypeIssues]
                     while not shipHasPrimary:
+                        # Ignoring here because pyright doesn't know the structure of a serialized ship
                         shipKey = random.choice(bbData.shipKeysByTL[shipTL])
                         shipHasPrimary = "maxPrimaries" in bbData.builtInShipData[shipKey] \
-                                            and bbData.builtInShipData[shipKey]["maxPrimaries"] > 0
+                                            and bbData.builtInShipData[shipKey]["maxPrimaries"] > 0 # type: ignore[reportGeneralTypeIssues]
                                             
                 self.activeShip = shipItem.Ship.deserialize(bbData.builtInShipData[shipKey])
 

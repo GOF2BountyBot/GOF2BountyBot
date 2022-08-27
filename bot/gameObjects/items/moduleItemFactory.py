@@ -18,9 +18,10 @@ class ModuleItemFactory(FromJsonFactory[ModuleItem]):
         :rtype: moduleItem
         """
         if data.get("builtIn", False):
-            return bbData.builtInModuleObjs[data["name"]]
+            # Ignoring here because pyright doesn't know the structure of a serialized module
+            return bbData.builtInModuleObjs[data["name"]] # type: ignore[reportGeneralTypeIssues]
+
+        if "type" in data and data["type"] in typeConstructors:
+            return typeConstructors[data["type"]](data)
         else:
-            if "type" in data and data["type"] in typeConstructors:
-                return typeConstructors[data["type"]](data)
-            else:
-                return ModuleItem.deserialize(data)
+            return ModuleItem.deserialize(data)

@@ -1,7 +1,35 @@
 
+from typing import Callable, Iterable
 from discord import Interaction
 from discord import app_commands
+
 from ...cfg import cfg, bbData
+from ...baseClasses.aliasable import AliasableMixin
+
+def _stringAutoComplete(possibleChoices: Iterable[app_commands.Choice[str]]):
+    async def inner(interaction: Interaction, current: str):
+        choices = []
+        for choice in possibleChoices:
+            if current in choice.name:
+                choices.append(choice)
+                if len(choices) == 25:
+                    break
+        return choices
+    return inner
+
+
+def _aliasableAutoComplete(getPossibleChoices: Callable[[], Iterable[AliasableMixin]]):
+    async def inner(interaction: Interaction, current: str):
+        choices = []
+        for choice in getPossibleChoices():
+            if choice.isCalled(current):
+                choices.append(app_commands.Choice(name=choice.name, value=choice.name))
+                if len(choices) == 25:
+                    break
+        return choices
+    return inner
+
+#region division
 
 DIVISION_CHOICES = sorted(set(
     [
@@ -16,26 +44,6 @@ DIVISION_CHOICES_WITH_ALL = sorted(set(
     key=lambda c: c.name)
 
 
-async def _divisionAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for d in DIVISION_CHOICES:
-        if current in d.name:
-            choices.append(d)
-            if len(choices) == 25:
-                break
-    return choices
-
-
-async def _divisionAutoCompleteWithAll(interaction: Interaction, current: str):
-    choices = []
-    for d in DIVISION_CHOICES_WITH_ALL:
-        if current in d.name:
-            choices.append(d)
-            if len(choices) == 25:
-                break
-    return choices
-
-
 def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = True):
     """A decorator to add autocomplete for a single-value bounty division parameter, by name.
 
@@ -46,22 +54,14 @@ def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = 
     """
     def decorator(func: app_commands.Command):
         if allowAllDivisions:
-            func.autocomplete(paramName)(_divisionAutoCompleteWithAll)
+            func.autocomplete(paramName)(_stringAutoComplete(DIVISION_CHOICES))
         else:
-            func.autocomplete(paramName)(_divisionAutoComplete)
+            func.autocomplete(paramName)(_stringAutoComplete(DIVISION_CHOICES_WITH_ALL))
         return func
     return decorator
 
-
-async def _systemAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for system in bbData.builtInSystemObjs.values():
-        if system.isCalled(current):
-            choices.append(app_commands.Choice(name=system.name, value=system.name))
-            if len(choices) == 25:
-                break
-    return choices
-
+#endregion division
+#region system
 
 def systemAutoComplete(paramName: str = "division"):
     """A decorator to add autocomplete for a single-value solar system parameter, by name.
@@ -70,10 +70,12 @@ def systemAutoComplete(paramName: str = "division"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_systemAutoComplete)
+        func.autocomplete(paramName)(_aliasableAutoComplete(bbData.builtInSystemObjs.values()))
         return func
     return decorator
 
+#endregion system
+#region criminal
 
 async def _criminalAutoComplete(interaction: Interaction, current: str):
     choices = []
@@ -96,6 +98,8 @@ def criminalAutoComplete(paramName: str = "name"):
         return func
     return decorator
 
+#endregion criminal
+#region faction
 
 async def _factionAutoComplete(interaction: Interaction, current: str):
     choices = []
@@ -132,3 +136,61 @@ def factionAutoComplete(paramName: str = "faction", bountyFactionsOnly: bool = T
             func.autocomplete(paramName)(_factionAutoComplete)
         return func
     return decorator
+
+#endregion faction
+#region item-ship
+
+ITEM_CHOICES_SHIP: Iterable[app_commands.Choice[str]] = sorted(set(
+    [
+        app_commands.Choice(name=shipName, value=shipName)
+        for shipName in bbData.builtInShipData
+    ]),
+    key=lambda c: c.name)
+
+async def _shipAutoComplete(interaction: Interaction, current: str):
+    choices = []
+    for d in ITEM_CHOICES_SHIP:
+        if current in d.name:
+            choices.append(d)
+            if len(choices) == 25:
+                break
+    return choices
+
+
+def shipAutoComplete(paramName: str = "ship"):
+    """A decorator to add autocomplete for a single-value ship parameter, by name.
+
+    :param paramName: The name of the ship name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_shipAutoComplete)
+        return func
+    return decorator
+
+#endregion item-ship
+#region item-module
+
+async def _moduleAutoComplete(interaction: Interaction, current: str):
+    choices = []
+    for module in bbData.builtInModuleObjs.values():
+        if module.isCalled(current):
+            choices.append(app_commands.Choice(name=module.name, value=module.name))
+            if len(choices) == 25:
+                break
+    return choices
+
+
+def moduleAutoComplete(paramName: str = "name"):
+    """A decorator to add autocomplete for a single-value criminal parameter, by name.
+
+    :param paramName: The name of the criminal name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_criminalAutoComplete)
+        return func
+    return decorator
+
+#endregion item-module
+#

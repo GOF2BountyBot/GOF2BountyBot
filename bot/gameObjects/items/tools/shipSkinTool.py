@@ -170,7 +170,8 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
         :rtype: shipSkinTool
         """
         if toolDict["builtIn"]:
-            return bbData.builtInToolObjs[lib.stringTyping.shipSkinNameToToolName(toolDict["name"])]
-        else:
-            skin = ShipSkin.deserialize(toolDict["skin"])
-            return ShipSkinTool(skin, value=gameMaths.shipSkinValueForTL(skin.averageTL), builtIn=False)
+            m = bbData.builtInToolObjs[lib.stringTyping.shipSkinNameToToolName(toolDict["name"])]
+            if isinstance(m, ShipSkinTool): return m
+            
+        skin = ShipSkin.deserialize(toolDict["skin"])
+        return ShipSkinTool(skin, value=gameMaths.shipSkinValueForTL(skin.averageTL), builtIn=False)

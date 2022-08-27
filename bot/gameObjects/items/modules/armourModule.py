@@ -53,7 +53,8 @@ class ArmourModule(moduleItem.ModuleItem):
         :rtype: dict
         """
         if moduleDict.get("builtIn", False):
-            return bbData.builtInModuleObjs[moduleDict["name"]]
+            m = bbData.builtInModuleObjs[moduleDict["name"]]
+            if isinstance(m, ArmourModule): return m
 
         return ArmourModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \

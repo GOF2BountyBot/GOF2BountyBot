@@ -1172,7 +1172,7 @@ class DevMiscCog(BasedCog):
                     await interaction.followup.send(f"invalid user ID: {u}", ephemeral=True)
                     return
                 try:
-                    syst = next(i for i in bbData.builtInSystemObjs if i.isCalled(s))
+                    syst = next(i for i in bbData.builtInSystemObjs.values() if i.isCalled(s))
                 except StopIteration:
                     await interaction.followup.send(f"Unknown system: '{s}'", ephemeral=True)
                     return

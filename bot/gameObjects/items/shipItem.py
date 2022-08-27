@@ -884,10 +884,11 @@ class Ship(GameItem):
         if shipDict["builtIn"]:
             builtInDict = bbData.builtInShipData[shipDict["name"]]
 
-            builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])]
-            builtInModules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])]
-            builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])]
-            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])]
+            # Ignoring here because pyright doesn't know the structure of a serialized ship
+            builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])] # type: ignore[reportGeneralTypeIssues]
+            builtInModules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])] # type: ignore[reportGeneralTypeIssues]
+            builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])] # type: ignore[reportGeneralTypeIssues]
+            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])] # type: ignore[reportGeneralTypeIssues]
 
             shipArgs = builtInDict.copy()
             shipArgs.update(shipDict)
@@ -895,7 +896,7 @@ class Ship(GameItem):
                 if k in shipArgs:
                     del shipArgs[k]
 
-            emojiStr = shipDict.get("emoji", builtInDict.get("emoji", False))
+            emojiStr = cast(Optional[str], shipDict.get("emoji", builtInDict.get("emoji", None)))
 
             newShip = Ship(**cls._makeDefaults(shipArgs, ignoredData,
                                                 weapons=weapons if "weapons" in shipDict else builtInWeapons,
