@@ -1,11 +1,12 @@
 from . import toolItem
 from typing import TYPE_CHECKING, Optional
+from discord import Message
+from typing import List
+
 if TYPE_CHECKING:
     from ....users import basedUser
 from .... import lib, botState
 from ....cfg import cfg
-from discord import Message
-from typing import List
 from .. import gameItem
 
 

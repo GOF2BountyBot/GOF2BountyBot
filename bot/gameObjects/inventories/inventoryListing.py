@@ -1,11 +1,17 @@
-from ...baseClasses.serializable import Serializable
-from ..itemDiscount import ItemDiscount
+from typing_extensions import NotRequired
+from ...baseClasses.serializable import Serializable, SerializesToSchema
+from ..itemDiscount import ItemDiscount, SerializedItemDiscount
 from ..items import gameItem
-from typing import Generic, List, TypeVar
+from typing import Generic, List, TypeVar, TypedDict, cast
 
 TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
+TItemSerialized = TypeVar("TItemSerialized", bound=gameItem.SerializedGameItemUnion)
 
-class InventoryListing(Serializable, Generic[TItemType]):
+class SerializedInventoryListing(TypedDict, Generic[TItemSerialized]):
+    item: TItemSerialized
+    count: int
+
+class InventoryListing(SerializesToSchema[SerializedInventoryListing[TItemSerialized]], Generic[TItemType, TItemSerialized]):
     """A listing representing an object and a quantity of that object stored.
     To ensure serializability, inventorylistings can only store serializable objects.
 
@@ -67,22 +73,27 @@ class InventoryListing(Serializable, Generic[TItemType]):
         return self.item is otherItem
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedInventoryListing[TItemSerialized]:
         """Return a dictionary description of this inventory listing.
 
         :return: A dictionary identifying the object stored, and the amount
         :rtype: int
         """
-        return {"item": self.item.serialize(**kwargs), "count": self.count}
+        # Casting here with the assumption that TItemSerialized is the serialized form of TItem 
+        return {"item": cast(TItemSerialized, self.item.serialize(**kwargs)), "count": self.count}
 
 
     @classmethod
-    def deserialize(cls, listingDict: dict, **kwargs):
+    def deserialize(cls, listingDict: SerializedInventoryListing, **kwargs):
         raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
                                     + "Instead instance InventoryListing with your deserialized item object.")
 
 
-class DiscountableItemListing(InventoryListing[TItemType]):
+class SerializedDiscountableItemListing(SerializedInventoryListing[TItemSerialized], Generic[TItemSerialized]):
+    discounts: NotRequired[List[SerializedItemDiscount]]
+
+
+class DiscountableItemListing(InventoryListing[TItemType, TItemSerialized], Generic[TItemType, TItemSerialized]):
     """An item listing that also stores a max-sorted list of single-use value modifications.
     A single value modification applies to a single instance of an item.
     """
@@ -104,8 +115,9 @@ class DiscountableItemListing(InventoryListing[TItemType]):
         return self.discounts.pop(0)
 
 
-    def serialize(self, **kwargs) -> dict:
-        data = super().serialize(**kwargs)
+    def serialize(self, **kwargs) -> SerializedDiscountableItemListing[TItemSerialized]:
+        # Casting here so I can add the new fields
+        data = cast(SerializedDiscountableItemListing[TItemSerialized], super().serialize(**kwargs))
         if self.discounts:
             data["discounts"] = [discount.serialize(**kwargs) for discount in self.discounts]
         return data

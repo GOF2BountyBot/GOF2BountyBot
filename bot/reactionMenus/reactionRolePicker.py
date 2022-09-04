@@ -1,12 +1,13 @@
 from __future__ import annotations
 from discord.member import Member
 from . import reactionMenu, expiryFunctions
-from .. import botState, lib
+from .. import botState
 from ..lib.emojis import BasedEmoji
+from ..baseClasses.serializable import SerializesToSchema
 from discord import Colour, Guild, Role, Message, User
 from datetime import datetime
 from ..scheduling import timedTask
-from typing import List, Optional, Tuple, Union, Dict
+from typing import Optional, Tuple, TypedDict, Union, Dict, cast
 
 
 async def giveRole(args: Tuple[Guild, Role, int], reactingUser: Union[User, Member]):
@@ -55,7 +56,11 @@ async def markExpiredRoleMenu(menuID: int):
     await expiryFunctions.markExpiredMenu(menuID)
 
 
-class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
+class SerializedReactionRolePickerOption(TypedDict):
+    role: int
+
+
+class ReactionRolePickerOption(reactionMenu.ReactionMenuOption, SerializesToSchema[SerializedReactionRolePickerOption]):
     """A reaction menu option that stores a role, granting the reacting user the role when added, and removing the role when
     the reaction is removed.
 
@@ -72,7 +77,7 @@ class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
                                                         self.role, menu.msg.id))
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionRolePickerOption:
         """Serialize the option into dictionary format for saving.
         Since reaction menu options are saved alongside their emojis, this dictionary need not contain the option emoji.
 
@@ -87,8 +92,12 @@ class ReactionRolePickerOption(reactionMenu.ReactionMenuOption):
         return {"role": self.role.id}
 
 
+class SerializedReactionRolePicker(reactionMenu.SerializedReactionMenu):
+    guild: int
+
+
 @reactionMenu.saveableMenu
-class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
+class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption, SerializedReactionRolePickerOption], SerializesToSchema[SerializedReactionRolePicker]):
     """A reaction menu that grants and removes roles when interacted with.
     TODO: replace dcGuild param with extracting msg.guild
     """
@@ -136,20 +145,21 @@ class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption]):
                                                     targetRole=targetRole)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionRolePicker:
         """Serialize this menu to dictionary format for saving to file.
 
         :return: A dictionary containing all information needed to reconstruct this menu object
         :rtype: dict
         """
         # TODO: Remove this method. The guild is already saved in ReactionMenu.serialize
-        baseDict = super(ReactionRolePicker, self).serialize(**kwargs)
+        # Casting here because guild is required
+        baseDict = cast(SerializedReactionRolePicker, super().serialize(**kwargs))
         baseDict["guild"] = self.dcGuild.id
         return baseDict
 
 
     @classmethod
-    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionRolePicker:
+    def deserialize(cls, rmDict: SerializedReactionRolePicker, **kwargs) -> ReactionRolePicker:
         """Reconstruct a ReactionRolePicker from its dictionary-serialized representation.
 
         :param dict rmDict: A dictionary containing all information needed to construct the desired ReactionRolePicker

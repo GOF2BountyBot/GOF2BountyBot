@@ -4,7 +4,7 @@ from discord import Message, User, Member, Colour
 from typing import Union, List
 
 
-class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu):
+class ReactionSkinRegionPicker(reactionMenu.SingleUserReactionMenu[reactionMenu.DummyReactionMenuOption, reactionMenu.SerializedReactionMenuOption]):
     """An unsaveable menu allowing users to choose autoskin layer indices that they want to provide.
     """
     def __init__(self, msg: Message, owningUser: Union[User, Member], timeoutSeconds: int,

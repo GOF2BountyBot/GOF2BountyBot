@@ -1,20 +1,21 @@
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING, Optional, Tuple, cast
+from typing import Dict, TYPE_CHECKING, Optional, Tuple, TypedDict, cast
+from typing_extensions import NotRequired
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
 
 from ..baseClasses.aliasableDict import AliasableDict
-from ..gameObjects.bounties.bounty import Bounty
+from ..gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEscapedBounty
 from ..gameObjects.bounties.criminal import Criminal
 from ..gameObjects.bounties.bountyConfig import BountyConfig
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from ..cfg import cfg, bbData
 from .. import botState, lib
 from ..lib import gameMaths
 from ..logging import LogCategory
 from ..scheduling.timedTask import TimedTask, DynamicRescheduleTask
 from traceback import format_stack
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import SerializesToSchema
 
 from datetime import timedelta
 import random
@@ -26,7 +27,16 @@ def divisionNameLevels() -> Dict[str, Tuple[int, int]]:
     return {k: cfg.bountyDivisionLevels[i] for i, k in enumerate(cfg.bountyDivisionNames)}
 
 
-class BountyDivision(Serializable):
+class SerializedBountyDivision(TypedDict):
+    temperature: float
+    minLevel: int
+    maxLevel: int
+    bounties: Dict[int, List[SerializedBounty]]
+    escapedBounties: Dict[int, List[SerializedEscapedBounty]]
+    bountyBoardChannel: NotRequired[SerializedBountyBoardChannel]
+
+
+class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
     """A database of Bounties for a range of tech levels.
     The maximum capacity and spawning rates of bounties are based on the "temperature" of the division - an estimate for the
     level of player activity.
@@ -659,16 +669,17 @@ class BountyDivision(Serializable):
         return gameMaths.bountyHuntingXPForLevel(self.maxLevel + 1)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyDivision:
         """Serialize this division into dictionary format, to be recreated completely.
 
         :return: A dictionary containing all of the current bounties and the activity temperature
         :rtype: dict
         """
-        data = {"temperature": self.temperature, "minLevel": self.minLevel, "maxLevel": self.maxLevel,
-                "bounties": {l: [b.serialize(**kwargs) for b in self.bounties[l]]
+        data: SerializedBountyDivision = {"temperature": self.temperature, "minLevel": self.minLevel, "maxLevel": self.maxLevel,
+                "bounties": {l: [b.serialize(**kwargs) for b in self.bounties[l].values()]
                             for l in range(self.minLevel, self.maxLevel + 1) if self.bounties[l]},
-                "escapedBounties": {l: [b.serialize(**kwargs) for b in self.escapedBounties[l]]
+                # Casting here because the bounties must be escaped
+                "escapedBounties": {l: [cast(SerializedEscapedBounty, b.serialize(**kwargs)) for b in self.escapedBounties[l].values()]
                             for l in range(self.minLevel, self.maxLevel + 1) if self.escapedBounties[l]}}
         if self.bountyBoardChannel is not None:
             data["bountyBoardChannel"] = self.bountyBoardChannel.serialize(**kwargs)
@@ -676,7 +687,7 @@ class BountyDivision(Serializable):
 
 
     @classmethod
-    def deserialize(cls, data: dict, owningDB: Optional["BountyDB"] = None, **kwargs) -> BountyDivision:
+    def deserialize(cls, data: SerializedBountyDivision, owningDB: Optional["BountyDB"] = None, **kwargs) -> BountyDivision:
         """Recreate a dictionary-serialized BountyDivision
 
         :param dict data: A dictionary containing all of the current bounties and the current activity temperature
@@ -694,7 +705,7 @@ class BountyDivision(Serializable):
                     newBounty = Bounty.deserialize(bty, owningDB=owningDB, **kwargs)
                     if newBounty.criminal in crims:
                         botState.client.logger.log("BountyDivision", "deserialize",
-                                            f"2 listings for the same criminal found: {bty.criminal.name}. Ignoring one." \
+                                            f"2 listings for the same criminal found: {newBounty.criminal.name}. Ignoring one." \
                                                 + "Neither was escaped.", category=LogCategory.bountiesDB, eventType="DUPE_CRIM")
                     else:
                         crims.add(newBounty.criminal)
@@ -707,7 +718,7 @@ class BountyDivision(Serializable):
                     newBounty = Bounty.deserialize(bty, owningDB=owningDB, **kwargs)
                     if newBounty.criminal in crims:
                         botState.client.logger.log("BountyDivision", "deserialize",
-                                            f"2 listings for the same criminal found: {bty.criminal.name}. Ignoring one." \
+                                            f"2 listings for the same criminal found: {newBounty.criminal.name}. Ignoring one." \
                                                 + "At least one was escaped.", category=LogCategory.bountiesDB, eventType="DUPE_CRIM")
                     else:
                         crims.add(newBounty.criminal)

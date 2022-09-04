@@ -1,16 +1,23 @@
 from __future__ import annotations
 from . import inventoryListing
-from ...baseClasses.serializable import SerializesToJson
-from typing import Dict, Generic, List, Tuple, Type, TypeVar, cast
+from ...baseClasses.serializable import SerializesToSchema
+from typing import Dict, Generic, List, Tuple, Type, TypeVar, TypedDict, cast
 from ..items import gameItem
 from ..itemDiscount import ItemDiscount
 
 TListingType = TypeVar("TListingType", bound="inventoryListing.InventoryListing")
 TItemType = TypeVar("TItemType", bound="gameItem.GameItem")
+TSerializedItemType = TypeVar("TSerializedItemType", bound="gameItem.SerializedGameItemUnion")
 TSelf = TypeVar("TSelf", bound="_InventoryBase")
+TSerializedInventory = TypeVar("TSerializedInventory", bound="SerializedInventory")
+TSerializedListing = TypeVar("TSerializedListing", bound=inventoryListing.SerializedInventoryListing)
 
 
-class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
+class SerializedInventory(TypedDict, Generic[TSerializedListing]):
+    items: List[TSerializedListing]
+
+
+class _InventoryBase(SerializesToSchema[TSerializedInventory], Generic[TSerializedInventory, TListingType, TItemType]):
     listingType: Type[TListingType]
 
     def __init__(self, itemType: Type[TItemType]):
@@ -261,7 +268,7 @@ class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
         return item in self.keys
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> TSerializedInventory:
         data = super().serialize(**kwargs)
         data["items"] = []
         for listing in self.items.values():
@@ -271,7 +278,7 @@ class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
 
 
     @classmethod
-    def deserialize(cls: Type[TSelf], invDict, itemType: Type[TItemType], **kwargs) -> TSelf:
+    def deserialize(cls: Type[TSelf], invDict: TSerializedInventory, itemType: Type[TItemType], **kwargs) -> TSelf:
         newInv = cls(itemType)
         if "items" in invDict:
             for listingDict in invDict["items"]:
@@ -280,7 +287,7 @@ class _InventoryBase(SerializesToJson, Generic[TListingType, TItemType]):
         return newInv
 
 
-class Inventory(_InventoryBase[inventoryListing.InventoryListing, TItemType]):
+class Inventory(_InventoryBase[SerializedInventory[inventoryListing.SerializedInventoryListing[TSerializedItemType]], inventoryListing.InventoryListing[TItemType, TSerializedItemType], TItemType], Generic[TItemType, TSerializedItemType]):
     """A database of InventoryListings.
     Aside from the use of InventoryListing for the purpose of item quantities, this class is type unaware.
 
@@ -296,7 +303,7 @@ class Inventory(_InventoryBase[inventoryListing.InventoryListing, TItemType]):
     listingType = inventoryListing.InventoryListing
 
 
-class DiscountableInventory(_InventoryBase[inventoryListing.DiscountableItemListing, TItemType], Generic[TItemType]):
+class DiscountableInventory(_InventoryBase[SerializedInventory[inventoryListing.SerializedDiscountableItemListing[TSerializedItemType]], inventoryListing.DiscountableItemListing[TItemType, TSerializedItemType], TItemType], Generic[TItemType,TSerializedItemType]):
     """An Inventory storing DiscountableItemListing instead of plain ItemListings.
     """
     listingType = inventoryListing.DiscountableItemListing

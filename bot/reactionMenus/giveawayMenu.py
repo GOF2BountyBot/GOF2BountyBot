@@ -1,15 +1,15 @@
 from datetime import timedelta
 from typing import Optional, Set, List
+from typing_extensions import Never
 from discord import Member, Message, Colour, Role
 from . import reactionMenu, expiryFunctions
-from ..gameObjects.items import gameItem
 from .. import botState
 from ..users import basedUser
 from ..scheduling import timedTask
 from ..gameObjects.guildShop import StoredItemType
 
 
-class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption"]):
+class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption", Never]):
     def __init__(self, msg: Message, items: List[StoredItemType], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         options = {i.emoji: GiveawayMenuOption(self, i) for i in items}
         timeout = timedTask.TimedTask(expiryDelta=activeTime, expiryFunction=expiryFunctions.markExpiredMenu, expiryFunctionArgs=msg.id, rescheduleOnExpiryFuncFailure=True)
@@ -30,11 +30,11 @@ class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption"]):
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs):
+    def deserialize(cls, data: Never, **kwargs):
         raise NotImplementedError()
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> Never:
         raise NotImplementedError()
 
 
@@ -49,7 +49,8 @@ class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
         if not self.menu.hasGivenToUser(reactingUser):
             bUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(reactingUser.id)
             # de-serializing and re-serializing here in order to get a copy (if appropriate)
-            itemCopy = type(self.item).deserialize(self.item.serialize(saveType=True))
+            # Ignoring here because the type of the item is guaranteed to support the serialzied schema of the item
+            itemCopy = type(self.item).deserialize(self.item.serialize(saveType=True)) #  type: ignore[reportGeneralTypeIssues]
             # itemCopy is StoredItemType here. getInventoryForItem is guaranteed to return the inventory that stores a StoredItemType.
             # Therefore, itemCopy is guaranteed to be compatible with the inventory's addItem method.
             bUser.getInventoryForItem(self.item).addItem(itemCopy) # type: ignore[reportGeneralTypeIssues]

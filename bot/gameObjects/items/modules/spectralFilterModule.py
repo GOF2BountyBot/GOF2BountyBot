@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedSpectralFilterModule(moduleItem.SerializedModuleItem):
+class SerializedSpectralFilterModule(moduleItem.CustomSerializedModuleItem):
     showOnRadar: bool
     showInfo: bool
 
-class TypedSerializedSpectralFilterModule(SerializedSpectralFilterModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedSpectralFilterModule(SerializedSpectralFilterModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedSpectralFilterModuleUnion = Union[SerializedSpectralFilterModule, TypedSerializedSpectralFilterModule]
 SerializedSpectralFilterModuleUnion = Union[SerializedSpectralFilterModule, TypedSerializedSpectralFilterModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class SpectralFilterModule(moduleItem.ModuleItem):
+class SpectralFilterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedSpectralFilterModuleUnion]):
     """A module allowing the user to see plasma clouds in space.
 
     :var showOnRadar: Whether or not plasma clouds are marked on the ships radar

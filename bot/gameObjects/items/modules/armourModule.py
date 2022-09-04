@@ -1,8 +1,9 @@
 from __future__ import annotations
+from typing import List, cast
+
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List, cast
 from ..gameItem import spawnableItem
 
 

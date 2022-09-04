@@ -3,7 +3,7 @@ from . import toolItem, shipSkinTool, throwSnowballTool
 from . import crateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
-from ....baseClasses.serializable import FromJsonFactory, JsonType
+from ....baseClasses.serializable import Factory
 
 itemConstructors = {shipItem.Ship.__name__: shipItem.Ship,
                         primaryWeapon.PrimaryWeapon.__name__: primaryWeapon.PrimaryWeapon,
@@ -11,9 +11,9 @@ itemConstructors = {shipItem.Ship.__name__: shipItem.Ship,
                         turretWeapon.TurretWeapon.__name__: turretWeapon.TurretWeapon}
 
 
-class ToolItemFactory(FromJsonFactory[toolItem.ToolItem]):
+class ToolItemFactory(Factory[toolItem.TypedSerializedToolItem, toolItem.ToolItem]):
     @classmethod
-    def deserialize(cls, data: JsonType, **kwargs) -> toolItem.ToolItem:
+    def deserialize(cls, data: toolItem.TypedSerializedToolItem, **kwargs) -> toolItem.ToolItem:
         """Construct a toolItem from its dictionary-serialized representation.
         This method decodes which tool constructor is appropriate based on the 'type' attribute of the given dictionary.
 
@@ -27,8 +27,7 @@ class ToolItemFactory(FromJsonFactory[toolItem.ToolItem]):
             raise NameError("Required dictionary attribute missing: 'type'")
         elif data["type"] == "ToolItem":
             raise ValueError("Cannot deserialize abstract type 'ToolItem'")
-        # Casting here because pyright cannot know the structure of the dict
-        return toolTypeConstructors[cast(str, data["type"])].deserialize(data, **kwargs)
+        return toolTypeConstructors[data["type"]].deserialize(data, **kwargs)
 
 
 toolTypeConstructors = {shipSkinTool.ShipSkinTool.__name__: shipSkinTool.ShipSkinTool,

@@ -1,10 +1,23 @@
 from __future__ import annotations
-from ..gameItem import GameItem
+from typing import List, Union, cast
+
+from ..gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem
 from .... import lib
-from typing import List
+from ....baseClasses.serializable import SerializesToSchema
 
+class BuiltInSerializedWeapon(BuiltInSerializedGameItem): pass
+class TypedBuiltInSerializedWeapon(TypedBuiltInSerializedGameItem): pass
 
-class Weapon(GameItem):
+class CustomSerializedWeapon(CustomSerializedGameItem):
+    dps: float
+
+class TypedCustomSerializedWeapon(CustomSerializedWeapon, TypedCustomSerializedGameItem): pass
+
+BuiltInSerializedWeaponUnion = Union[BuiltInSerializedWeapon, TypedBuiltInSerializedWeapon]
+CustomSerializedWeaponUnion = Union[CustomSerializedWeapon, TypedCustomSerializedWeapon]
+SerializedWeaponUnion = Union[BuiltInSerializedWeaponUnion, CustomSerializedWeaponUnion]
+
+class Weapon(GameItem, SerializesToSchema[SerializedWeaponUnion]):
     """An abstract class representing weapons that can be equipped onto a bbShip for use in duels.
 
     :var dps: The weapon's damage per second to a target ship.
@@ -43,7 +56,7 @@ class Weapon(GameItem):
         return "*Dps: " + str(self.dps) + "*"
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedWeaponUnion:
         """Serialize this item into dictionary format, for saving to file.
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -53,5 +66,7 @@ class Weapon(GameItem):
         """
         itemDict = super(Weapon, self).serialize(**kwargs)
         if not self.builtIn:
+            # casting here because we know the weapon is not builtIn
+            itemDict = cast(CustomSerializedWeaponUnion, itemDict)
             itemDict["dps"] = self.dps
         return itemDict

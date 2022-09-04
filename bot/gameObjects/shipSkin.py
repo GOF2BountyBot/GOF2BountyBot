@@ -1,32 +1,58 @@
+from typing_extensions import NotRequired
 from ..cfg import bbData, cfg
 import os
 from ..shipRenderer import shipRenderer
 from .. import lib
 from discord import File
-from typing import Dict, List
-from ..baseClasses.serializable import Serializable
-from ..baseClasses.hasRarity import HasRarityMixin
+from typing import Dict, List, Union, cast
+from ..baseClasses.hasRarity import HasRarityMixin, SerializedWithRarity
 from .items import shipItem
 from os.path import join
-from .gameObject import LoadedObject
-from ..baseClasses.serializable import JsonType
+from .gameObject import LoadedObject, SerializedLoadedObject
+from ..baseClasses.serializable import JsonType, SerializesToSchema
+
+
+class BuiltInSerializedShipSkin(SerializedLoadedObject, SerializedWithRarity):
+    name: str
+    ships: NotRequired[Dict[str, str]]
+
+class TypedBuiltInSerializedShipSkin(BuiltInSerializedShipSkin):
+    type: str
+
+class CustomSerializedShipSkin(BuiltInSerializedShipSkin):
+    textureRegions: List[int]
+    designer: NotRequired[str]
+    designerId: NotRequired[int]
+    wiki: NotRequired[str]
+    disabledRegions: NotRequired[List[int]]
+    allShips: NotRequired[bool]
+
+class TypedCustomSerializedShipSkin(CustomSerializedShipSkin, TypedBuiltInSerializedShipSkin): pass
+
+SerializedShipSkinUnion = Union[BuiltInSerializedShipSkin, TypedBuiltInSerializedShipSkin, CustomSerializedShipSkin, TypedCustomSerializedShipSkin]
 
 
 def _saveShip(ship):
     shipData = bbData.builtInShipData[ship]
-    shipTL = shipData["techLevel"]
-    shipPath = shipData["path"]
-    del shipData["techLevel"]
-    del shipData["path"]
+    shipTL = shipData.get("techLevel", None)
+    shipPath = shipData.get("path", None)
+    if shipPath is None:
+        raise KeyError("Missing path for ship " + ship.name)
+    # TODO: Ignoring for these fields because they are dynamically generated when loaded, and so they are not stored to file
+    # This will be solved by the introduction of some 'ShipBlueprint' type to represent stored ship configurations
+    del shipData["techLevel"] # type: ignore[reportGeneralTypeIssues]
+    del shipData["path"] # type: ignore[reportGeneralTypeIssues]
     shipData["builtIn"] = False
-    lib.jsonHandler.writeJSON(join(shipPath, "META.json"), shipData, prettyPrint=True)
+    # TODO: "CustomSerializedShip" is incompatible with "JsonType"
+    lib.jsonHandler.writeJSON(join(shipPath, "META.json"), cast(JsonType, shipData), prettyPrint=True)
     shipData["builtIn"] = True
-    shipData["techLevel"] = shipTL
+    if shipTL is not None:
+        shipData["techLevel"] = shipTL
     shipData["saveDue"] = False
     shipData["path"] = shipPath
 
 
-class ShipSkin(HasRarityMixin, LoadedObject):
+class ShipSkin(HasRarityMixin, LoadedObject, SerializesToSchema[SerializedShipSkinUnion]):
     def __init__(self, name: str, textureRegions: List[int], shipRenders: Dict[str, str],
                     path: str, designer: str, wiki: str = "", disabledRegions: List[int] = [],
                     allShips: bool = False, rarityLevel: int = 0, builtIn: bool = False,
@@ -59,7 +85,7 @@ class ShipSkin(HasRarityMixin, LoadedObject):
         super().__init__(rarityLevel, builtIn=builtIn)
 
 
-    def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> JsonType:
+    def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> SerializedShipSkinUnion:
         """Serialize this ship skin to dictionary.
 
         :param bool ignoreBuiltIn: When True, the serializer will serialize fully, ignoring
@@ -67,21 +93,27 @@ class ShipSkin(HasRarityMixin, LoadedObject):
         :return: A dictionary which can be deserialized into a copy of this ShipSkin object
         :rtype: dict
         """
-        if ignoreBuiltIn:
-            data = {"name": self.name, "textureRegions": self.textureRegions,
-                    "ships": self.shipRenders, "rarityLevel": self.rarityLevel}
-            if self.designer:
-                data["designer"] = self.designer
-            if self.designerId != -1:
-                data["designerId"] = self.designerId
-        else:
-            data = {"name": self.name, "builtIn": self.builtIn}
+        data: SerializedShipSkinUnion = {"name": self.name, "builtIn": self.builtIn, "rarityLevel": self.rarityLevel}
 
         if ignoreBuiltIn or not self.builtIn:
+            # casting here so I can add the new fields
+            data = cast(CustomSerializedShipSkin, data)
+            data.update({"name": self.name, "textureRegions": self.textureRegions,
+                    "ships": self.shipRenders, "rarityLevel": self.rarityLevel,
+                    "builtIn": self.builtIn})
+
+            if self.designer:
+                data["designer"] = self.designer
+
+            if self.designerId != -1:
+                data["designerId"] = self.designerId
+
             if self.hasWiki:
                 data["wiki"] = self.wiki
+            
             if self.disabledRegions:
                 data["disabledRegions"] = self.disabledRegions
+            
             if self.allShips:
                 data["allShips"] = True
 
@@ -89,7 +121,9 @@ class ShipSkin(HasRarityMixin, LoadedObject):
 
 
     def _updateItemMETA(self, **kwargs):
-        lib.jsonHandler.writeJSON(join(self.path, "META.json"), self.serialize(ignoreBuiltIn=True, **kwargs),
+        data = self.serialize(ignoreBuiltIn=True, **kwargs)
+        # TODO: casting here because TypedDicts are not JsonType
+        lib.jsonHandler.writeJSON(join(self.path, "META.json"), cast(JsonType, data),
                                     prettyPrint=True)
 
     
@@ -159,8 +193,8 @@ class ShipSkin(HasRarityMixin, LoadedObject):
         if ship not in self.compatibleShips:
             self.compatibleShips.append(ship)
 
-        if self.name not in shipData["compatibleSkins"]:
-            shipData["compatibleSkins"].append(self.name.lower())
+        if self.name not in shipData.get("compatibleSkins", []):
+            shipData["compatibleSkins"] = shipData.get("compatibleSkins", []) + [self.name.lower()]
 
         _saveShip(ship)
         self._updateItemMETA()
@@ -175,11 +209,12 @@ class ShipSkin(HasRarityMixin, LoadedObject):
         if ship in self.compatibleShips:
             self.compatibleShips.remove(ship)
 
-        if self.name in shipData["compatibleSkins"]:
+        if self.name in shipData.get("compatibleSkins", []):
             try:
                 os.remove(join(shipData["path"], "skins", self.name + ".png"))
             except FileNotFoundError:
                 pass
+            shipData["compatibleSkins"] = shipData.get("compatibleSkins", [])
             shipData["compatibleSkins"].remove(self.name.lower())
 
         if ship in self.shipRenders:
@@ -192,7 +227,7 @@ class ShipSkin(HasRarityMixin, LoadedObject):
 
 
     @classmethod
-    def deserialize(cls, skinDict: dict, **kwargs):
+    def deserialize(cls, skinDict: SerializedShipSkinUnion, **kwargs):
         if skinDict.get("builtIn", False):
             return bbData.builtInShipSkins[skinDict["name"]]
-        return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict["ships"]))
+        return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict.get("ships", {})))

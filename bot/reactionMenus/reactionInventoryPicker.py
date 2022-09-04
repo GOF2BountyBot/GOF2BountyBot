@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, TypedDict, cast
 from . import reactionMenu
 from ..cfg import cfg
 from ..gameObjects.items import gameItem
@@ -10,6 +10,10 @@ from ..scheduling import timedTask
 
 # The maximum number of gameItems displayable per menu page
 maxItemsPerPage = len(cfg.defaultEmojis.menuOptions)
+
+
+class SerializedReactionInventoryPickerOption(reactionMenu.SerializedReactionMenuOption):
+    item: gameItem.SerializedGameItemUnion
 
 
 class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
@@ -48,20 +52,21 @@ class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
                                                             removeFunc=menu.deselectItem, removeArgs=self.item)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionInventoryPickerOption:
         """Serialize this menu option to dictionary format for saving.
 
         :return: A dictionary containing all information needed to reconstruct this menu option instance - the item
                     it represents
         :rtype: dict
         """
-        baseDict = super(ReactionInventoryPickerOption, self).serialize(**kwargs)
+        # Casting here so I can add the new fields
+        baseDict = cast(SerializedReactionInventoryPickerOption, super().serialize(**kwargs))
         baseDict["item"] = self.item.serialize(**kwargs)
 
         return baseDict
 
 
-class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
+class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu[ReactionInventoryPickerOption, SerializedReactionInventoryPickerOption]):
     """A reaction menu allowing users to select a gameItem from a inventory.
     TODO: Implement paging
     TODO: Display item counts?

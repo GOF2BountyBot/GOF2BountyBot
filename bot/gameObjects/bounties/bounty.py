@@ -1,6 +1,7 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, Optional, Set, Union, TYPE_CHECKING, cast
+from typing import Dict, List, Optional, Set, TypedDict, Union, TYPE_CHECKING, cast
+from typing_extensions import NotRequired
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
@@ -8,11 +9,11 @@ if TYPE_CHECKING:
 from .bountyConfig import BountyConfig, GeneratedConfig
 from ...cfg import bbData, cfg
 from . import criminal
-from ...baseClasses.serializable import Serializable
+from ...baseClasses.serializable import SerializesToSchema
 from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
-from ..items.shipItem import Ship
+from ..items.shipItem import Ship, SerializedShipUnion
 from enum import Enum
 
 
@@ -53,7 +54,29 @@ class RewardsMeta(Enum):
             return self.value | other
 
 
-class Bounty(Serializable):
+class SerializedBounty(TypedDict):
+    faction: str
+    route: List[str]
+    answer: str
+    checked: Dict[str, int]
+    reward: int
+    issueTime: float
+    endTime: float
+    isEscaped: bool
+    criminal: criminal.SerializedCriminalUnion
+    rewardPerSys: int
+    techLevel: int
+    activeShip: NotRequired[SerializedShipUnion]
+
+
+class SerializedEscapedBounty(SerializedBounty):
+    respawnTime: float
+
+
+SerializedBountyUnion = Union[SerializedBounty, SerializedEscapedBounty]
+
+
+class Bounty(SerializesToSchema[SerializedBountyUnion]):
     """A bounty listing for a criminal, to be hunted down by players.
 
     :var criminal: The criminal who is being hunted
@@ -429,17 +452,19 @@ class Bounty(Serializable):
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyUnion:
         """Serialize this bounty to dictionary, to be saved to file.
 
         :return: A dictionary representation of this bounty.
         :rtype: dict
         """
-        data = {"faction": self.faction, "route": self.route, "answer": self.answer, "checked": self.checked,
+        data: SerializedBountyUnion = {"faction": self.faction, "route": self.route, "answer": self.answer, "checked": self.checked,
                 "reward": self.reward, "issueTime": self.issueTime, "endTime": self.endTime, "isEscaped": self.isEscaped(),
                 "criminal": self.criminal.serialize(**kwargs), "rewardPerSys": self.rewardPerSys, "techLevel": self.techLevel}
         
         if self.isEscaped():
+            # Casting here because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
             # Casting here because existence of sef.respawnTT is checked by isEscaped above
             data["respawnTime"] = cast(TimedTask, self.respawnTT).expiryTime.timestamp()
 
@@ -451,7 +476,7 @@ class Bounty(Serializable):
 
 
     @classmethod
-    def deserialize(cls, data: dict, owningDB: Optional[BountyDB] = None, dbReload: bool = False, **kwargs) -> Bounty:
+    def deserialize(cls, data: SerializedBountyUnion, owningDB: Optional[BountyDB] = None, dbReload: bool = False, **kwargs) -> Bounty:
         """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
@@ -487,6 +512,8 @@ class Bounty(Serializable):
                             criminalObj=criminal.Criminal.deserialize(data["criminal"]))
 
         if data.get("isEscaped", False):
+            # casting because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
             if "respawnTime" not in data:
                 raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
 

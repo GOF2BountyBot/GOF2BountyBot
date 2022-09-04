@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedCloakModule(moduleItem.SerializedModuleItem):
+class SerializedCloakModule(moduleItem.CustomSerializedModuleItem):
     duration: float
 
-class TypedSerializedCloakModule(SerializedCloakModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedCloakModule(SerializedCloakModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedCloakModuleUnion = Union[SerializedCloakModule, TypedSerializedCloakModule]
 SerializedCloakModuleUnion = Union[SerializedCloakModule, TypedSerializedCloakModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class CloakModule(moduleItem.ModuleItem):
+class CloakModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCloakModuleUnion]):
     """"A module providing a ship with the ability to turn invisible for a short period of time
 
     :var duration: The number of seconds this effect lasts

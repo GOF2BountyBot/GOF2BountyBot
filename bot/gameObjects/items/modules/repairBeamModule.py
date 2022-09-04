@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedRepairBeamModule(moduleItem.SerializedModuleItem):
+class SerializedRepairBeamModule(moduleItem.CustomSerializedModuleItem):
     effect: float
     count: int
 
-class TypedSerializedRepairBeamModule(SerializedRepairBeamModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedRepairBeamModule(SerializedRepairBeamModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedRepairBeamModuleUnion = Union[SerializedRepairBeamModule, TypedSerializedRepairBeamModule]
 SerializedRepairBeamModuleUnion = Union[SerializedRepairBeamModule, TypedSerializedRepairBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class RepairBeamModule(moduleItem.ModuleItem):
+class RepairBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepairBeamModuleUnion]):
     """A module providing a ship with the ability to slowly add health points to nearby friendly ships
 
     :var effect: The amount of health added to nearby ships per time quantum

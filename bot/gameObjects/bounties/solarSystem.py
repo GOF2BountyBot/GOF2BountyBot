@@ -1,14 +1,34 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Optional, Tuple
-
-from ..gameObject import LoadedObject
-
-from ...baseClasses import aliasable
+from typing import List, Optional, Tuple, Union, cast
 import math
+from typing_extensions import NotRequired
+
+from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...baseClasses import aliasable
+from ...baseClasses.serializable import SerializesToSchema
+
+class BuiltInSerializedSolarSystem(aliasable.SerializedAliasable, SerializedLoadedObject): pass
+
+class TypedBuiltInSerializedSolarSystem(BuiltInSerializedSolarSystem):
+    type: str
+
+class CustomSerializedSolarSystem(BuiltInSerializedSolarSystem):
+    faction: str
+    neighbours: List[str]
+    security: int
+    coordinates: Tuple[int, int]
+    wiki: NotRequired[str]
+    techLevel: NotRequired[int]
+
+class TypedCustomSerializedSolarSystem(CustomSerializedSolarSystem, TypedBuiltInSerializedSolarSystem): pass
+
+BuiltInSerializedSolarSystemUnion = Union[BuiltInSerializedSolarSystem, TypedBuiltInSerializedSolarSystem]
+CustomSerializedSolarSystemUnion = Union[CustomSerializedSolarSystem, TypedCustomSerializedSolarSystem]
+SerializedSolarSystemUnion = Union[BuiltInSerializedSolarSystem, TypedBuiltInSerializedSolarSystem, CustomSerializedSolarSystem, TypedCustomSerializedSolarSystem]
 
 
-class SolarSystem(aliasable.AliasableMixin, LoadedObject):
+class SolarSystem(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[SerializedSolarSystemUnion]):
     """A solar system where a bounty may be located.
 
     :var name: The name of this system
@@ -92,23 +112,30 @@ class SolarSystem(aliasable.AliasableMixin, LoadedObject):
         return bool(self.neighbours)
 
 
-    def serialize(self, **kwargs) -> dict:
-        data = super().serialize(**kwargs)
-        data["faction"] = self.faction
-        data["neighbours"] = self.neighbours
-        data["security"] = self.security
-        data["coordinates"] = self.coordinates
+    def serialize(self, **kwargs) -> SerializedSolarSystemUnion:
+        # Casting here so I can add the new fields
+        data = cast(SerializedSolarSystemUnion, super().serialize(**kwargs))
+        
+        if self.builtIn:
+            data["name"] = self.name
+        else:
+            # Casting here because we know the system is not builtIn
+            data = cast(CustomSerializedSolarSystemUnion, super().serialize(**kwargs))
+            data["faction"] = self.faction
+            data["neighbours"] = self.neighbours
+            data["security"] = self.security
+            data["coordinates"] = self.coordinates
 
-        if self.hasWiki:
-            data["wiki"] = self.wiki
-        if self.hasTechLevel:
-            data["techLevel"] = self.techLevel
+            if self.hasWiki:
+                data["wiki"] = self.wiki
+            if self.hasTechLevel:
+                data["techLevel"] = self.techLevel
 
         return data
 
 
     @classmethod
-    def deserialize(cls, sysDict: dict, **kwargs) -> SolarSystem:
+    def deserialize(cls, sysDict: SerializedSolarSystemUnion, **kwargs) -> SolarSystem:
         """Factory function constructing a new System object from the information in the given dictionary.
 
         :param dict sysDict: A dictionary containing all information needed to construct the required System.

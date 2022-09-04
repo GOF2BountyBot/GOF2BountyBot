@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Generic, Optional, TypeVar, Union
+from typing_extensions import Never
 from . import reactionMenu
 from ..cfg import cfg
 from .. import botState
@@ -11,7 +12,7 @@ from..gameObjects.battles import duelRequest
 defaultMenuIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/crossed-swords_2694.png"
 
 
-class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveableReactionMenuOption]):
+class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveableReactionMenuOption, Never]):
     """A ReactionMenu allowing the recipient of a duel challenge to accept or reject the challenge through reactions.
     TODO: Make this an inline reaction menu (base class in another branch currently)
 
@@ -107,7 +108,7 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveab
                                         botState.client.get_user(self.duelChallenge.targetBasedUser.id))
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs):
         """⚠ ReactionDuelChallengeMenus are not currently saveable. Do not use this method.
         Dummy method, once implemented this method will serialize this reactionMenu to dictionary format.
 
@@ -122,5 +123,5 @@ class ReactionDuelChallengeMenu(reactionMenu.ReactionMenu[reactionMenu.NonSaveab
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> ReactionDuelChallengeMenu:
+    def deserialize(cls, data, **kwargs):
         raise NotImplementedError("Attempted to call deserialize on a non-saveable reaction menu")

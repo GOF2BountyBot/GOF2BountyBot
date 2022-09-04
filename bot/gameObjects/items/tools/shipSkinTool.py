@@ -1,20 +1,37 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Union, cast
+from discord import Message
+
 from . import toolItem
 from .... import lib
 from ....lib import gameMaths
 from ....cfg import cfg, bbData
-from ...shipSkin import ShipSkin
+from ...shipSkin import ShipSkin, SerializedShipSkinUnion
 from ..shipItem import Ship
-from discord import Message
 from .... import botState
 from ..gameItem import spawnableItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....baseClasses.hasRarity import HasRarityMixin
+from ....baseClasses.serializable import SerializesToSchema
+
+
+class BuiltInSerializedShipSkinTool(toolItem.SerializedToolItem): pass
+
+class TypedBuiltInSerializedShipSkinTool(toolItem.TypedSerializedToolItem): pass
+
+class CustomSerializedShipSkinTool(toolItem.SerializedToolItem):
+    skin: SerializedShipSkinUnion
+
+class TypedCustomInSerializedShipSkinTool(CustomSerializedShipSkinTool, TypedBuiltInSerializedShipSkinTool): pass
+
+CustomSerializedShipSkinToolUnion = Union[CustomSerializedShipSkinTool, TypedCustomInSerializedShipSkinTool]
+BuiltInSerializedShipSkinToolUnion = Union[BuiltInSerializedShipSkinTool, TypedBuiltInSerializedShipSkinTool]
+
+SerializedShipSkinToolUnion = Union[CustomSerializedShipSkinToolUnion, BuiltInSerializedShipSkinToolUnion]
 
 
 @spawnableItem
-class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
+class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[SerializedShipSkinToolUnion]):
     """A tool that can be used to apply a skin to a ship.
     This item is named after the skin it applies.
     The manufacturer is set to the skin designer.
@@ -147,7 +164,7 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
         return "*Designer: user #" + str(self.manufacturer) + "*"
 
 
-    def serialize(self, **kwargs):
+    def serialize(self, **kwargs) -> SerializedShipSkinToolUnion:
         """
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -156,12 +173,14 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
         if self.builtIn:
             data["name"] = self.skin.name
         else:
+            # Casting here because we know that the tool is not builtIn
+            data = cast(CustomSerializedShipSkinTool, data)
             data["skin"] = self.skin.serialize(**kwargs)
         return data
 
 
     @classmethod
-    def deserialize(cls, toolDict: dict, **kwargs) -> ShipSkinTool:
+    def deserialize(cls, toolDict: SerializedShipSkinToolUnion, **kwargs) -> ShipSkinTool:
         """Construct a shipSkinTool from its dictionary-serialized representation.
 
         :param dict toolDict: A dictionary containing all information needed to construct the required shipSkinTool.
@@ -172,6 +191,9 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem):
         if toolDict["builtIn"]:
             m = bbData.builtInToolObjs[lib.stringTyping.shipSkinNameToToolName(toolDict["name"])]
             if isinstance(m, ShipSkinTool): return m
-            
+            raise TypeError(f"tool {m.name} is not a {ShipSkinTool.__name__}, it is a {type(m).__name__}")
+        
+        # Casting here because we know that the tool is not builtIn
+        toolDict = cast(CustomSerializedShipSkinToolUnion, toolDict)
         skin = ShipSkin.deserialize(toolDict["skin"])
         return ShipSkinTool(skin, value=gameMaths.shipSkinValueForTL(skin.averageTL), builtIn=False)

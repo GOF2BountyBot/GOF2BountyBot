@@ -2,17 +2,19 @@ from ..users import basedUser
 from .import reactionMenu
 from discord import Message, Member, Role, Embed # type: ignore[import]
 from .. import lib, botState
-from typing import Dict, Generic, Optional, TypeVar, Union, cast
+from typing import Dict, Generic, Optional, TypeVar, TypedDict, Union, cast
 from ..scheduling import timedTask
 from ..cfg import cfg
 
 
 TMenuOptionType = TypeVar("TMenuOptionType", bound=reactionMenu.ReactionMenuOption)
-class PagedReactionMenu(reactionMenu.ReactionMenu, Generic[TMenuOptionType]):
+TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=TypedDict)
+
+class PagedReactionMenu(reactionMenu.ReactionMenu[TMenuOptionType, TSerializedMenuOptionType], Generic[TMenuOptionType, TSerializedMenuOptionType]):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
     """
 
-    def __init__(self, msg: Message, pages: Optional[Dict[Embed, Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, reactionMenu.NonSaveableReactionMenuOption]]]] = None,
+    def __init__(self, msg: Message, pages: Optional[Dict[Embed, Dict[lib.emojis.BasedEmoji, TMenuOptionType]]] = None,
                  timeout: Optional[timedTask.TimedTask] = None, targetMember: Optional[Member] = None, targetRole: Optional[Role] = None,
                  owningBasedUser: Optional[basedUser.BasedUser] = None):
         """
@@ -28,7 +30,8 @@ class PagedReactionMenu(reactionMenu.ReactionMenu, Generic[TMenuOptionType]):
         :param BasedUser owningBasedUser: The user who initiated this menu. No built in behaviour. (Default None)
         """
 
-        self.pages = pages if pages is not None else {}
+        # Casting here because laster this will contain the page controls
+        self.pages = cast(Dict[Embed, Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, reactionMenu.NonSaveableReactionMenuOption]]], pages if pages is not None else {})
         self.msg = msg
         self.currentPageControls = {}
         self.timeout = timeout

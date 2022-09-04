@@ -117,7 +117,7 @@ class UsersUtilCog(BasedCog):
         :return: The requested item if no errors occurred. None otherwise.
         :rtype: Optional[GameItem]
         """
-        userItemInactives = cast(JsonType, basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[item_type], {}))
+        userItemInactives = basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[item_type], {})
 
         if item_number > len(userItemInactives):
             if sendErrors:
@@ -125,7 +125,7 @@ class UsersUtilCog(BasedCog):
                                                         ephemeral=sendErrorsEphemeral)
             return None
         
-        itemDict = cast(JsonType, userItemInactives[list(userItemInactives.keys())[item_number - 1]])
+        itemDict = userItemInactives[list(userItemInactives.keys())[item_number - 1]]
         return basedUser.itemCategoryStoredTypes[item_type].deserialize(itemDict)
 
 #endregion util

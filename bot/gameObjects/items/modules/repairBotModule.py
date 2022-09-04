@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedRepairBotModule(moduleItem.SerializedModuleItem):
+class SerializedRepairBotModule(moduleItem.CustomSerializedModuleItem):
     HPps: float
 
-class TypedSerializedRepairBotModule(SerializedRepairBotModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedRepairBotModule(SerializedRepairBotModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule]
 SerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class RepairBotModule(moduleItem.ModuleItem):
+class RepairBotModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepairBotModuleUnion]):
     """A module providing a ship with a slow health point increase to its hull and armour
 
     :var HPps: The amount of health points regained per second

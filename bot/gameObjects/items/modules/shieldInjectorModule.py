@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedShieldInjectorModule(moduleItem.SerializedModuleItem):
+class SerializedShieldInjectorModule(moduleItem.CustomSerializedModuleItem):
     plasmaConsumption: int
 
-class TypedSerializedShieldInjectorModule(SerializedShieldInjectorModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedShieldInjectorModule(SerializedShieldInjectorModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedShieldInjectorModuleUnion = Union[SerializedShieldInjectorModule, TypedSerializedShieldInjectorModule]
 SerializedShieldInjectorModuleUnion = Union[SerializedShieldInjectorModule, TypedSerializedShieldInjectorModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class ShieldInjectorModule(moduleItem.ModuleItem):
+class ShieldInjectorModule(moduleItem.ModuleItem, SerializesToSchema[SerializedShieldInjectorModuleUnion]):
     """A module providing a ship with the ability to instantly refill their shield capacity, in exchange for blue plasma
 
     :var plasmaConsumption: The amount of plasma required to refill shields

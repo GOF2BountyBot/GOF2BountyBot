@@ -6,6 +6,7 @@ from abc import abstractmethod
 from .... import lib, botState
 from discord import Message
 from typing import Callable, List
+from ....baseClasses.serializable import SerializesToSchema
 
 
 class SerializedToolItem(gameItem.CustomSerializedGameItem):
@@ -13,11 +14,10 @@ class SerializedToolItem(gameItem.CustomSerializedGameItem):
 
 class TypedSerializedToolItem(SerializedToolItem, gameItem.TypedCustomSerializedGameItem): pass
 
-CustomSerializedToolItemUnion = Union[SerializedToolItem, TypedSerializedToolItem]
 SerializedToolItemUnion = Union[SerializedToolItem, TypedSerializedToolItem]
 
 
-class ToolItem(gameItem.GameItem):
+class ToolItem(gameItem.GameItem, SerializesToSchema[SerializedToolItemUnion]):
     """An item that has a function of some kind.
     Intended to be very generic at this level of implementation.
     """

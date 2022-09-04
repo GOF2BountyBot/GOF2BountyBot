@@ -1,8 +1,8 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List, Union, cast
-from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from typing import List, cast
+from ..gameItem import spawnableItem
 
 
 @spawnableItem

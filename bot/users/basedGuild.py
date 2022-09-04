@@ -1,20 +1,21 @@
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
+from typing_extensions import NotRequired
 from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role
 from discord import TextChannel
 from discord.utils import MISSING
-from typing import Any, List, Dict, Optional, Union, cast
+from typing import Any, List, Dict, Optional, TypedDict, Union, cast
 from aiohttp import client_exceptions
 import random
 
-from ..baseClasses.serializable import SerializesToJson, JsonType
+from ..baseClasses.serializable import SerializesToSchema, SerializesToType
 
 from .. import botState, lib
 from ..lib.stringTyping import commaSplitNum
 from ..logging import LogCategory
 from ..gameObjects import guildShop
-from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel
+from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
 from ..userAlerts import userAlerts
 from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
@@ -87,7 +88,7 @@ class GuildChannelType(Enum):
     Renders = "2"
 
 
-class GuildChannels(SerializesToJson):
+class GuildChannels(SerializesToType[Dict[str, int]]):
     def __init__(self, bountyPlay: Optional[TextChannel] = None, announcements: Optional[TextChannel] = None, renders: Optional[TextChannel] = None) -> None:
         self.bountyPlay = bountyPlay
         self.announcements = announcements
@@ -121,12 +122,12 @@ class GuildChannels(SerializesToJson):
         return self.getForType(channelType) is not None
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> Dict[str, int]:
         return {k.value: cast(TextChannel, self.getForType(k)).id for k in self.keys() if self.hasChannel(k)}
 
     
     @classmethod
-    def deserialize(cls, data: JsonType, /, dcGuild: Guild, **kwargs):
+    def deserialize(cls, data: Dict[str, int], /, dcGuild: Guild, **kwargs):
         new = cls()
         for k in new.keys():
             if k.value in data:
@@ -136,7 +137,30 @@ class GuildChannels(SerializesToJson):
         return new
 
 
-class BasedGuild(SerializesToJson):
+class SerializedBasedGuild(TypedDict):
+    alertRoles: NotRequired[Dict[str, int]]
+    bountiesDisabled: NotRequired[bool]
+    shopsDisabled: NotRequired[bool]
+    guildChannels: NotRequired[Dict[str, int]]
+    ownedRoleMenus: NotRequired[int]
+    commandPrefix: NotRequired[str]
+
+
+class SerializedBasedGuildWIthBounties(SerializedBasedGuild):
+    bountiesDB: NotRequired[SerializedBountyDB]
+
+
+class SerializedBasedGuildWIthShops(SerializedBasedGuild):
+    divisionShops: NotRequired[Dict[str, guildShop.SerializedTechLeveledShop]]
+
+
+class SerializedBasedGuildWIthBountiesAndShops(SerializedBasedGuildWIthShops, SerializedBasedGuildWIthBounties): pass
+
+
+SerializedBasedGuildUnion = Union[SerializedBasedGuild, SerializedBasedGuildWIthBounties, SerializedBasedGuildWIthShops, SerializedBasedGuildWIthBountiesAndShops]
+
+
+class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -949,15 +973,17 @@ class BasedGuild(SerializesToJson):
                                     eventType="PLCH_NONE")
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedBasedGuildUnion:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        data = {    "alertRoles":       self.alertRoles,
-                    "bountiesDisabled": self.bountiesDisabled,
-                    "shopsDisabled":     self.shopsDisabled}
+        data: SerializedBasedGuildUnion = {
+            "alertRoles":       self.alertRoles,
+            "bountiesDisabled": self.bountiesDisabled,
+            "shopsDisabled":     self.shopsDisabled
+        }
 
         guildChannels = self.guildChannels.serialize()
         if guildChannels != {}:
@@ -970,10 +996,14 @@ class BasedGuild(SerializesToJson):
             data["commandPrefix"] = self.commandPrefix
 
         if not self.bountiesDisabled:
+            # Casting here because we know the guild has bounties enabled
+            data = cast(SerializedBasedGuildWIthBounties, data)
             # Casting here because bountiesDB cannot be None if bountiesDisabled is False
             data["bountiesDB"] = cast(BountyDB, self.bountiesDB).serialize(**kwargs)
 
         if not self.shopsDisabled:
+            # Casting here because we know the guild has shops enabled
+            data = cast(SerializedBasedGuildWIthShops, data)
             # Casting here because shop existence is checked with the shopsDisabled check
             data["divisionShops"] = {k: v.serialize(**kwargs) for k, v in cast(Dict[str, guildShop.TechLeveledShop], self.divisionShops).items()}
 
@@ -981,7 +1011,7 @@ class BasedGuild(SerializesToJson):
 
 
     @classmethod
-    def deserialize(cls, guildDict: JsonType, dbReload=False, *, guildID: int, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: SerializedBasedGuildUnion, dbReload=False, *, guildID: int, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
         in the provided guildDict - the opposite of BasedGuild.serialize
 
@@ -1003,16 +1033,17 @@ class BasedGuild(SerializesToJson):
             guildChannels = GuildChannels.deserialize(cast(dict, guildDict["guildChannels"]), dcGuild=dcGuild)
         else:
             guildChannels = GuildChannels()
+            # Ignoring here because I'm porting the legacy serialized guild schema
             if guildDict.get("announceChannel", -1) != -1:
-                c = dcGuild.get_channel(cast(int, guildDict["announceChannel"]))
+                c = dcGuild.get_channel(cast(int, guildDict["announceChannel"])) # type: ignore[reportGeneralTypeIssues]
                 if isinstance(c, TextChannel):
                     guildChannels.announcements = c
             if guildDict.get("playChannel", -1) != -1:
-                c = dcGuild.get_channel(cast(int, guildDict["playChannel"]))
+                c = dcGuild.get_channel(cast(int, guildDict["playChannel"])) # type: ignore[reportGeneralTypeIssues]
                 if isinstance(c, TextChannel):
                     guildChannels.bountyPlay = c
             if guildDict.get("rendersChannel", -1) != -1:
-                c = dcGuild.get_channel(cast(int, guildDict["rendersChannel"]))
+                c = dcGuild.get_channel(cast(int, guildDict["rendersChannel"])) # type: ignore[reportGeneralTypeIssues]
                 if isinstance(c, TextChannel):
                     guildChannels.renders = c
 
@@ -1025,8 +1056,10 @@ class BasedGuild(SerializesToJson):
         else:
             # For legacy savedata, just generate new shops
             if "divisionShops" in guildDict:
+                # Casting here because we know the guild has shops
+                guildDict = cast(SerializedBasedGuildWIthShops, guildDict)
                 # Casting here because pyright doesn't know the structure of a serialized BasedGuild
-                divisionShops = {k: guildShop.TechLeveledShop.deserialize(v) for k, v in cast(dict, guildDict["divisionShops"]).items()}
+                divisionShops = {k: guildShop.TechLeveledShop.deserialize(v) for k, v in guildDict.get("divisionShops", {}).items()}
             else:
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
                                     for divName, levels in bountyDivision.divisionNameLevels().items()}
@@ -1038,8 +1071,11 @@ class BasedGuild(SerializesToJson):
 
         if not bountiesDisabled:
             if "bountiesDB" in guildDict:
-                # Casting here because pyright doesn't know the structure of a serialized BasedGuild
-                bountiesDB = BountyDB.deserialize(cast(dict, guildDict["bountiesDB"]), dbReload=dbReload, owningBasedGuild=newGuild)
+                # Casting here because we know the guild has bounties
+                guildDict = cast(SerializedBasedGuildWIthBounties, guildDict)
+                # Ignoring here because I just checked that the key is present
+                bountiesDB = BountyDB.deserialize(guildDict["bountiesDB"], # type: ignore[reportTypedDictNotRequiredAccess]
+                                                    dbReload=dbReload, owningBasedGuild=newGuild)
             else:
                 bountiesDB = BountyDB(newGuild)
             newGuild.bountiesDB = bountiesDB

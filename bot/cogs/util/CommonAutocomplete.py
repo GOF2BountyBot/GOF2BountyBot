@@ -70,22 +70,12 @@ def systemAutoComplete(paramName: str = "division"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_aliasableAutoComplete(bbData.builtInSystemObjs.values()))
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInSystemObjs.values()))
         return func
     return decorator
 
 #endregion system
 #region criminal
-
-async def _criminalAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for criminal in bbData.builtInCriminalObjs.values():
-        if criminal.isCalled(current):
-            choices.append(app_commands.Choice(name=criminal.name, value=criminal.name))
-            if len(choices) == 25:
-                break
-    return choices
-
 
 def criminalAutoComplete(paramName: str = "name"):
     """A decorator to add autocomplete for a single-value criminal parameter, by name.
@@ -94,7 +84,7 @@ def criminalAutoComplete(paramName: str = "name"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_criminalAutoComplete)
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInCriminalObjs.values()))
         return func
     return decorator
 
@@ -171,15 +161,6 @@ def shipAutoComplete(paramName: str = "ship"):
 #endregion item-ship
 #region item-module
 
-async def _moduleAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for module in bbData.builtInModuleObjs.values():
-        if module.isCalled(current):
-            choices.append(app_commands.Choice(name=module.name, value=module.name))
-            if len(choices) == 25:
-                break
-    return choices
-
 
 def moduleAutoComplete(paramName: str = "name"):
     """A decorator to add autocomplete for a single-value criminal parameter, by name.
@@ -188,7 +169,7 @@ def moduleAutoComplete(paramName: str = "name"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_criminalAutoComplete)
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInModuleObjs.values()))
         return func
     return decorator
 

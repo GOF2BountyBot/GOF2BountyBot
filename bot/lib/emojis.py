@@ -6,14 +6,11 @@ import traceback
 from abc import ABC, abstractmethod
 import random
 
-from carica import PrimativeType, SerializableType # type: ignore[import]
-from carica.typeChecking import objectIsShallowSerializable # type: ignore[import]
-
-from discord import PartialEmoji, Emoji # type: ignore[import]
+from discord import PartialEmoji, Emoji
 
 from .. import botState
 from . import stringTyping, exceptions
-from ..baseClasses.serializable import Serializable, JsonType
+from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
 from ..cfg import cfg
 
@@ -70,11 +67,10 @@ class SerializedEmptyBasedEmoji(TypedDict):
 
 SerializedBasedEmoji = Union[SerializedUnicodeBasedEmoji, SerializedCustomBasedEmoji, SerializedEmptyBasedEmoji]
 
-
 T = TypeVar("T")
 
 
-class IBasedEmoji(Serializable, ABC):
+class IBasedEmoji(SerializesToSchema[SerializedBasedEmoji], ABC):
     """An interface to unify over BasedEmoji and UninitializedBasedEmoji.
     """
     def __init__(self) -> None:
@@ -320,12 +316,14 @@ class BasedEmoji(IBasedEmoji):
         if isinstance(emojiDict, BasedEmoji):
             return emojiDict
         if "id" in emojiDict:
-
-        # doing some casts here because pyright doesn't know the structure of a serialized emoji
-            return BasedEmoji(id=cast(int, emojiDict["id"]), rejectInvalid=rejectInvalid)
+            # casting here because I've just checked that the ID field is present
+            emojiDict = cast(SerializedCustomBasedEmoji, emojiDict)
+            return BasedEmoji(id=emojiDict["id"], rejectInvalid=rejectInvalid)
         else:
             if emojiDict.get("empty", False):
                 return BasedEmoji.EMPTY
+            # casting here because I've just checked that the ID field is not present and neither is empty, so it must be unicode
+            emojiDict = cast(SerializedUnicodeBasedEmoji, emojiDict)
             return BasedEmoji(unicode=cast(str, emojiDict["unicode"]), rejectInvalid=rejectInvalid)
 
 
@@ -428,7 +426,8 @@ class BasedEmoji(IBasedEmoji):
         elif isinstance(e.value, str):
             return BasedEmoji.fromStr(e.value, rejectInvalid=rejectInvalid)
         elif isinstance(e.value, dict):
-            return BasedEmoji.deserialize(e.value, rejectInvalid=rejectInvalid)
+            # Casting here because I don't know the structure of the dict ahead of time
+            return BasedEmoji.deserialize(cast(SerializedBasedEmoji, e), rejectInvalid=rejectInvalid)
         # Unrecognised uninitialized value
         else:
             raise ValueError("Unrecognised UninitializedBasedEmoji value type. Expecting int, str or dict, given '" \
@@ -496,7 +495,7 @@ class UninitializedBasedEmoji(IBasedEmoji):
     has finished executing.
     """
 
-    def __init__(self, value):
+    def __init__(self, value: Union[str, int, SerializedBasedEmoji]):
         """
         :param value: The data to attempt to initialize an emoji with. For example, an integer ID, or
                         a string unicode character.
@@ -504,7 +503,7 @@ class UninitializedBasedEmoji(IBasedEmoji):
         self.value = value
 
     
-    def serialize(self, **kwargs) -> PrimativeType:
+    def serialize(self, **kwargs) -> Union[str, int, SerializedBasedEmoji]:
         """Serialize this emoji to dictionary format for saving to file.
         For an UninitializedBasedEmoji, this is simply the 'value' of the emoji.
         If the value is a Serializable type, then it will be serialized before returning.
@@ -512,16 +511,14 @@ class UninitializedBasedEmoji(IBasedEmoji):
         :return: A dictionary containing all information needed to reconstruct this emoji.
         :rtype: dict
         """
-        if not objectIsShallowSerializable(self.value):
-            raise ValueError(f"The emoji's value ({type(self.value).__name__}) is not serializable: {self.value}")
-        elif isinstance(self.value, SerializableType):
+        if isinstance(self.value, IBasedEmoji):
             return self.value.serialize(**kwargs)
         else:
             return self.value
 
 
     @classmethod
-    def deserialize(cls, data: PrimativeType, **kwargs) -> UninitializedBasedEmoji:
+    def deserialize(cls, data: Union[str, int, SerializedBasedEmoji], **kwargs) -> UninitializedBasedEmoji:
         """Recreate a serialized UninitializedBasedEmoji.
         This simply wraps the given data in a new UninitializedBasedEmoji instance, with the data as the emoji's 'value'
         field. If `data` is intended to represent a serialized object, this function is not able to infer the intended type

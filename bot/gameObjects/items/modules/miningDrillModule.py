@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedMiningDrillModule(moduleItem.SerializedModuleItem):
+class SerializedMiningDrillModule(moduleItem.CustomSerializedModuleItem):
     oreYield: float
     drillHandling: float
 
-class TypedSerializedMiningDrillModule(SerializedMiningDrillModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedMiningDrillModule(SerializedMiningDrillModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedMiningDrillModuleUnion = Union[SerializedMiningDrillModule, TypedSerializedMiningDrillModule]
 SerializedMiningDrillModuleUnion = Union[SerializedMiningDrillModule, TypedSerializedMiningDrillModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class MiningDrillModule(moduleItem.ModuleItem):
+class MiningDrillModule(moduleItem.ModuleItem, SerializesToSchema[SerializedMiningDrillModuleUnion]):
     """"A module providing a ship with the ability to mine ore from asteroids
 
     :var oreYield: The percentage of the maximum ore this drill will receive from an asteroid

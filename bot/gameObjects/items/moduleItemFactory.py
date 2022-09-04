@@ -1,14 +1,16 @@
+from typing import cast
 from ...cfg import bbData
 from .modules import _all as moduleItemClasses
 from .modules import ModuleItem
-from ...baseClasses.serializable import FromJsonFactory, JsonType
+from .modules.moduleItem import SerializedModuleItemUnion, TypedSerializedModuleItemUnion
+from ...baseClasses.serializable import Factory
 
 typeConstructors = {cls.__name__: cls.deserialize for cls in moduleItemClasses}
 
 
-class ModuleItemFactory(FromJsonFactory[ModuleItem]):
+class ModuleItemFactory(Factory[SerializedModuleItemUnion, ModuleItem]):
     @classmethod
-    def deserialize(cls, data: JsonType, **kwargs) -> ModuleItem:
+    def deserialize(cls, data: SerializedModuleItemUnion, **kwargs) -> ModuleItem:
         """Factory function recreating any moduleItem or moduleItem subtype from a dictionary-serialized representation.
         If implemented correctly, this should act as the opposite to the original object's serialize method.
         If the requested module is builtIn, return the builtIn module object of the same name.
@@ -18,10 +20,11 @@ class ModuleItemFactory(FromJsonFactory[ModuleItem]):
         :rtype: moduleItem
         """
         if data.get("builtIn", False):
-            # Ignoring here because pyright doesn't know the structure of a serialized module
-            return bbData.builtInModuleObjs[data["name"]] # type: ignore[reportGeneralTypeIssues]
+            return bbData.builtInModuleObjs[data["name"]]
 
-        if "type" in data and data["type"] in typeConstructors:
-            return typeConstructors[data["type"]](data)
-        else:
-            return ModuleItem.deserialize(data)
+        if "type" in data:
+            # Casting here because we know the data is typed
+            data = cast(TypedSerializedModuleItemUnion, data)
+            if data["type"] in typeConstructors:
+                return typeConstructors[data["type"]](data)
+        return ModuleItem.deserialize(data)

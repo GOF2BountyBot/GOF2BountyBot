@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, TypedDict, cast
 import asyncio
+from typing_extensions import NotRequired
 
 from ..logging import LogCategory
 
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
@@ -14,7 +15,7 @@ from .. import botState, lib
 from .bountyDivision import BountyDivision
 from datetime import datetime
 from ..scheduling.timedTask import TimedTask
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import SerializesToSchema
 
 
 def nameForDivision(div: BountyDivision) -> str:
@@ -46,7 +47,15 @@ def divisionNameForLevel(tl: int) -> str:
         raise KeyError(f"No division found for bounties of TL {tl}")
 
 
-class BountyDB(Serializable):
+class SerializedBountyDB(TypedDict):
+    active: List[bounty.SerializedBounty]
+    escaped: List[bounty.SerializedEscapedBounty]
+    temperatures: Dict[int, float]
+    bountyBoardChannels: NotRequired[Dict[int, SerializedBountyBoardChannel]]
+    alertRoleIDs: NotRequired[Dict[int, int]]
+
+
+class BountyDB(SerializesToSchema[SerializedBountyDB]):
     """A database of Bounty.
     Bounty criminal names must be unique within the database.
     Faction names are case sensitive.
@@ -447,13 +456,13 @@ class BountyDB(Serializable):
         return any(not div.isEmpty() for div in self.divisions.values())
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyDB:
         """Serialise the bountyDB and all of its divisions into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this bountyDB.
         :rtype: dict
         """
-        data = {"active": [], "escaped": [], "temperatures": {}}
+        data: SerializedBountyDB = {"active": [], "escaped": [], "temperatures": {}}
         for div in self.divisions.values():
             data["temperatures"][div.minLevel] = div.temperature
             for tlBounties in div.bounties.values():
@@ -461,7 +470,9 @@ class BountyDB(Serializable):
                     data["active"].append(bty.serialize(**kwargs))
             for tlBounties in div.escapedBounties.values():
                 for bty in tlBounties.values():
-                    data["escaped"].append(bty.serialize(**kwargs))
+                    # Casting here because we know the bounty si escaped
+                    serialized = cast(bounty.SerializedEscapedBounty, bty.serialize(**kwargs))
+                    data["escaped"].append(serialized)
         
         if next(i for i in self.divisions.values()).bountyBoardChannel is not None:
             # Casting here div.bountyBoardChannel can be None, but this is only the case if all divisions have None bountyBoardChannel.
@@ -475,7 +486,7 @@ class BountyDB(Serializable):
 
 
     @classmethod
-    def deserialize(cls, bountyDBDict: dict, owningBasedGuild: Optional[basedGuild.BasedGuild] = None, dbReload: bool = False, **kwargs) -> BountyDB:
+    def deserialize(cls, bountyDBDict: SerializedBountyDB, owningBasedGuild: Optional[basedGuild.BasedGuild] = None, dbReload: bool = False, **kwargs) -> BountyDB:
         """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.serialize.
 
         :param dict bountyDBDict: a dictionary representation of the bountyDB, to convert to an object

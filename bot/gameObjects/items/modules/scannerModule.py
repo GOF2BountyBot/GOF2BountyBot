@@ -3,20 +3,21 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedScannerModule(moduleItem.SerializedModuleItem):
+class SerializedScannerModule(moduleItem.CustomSerializedModuleItem):
     timeToLock: float
     showClassAAsteroids: bool
     showCargo: bool
 
-class TypedSerializedScannerModule(SerializedScannerModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedScannerModule(SerializedScannerModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule]
 SerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class ScannerModule(moduleItem.ModuleItem):
+class ScannerModule(moduleItem.ModuleItem, SerializesToSchema[SerializedScannerModuleUnion]):
     """A module providing a ship with the ability to scan in-range objects, such as asteroids and ships
 
     :var timeToLock: The number of seconds this scanner takes to lock onto an object and obtain information

@@ -5,27 +5,24 @@ if TYPE_CHECKING:
 
 from . import guildShop
 from ..cfg import cfg
-from ..cfg.bbData import ItemCategory
-from .items import gameItem, shipItem, moduleItemFactory
+from .items import gameItem, shipItem
 from .items.weapons import primaryWeapon, turretWeapon
 from .items.modules import moduleItem
-from .items.tools import toolItem, toolItemFactory
-from .. import botState
+from .items.tools import toolItem
 from .inventories import inventory
-from .inventories.inventoryListing import InventoryListing
-from ..logging import LogCategory
+from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 
 
-class KaamoShop(guildShop.ShopBase[InventoryListing]):
+class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInventoryListing], InventoryListing]):
     """A "shop" where all transactions are free, essentially operating an item storage service.
     KaamoShops have a maximum capacity defined in cfg. Items equipped onto ships count towards this cap.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.Inventory[shipItem.Ship]] = None,
-            weaponsStock: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon]] = None,
-            modulesStock: Optional[inventory.Inventory[moduleItem.ModuleItem]] = None,
-            turretsStock: Optional[inventory.Inventory[turretWeapon.TurretWeapon]] = None,
-            toolsStock: Optional[inventory.Inventory[toolItem.ToolItem]] = None):
+    def __init__(self, shipsStock: Optional[inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+            weaponsStock: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
+            modulesStock: Optional[inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
+            turretsStock: Optional[inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
+            toolsStock: Optional[inventory.Inventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None):
         """
         :param Inventory shipsStock: The shop's current stock of ships (Default empty Inventory)
         :param Inventory weaponsStock: The shop's current stock of weapons (Default empty Inventory)
@@ -310,7 +307,7 @@ class KaamoShop(guildShop.ShopBase[InventoryListing]):
 
 
     @classmethod
-    def deserialize(cls, shopDict: dict, **kwargs) -> KaamoShop:
+    def deserialize(cls, shopDict: guildShop.SerializedShopBase, **kwargs) -> KaamoShop:
         """Recreate a bbShop instance from its dictionary-serialized representation - the opposite of bbShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop

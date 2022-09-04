@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedTractorBeamModule(moduleItem.SerializedModuleItem):
+class SerializedTractorBeamModule(moduleItem.CustomSerializedModuleItem):
     timeToLock: float
 
-class TypedSerializedTractorBeamModule(SerializedTractorBeamModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedTractorBeamModule(SerializedTractorBeamModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule]
 SerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class TractorBeamModule(moduleItem.ModuleItem):
+class TractorBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTractorBeamModuleUnion]):
     """A module providing a ship with the ability to pull nearby debris and items into the ship's cargo hold
 
     :var timeToLock: The amount of time in seconds needed for the beam to lock onto an item and pull it into the hold

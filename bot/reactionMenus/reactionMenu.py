@@ -1,19 +1,20 @@
 # TODO: Write a targettable ReactionMenuOption subclass, that implements targetMember and targetRole on a per-option basis.
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from typing_extensions import NotRequired
 from ..scheduling.timedTask import TimedTask
 import inspect
-from discord import ClientUser, Embed, Colour, Emoji, NotFound, HTTPException, Forbidden, PartialEmoji # type: ignore[import]
-from discord import Member, User, Message, Role, RawReactionActionEvent # type: ignore[import]
+from discord import Embed, Colour, HTTPException
+from discord import Member, User, Message, Role, RawReactionActionEvent
 from discord.abc import GuildChannel
 from discord.user import BaseUser
 from ..cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
-from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Type, TypeVar, Union, Dict, List, cast
+from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, TypedDict, Union, Dict, List, cast
 import asyncio
-from ..baseClasses.serializable import SerializesToJson, JsonType
+from ..baseClasses.serializable import SerializesToSchema
 from . import expiryFunctions
 
 
@@ -25,7 +26,12 @@ MenuOptionCallbackType = Union[Callable[[], Any], Callable[[Any], Any], Callable
                                 Callable[[Any, _DCUserUnion], Awaitable[Any]]]
 
 
-class ReactionMenuOption(SerializesToJson):
+class SerializedReactionMenuOption(TypedDict):
+    name: str
+    emoji: lib.emojis.SerializedBasedEmoji
+
+
+class ReactionMenuOption(SerializesToSchema[SerializedReactionMenuOption]):
     """An abstract class representing an option in a reaction menu.
     Reaction menu options must have a name and emoji. They may optionally have a function to call when added,
     a function to call when removed, and arguments for each.
@@ -155,7 +161,7 @@ class ReactionMenuOption(SerializesToJson):
 
 
     @abstractmethod
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedReactionMenuOption:
         """Serialize this menu option into dictionary format for saving to file.
         This is a base, abstract definition that does not encode option functionality (i.e function calls and arguments).
 
@@ -181,7 +187,7 @@ class ReactionMenuOption(SerializesToJson):
 
 
     @classmethod
-    def deserialize(cls, data: JsonType, **kwargs):
+    def deserialize(cls, data: SerializedReactionMenuOption, **kwargs):
         raise NotImplementedError("Attempted to deserialize an unserializable menu option type: " + cls.__name__)
 
 
@@ -228,7 +234,7 @@ class DummyReactionMenuOption(ReactionMenuOption):
         super(DummyReactionMenuOption, self).__init__(name, emoji)
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedReactionMenuOption:
         """Serialize this menu option into dictionary format for saving to file.
         Since dummy reaction menu options have no on-toggle functionality, the resulting base dictionary contains
         all information needed to reconstruct this option instance.
@@ -240,7 +246,7 @@ class DummyReactionMenuOption(ReactionMenuOption):
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> "DummyReactionMenuOption":
+    def deserialize(cls, data: SerializedReactionMenuOption, **kwargs) -> "DummyReactionMenuOption":
         """Recreate a serialized DummyReactionMenuOption.
 
         :param dict data: The serialized option
@@ -250,9 +256,29 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.deserialize(data["emoji"], **kwargs))
 
 
+TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=TypedDict)
+
+class SerializedReactionMenu(TypedDict, Generic[TSerializedMenuOptionType]):
+    channel: int
+    msg: int
+    options: Dict[str, TSerializedMenuOptionType]
+    type: str
+    guild: NotRequired[int]
+    titleTxt: NotRequired[str]
+    desc: NotRequired[str]
+    col: NotRequired[Tuple[int, int, int]]
+    img: NotRequired[str]
+    thumb: NotRequired[str]
+    icon: NotRequired[str]
+    authorName: NotRequired[str]
+    timeout: NotRequired[float]
+    targetMember: NotRequired[int]
+    targetRole: NotRequired[int]
+
+
 TMenuOptionType = TypeVar("TMenuOptionType", bound=ReactionMenuOption)
 
-class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
+class ReactionMenu(SerializesToSchema[SerializedReactionMenu], Generic[TMenuOptionType, TSerializedMenuOptionType]):
     """A versatile class implementing emoji reaction menus.
     This class can be used as-is, to create unsaveable reaction menus of any type, with vast possibilities for behaviour.
     ReactionMenu need only be extended in the following cases:
@@ -503,7 +529,7 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
             self.timeout.forceExpire()
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedReactionMenu[TSerializedMenuOptionType]:
         """Serialize this ReactionMenu into dictionary format for saving to file.
         This is a base, concrete implementation that saves all information required to recreate a ReactionMenu instance;
         when extending ReactionMenu, you will likely wish to overload this method, using super.serialize as a base for your
@@ -512,11 +538,12 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
         This method relies on your chosen ReactionMenuOption objects having a concrete, SAVEABLE serialize method.
         If any option in the menu is unsaveable, the menu becomes unsaveable.
         """
-        optionsDict = {}
+        optionsDict: Dict[str, TSerializedMenuOptionType] = {}
         for reaction in self.options:
-            optionsDict[reaction.sendable] = self.options[reaction].serialize(**kwargs)
+            # Casting here with the assumption that menu options serialize to TSerializedMenuOptionType
+            optionsDict[reaction.sendable] = cast(TSerializedMenuOptionType, self.options[reaction].serialize(**kwargs))
 
-        data = {"channel": self.msg.channel.id, "msg": self.msg.id, "options": optionsDict,
+        data: SerializedReactionMenu[TSerializedMenuOptionType] = {"channel": self.msg.channel.id, "msg": self.msg.id, "options": optionsDict,
                 "type": self.__class__.__name__}
 
         if isinstance(self.msg.channel, GuildChannel):
@@ -556,11 +583,11 @@ class ReactionMenu(SerializesToJson, Generic[TMenuOptionType]):
 
 
     @classmethod
-    def deserialize(cls, data: JsonType, **kwargs):
+    def deserialize(cls, data: SerializedReactionMenu[TSerializedMenuOptionType], **kwargs):
         raise NotImplementedError("Attempted to deserialize an unserializable menu type: " + cls.__name__)
 
 
-class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
+class CancellableReactionMenu(ReactionMenu[TMenuOptionType, TSerializedMenuOptionType], Generic[TMenuOptionType, TSerializedMenuOptionType]):
     """A simple ReactionMenu extension that adds an extra 'cancel' option to your given options dictionary.
     The 'cancel' option will call the menu's delete method. No extra restrictions beyond targetMember/targetRole are placed
     on members who may cancel the menu.
@@ -575,7 +602,7 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
     :vartype cancelEmoji: lib.emojis.BasedEmoji
     """
 
-    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, NonSaveableReactionMenuOption]],
+    def __init__(self, msg: Message, options: Dict[lib.emojis.BasedEmoji, TMenuOptionType],
                     cancelEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.cancel,
                     titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[TimedTask] = None,
                     img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
@@ -601,14 +628,16 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
                                         All other reactions are ignored (Default None)
         """
         self.cancelEmoji = cancelEmoji
-        options[cancelEmoji] = NonSaveableReactionMenuOption("cancel", cancelEmoji, self.delete, None)
-        super(CancellableReactionMenu, self).__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col,
+        # Casting here because I need to add a non-TMenuOptionType option
+        withCancel = cast(Dict[lib.emojis.BasedEmoji, Union[TMenuOptionType, NonSaveableReactionMenuOption]], options)
+        withCancel[cancelEmoji] = NonSaveableReactionMenuOption("cancel", cancelEmoji, self.delete, None)
+        super(CancellableReactionMenu, self).__init__(msg, options=withCancel, titleTxt=titleTxt, desc=desc, col=col,
                                                         img=img, thumb=thumb, icon=icon,
                                                         authorName=authorName, timeout=timeout, targetMember=targetMember,
                                                         targetRole=targetRole)
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedReactionMenu[TSerializedMenuOptionType]:
         """Serializes the reaction menu to a dictionary representation.
         This currently does not add any information on top of ReactionMenu.serialize, but ensures that the cancel option
         is not included in the dictionary for space efficiency purposes.
@@ -621,13 +650,12 @@ class CancellableReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
         """
         baseDict = super().serialize(**kwargs)
         # TODO: Make sure the option is in there?
-        # ignoring a warning here because pyright doesn't know the structure of a serialized ReacionMenu
-        del baseDict["options"][self.cancelEmoji.sendable] # type: ignore[reportGeneralTypeIssues]
+        del baseDict["options"][self.cancelEmoji.sendable]
 
         return baseDict
 
 
-class SingleUserReactionMenu(ReactionMenu, Generic[TMenuOptionType]):
+class SingleUserReactionMenu(ReactionMenu[TMenuOptionType, TSerializedMenuOptionType], Generic[TMenuOptionType, TSerializedMenuOptionType]):
     """An in-place menu solution.
 
     InlineReactionMenus do not need to be recorded in the reactionMenusDB, but instead have a
@@ -779,7 +807,7 @@ def saveableMenuClassFromName(clsName: str) -> Type[ReactionMenu]:
 
 # inline-style menus cannot be serializable :(
 # @saveableMenu
-class DummySingleUserReactionMenu(SingleUserReactionMenu):
+class DummySingleUserReactionMenu(SingleUserReactionMenu[DummyReactionMenuOption, SerializedReactionMenuOption]):
     def __init__(self, msg: Message, targetMember: Union[Member, User], activeTime: timedelta,
                 options: Union[Dict[lib.emojis.BasedEmoji, str], List[lib.emojis.BasedEmoji]],
                 returnTriggers: List[lib.emojis.BasedEmoji], titleTxt: str = "", desc: str = "",

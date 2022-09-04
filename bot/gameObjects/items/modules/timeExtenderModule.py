@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedTimeExtenderModule(moduleItem.SerializedModuleItem):
+class SerializedTimeExtenderModule(moduleItem.CustomSerializedModuleItem):
     effect: float
     duration: float
 
-class TypedSerializedTimeExtenderModule(SerializedTimeExtenderModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedTimeExtenderModule(SerializedTimeExtenderModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedTimeExtenderModuleUnion = Union[SerializedTimeExtenderModule, TypedSerializedTimeExtenderModule]
 SerializedTimeExtenderModuleUnion = Union[SerializedTimeExtenderModule, TypedSerializedTimeExtenderModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class TimeExtenderModule(moduleItem.ModuleItem):
+class TimeExtenderModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTimeExtenderModuleUnion]):
     """A module that will slow down time around the ship. The ship remains unaffected.
 
     :var effect: The amount to slow down time as a multiplier

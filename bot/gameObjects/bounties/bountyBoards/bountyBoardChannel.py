@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Coroutine, List, Tuple
+from typing import TYPE_CHECKING, Coroutine, List, Tuple, TypedDict
 from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
-from ....baseClasses.serializable import Serializable
+from ....baseClasses.serializable import SerializesToSchema
 
 if TYPE_CHECKING:
     from ....databases.bountyDivision import BountyDivision
@@ -67,7 +67,14 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
                                                         "BBC", meta, *args, **kwargs)
 
 
-class BountyBoardChannel(Serializable):
+class SerializedBountyBoardChannel(TypedDict):
+    listings: Dict[int, criminal.SerializedCriminalUnion]
+    channel: int
+    noBountiesMsg: int
+    escapedBountiesMsg: int
+
+
+class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
     """A channel which stores a continuously updating listing message for every active bounty.
 
     Initialisation atts: These attributes are used only when loading in the BBC from dictionary-serialised format.
@@ -95,8 +102,7 @@ class BountyBoardChannel(Serializable):
     :var channel: The channel where this BBC's listings are to be posted
     :vartype channel: discord.TextChannel
     """
-
-    def __init__(self, division: "BountyDivision", channelIDToBeLoaded: int, messagesToBeLoaded: Dict[int, dict],
+    def __init__(self, division: "BountyDivision", channelIDToBeLoaded: int, messagesToBeLoaded: Dict[int, criminal.SerializedCriminalUnion],
                     noBountiesMsgToBeLoaded: Union[int, None], escapedBountiesMsgToBeLoaded: Union[int, None]):
         """
         :param BountyDivision division: The division that this BBC represents
@@ -390,7 +396,7 @@ class BountyBoardChannel(Serializable):
                                                                     embed=noBountiesEmbed)
 
 
-    async def _loadCriminalMsg(self, crimDict: dict, msgId: int, logUrls: bool = True):
+    async def _loadCriminalMsg(self, crimDict: criminal.SerializedCriminalUnion, msgId: int, logUrls: bool = True):
         crim = criminal.Criminal.deserialize(crimDict)
         if self.division.criminalObjExists(crim):
             msg = await self.loadMessageWithRetry(msgId,
@@ -661,7 +667,7 @@ class BountyBoardChannel(Serializable):
             await self.updateEscapedBountiesMessage()
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyBoardChannel:
         """Serialise this BBC to dictionary format
 
         :return: A dictionary containing all data needed to recreate this BBC
@@ -675,7 +681,7 @@ class BountyBoardChannel(Serializable):
 
 
     @classmethod
-    def deserialize(cls, BBCDict: dict, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
+    def deserialize(cls, BBCDict: SerializedBountyBoardChannel, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
         """Factory function constructing a new BBC from the information in the provided dictionary
         - the opposite of bountyBoardChannel.serialize
 

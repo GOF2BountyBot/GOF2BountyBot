@@ -1,14 +1,14 @@
 import os
 
-from ..baseClasses.serializable import SerializesToJson
+from ..baseClasses.serializable import JsonType, SerializesToJson
 from ..cfg import cfg
 from .. import lib
 from datetime import datetime, timezone
 import aiohttp
-from carica import SerializableDataClass, PrimativeType # type: ignore[import]
+from carica import SerializableDataClass
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Type
+from typing import Optional, cast
 
 from discord.utils import utcnow # type: ignore[import]
 
@@ -84,7 +84,8 @@ async def checkForUpdates(httpClient: aiohttp.ClientSession) -> UpdateCheckResul
 
         # Schedule next updates check
         nextCheck = utcnow() + cfg.timeouts.BASED_updateCheckFrequency
-        newVersion = VersionInfo(BASED_VERSION, nextCheck.timestamp())
+        # TODO: Casting here because carica's serializabledataclass is hinted to serialize to a Mapping type, not JSON
+        newVersion = cast(SerializesToJson, VersionInfo(BASED_VERSION, nextCheck.timestamp()))
         lib.jsonHandler.saveObject(BASED_VERSIONFILE, newVersion)
 
         # If no tags were found on remote, assume up to date.

@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedTransfusionBeamModule(moduleItem.SerializedModuleItem):
+class SerializedTransfusionBeamModule(moduleItem.CustomSerializedModuleItem):
     HPps: int
     count: int
 
-class TypedSerializedTransfusionBeamModule(SerializedTransfusionBeamModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedTransfusionBeamModule(SerializedTransfusionBeamModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule]
 SerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class TransfusionBeamModule(moduleItem.ModuleItem):
+class TransfusionBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTransfusionBeamModuleUnion]):
     """A module that slowly steals health from nearby ships, and adds the stolen heath to this ship's health.
 
     :var HPps: The amount of health points per second to steal

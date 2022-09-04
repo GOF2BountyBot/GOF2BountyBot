@@ -1,8 +1,9 @@
 from __future__ import annotations
+from typing import cast
 from ..gameItem import spawnableItem
 from ....cfg import bbData
 from .... import lib
-from .weapon import Weapon
+from .weapon import Weapon, CustomSerializedWeaponUnion, SerializedWeaponUnion
 
 
 @spawnableItem
@@ -11,7 +12,7 @@ class TurretWeapon(Weapon):
     """
 
     @classmethod
-    def deserialize(cls, turretDict: dict, **kwargs) -> TurretWeapon:
+    def deserialize(cls, turretDict: SerializedWeaponUnion, **kwargs) -> TurretWeapon:
         """Factory function constructing a new turretWeapon object from a dictionary serialised representation -
         the opposite of turretWeapon.serialize.
 
@@ -22,6 +23,8 @@ class TurretWeapon(Weapon):
         if turretDict.get("builtIn", False):
             return bbData.builtInTurretObjs[turretDict["name"]]
         else:
+            # Casting here because we know the weapon is not builtIn
+            turretDict = cast(CustomSerializedWeaponUnion, turretDict)
             return TurretWeapon(**cls._makeDefaults(turretDict, ("type",),
                                                     emoji=lib.emojis.BasedEmoji.fromStr(turretDict["emoji"]) \
                                                             if "emoji" in turretDict else lib.emojis.BasedEmoji.EMPTY))

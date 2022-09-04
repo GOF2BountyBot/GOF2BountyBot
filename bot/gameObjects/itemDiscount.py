@@ -1,10 +1,15 @@
 from __future__ import annotations
-from ..baseClasses.serializable import Serializable
+from typing import TypedDict, cast
+from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
+
+class SerializedItemDiscount(TypedDict):
+    mult: float
+    desc: str
 
 'https://stackoverflow.com/a/53519136'
 @simpleHash
-class ItemDiscount(Serializable):
+class ItemDiscount(SerializesToSchema[SerializedItemDiscount]):
     """A temporary modification to an item's value, potentially increasing or decreasing it,
     accompanied by a short description of the discount.
     ItemDiscount comparison operators directly compare multiplier attributes. This allows for sorting a list
@@ -60,13 +65,14 @@ class ItemDiscount(Serializable):
         return self.mult <= o.mult
 
 
-    def serialize(self, **kwargs):
-        data = super().serialize(**kwargs)
+    def serialize(self, **kwargs) -> SerializedItemDiscount:
+        # Casting so I can add the new fields
+        data = cast(SerializedItemDiscount, super().serialize(**kwargs))
         data["mult"] = self.mult
         data["desc"] = self.desc
         return data
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> ItemDiscount:
+    def deserialize(cls, data: SerializedItemDiscount, **kwargs) -> ItemDiscount:
         return ItemDiscount(data["mult"], data["desc"])

@@ -1,8 +1,17 @@
-from ...baseClasses.serializable import Serializable
-from ...lib.emojis import BasedEmoji
+from typing import TypedDict
+from typing_extensions import NotRequired
+from ...baseClasses.serializable import SerializesToSchema
+from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
+
+class SerializedMedal(TypedDict):
+    name: str
+    desc: str
+    icon: str
+    emoji: SerializedBasedEmoji
+    wiki: NotRequired[str]
 
 
-class Medal(Serializable):
+class Medal(SerializesToSchema[SerializedMedal]):
     """A non-functional cosmetic appearing at the top of a user's profile.
     Medals are used to commend users for special achievements which cannot be achieved through
     normal play. E.g contributing to development.
@@ -39,20 +48,20 @@ class Medal(Serializable):
         self.emoji = emoji
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedMedal:
         """Serialize this medal into dictionary format.
 
         :return: A dictionary fully describing this medal and its attriutes
         :rtype: dict
         """
-        data = {"name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.serialize()}
+        data: SerializedMedal = {"name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.serialize()}
         if self.hasWiki:
             data["wiki"] = self.wiki
         return data
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> "Medal":
+    def deserialize(cls, data: SerializedMedal, **kwargs) -> "Medal":
         """Deserialize a Medal instance.
 
         :param dict data: A dictionary describing all desired attributes of the Medal

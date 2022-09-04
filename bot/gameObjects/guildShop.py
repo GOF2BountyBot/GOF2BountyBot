@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, TypedDict, Union, cast
 from abc import abstractmethod
 import random
 
@@ -10,19 +10,19 @@ if TYPE_CHECKING:
 
 from ..cfg import bbData, cfg
 from ..cfg.bbData import ItemCategory
-from .items.shipItem import Ship
+from .items.shipItem import Ship, SerializedShipUnion
+from .items.weapons.weapon import SerializedWeaponUnion
 from .items.weapons.primaryWeapon import PrimaryWeapon
 from .items.weapons.turretWeapon import TurretWeapon
 from .items import moduleItemFactory, gameItem
 from .items.modules import moduleItem
 from .items.tools import toolItem, toolItemFactory
-from .inventories.inventory import Inventory, _InventoryBase
-from .inventories.inventoryListing import InventoryListing
+from .inventories.inventory import Inventory, _InventoryBase, SerializedInventory
+from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 from .. import botState
 from ..lib import gameMaths
 from ..logging import LogCategory
-from ..baseClasses.serializable import Serializable
-from ..baseClasses.serializable import JsonType
+from ..baseClasses.serializable import JsonType, SerializesToSchema
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
 StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)
@@ -34,11 +34,20 @@ itemCategoriesStoredItemTypes = {
     ItemCategory.tool: toolItem.ToolItem
 }
 
+TSerializedInventory = TypeVar("TSerializedInventory", bound=SerializedInventory)
 TListingType = TypeVar("TListingType", bound="InventoryListing")
 TItemType = TypeVar("TItemType", bound=StoredItemType)
 TSelf = TypeVar("TSelf", bound="ShopBase")
 
-class ShopBase(Serializable, Generic[TListingType]):
+class SerializedShopBase(TypedDict):
+    shipsStock: List[SerializedInventoryListing[SerializedShipUnion]]
+    weaponsStock: List[SerializedInventoryListing[SerializedWeaponUnion]]
+    modulesStock: List[SerializedInventoryListing[moduleItem.SerializedModuleItemUnion]]
+    turretsStock: List[SerializedInventoryListing[SerializedWeaponUnion]]
+    toolsStock: List[SerializedInventoryListing[toolItem.SerializedToolItemUnion]]
+
+
+class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInventory, TListingType]):
     """A shop containing a selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
 
@@ -54,11 +63,11 @@ class ShopBase(Serializable, Generic[TListingType]):
     :vartype toolsStock: inventory
     """
 
-    def __init__(self, shipsStock: _InventoryBase[TListingType, Ship],
-                    weaponsStock: _InventoryBase[TListingType, PrimaryWeapon],
-                    modulesStock: _InventoryBase[TListingType, moduleItem.ModuleItem],
-                    turretsStock: _InventoryBase[TListingType, TurretWeapon],
-                    toolsStock: _InventoryBase[TListingType, toolItem.ToolItem]):
+    def __init__(self, shipsStock: _InventoryBase[TSerializedInventory, TListingType, Ship],
+                    weaponsStock: _InventoryBase[TSerializedInventory, TListingType, PrimaryWeapon],
+                    modulesStock: _InventoryBase[TSerializedInventory, TListingType, moduleItem.ModuleItem],
+                    turretsStock: _InventoryBase[TSerializedInventory, TListingType, TurretWeapon],
+                    toolsStock: _InventoryBase[TSerializedInventory, TListingType, toolItem.ToolItem]):
         """
         :param Inventory shipsStock: The shop's current stock of ships
         :param Inventory weaponsStock: The shop's current stock of weapons
@@ -82,7 +91,7 @@ class ShopBase(Serializable, Generic[TListingType]):
             (self.shipsStock, self.weaponsStock, self.modulesStock, self.turretsStock, self.toolsStock))
 
 
-    def getStockByType(self, itemType: Type[TItemType]) -> _InventoryBase[TListingType, TItemType]:
+    def getStockByType(self, itemType: Type[TItemType]) -> _InventoryBase[TSerializedInventory, TListingType, TItemType]:
         """Get the inventory containing all current stock of the given type.
         This object is mutable and can alter the stock of the shop.
 
@@ -94,20 +103,20 @@ class ShopBase(Serializable, Generic[TListingType]):
         # TODO: The type hints in this method behave as they should, but pyright doesn't like these lines - it thinks they don't respect
         # the generic. Find out how to do this properly
         if itemType is Ship:
-            return cast(_InventoryBase[TListingType, TItemType], self.shipsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, TItemType], self.shipsStock)
         elif itemType is PrimaryWeapon:
-            return cast(_InventoryBase[TListingType, TItemType], self.weaponsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, TItemType], self.weaponsStock)
         elif itemType is moduleItem.ModuleItem:
-            return cast(_InventoryBase[TListingType, TItemType], self.modulesStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, TItemType], self.modulesStock)
         elif itemType is TurretWeapon:
-            return cast(_InventoryBase[TListingType, TItemType], self.turretsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, TItemType], self.turretsStock)
         elif itemType is toolItem.ToolItem:
-            return cast(_InventoryBase[TListingType, TItemType], self.toolsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, TItemType], self.toolsStock)
         else:
             raise KeyError(f"Unknown item type: {itemType.__name__}")
 
 
-    def getStock(self, item: ItemCategory) -> _InventoryBase[TListingType, StoredItemType]:
+    def getStock(self, item: ItemCategory) -> _InventoryBase[TSerializedInventory, TListingType, StoredItemType]:
         """Get the inventory containing all current stock of the named type.
         This object is mutable and can alter the stock of the shop.
 
@@ -119,15 +128,15 @@ class ShopBase(Serializable, Generic[TListingType]):
         # TODO: The type hints in this method behave as they should, but pyright doesn't like these lines - it seems to think that
         # the item types are incompatible with StoredItemType?
         if item is ItemCategory.ship:
-            return cast(_InventoryBase[TListingType, StoredItemType], self.shipsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, StoredItemType], self.shipsStock)
         if item is ItemCategory.weapon:
-            return cast(_InventoryBase[TListingType, StoredItemType], self.weaponsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, StoredItemType], self.weaponsStock)
         if item is ItemCategory.module:
-            return cast(_InventoryBase[TListingType, StoredItemType], self.modulesStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, StoredItemType], self.modulesStock)
         if item is ItemCategory.turret:
-            return cast(_InventoryBase[TListingType, StoredItemType], self.turretsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, StoredItemType], self.turretsStock)
         if item is ItemCategory.tool:
-            return cast(_InventoryBase[TListingType, StoredItemType], self.toolsStock)
+            return cast(_InventoryBase[TSerializedInventory, TListingType, StoredItemType], self.toolsStock)
         else:
             raise ValueError("unrecognised item type: " + item)
 
@@ -484,7 +493,7 @@ class ShopBase(Serializable, Generic[TListingType]):
 #endregion tool management
 #region serializing
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedShopBase:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts, and current stocks.
 
@@ -494,7 +503,8 @@ class ShopBase(Serializable, Generic[TListingType]):
         if not kwargs.get("saveType", False):
             kwargs["saveType"] = True
 
-        data = {}
+        data: SerializedShopBase = {"shipsStock": [], "weaponsStock": [], "modulesStock": [], "turretsStock": [], "toolsStock": []}
+        
         for invType in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
             stockDict = []
             currentStock = self.getStock(invType)
@@ -515,7 +525,7 @@ class ShopBase(Serializable, Generic[TListingType]):
 
     @abstractmethod
     @classmethod
-    def deserialize(cls: Type[TSelf], shopDict: JsonType, **kwargs) -> TSelf:
+    def deserialize(cls: Type[TSelf], shopDict: SerializedShopBase, **kwargs) -> TSelf:
         """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.serialize
         A default implementation is provided here, to load plain old Inventory objects.
         For inventories with a different listing type, you could copy paste this with your new listing type.
@@ -548,7 +558,13 @@ class ShopBase(Serializable, Generic[TListingType]):
 #endregion
 
 
-class TechLeveledShop(ShopBase[InventoryListing]):
+class SerializedTechLeveledShop(SerializedShopBase):
+    minLevel: int
+    maxLevel: int
+    currentTechLevel: int
+
+
+class TechLeveledShop(ShopBase[SerializedInventory, InventoryListing]):
     """A shop containing a random selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
     Shops are assigned a random tech level, which influences ths stock generated.
@@ -561,8 +577,8 @@ class TechLeveledShop(ShopBase[InventoryListing]):
     :vartype maxLevel: int
     """
 
-    def __init__(self, minLevel: int, maxLevel: int, shipsStock: Optional[Inventory[Ship]] = None, weaponsStock: Optional[Inventory[PrimaryWeapon]] = None,
-                    modulesStock: Optional[Inventory[moduleItem.ModuleItem]] = None, turretsStock: Optional[Inventory[TurretWeapon]] = None, toolsStock: Optional[Inventory[toolItem.ToolItem]] = None,
+    def __init__(self, minLevel: int, maxLevel: int, shipsStock: Optional[Inventory[Ship, SerializedShipUnion]] = None, weaponsStock: Optional[Inventory[PrimaryWeapon, SerializedWeaponUnion]] = None,
+                    modulesStock: Optional[Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None, turretsStock: Optional[Inventory[TurretWeapon, SerializedWeaponUnion]] = None, toolsStock: Optional[Inventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None,
                     currentTechLevel: Optional[int] = None, noRefresh: bool = False):
         """
         :param int currentTechLevel: The current tech level of the shop, influencing the tech levels of the stock generated
@@ -703,14 +719,15 @@ class TechLeveledShop(ShopBase[InventoryListing]):
                 self.shipsStock.addItem(newShip)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedTechLeveledShop:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts, current tech level, and current stocks.
 
         :return: A dictionary containing all information needed to reconstruct this shop object
         :rtype: dict
         """
-        data = super().serialize(**kwargs)
+        # Casting here so I can add the new fields
+        data = cast(SerializedTechLeveledShop, super().serialize(**kwargs))
         data["minLevel"] = self.minLevel
         data["maxLevel"] = self.maxLevel
         data["currentTechLevel"] = self.currentTechLevel
@@ -718,7 +735,7 @@ class TechLeveledShop(ShopBase[InventoryListing]):
 
 
     @classmethod
-    def deserialize(cls, shopDict: dict, **kwargs) -> TechLeveledShop:
+    def deserialize(cls, shopDict: SerializedTechLeveledShop, **kwargs) -> TechLeveledShop:
         """Recreate a TechLeveledShop instance from its dictionary-serialized representation - the opposite of TechLeveledShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing_extensions import NotRequired
 from . import reactionMenu
 from ..cfg import cfg
 from .. import botState, lib
@@ -8,6 +9,7 @@ from ..scheduling import timedTask
 from typing import Dict, Optional, Union, cast
 from ..users import basedUser
 from ..logging import LogCategory
+from ..baseClasses.serializable import SerializesToSchema
 
 
 checkMarkIcon = \
@@ -119,8 +121,13 @@ async def printAndExpirePollResults(msgID: int):
             await reaction.remove(menuMsg.guild.me)
 
 
+class SerializedReactionPollMenu(reactionMenu.SerializedReactionMenu):
+    multipleChoice: bool
+    owningBBUser: NotRequired[int]
+
+
 @reactionMenu.saveableMenu
-class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuOption]):
+class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuOption, reactionMenu.SerializedReactionMenuOption], SerializesToSchema[SerializedReactionPollMenu]):
     """A saveable reaction menu taking a vote from its participants on a selection of option strings.
     On menu expiry, the menu's TimedTask should call printAndExpirePollResults. This edits to menu embed to provide a summary
     and bar chart of the votes submitted to the poll. The poll options have no functionality, all vote counting takes place
@@ -211,13 +218,14 @@ class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuO
         return baseEmbed
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionPollMenu:
         """Serialize this menu to dictionary format for saving.
 
         :return: A dictionary containing all information needed to recreate this menu
         :rtype: dict
         """
-        baseDict = super(ReactionPollMenu, self).serialize(**kwargs)
+        # Casting here to add the new fields
+        baseDict = cast(SerializedReactionPollMenu, super().serialize(**kwargs))
         baseDict["multipleChoice"] = self.multipleChoice
         if self.owningBBUser is not None:
             baseDict["owningBBUser"] = self.owningBBUser.id
@@ -225,7 +233,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuO
 
 
     @classmethod
-    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionPollMenu:
+    def deserialize(cls, rmDict: SerializedReactionPollMenu, **kwargs) -> ReactionPollMenu:
         """Reconstruct a ReactionPollMenu object from its dictionary-serialized representation -
         the opposite of ReactionPollMenu.serialize
 
@@ -240,7 +248,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuO
         options = {}
         for emojiName in rmDict["options"]:
             emoji = lib.emojis.BasedEmoji.fromStr(emojiName)
-            options[emoji] = reactionMenu.DummyReactionMenuOption(rmDict["options"][emojiName], emoji)
+            options[emoji] = reactionMenu.DummyReactionMenuOption(rmDict["options"][emojiName]["name"], emoji)
 
         timeoutTT = None
         if "timeout" in rmDict:

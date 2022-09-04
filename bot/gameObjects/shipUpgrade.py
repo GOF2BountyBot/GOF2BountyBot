@@ -1,17 +1,49 @@
 # Typing imports
 from __future__ import annotations
+from typing import Union, cast
+from typing_extensions import NotRequired
 
 from ..cfg import bbData
 from .items import shipItem
-from ..baseClasses.serializable import Serializable
+from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
 from .. import lib
-from .gameObject import LoadedObject
+from .gameObject import LoadedObject, SerializedLoadedObject
+
+class BuiltInSerializedShipUpgrade(SerializedLoadedObject):
+    name: str
+
+class TypedBuiltInSerializedShipUpgrade(BuiltInSerializedShipUpgrade):
+    type: str
+
+class CustomSerializedShipUpgrade(BuiltInSerializedShipUpgrade):
+    vendor: NotRequired[str]
+    shipToUpgradeValueMult: float
+    armour: NotRequired[int]
+    cargo: NotRequired[int]
+    handling: NotRequired[int]
+    maxSecondaries: NotRequired[int]
+    maxPrimaries: NotRequired[int]
+    maxTurrets: NotRequired[int]
+    maxModules: NotRequired[int]
+    armourMultiplier: NotRequired[float]
+    cargoMultiplier: NotRequired[float]
+    handlingMultiplier: NotRequired[float]
+    maxSecondariesMultiplier: NotRequired[float]
+    maxPrimariesMultiplier: NotRequired[float]
+    maxTurretsMultiplier: NotRequired[float]
+    maxModulesMultiplier: NotRequired[float]
+
+class TypedCustomSerializedShipUpgrade(CustomSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade): pass
+
+BuiltInSerializedShipUpgradeUnion = Union[BuiltInSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade]
+CustomSerializedShipUpgradeUnion = Union[CustomSerializedShipUpgrade, TypedCustomSerializedShipUpgrade]
+SerializedShipUpgradeUnion = Union[BuiltInSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade, CustomSerializedShipUpgrade, TypedCustomSerializedShipUpgrade]
 
 
 'https://stackoverflow.com/a/53519136'
 @simpleHash
-class ShipUpgrade(LoadedObject):
+class ShipUpgrade(LoadedObject, SerializesToSchema[SerializedShipUpgradeUnion]):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.
@@ -152,7 +184,7 @@ class ShipUpgrade(LoadedObject):
         return int(ship.value * self.shipToUpgradeValueMult)
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedShipUpgradeUnion:
         """Serialize this shipUpgrade into a dictionary for saving to file
         Contains all information needed to reconstruct this upgrade. If the upgrade is builtIn,
         this includes only the upgrade name.
@@ -161,9 +193,11 @@ class ShipUpgrade(LoadedObject):
         :rtype: dict
         """
 
-        itemDict = {"name": self.name, "builtIn": self.builtIn}
+        itemDict: SerializedShipUpgradeUnion = {"name": self.name, "builtIn": self.builtIn}
 
         if not self.builtIn:
+            # Casting here because we know the upgrade is not builtIn
+            itemDict = cast(CustomSerializedShipUpgradeUnion, itemDict)
             if self.hasVendor:
                 itemDict["vendor"] = self.vendor
 
@@ -173,11 +207,11 @@ class ShipUpgrade(LoadedObject):
                 additiveStats = {   "armour": self.armour, "cargo": self.cargo, "handling": self.handling,
                                     "maxSecondaries": self.maxSecondaries, "maxPrimaries": self.maxPrimaries,
                                     "maxTurrets": self.maxTurrets, "maxModules": self.maxModules}
-                multiplierStats = { "armour": self.armourMultiplier, "cargo": self.cargoMultiplier,
-                                    "handling": self.handlingMultiplier,
-                                    "maxSecondaries": self.maxSecondariesMultiplier,
-                                    "maxPrimaries": self.maxPrimariesMultiplier,
-                                    "maxTurrets": self.maxTurretsMultiplier, "maxModules": self.maxModulesMultiplier}
+                multiplierStats = { "armourMultiplier": self.armourMultiplier, "cargoMultiplier": self.cargoMultiplier,
+                                    "handlingMultiplier": self.handlingMultiplier,
+                                    "maxSecondariesMultiplier": self.maxSecondariesMultiplier,
+                                    "maxPrimariesMultiplier": self.maxPrimariesMultiplier,
+                                    "maxTurretsMultiplier": self.maxTurretsMultiplier, "maxModulesMultiplier": self.maxModulesMultiplier}
 
                 for statName in additiveStats:
                     if additiveStats[statName] != 0:
@@ -215,7 +249,7 @@ class ShipUpgrade(LoadedObject):
 
 
     @classmethod
-    def deserialize(cls, upgradeDict: dict, **kwargs) -> ShipUpgrade:
+    def deserialize(cls, upgradeDict: SerializedShipUpgradeUnion, **kwargs) -> ShipUpgrade:
         """Factory function reconstructing a shipUpgrade object from its dictionary-serialized representation.
         The opposite of shipUpgrade.serialize
         If the upgrade is builtIn, return a reference to the pre-constructed upgrade object.

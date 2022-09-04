@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Type, TypeVar, Union, cast, TypedDict
 
-from ...baseClasses import aliasable
+from ...baseClasses import aliasable, serializable
 from abc import abstractmethod
 from ... import lib
 from..gameObject import LoadedObject, SerializedLoadedObject
@@ -36,7 +36,7 @@ subClassNames: Dict[str, Type["GameItem"]] = {}
 nameSubClasses: Dict[Type["GameItem"], str] = {}
 
 
-class GameItem(aliasable.AliasableMixin, LoadedObject):
+class GameItem(aliasable.AliasableMixin, LoadedObject, serializable.SerializesToSchema[SerializedGameItemUnion]):
     """A game item, with a value, a manufacturer, a wiki page, an icon, an emoji, and a tech level.
 
     :var wiki: A web page to represent as the item's wikipedia article in its info page

@@ -3,19 +3,20 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedBoosterModule(moduleItem.SerializedModuleItem):
+class SerializedBoosterModule(moduleItem.CustomSerializedModuleItem):
     effect: float
     duration: float
 
-class TypedSerializedBoosterModule(SerializedBoosterModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedBoosterModule(SerializedBoosterModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedBoosterModuleUnion = Union[SerializedBoosterModule, TypedSerializedBoosterModule]
 SerializedBoosterModuleUnion = Union[SerializedBoosterModule, TypedSerializedBoosterModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class BoosterModule(moduleItem.ModuleItem):
+class BoosterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedBoosterModuleUnion]):
     """"A module providing a ship with the ability to boost its speed for a short period of time.
 
     :var effect: Multiplier to apply to the ship's velocity

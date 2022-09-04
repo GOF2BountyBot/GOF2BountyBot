@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedEmergencySystemModule(moduleItem.SerializedModuleItem):
+class SerializedEmergencySystemModule(moduleItem.CustomSerializedModuleItem):
     duration: float
 
-class TypedSerializedEmergencySystemModule(SerializedEmergencySystemModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedEmergencySystemModule(SerializedEmergencySystemModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedEmergencySystemModuleUnion = Union[SerializedEmergencySystemModule, TypedSerializedEmergencySystemModule]
 SerializedEmergencySystemModuleUnion = Union[SerializedEmergencySystemModule, TypedSerializedEmergencySystemModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class EmergencySystemModule(moduleItem.ModuleItem):
+class EmergencySystemModule(moduleItem.ModuleItem, SerializesToSchema[SerializedEmergencySystemModuleUnion]):
     """"A module providing a ship with a short period of invincibility just before dying
 
     :var duration: The number of seconds the effect is active for

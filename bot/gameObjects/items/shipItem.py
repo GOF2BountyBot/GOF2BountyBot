@@ -1,28 +1,85 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Optional, Union, TYPE_CHECKING, cast, TypedDict
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING, cast
+from typing_extensions import NotRequired
 if TYPE_CHECKING:
     from .modules import moduleItem
 
 from discord import Embed
 
-from .gameItem import GameItem, spawnableItem
+from .gameItem import GameItem, spawnableItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem
 from . import moduleItemFactory
+from .modules.moduleItem import SerializedModuleItemUnion
 from .weapons.primaryWeapon import PrimaryWeapon
 from .weapons.turretWeapon import TurretWeapon
+from .weapons.weapon import SerializedWeaponUnion
 from .. import shipSkin, shipUpgrade
 from ...cfg import cfg, bbData
 from ...cfg.bbData import ItemCategory
-from ...lib.emojis import BasedEmoji
-from ...baseClasses.serializable import JsonType
+from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
+from ...baseClasses.serializable import SerializesToSchema
 
 
-class SerializedShip(TypedDict):
-    weapons: List[]
+class BuiltInSerializedShip(BuiltInSerializedGameItem):
+    weapons: NotRequired[List[SerializedWeaponUnion]]
+    modules: NotRequired[List[SerializedModuleItemUnion]]
+    turrets: NotRequired[List[SerializedWeaponUnion]]
+    shipUpgrades: NotRequired[List[shipUpgrade.SerializedShipUpgradeUnion]]
+    nickname: NotRequired[str]
+
+class TypedBuiltInSerializedShip(BuiltInSerializedShip, TypedBuiltInSerializedGameItem): pass
+
+class SkinnedBuiltInSerializedShip(BuiltInSerializedShip):
+    skin: shipSkin.SerializedShipSkinUnion
+    icon: str
+
+class TypedSkinnedBuiltInSerializedShip(SkinnedBuiltInSerializedShip, TypedBuiltInSerializedShip): pass
+
+# Really this should inherit from CustomSerializedGameItem, but that requires techLevel to be present.
+# Ships are a special case because their techLevel is calculated dynamically based on value
+class CustomSerializedShip(BuiltInSerializedShip):
+    armour: int
+    cargo: int
+    maxSecondaries: int
+    handling: int
+    maxPrimaries: int
+    maxTurrets: int
+    maxModules: int
+    manufacturer: str
+    skinnable: bool
+    compatibleSkins: NotRequired[List[str]]
+    model: str
+    normSpec: str
+    saveDue: bool
+    shopSpawnRate: float
+    textureRegions: int
+    value: int
+    wiki: str
+    manufacturer: str
+    icon: str
+    emoji: SerializedBasedEmoji
+    techLevel: int
+    path: str
+
+# Really this should inherit from TypedCustomSerializedGameItem, but that requires techLevel to be present.
+# Ships are a special case because their techLevel is calculated dynamically based on value
+class TypedCustomSerializedShip(CustomSerializedShip):
+    type: str
+
+class SkinnedCustomSerializedShip(CustomSerializedShip):
+    skin: shipSkin.SerializedShipSkinUnion
+    icon: str
+
+class TypedSkinnedCustomSerializedShip(SkinnedCustomSerializedShip, TypedCustomSerializedShip): pass
+
+BuiltInSerializedShipUnion = Union[BuiltInSerializedShip, TypedBuiltInSerializedShip, SkinnedBuiltInSerializedShip, TypedSkinnedBuiltInSerializedShip]
+CustomSerializedShipUnion = Union[CustomSerializedShip, TypedCustomSerializedShip, SkinnedCustomSerializedShip, TypedSkinnedCustomSerializedShip]
+SerializedShipUnion = Union[BuiltInSerializedShipUnion, CustomSerializedShipUnion]
+SkinnedSerializedShipUnion = Union[SkinnedBuiltInSerializedShip, TypedSkinnedBuiltInSerializedShip, SkinnedCustomSerializedShip, TypedSkinnedCustomSerializedShip]
 
 
 @spawnableItem
-class Ship(GameItem):
+class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
     """An equippable and customisable ship for use by players and NPCs.
 
     TODO: All of these 'get total' functions could probably be consolidated into a single function,
@@ -810,7 +867,7 @@ class Ship(GameItem):
         return baseEmbed
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedShipUnion:
         """Serialize this shipItem into dictionary format, for saving to file. Includes all equiped items and upgrades
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -818,7 +875,8 @@ class Ship(GameItem):
                     several statistics are omitted to save space.
         :rtype: dict
         """
-        itemDict = super(Ship, self).serialize(**kwargs)
+        # Casting here so that I can add the new fields
+        itemDict = cast(SerializedShipUnion, super(Ship, self).serialize(**kwargs))
 
         weaponsList = [weapon.serialize(**kwargs) for weapon in self.weapons]
         modulesList = [module.serialize(**kwargs) for module in self.modules]
@@ -831,11 +889,15 @@ class Ship(GameItem):
         itemDict["shipUpgrades"] = upgradesList
         itemDict["nickname"] = self.nickname
         if self.isSkinned:
+            # Casting here because we know the ship is skinned
+            itemDict = cast(SkinnedSerializedShipUnion, itemDict)
             # Casting here because self.skin being None is checked for with the isSkinned check
             itemDict["skin"] = cast(shipSkin.ShipSkin, self.skin).serialize(**kwargs)
             itemDict["icon"] = self.icon
 
         if not self.builtIn:
+            # Casting here because we know the ship is not builtIn
+            itemDict = cast(CustomSerializedShipUnion, itemDict)
             itemDict["armour"] = self.armour
             itemDict["cargo"] = self.cargo
             itemDict["maxSecondaries"] = self.maxSecondaries
@@ -843,6 +905,7 @@ class Ship(GameItem):
             itemDict["maxPrimaries"] = self.maxPrimaries
             itemDict["maxTurrets"] = self.maxTurrets
             itemDict["maxModules"] = self.maxModules
+            itemDict["manufacturer"] = self.manufacturer
 
         return itemDict
 
@@ -857,7 +920,7 @@ class Ship(GameItem):
 
 
     @classmethod
-    def deserialize(cls, shipDict: dict, **kwargs) -> Ship:
+    def deserialize(cls, shipDict: SerializedShipUnion, **kwargs) -> Ship:
         """Factory function constructing a new shipItem object from the given dictionary representation -
         the opposite of shipItem.serialize
         As with most other item deserialize functions, all missing information for builtIn ships is replaced
@@ -877,24 +940,31 @@ class Ship(GameItem):
                         "numSecondaries", "skin")
 
         if "numSecondaries" in shipDict:
-            shipDict["maxSecondaries"] = shipDict["numSecondaries"]
-            del shipDict["numSecondaries"]
+            # Casting here so that I can reassign the legacy field
+            shipDict = cast(CustomSerializedShipUnion, shipDict)
+            # Ignoring here because I'm accessing the legacy schema so that I can port to the new schema
+            shipDict["maxSecondaries"] = shipDict["numSecondaries"] # type: ignore[CustomSerializedShipUnion]
+            del shipDict["numSecondaries"] # type: ignore[CustomSerializedShipUnion]
 
         if "skin" in shipDict:
+            # Casting here because we know the ship has a skin
+            shipDict = cast(SkinnedSerializedShipUnion, shipDict)
             skin = shipSkin.ShipSkin.deserialize(shipDict["skin"])
         else:
             skin = None
 
         if shipDict["builtIn"]:
-            builtInDict = bbData.builtInShipData[shipDict["name"]]
+            # TODO: casting here because bbData is so far not type hinted fully
+            builtInDict = cast(CustomSerializedShipUnion, bbData.builtInShipData[shipDict["name"]])
 
             # Ignoring here because pyright doesn't know the structure of a serialized ship
-            builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])] # type: ignore[reportGeneralTypeIssues]
-            builtInModules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])] # type: ignore[reportGeneralTypeIssues]
-            builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])] # type: ignore[reportGeneralTypeIssues]
-            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])] # type: ignore[reportGeneralTypeIssues]
+            builtInWeapons = [PrimaryWeapon.deserialize(d) for d in builtInDict.get("weapons", [])]
+            builtInModules = [moduleItemFactory.ModuleItemFactory.deserialize(d) for d in builtInDict.get("modules", [])]
+            builtInTurrets = [TurretWeapon.deserialize(d) for d in builtInDict.get("turrets", [])]
+            builtInShipUpgrades = [shipUpgrade.ShipUpgrade.deserialize(d) for d in builtInDict.get("shipUpgrades", [])]
 
-            shipArgs = builtInDict.copy()
+            # casting here because shipArgs is to be used as function arguments, not as a serialized ship
+            shipArgs = cast(Dict[str, Any], builtInDict.copy())
             shipArgs.update(shipDict)
             for k in ignoredData:
                 if k in shipArgs:
@@ -913,6 +983,8 @@ class Ship(GameItem):
             return newShip
 
         else:
+            # Casting here because we know the ship is not builtIn
+            shipDict = cast(CustomSerializedShipUnion, shipDict)
             return Ship(**cls._makeDefaults(shipDict, ignoredData,
                                             weapons=weapons, modules=modules, turrets=turrets,
                                             upgradesApplied=shipUpgrades, builtIn=False,

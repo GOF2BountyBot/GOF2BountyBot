@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedGammaShieldModule(moduleItem.SerializedModuleItem):
+class SerializedGammaShieldModule(moduleItem.CustomSerializedModuleItem):
     effect: float
 
-class TypedSerializedGammaShieldModule(SerializedGammaShieldModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedGammaShieldModule(SerializedGammaShieldModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedGammaShieldModuleUnion = Union[SerializedGammaShieldModule, TypedSerializedGammaShieldModule]
 SerializedGammaShieldModuleUnion = Union[SerializedGammaShieldModule, TypedSerializedGammaShieldModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class GammaShieldModule(moduleItem.ModuleItem):
+class GammaShieldModule(moduleItem.ModuleItem, SerializesToSchema[SerializedGammaShieldModuleUnion]):
     """"A module providing a ship with protection agains gamma radiation
 
     :var effect: The reduction in gamma radiation received as a multiplier

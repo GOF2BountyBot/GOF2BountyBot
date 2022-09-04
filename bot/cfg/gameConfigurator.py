@@ -3,7 +3,6 @@ from os.path import join
 from pathlib import Path
 import json
 from typing import Dict, Any, List, Optional, Type, cast, Union, TypeVar
-from types import FunctionType
 
 from . import cfg, bbData
 from ..gameObjects import shipUpgrade, shipSkin, gameObject
@@ -14,12 +13,12 @@ from ..gameObjects.items.tools import shipSkinTool, toolItemFactory, crateTool
 from ..gameObjects.userProfile import medal
 from .. import lib
 from ..lib import gameMaths
-from ..baseClasses.serializable import FromJsonFactory, SerializesToJson, JsonType
+from ..baseClasses.serializable import Factory, SerializesToJson, JsonType
 
 CWD = os.getcwd()
 PathType = Union[str, Path]
 TDeserialized = TypeVar("TDeserialized", bound=SerializesToJson)
-TDeserializer = Type[Union[TDeserialized, FromJsonFactory[TDeserialized]]]
+TDeserializer = Type[Union[TDeserialized, Factory[Any, TDeserialized]]]
 
 def _loadGameItemsFromDir(itemDir: PathType, itemFolderExt: str, lowerKey: bool = False) -> Dict[str, dict]:
     """Load metadata for all configured metadata of one game object type into a new dictionary.
@@ -143,7 +142,8 @@ def _loadGameObjects(dataDB: Dict[str, JsonType], objsDB: Dict[str, TGameObject]
     No new dictionaries are created.
     """
     for objKey, objDict in dataDB.items():
-        objsDB[objKey] = deserializer.deserialize(objDict)
+        # Ignoring here becasuse I cannot know the structure of the read json yet
+        objsDB[objKey] = deserializer.deserialize(objDict) # type: ignore[reportGeneralTypeIssues]
         objsDB[objKey].builtIn = True
         dataDB[objKey]["builtIn"] = True
 
@@ -155,7 +155,8 @@ def _loadToolObjects(dataDB: Dict[str, JsonType], objsDB: Dict[str, TTool], dese
     and adding crates to bbData.builtInCrateObjs.
     """
     for objDict in dataDB.values():
-        newTool = deserializer.deserialize(objDict)
+        # Ignoring here becasuse I cannot know the structure of the read json yet
+        newTool = deserializer.deserialize(objDict) # type: ignore[reportGeneralTypeIssues]
         newTool.builtIn = True
         objsDB[newTool.name] = newTool
         dataDB[newTool.name]["builtIn"] = True
@@ -177,12 +178,12 @@ def _populateTLSortedShips():
 
     # Sort ship keys by tech level
     for currentShipKey in bbData.builtInShipData.keys():
-        if bbData.builtInShipData[currentShipKey]["techLevel"] == -1:
-            print("[gameConfig] techLevel -1 found for ShipItem. Excluding this Ship from bbData.shipKeysByTL: " \
+        shipTl = bbData.builtInShipData[currentShipKey].get("techLevel", -1)
+        if shipTl == -1:
+            print("[gameConfig] missing tech level for ship. Excluding this Ship from bbData.shipKeysByTL: " \
                     + currentShipKey)
         else:
-            # Ignoring here because pyright doesn't know the structure of a serialized ship
-            bbData.shipKeysByTL[bbData.builtInShipData[currentShipKey]["techLevel"] - 1].append(currentShipKey) # type: ignore[reportGeneralTypeIssues]
+            bbData.shipKeysByTL[shipTl - 1].append(currentShipKey)
 
 
 def populateTLSortedGameObjects(objsDB: Dict[str, Any]) -> List[List[Any]]:
@@ -345,7 +346,10 @@ def loadAllGameObjects():
 
     bbData.builtInCrateObjs = {crateType: [] for crateType in cfg.crateTypes}
     # Load in tools
-    _loadToolObjects(bbData.builtInToolData, bbData.builtInToolObjs, toolItemFactory.ToolItemFactory)
+    # TODO: Ignoring here because apparently SerializedToolItem is not Json??
+    _loadToolObjects(bbData.builtInToolData, # type: ignore[reportGeneralTypeIssues]
+                    bbData.builtInToolObjs,
+                    toolItemFactory.ToolItemFactory)
 
     bbData.builtInCrateObjs["levelUp"] = _makeLevelUpCrates()
 

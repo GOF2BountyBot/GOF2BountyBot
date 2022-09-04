@@ -1,11 +1,14 @@
 from typing_extensions import NotRequired
-from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem
+from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem
 from .... import lib
-from typing import List, TypedDict, Union
-from ....baseClasses.serializable import JsonType
+from typing import List, Union
+from ....baseClasses.serializable import SerializesToSchema
 
 
-class SerializedModuleItem(CustomSerializedGameItem):
+class BuiltInSerializedModuleItem(BuiltInSerializedGameItem): pass
+class TypedBuiltInSerializedModuleItem(BuiltInSerializedModuleItem, TypedBuiltInSerializedGameItem): pass
+
+class CustomSerializedModuleItem(CustomSerializedGameItem):
     armour: NotRequired[int]
     shield: NotRequired[int]
     dps: NotRequired[float]
@@ -17,15 +20,17 @@ class SerializedModuleItem(CustomSerializedGameItem):
     cargoMultiplier: NotRequired[int]
     handlingMultiplier: NotRequired[int]
 
-class TypedSerializedModuleItem(SerializedModuleItem, TypedCustomSerializedGameItem): pass
+class TypedCustomSerializedModuleItem(CustomSerializedModuleItem, TypedCustomSerializedGameItem): pass
 
-CustomSerializedModuleItemUnion = Union[SerializedModuleItem, TypedSerializedModuleItem]
+CustomSerializedModuleItemUnion = Union[CustomSerializedModuleItem, TypedCustomSerializedModuleItem]
+BuiltInSerializedModuleItemUnion = Union[BuiltInSerializedModuleItem, TypedBuiltInSerializedModuleItem]
+TypedSerializedModuleItemUnion = Union[TypedCustomSerializedModuleItem, TypedBuiltInSerializedModuleItem]
 
-SerializedModuleItemUnion = Union[BuiltInSerializedGameItem, SerializedModuleItem, TypedSerializedModuleItem]
+SerializedModuleItemUnion = Union[CustomSerializedModuleItemUnion, BuiltInSerializedModuleItemUnion]
 
 
 @spawnableItem
-class ModuleItem(GameItem):
+class ModuleItem(GameItem, SerializesToSchema[SerializedModuleItemUnion]):
     """"An equippable item, providing ships with various stat perks and new functionality.
     All, none, or any combination of a moduleItem's attributes may be populated.
 

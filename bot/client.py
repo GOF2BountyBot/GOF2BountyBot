@@ -10,10 +10,12 @@ from discord.ext.commands import Bot as ClientBaseClass
 from discord.ext import tasks
 from discord.utils import MISSING
 from datetime import datetime, timedelta
+import os
+from github import Github
+from github.Repository import Repository
 
 from .interactions import accessLevels, commandChecks
 from .databases import userDB, guildDB, reactionMenuDB
-import os
 from . import lib
 from .cfg import cfg
 from . import logging
@@ -21,9 +23,8 @@ from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
 from .users.basedGuild import BasedGuild
 from .cfg import gameConfigurator
-from github import Github
-from github.Repository import Repository
 from .reactionMenus import reactionMenu
+from .baseClasses.serializable import SerializesToJson
 
 
 class ShutDownState:
@@ -58,7 +59,8 @@ def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath))
+        # Ignoring here because I can't statically validate the structure of a file
+        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
     return userDB.UserDB()
 
 
@@ -69,7 +71,9 @@ def loadGuildsDB(filePath: Union[Path, str], dbReload: bool = False) -> guildDB.
     :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return guildDB.GuildDB.deserialize(lib.jsonHandler.readJSON(filePath))
+        content = lib.jsonHandler.readJSON(filePath)
+        # Ignoring here because I cannot statically validate the structure of a file
+        return guildDB.GuildDB.deserialize(content) # type: ignore[reportGeneralTypeIssues]
     return guildDB.GuildDB()
 
 
@@ -81,7 +85,8 @@ async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.Reac
     :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
     """
     if os.path.isfile(filePath):
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath))
+        # Ignoring here because I can't statically validate the structure of a file
+        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
     return reactionMenuDB.ReactionMenuDB()
 
 
@@ -543,9 +548,10 @@ class BasedClient(ClientBaseClass):
         - the reaction menus database
         - logs
         """
-        lib.jsonHandler.saveObject(cfg.paths.usersDB, self.usersDB)
-        lib.jsonHandler.saveObject(cfg.paths.guildsDB, self.guildsDB)
-        lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, self.reactionMenusDB)
+        # TODO: Casting here because TypedDicts are not JsonType
+        lib.jsonHandler.saveObject(cfg.paths.usersDB, cast(SerializesToJson, self.usersDB))
+        lib.jsonHandler.saveObject(cfg.paths.guildsDB, cast(SerializesToJson, self.guildsDB))
+        lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, cast(SerializesToJson, self.reactionMenusDB))
         self.logger.save()
 
 

@@ -1,7 +1,8 @@
+from typing import cast
 from ..gameItem import spawnableItem
 from ....cfg import bbData
 from .... import lib
-from .weapon import Weapon
+from .weapon import Weapon, SerializedWeaponUnion, CustomSerializedWeaponUnion
 
 
 @spawnableItem
@@ -10,7 +11,7 @@ class PrimaryWeapon(Weapon):
     """
 
     @classmethod
-    def deserialize(cls, weaponDict, **kwargs) -> "PrimaryWeapon":
+    def deserialize(cls, weaponDict: SerializedWeaponUnion, **kwargs) -> "PrimaryWeapon":
         """Factory function constructing a new primaryWeapon object from a dictionary serialised
         representation - the opposite of primaryWeapon.serialize.
 
@@ -21,6 +22,8 @@ class PrimaryWeapon(Weapon):
         if weaponDict.get("builtIn", False):
             return bbData.builtInWeaponObjs[weaponDict["name"]]
         else:
+            # Casting here because we know the weapon is not builtIn
+            weaponDict = cast(CustomSerializedWeaponUnion, weaponDict)
             return PrimaryWeapon(**cls._makeDefaults(weaponDict, ("type",),
                                 emoji=lib.emojis.BasedEmoji.fromStr(weaponDict["emoji"]) \
                                         if "emoji" in weaponDict else lib.emojis.BasedEmoji.EMPTY))

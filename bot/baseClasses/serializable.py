@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Generic, Iterable, Dict, Optional, Protocol, TypeVar, Union
+from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, TypedDict, Union
+from collections.abc import Mapping
+import carica
 from carica import ISerializable, SerializesToType, PrimativeType
 from .defaultable import DefaultableMixin
 from .simpleHash import SimpleHashMixin
@@ -11,24 +13,35 @@ JsonPrimatives = Optional[Union[int, float, str, bool, datetime, Iterable["JsonP
 # Make sure it is a dict at its base.
 JsonType = Dict[str, JsonPrimatives]
 
-
 class Serializable(ISerializable, DefaultableMixin, SimpleHashMixin):
-    """BountyBot DefaultableMixin for shorthanding deserializer implementations in most serializable classes,
+    """BountyBot uses DefaultableMixin for shorthanding deserializer implementations in most serializable classes,
     and SimpleHashMixin for using game objects as dict keys,
     so just include both by default.
     """
     @abstractmethod
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> JsonPrimatives:
         return {}
 
 
-class SerializesToJson(SerializesToType[JsonType], Serializable):
-    """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing to/from dict.
+# TODO: Really SerializedSchema should be bound to JsonType, but this isn't supported:
+# https://github.com/microsoft/pyright/issues/3870
+SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
+TSelf = TypeVar("TSelf", bound="Serializable")
+
+class SerializesToSchema(SerializesToType[JsonType], Serializable, Generic[SerializedSchema]):
+    """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing to/from a Json-compliant TypedDict schema.
     """
-    pass
+    @abstractmethod
+    def serialize(self, **kwargs) -> SerializedSchema: return {}
+
+    @abstractmethod
+    @classmethod
+    def deserialize(cls: Type[TSelf], data: SerializedSchema, **kwargs) -> TSelf: raise NotImplementedError()
+
+SerializesToJson = SerializesToType[JsonType]
 
 
-TDeserialized = TypeVar("TDeserialized", bound=ISerializable, covariant=True)
+TDeserialized = TypeVar("TDeserialized", bound=carica.SerializableType, covariant=True)
 TSerialized = TypeVar("TSerialized", bound=PrimativeType, contravariant=True)
 
 class Factory(Protocol, Generic[TSerialized, TDeserialized]):

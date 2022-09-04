@@ -1,25 +1,25 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Optional, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
+from typing import Optional, Type, TypedDict, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
 from datetime import datetime, timedelta
+from typing_extensions import NotRequired
 from discord import Guild, Member
-from enum import Enum
 
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
 
-from ..baseClasses.serializable import SerializesToJson, JsonType
+from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.basedEnum import BasedEnum
 from ..cfg import cfg, bbData
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
-from ..gameObjects import kaamoShop, lomaShop
+from ..gameObjects import kaamoShop, lomaShop, guildShop
 from ..gameObjects.items import shipItem, moduleItemFactory, gameItem
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
 from ..gameObjects.userProfile.medal import Medal
-from ..gameObjects.inventories import inventory, userInventory
+from ..gameObjects.inventories import inventory, userInventory, inventoryListing
 from ..userAlerts import userAlerts
 from ..users import basedGuild
 from .. import lib, botState
@@ -29,11 +29,14 @@ from ..reactionMenus import reactionMenu
 
 
 # Dictionary-serialized shipItem to give to new players
-defaultShipLoadoutDict = {"name": "Betty", "type": "Ship", "builtIn": True,
-                            "weapons": [{"type": "PrimaryWeapon", "name": "Micro Gun MK I", "builtIn": True}],
-                            "modules": [{"type": "ScannerModule", "name": "Telta Quickscan", "builtIn": True},
-                                        {"type": "ArmourModule", "name": "E2 Exoclad", "builtIn": True},
-                                        {"type": "MiningDrillModule", "name": "IMT Extract 1.3", "builtIn": True}]}
+defaultShipLoadoutDict: shipItem.TypedBuiltInSerializedShip = \
+{
+    "name": "Betty", "type": "Ship", "builtIn": True, "nickname": "", "shipUpgrades": [], "turrets": [],
+    "weapons": [{"type": "PrimaryWeapon", "name": "Micro Gun MK I", "builtIn": True}],
+    "modules": [{"type": "ScannerModule", "name": "Telta Quickscan", "builtIn": True},
+                {"type": "ArmourModule", "name": "E2 Exoclad", "builtIn": True},
+                {"type": "MiningDrillModule", "name": "IMT Extract 1.3", "builtIn": True}],
+}
 
 itemCategoryUserKeys = {
     ItemCategory.ship: "inactiveShips",
@@ -51,10 +54,29 @@ itemCategoryStoredTypes: Dict[ItemCategory, Type[gameItem.GameItem]] = {
     ItemCategory.tool: toolItem.ToolItem
 }
 
+StoredInventoryUnion = Union[
+    inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion],
+    inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion],
+    inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion],
+    inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion],
+    inventory.Inventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion],
+]
+
+SerializedStoredItemUnion = Union[
+    shipItem.SerializedShipUnion,
+    moduleItem.SerializedModuleItemUnion,
+    primaryWeapon.SerializedWeaponUnion,
+    turretWeapon.SerializedWeaponUnion,
+    toolItem.SerializedToolItemUnion
+]
+
 # Default attributes to give to new players
-defaultUserDict: JsonType = {"credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsWon": 0, "systemsChecked": 0, "bountyWins": 0,
-                    "activeShip": defaultShipLoadoutDict, "bountyHuntingXP": gameMaths.bountyHuntingXPForLevel(1),
-                    itemCategoryUserKeys[ItemCategory.weapon]: [{"item": {"type": "PrimaryWeapon", "name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]}
+defaultUserDict: "SerializedBasedUser" = \
+{
+    "credits": 0, "bountyCooldownEnd": 0, "lifetimeBountyCreditsWon": 0, "systemsChecked": 0, "bountyWins": 0,
+    "activeShip": defaultShipLoadoutDict, "bountyHuntingXP": gameMaths.bountyHuntingXPForLevel(1),
+    "inactiveWeapons": [{"item": {"type": "PrimaryWeapon", "name": "Nirai Impulse EX 1", "builtIn": True}, "count": 1}]
+}
 
 # Reference value manually added, not pre-calculated from defaultUserDict. This is not used in the game's code,
 # but provides a reference for game design.
@@ -66,7 +88,36 @@ class OwnedMenuType(BasedEnum):
     poll = "poll"
 
 
-class BasedUser(SerializesToJson):
+class SerializedBasedUser(TypedDict):
+    credits: NotRequired[int]
+    lifetimeBountyCreditsWon: NotRequired[int]
+    bountyCooldownEnd: NotRequired[float]
+    systemsChecked: NotRequired[int]
+    bountyWins: NotRequired[int]
+    activeShip: shipItem.SerializedShipUnion
+    duelWins: NotRequired[int]
+    duelLosses: NotRequired[int]
+    duelCreditsWins: NotRequired[int]
+    bountyHuntingXP: NotRequired[Optional[int]]
+    duelCreditsLosses: NotRequired[int]
+    homeGuildID: NotRequired[int]
+    guildTransferCooldownEnd: NotRequired[float]
+    prestiges: NotRequired[int]
+    alerts: NotRequired[Dict[str, bool]]
+    kaamo: NotRequired[guildShop.SerializedShopBase]
+    loma: NotRequired[lomaShop.SerializedLomaShop]
+    ownedMenus: NotRequired[Dict[str, List[int]]]
+    medals: NotRequired[List[str]]
+    classicModeEnabled: NotRequired[bool]
+    bountyHuntingXpSurplus: NotRequired[int]
+    inactiveShips: NotRequired[List[inventoryListing.SerializedInventoryListing[shipItem.SerializedShipUnion]]]
+    inactiveWeapons: NotRequired[List[inventoryListing.SerializedInventoryListing[primaryWeapon.SerializedWeaponUnion]]]
+    inactiveModules: NotRequired[List[inventoryListing.SerializedInventoryListing[moduleItem.SerializedModuleItemUnion]]]
+    inactiveTurrets: NotRequired[List[inventoryListing.SerializedInventoryListing[turretWeapon.SerializedWeaponUnion]]]
+    inactiveTools: NotRequired[List[inventoryListing.SerializedInventoryListing[toolItem.SerializedToolItem]]]
+
+
+class BasedUser(SerializesToSchema[SerializedBasedUser]):
     """A user of the bot. There is currently no guarantee that user still shares any guilds with the bot,
     though this is planned to change in the future.
 
@@ -135,11 +186,11 @@ class BasedUser(SerializesToJson):
     def __init__(self, userID: int, activeShip: shipItem.Ship, credits: int = 0, lifetimeBountyCreditsWon: int = 0,
                     bountyHuntingXP: int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd: float = -1.0,
                     systemsChecked: int = 0, bountyWins: int = 0,
-                    inactiveShips: Optional[inventory.Inventory[shipItem.Ship]] = None,
-                    inactiveModules: Optional[inventory.Inventory[moduleItem.ModuleItem]] = None,
-                    inactiveWeapons: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon]] = None,
-                    inactiveTurrets: Optional[inventory.Inventory[turretWeapon.TurretWeapon]] = None,
-                    inactiveTools: Optional[userInventory.UserToolInventory[toolItem.ToolItem]] = None,
+                    inactiveShips: Optional[inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+                    inactiveModules: Optional[inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
+                    inactiveWeapons: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
+                    inactiveTurrets: Optional[inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
+                    inactiveTools: Optional[userInventory.UserToolInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None,
                     duelWins: int = 0, duelLosses: int = 0, duelCreditsWins: int = 0,
                     duelCreditsLosses: int = 0, alerts: Dict[Union[Type[userAlerts.UABase], str], Union[userAlerts.UABase, bool]] = {},
                     homeGuildID: int = -1, guildTransferCooldownEnd: Optional[datetime] = None, prestiges: int = 0,
@@ -491,24 +542,25 @@ class BasedUser(SerializesToJson):
         self.inactiveShips.removeItem(self.activeShip)
 
 
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedBasedUser:
         """Serialize this BasedUser to a dictionary representation for saving to file.
 
         :return: A dictionary containing all information needed to recreate this user
         :rtype: dict
         """
-        data = {"credits": self.credits, "lifetimeBountyCreditsWon": self.lifetimeBountyCreditsWon,
+        data: SerializedBasedUser = {"credits": self.credits, "lifetimeBountyCreditsWon": self.lifetimeBountyCreditsWon,
                 "bountyCooldownEnd": self.bountyCooldownEnd, "systemsChecked": self.systemsChecked,
                 "bountyWins": self.bountyWins, "activeShip": self.activeShip.serialize(**kwargs),
                 "duelWins": self.duelWins, "duelLosses": self.duelLosses,
                 "duelCreditsWins": self.duelCreditsWins, "bountyHuntingXP": self.bountyHuntingXP,
                 "duelCreditsLosses": self.duelCreditsLosses, "homeGuildID": self.homeGuildID,
-                "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges}
+                "guildTransferCooldownEnd": self.guildTransferCooldownEnd.timestamp(), "prestiges": self.prestiges,
+                "alerts": {}, "inactiveShips": [], "inactiveWeapons": [], "inactiveModules": [], "inactiveTools": [], "inactiveTurrets": []}
 
-        data[itemCategoryUserKeys[ItemCategory.ship]] = self.inactiveShips.serialize(**kwargs)["items"]
-        data[itemCategoryUserKeys[ItemCategory.module]] = self.inactiveModules.serialize(**kwargs)["items"]
-        data[itemCategoryUserKeys[ItemCategory.weapon]] = self.inactiveWeapons.serialize(**kwargs)["items"]
-        data[itemCategoryUserKeys[ItemCategory.turret]] = self.inactiveTurrets.serialize(**kwargs)["items"]
+        data["inactiveShips"] = self.inactiveShips.serialize(**kwargs)["items"]
+        data["inactiveModules"] = self.inactiveModules.serialize(**kwargs)["items"]
+        data["inactiveWeapons"] = self.inactiveWeapons.serialize(**kwargs)["items"]
+        data["inactiveTurrets"] = self.inactiveTurrets.serialize(**kwargs)["items"]
 
         if "saveType" not in kwargs:
             data[itemCategoryUserKeys[ItemCategory.tool]] = self.inactiveTools.serialize(saveType=True, **kwargs)["items"]
@@ -810,19 +862,19 @@ class BasedUser(SerializesToJson):
         self.guildTransferCooldownEnd = now + cfg.timeouts.homeGuildTransferCooldown
 
 
-    def getInventoryForItem(self, item: TItem) -> inventory.Inventory[TItem]:
+    def getInventoryForItem(self, item: TItem) -> inventory.Inventory[TItem, SerializedStoredItemUnion]:
         # Lots of casting going on here - I look for an inventory that stores the given type and returns it.
         # The inventory is guaranteed to be of the right type - just check the revealed type of the returned inventory!
         if isinstance(item, shipItem.Ship):
-            return cast(inventory.Inventory[TItem], self.inactiveShips)
+            return cast(inventory.Inventory[TItem, shipItem.SerializedShipUnion], self.inactiveShips)
         elif isinstance(item, primaryWeapon.PrimaryWeapon):
-            return cast(inventory.Inventory[TItem], self.inactiveWeapons)
+            return cast(inventory.Inventory[TItem, primaryWeapon.SerializedWeaponUnion], self.inactiveWeapons)
         elif isinstance(item, turretWeapon.TurretWeapon):
-            return cast(inventory.Inventory[TItem], self.inactiveTurrets)
+            return cast(inventory.Inventory[TItem, turretWeapon.SerializedWeaponUnion], self.inactiveTurrets)
         elif isinstance(item, toolItem.ToolItem):
-            return cast(inventory.Inventory[TItem], self.inactiveTools)
+            return cast(inventory.Inventory[TItem, toolItem.SerializedToolItemUnion], self.inactiveTools)
         elif isinstance(item, moduleItem.ModuleItem):
-            return cast(inventory.Inventory[TItem], self.inactiveModules)
+            return cast(inventory.Inventory[TItem, moduleItem.SerializedModuleItemUnion], self.inactiveModules)
         raise ValueError(f"No inventory is stored for item type {type(item).__name__}")
 
 
@@ -921,7 +973,7 @@ class BasedUser(SerializesToJson):
 
 
     @classmethod
-    def deserialize(cls, userDict: JsonType, **kwargs) -> BasedUser:
+    def deserialize(cls, userDict: SerializedBasedUser, **kwargs) -> BasedUser:
         """Construct a new BasedUser object from the given ID and the information in the
         given dictionary - The opposite of BasedUser.serialize
 
@@ -936,7 +988,7 @@ class BasedUser(SerializesToJson):
         userID = kwargs["id"]
 
         # Casting here because pyright doesn't know the structure of a serialized baseduser
-        activeShip = shipItem.Ship.deserialize(cast(dict, userDict["activeShip"]))
+        activeShip = shipItem.Ship.deserialize(userDict["activeShip"])
 
         inactiveShips = inventory.Inventory(shipItem.Ship)
         inactiveWeapons = inventory.Inventory(primaryWeapon.PrimaryWeapon)
@@ -968,21 +1020,18 @@ class BasedUser(SerializesToJson):
             else:
                 bountyHuntingXP = int(lifetimeBountyCreditsWon * cfg.bountyRewardToXPGainMult)
 
-        # Casting here because pyright doesn't know the structure of a serialized baseduser
-        kaamo = kaamoShop.KaamoShop.deserialize(cast(dict, userDict["kaamo"])) if "kaamo" in userDict else None
-        # Casting here because pyright doesn't know the structure of a serialized baseduser
-        loma = lomaShop.LomaShop.deserialize(cast(dict, userDict["loma"])) if "loma" in userDict else None
+        kaamo = kaamoShop.KaamoShop.deserialize(userDict["kaamo"]) if "kaamo" in userDict else None
+        loma = lomaShop.LomaShop.deserialize(userDict["loma"]) if "loma" in userDict else None
 
         # Casting here because pyright doesn't know the structure of a serialized baseduser
-        serializedOwnedMenus = cast(Dict[str, List[int]], userDict["ownedMenus"])
+        serializedOwnedMenus = userDict.get("ownedMenus", {})
         ownedMenus = {}
-        if "ownedMenus" in userDict:
-            for _menuType in serializedOwnedMenus:
-                if OwnedMenuType.hasValue(_menuType):
-                    menuType = OwnedMenuType(_menuType)
-                    ownedMenus[menuType] = [menuID for menuID in serializedOwnedMenus[_menuType]]
-                else:
-                    print(f"WARN: Skipping unrecognised owned menu type ID '{_menuType}' for user {userID}")
+        for _menuType in serializedOwnedMenus:
+            if OwnedMenuType.hasValue(_menuType):
+                menuType = OwnedMenuType(_menuType)
+                ownedMenus[menuType] = [menuID for menuID in serializedOwnedMenus[_menuType]]
+            else:
+                print(f"WARN: Skipping unrecognised owned menu type ID '{_menuType}' for user {userID}")
         
         medals = set()
         if "medals" in userDict and userDict["medals"]:

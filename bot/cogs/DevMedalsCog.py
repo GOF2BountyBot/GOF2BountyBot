@@ -102,7 +102,10 @@ class DevMedalsCog(basedApp.BasedCog):
         if not os.path.isdir(dirPath):
             os.makedirs(dirPath)
         filePath = os.path.join(dirPath, "META.json")
-        lib.jsonHandler.writeJSON(filePath, newMedal.serialize(), prettyPrint=True)
+        lib.jsonHandler.writeJSON(filePath,
+                                    # TODO: SerializedMedal is incompatible with JsonType?
+                                    newMedal.serialize(), # type: ignore[reportGeneralTypeIssues]
+                                    prettyPrint=True)
 
         await interaction.response.send_message(f"{cfg.defaultEmojis.submit.sendable} medal added successfuly: {name}", ephemeral=True)
 

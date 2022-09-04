@@ -4,14 +4,15 @@ from discord import Colour
 from datetime import timedelta
 from enum import Enum
 
-from ..baseClasses.serializable import JsonType
 from ..baseClasses.basedEnum import _BasedEnumMeta
 if TYPE_CHECKING:
     from ..gameObjects.bounties import solarSystem
     from ..gameObjects.items.tools import toolItem
     from ..gameObjects import shipSkin
     from ..gameObjects.bounties import criminal
+    from ..gameObjects.items import shipItem
     from ..gameObjects.items.modules import moduleItem
+    from ..gameObjects.items.weapons import weapon
     from ..gameObjects.items.weapons import primaryWeapon
     from ..gameObjects.items.weapons import turretWeapon
     from ..gameObjects.userProfile import medal
@@ -105,7 +106,7 @@ factionColours = {  "terran": Colour.gold(),
 # which are stored in builtInShipObjs in a similar dict format.
 # Ships to not have tech levels in GOF2, so tech levels will be automaticaly generated
 # for the sake of the bot during bot.on_ready.
-builtInShipData: Dict[str, JsonType] = {}
+builtInShipData: Dict[str, "shipItem.CustomSerializedShipUnion"] = {}
 
 def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
     """Look up ship data in builtInShipData by name or alias
@@ -135,49 +136,51 @@ def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
 # Data representing all module items in the game. These are used to create bbModule objects,
 # which are stored in builtInModuleObjs in a similar dict format.
 # Keys are ordered by name.
-builtInModuleData: Dict[str, JsonType] = {}
+builtInModuleData: Dict[str, "moduleItem.CustomSerializedModuleItemUnion"] = {}
 
 # Data representing all primary weapon items in the game. These are used to create bbWeapon objects,
 # which are stored in builtInWeaponObjs in a similar dict format.
 # Keys are ordered by name.
-builtInWeaponData: Dict[str, JsonType] = {}
+builtInWeaponData: Dict[str, "weapon.CustomSerializedWeaponUnion"] = {}
 
 # Data representing all ship upgrades in the game. These are used to create bbShipUpgrade objects,
 # which are stored in builtInUpgradeObjs in a similar dict format.
 # Keys are ordered by name.
-builtInUpgradeData: Dict[str, JsonType] = {}
+builtInUpgradeData: Dict[str, "shipUpgrade.CustomSerializedShipUpgradeUnion"] = {}
 
 # data for builtIn criminals to be used in Criminal.deserialize
 # criminals marked as not builtIn to allow for dictionary init.
 # The criminal object is then marked as builtIn during bot.on_ready
 # Keys are ordered by name.
-builtInCriminalData: Dict[str, JsonType] = {}
+builtInCriminalData: Dict[str, "criminal.CustomSerializedCriminalUnion"] = {}
 
 # data for builtIn systems to be used in SolarSystem.deserialize
 # Keys are ordered by name.
-builtInSystemData: Dict[str, JsonType] = {}
+builtInSystemData: Dict[str, "solarSystem.CustomSerializedSolarSystemUnion"] = {}
 
 # data for builtIn Turrets to be used in bbTurret.deserialize
 # Keys are ordered by name.
-builtInTurretData: Dict[str, JsonType] = {}
+builtInTurretData: Dict[str, "weapon.CustomSerializedWeaponUnion"] = {}
 
 # data for builtIn commodities to be used in bbCommodity.deserialize (unimplemented)
+# Typing a Never because this is not yet implemented
 # Keys are ordered by name.
-builtInCommodityData: Dict[str, JsonType] = {}
+builtInCommodityData: Dict[str, Never] = {}
 
-builtInToolData: Dict[str, JsonType] = {}
+builtInToolData: Dict[str, "toolItem.SerializedToolItemUnion"] = {}
 
 # data for builtIn secondaries to be used in bbSecondary.deserialize (unimplemented)
+# Typing a Never because this is not yet implemented
 # Keys are ordered by name.
-builtInSecondariesData: Dict[str, JsonType] = {}
+builtInSecondariesData: Dict[str, Never] = {}
 
 # data for builtIn ShipSkins to be used in ShipSkin.deserialize
 # Keys are ordered by name.
-builtInShipSkinsData: Dict[str, JsonType] = {}
+builtInShipSkinsData: Dict[str, "shipSkin.CustomSerializedShipSkin"] = {}
 
 # data for Medals to be used in Medal.deserialize. builtIn is not applicable to Medals, as custom Medals cannot be created
 # Keys are ordered by name.
-medalsData: Dict[str, JsonType] = {}
+medalsData: Dict[str, "medal.SerializedMedal"] = {}
 
 
 # To be populated during bot.on_ready

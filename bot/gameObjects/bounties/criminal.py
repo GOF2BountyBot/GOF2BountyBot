@@ -1,13 +1,33 @@
 # Typing imports
 from __future__ import annotations
-from typing import List
+from typing import List, Union
 
 from ...cfg import bbData
 from ...baseClasses import aliasable
-from ..gameObject import LoadedObject
+from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...baseClasses.serializable import SerializesToSchema
+
+class BuiltInSerializedCriminal(aliasable.SerializedAliasable, SerializedLoadedObject): pass
+
+class TypedBuiltInSerializedCriminal(BuiltInSerializedCriminal):
+    type: str
+
+class CustomSerializedCriminal(BuiltInSerializedCriminal):
+    isPlayer: bool
+    name: str
+    icon: str
+    faction: str
+    aliases: List[str]
+    wiki: str
+
+class TypedCustomSerializedCriminal(CustomSerializedCriminal, TypedBuiltInSerializedCriminal): pass
+
+BuiltInSerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal]
+CustomSerializedCriminalUnion = Union[CustomSerializedCriminal, TypedCustomSerializedCriminal]
+SerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal, CustomSerializedCriminal, TypedCustomSerializedCriminal]
 
 
-class Criminal(aliasable.AliasableMixin, LoadedObject):
+class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[SerializedCriminalUnion]):
     """A criminal to be wanted in bounties.
 
     :var name: The name of the criminal
@@ -54,7 +74,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject):
         self.builtIn = builtIn
 
 
-    def serialize(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedCriminalUnion:
         """Serialize this criminal into dictionary format, for saving to file.
 
         :return: A dictionary containing all data necessary to replicate this object
@@ -68,7 +88,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject):
 
 
     @classmethod
-    def deserialize(cls, crimDict: dict, **kwargs) -> Criminal:
+    def deserialize(cls, crimDict: SerializedCriminalUnion, **kwargs) -> Criminal:
         """Factory function that will either provide a reference to a builtIn criminal if a builtIn criminal is requested,
         or construct a new criminal object from the provided data.
 

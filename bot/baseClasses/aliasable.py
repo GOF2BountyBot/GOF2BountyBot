@@ -4,15 +4,14 @@ from typing import Any, Dict, List, TypedDict
 from abc import abstractmethod
 from typing_extensions import NotRequired
 
-from .serializable import Serializable
-
+from .serializable import SerializesToSchema
 
 class SerializedAliasable(TypedDict):
     name: str
     aliases: NotRequired[List[str]]
 
 
-class AliasableMixin(Serializable):
+class AliasableMixin(SerializesToSchema[SerializedAliasable]):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
     A great example and common use case is in BountyBot's Criminal class. Criminals are NPCs that each have a unique name.
     These names usually consist of a forename and sirname, for example 'Ganfor Kant'. Providing 'Ganfor' and 'Kant' as aliases
@@ -23,6 +22,7 @@ class AliasableMixin(Serializable):
     :var aliases: A list of alternative identifiers for the object
     :vartype aliases: list[str]
     """
+
     def __init__(self, name: str, aliases: List[str] = [], *args, forceAllowEmpty: bool = False, **kwargs):
         """
         :param str name: The main identifier for the object

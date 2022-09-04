@@ -1,28 +1,35 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, TypedDict, cast
 if TYPE_CHECKING:
     from ..users import basedUser
 
-from .items import moduleItemFactory, shipItem, gameItem
-from .items.weapons import primaryWeapon, turretWeapon
+from .items import moduleItemFactory, shipItem
+from .items.weapons import primaryWeapon, turretWeapon, weapon
 from .items.modules import moduleItem
 from .inventories import inventory, inventoryListing
 from .items.tools import toolItem, toolItemFactory
 from . import guildShop, itemDiscount
-from ..gameObjects.inventories.inventoryListing import DiscountableItemListing
+from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
 
+class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop.SerializedShopBase...
+    shipsStock: List[inventoryListing.SerializedDiscountableItemListing[shipItem.SerializedShipUnion]]
+    weaponsStock: List[inventoryListing.SerializedDiscountableItemListing[weapon.SerializedWeaponUnion]]
+    modulesStock: List[inventoryListing.SerializedDiscountableItemListing[moduleItem.SerializedModuleItemUnion]]
+    turretsStock: List[inventoryListing.SerializedDiscountableItemListing[weapon.SerializedWeaponUnion]]
+    toolsStock: List[inventoryListing.SerializedDiscountableItemListing[toolItem.SerializedToolItemUnion]]
+    
 
-class LomaShop(guildShop.ShopBase[DiscountableItemListing]):
+class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscountableItemListing], DiscountableItemListing]):
     """A private shop unique to each player, for purchasing special items intended only for that player.
     Items cannot be sold to Loma.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship]] = None,
-                    weaponsStock: Optional[inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon]] = None,
-                    modulesStock: Optional[inventory.DiscountableInventory[moduleItem.ModuleItem]] = None,
-                    turretsStock: Optional[inventory.DiscountableInventory[turretWeapon.TurretWeapon]] = None,
-                    toolsStock: Optional[inventory.DiscountableInventory[toolItem.ToolItem]] = None):
+    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+                    weaponsStock: Optional[inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
+                    modulesStock: Optional[inventory.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
+                    turretsStock: Optional[inventory.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
+                    toolsStock: Optional[inventory.DiscountableInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None):
         """
         :param shipsStock: The shop's current stock of ships (Default empty inventory.DiscountableInventory)
         :type shipsStock: inventory.DiscountableInventory
@@ -114,7 +121,7 @@ class LomaShop(guildShop.ShopBase[DiscountableItemListing]):
 
 
     @classmethod
-    def deserialize(cls, shopDict: dict, **kwargs) -> LomaShop:
+    def deserialize(cls, shopDict: SerializedLomaShop, **kwargs) -> LomaShop:
         """Recreate a LomaShop instance from its dictionary-serialized representation - the opposite of LomaShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop
@@ -134,8 +141,9 @@ class LomaShop(guildShop.ShopBase[DiscountableItemListing]):
                                         ("toolsStock", toolsStock, toolItemFactory.ToolItemFactory)):
             if key in shopDict:
                 for listingDict in shopDict[key]:
-                    newItem = deserializer.deserialize(listingDict["item"], **kwargs)
                     # I can't find a way to show pyright that the types from the for loop params tuple match
+                    newItem = deserializer.deserialize(listingDict["item"], # type: ignore[reportGeneralTypeIssues]
+                                                        **kwargs)
                     stock.addItem(newItem, quantity=listingDict["count"]) # type: ignore[reportGeneralTypeIssues]
                     if "discounts" in listingDict:
                         for discountDict in listingDict["discounts"]:
@@ -144,3 +152,8 @@ class LomaShop(guildShop.ShopBase[DiscountableItemListing]):
 
         return LomaShop(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                         turretsStock=turretsStock, toolsStock=toolsStock)
+
+
+    # Just adding this in so that the type checker knows the structure of the serialized inventoryListings                        
+    def serialize(self, **kwargs) -> SerializedLomaShop:
+        return cast(SerializedLomaShop, super().serialize(**kwargs))

@@ -1,10 +1,17 @@
-from ...baseClasses.serializable import SerializesToJson, JsonType
+from typing import TypedDict
+from typing_extensions import NotRequired
+from ...baseClasses.serializable import SerializesToSchema
 from ...cfg import bbData
 from ... import lib
-import os
 from os.path import join
 
-class XPBarFill(SerializesToJson):
+class SerializedXPBarFill(TypedDict):
+    name: str
+    designer: str
+    wiki: NotRequired[str]
+
+
+class XPBarFill(SerializesToSchema[SerializedXPBarFill]):
     def __init__(self, name: str, path: str, designer: str, wiki: str = ""):
         self.name = name
         self.path = path
@@ -14,10 +21,13 @@ class XPBarFill(SerializesToJson):
 
     
     def _updateItemMETA(self, **kwargs):
-        lib.jsonHandler.writeJSON(join(self.path, "META.json"), self.serialize(**kwargs), prettyPrint=True)
+        lib.jsonHandler.writeJSON(join(self.path, "META.json"),
+                                    # TODO: SerializedXPBarFill is incompatible with JsonType
+                                    self.serialize(**kwargs), # type: ignore[reportGeneralTypeIssues]
+                                    prettyPrint=True)
 
     
-    def serialize(self, **kwargs) -> JsonType:
+    def serialize(self, **kwargs) -> SerializedXPBarFill:
         data = {"name": self.name, "designer": self.designer}
         if self.hasWiki:
             data["wiki"] = self.wiki
@@ -26,7 +36,7 @@ class XPBarFill(SerializesToJson):
 
 
     @classmethod
-    def deserialize(cls, data: dict, **kwargs):
+    def deserialize(cls, data: SerializedXPBarFill, **kwargs):
         if data["name"] in bbData.builtInXPBars:
             return bbData.builtInXPBars[data["name"]]
         return XPBarFill(**cls._makeDefaults(data))

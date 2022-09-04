@@ -1,16 +1,17 @@
 from . import toolItem
 from typing import TYPE_CHECKING, Optional
-if TYPE_CHECKING:
-    from ....users import basedUser
-from .... import lib, botState
-from discord import Guild, Message, User, MessageType, File, TextChannel, Embed, Colour
+from discord import Guild, Message, MessageType, File, TextChannel, Embed, Colour
 from typing import List, cast
-from .. import gameItem
 from random import randint
 from PIL import Image
 from io import BytesIO
-from ....cfg import cfg
 import asyncio
+
+if TYPE_CHECKING:
+    from ....users import basedUser
+from .... import lib, botState
+from .. import gameItem
+from ....cfg import cfg
 
 SNOWBALL_ICON = "https://cdn.discordapp.com/attachments/700683544103747594/924100261046259742/Snowball_PNG_Clipart.png"
 
@@ -124,20 +125,8 @@ class ThrowSnowballTool(toolItem.ToolItem):
         return f"*{self.value} credits*"
 
 
-    def serialize(self, **kwargs) -> dict:
-        """Serialize this tool into dictionary format.
-        This step of implementation adds a 'type' string indicating the name of this tool's subclass.
-        :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem serialize implementation, with an added 'type' field
-        :rtype: dict
-        """
-        data = super().serialize(**kwargs)
-        data["autoUse"] = self.autoUse
-        return data
-
-
     @classmethod
-    def deserialize(cls, data: dict, **kwargs) -> "ThrowSnowballTool":
+    def deserialize(cls, data: toolItem.SerializedToolItemUnion, **kwargs) -> "ThrowSnowballTool":
         """Deserialize a CreditsTool from dictionary format.
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool

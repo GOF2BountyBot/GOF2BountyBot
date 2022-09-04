@@ -12,7 +12,9 @@ class USER_PLACEHOLDER:
 
 
 TItemType = TypeVar("TItemType", bound=toolItem.ToolItem)
-class UserToolInventory(Inventory[TItemType]):
+TSerializedItemType = TypeVar("TSerializedItemType", bound=toolItem.SerializedToolItemUnion)
+
+class UserToolInventory(Inventory[TItemType, TSerializedItemType], Generic[TItemType, TSerializedItemType]):
     """A tool inventory for use by users.
     This inventory type will automatically schedule a tool's use coroutine upon being added to the inventory,
     but only if added through `addItem`, and only if the tool has `autoUse` set.

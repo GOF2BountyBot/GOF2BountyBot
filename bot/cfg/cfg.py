@@ -1,7 +1,10 @@
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
-from typing import Dict, List, Tuple, cast
+from typing import Dict, List, Tuple, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..gameObjects.items import shipItem
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -433,10 +436,12 @@ criminalEquipDamagelessWeaponChance = 20
 # The maximum number of levels a criminal's gear may be above their difficulty rating
 criminalMaxGearUpgrade = 1
 
-level0CrimLoadout = {"name": "Betty", "builtIn":True,
-                    "weapons":[{"name": "Nirai Impulse EX 1", "builtIn": True}],
-                    "modules":[{"name": "Telta Quickscan", "builtIn": True}, {"name": "ZMI Optistore", "builtIn": True},
-                                {"name": "IMT Extract 2.7", "builtIn": True}]}
+level0CrimLoadout: "shipItem.SerializedShipUnion" = {
+    "name": "Betty", "builtIn": True,
+    "weapons":[{"name": "Nirai Impulse EX 1", "builtIn": True}],
+    "modules":[{"name": "Telta Quickscan", "builtIn": True}, {"name": "ZMI Optistore", "builtIn": True},
+                {"name": "IMT Extract 2.7", "builtIn": True}]
+}
 
 # The multiplier applied each timeouts.guildActivityDecay to each guild's player activity for each division
 guildActivityDecayRate = 2/3

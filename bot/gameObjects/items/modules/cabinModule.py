@@ -3,18 +3,19 @@ from ....cfg import bbData
 from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
 
-class SerializedCabinModule(moduleItem.SerializedModuleItem):
+class SerializedCabinModule(moduleItem.CustomSerializedModuleItem):
     cabinSize: int
 
-class TypedSerializedCabinModule(SerializedCabinModule, moduleItem.TypedSerializedModuleItem): ...
+class TypedSerializedCabinModule(SerializedCabinModule, moduleItem.TypedCustomSerializedModuleItem): ...
 
 CustomSerializedCabinModuleUnion = Union[SerializedCabinModule, TypedSerializedCabinModule]
 SerializedCabinModuleUnion = Union[SerializedCabinModule, TypedSerializedCabinModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class CabinModule(moduleItem.ModuleItem):
+class CabinModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCabinModuleUnion]):
     """"A module providing a ship with the ability to carry passengers.
 
     :var cabinSize: The number of passengers that can fit in this cabin

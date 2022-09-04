@@ -1,35 +1,38 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union, cast
-if TYPE_CHECKING:
-    from ....users import basedUser
+from typing import Union, cast
 import random
 from typing import Dict, Generic, List, Optional, Type, TypeVar
+from discord import Message
+
 from . import toolItem
 from .... import lib, botState
 from ....lib import gameMaths
-from discord import Message
 from ....cfg import cfg, bbData
 from .. import gameItem
 from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
 from ....baseClasses.hasRarity import HasRarityMixin
+from ....baseClasses.serializable import SerializesToSchema
 
 
 class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
     crateType: str
     typeNum: int
 
+TSerializedItem = TypeVar("TSerializedItem", bound=gameItem.TypedSerializedGameItemUnion)
 
-class CustomSerializedCrateTool(toolItem.SerializedToolItem, BuiltInSerializedCrateTool):
-    itemPool: List[gameItem.TypedSerializedGameItemUnion]
+class CustomSerializedCrateTool(toolItem.SerializedToolItem, BuiltInSerializedCrateTool, Generic[TSerializedItem]):
+    itemPool: List[TSerializedItem]
 
-class TypedSerializedCrateTool(CustomSerializedCrateTool, toolItem.TypedSerializedToolItem): pass
+class TypedSerializedCrateTool(CustomSerializedCrateTool[TSerializedItem], toolItem.TypedSerializedToolItem, Generic[TSerializedItem]): pass
 
-SerializedCrateToolUnion = Union[CustomSerializedCrateTool, TypedSerializedCrateTool, BuiltInSerializedCrateTool]
+SerializedCrateToolUnion = Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
+
+TCrateType = TypeVar("TCrateType", bound=Type["CrateTool"]) 
 
 def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     """Registers this CrateTool type as restricted to a single item type in its itemPool.
@@ -37,7 +40,7 @@ def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     When a vanilla CrateTool is *deserialized*, if it only contains items of type itemType, your type-restricted CrateTool
     type will be deserialized instead.
     """
-    def dec_register(cls: Type["CrateTool"]):
+    def dec_register(cls : TCrateType) -> TCrateType:
         if itemType in singleTypeCrates:
             raise KeyError("A singleTypeCrate is already registered with this type")
         singleTypeCrates[itemType] = cls
@@ -46,8 +49,9 @@ def singleTypeCrate(itemType: Type[gameItem.GameItem]):
 
 
 TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
+
 @gameItem.spawnableItem
-class CrateTool(toolItem.ToolItem, Generic[TItemType]):
+class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], SerializesToSchema[Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]]):
     """A tool containing a pool of GameItems which, when used, gives the user a single random item from the pool.
     Also automatically removes itself from the user's inventory upon use.
 
@@ -260,7 +264,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
                 + "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
-    def serialize(self, **kwargs) -> SerializedCrateToolUnion:
+    def serialize(self, **kwargs) -> Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]:
         """Serialize this crate into dictionary format.
 
         :return: A dictionary fully describing this crate instance
@@ -271,19 +275,19 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
             del data["aliases"]
         if self.builtIn:
             # Casting here because I know that the crate is builtIn
-            data = cast(SerializedCrateToolUnion, data)
+            data = cast(BuiltInSerializedCrateTool, data)
             data["crateType"] = self.crateType
             data["typeNum"] = self.typeNum
         else:
             # Casting here because I know that the crate is not builtIn, so it will have all fields
-            data = cast(CustomSerializedCrateTool, data)
+            data = cast(CustomSerializedCrateTool[TSerializedItem], data)
             if "saveType" not in kwargs:
                 kwargs["saveType"] = True
 
             data["itemPool"] = []
             for item in self.itemPool:
-                # Casting because the saveType kwarg above **should** guarantee the type field
-                data["itemPool"].append(cast(gameItem.TypedSerializedGameItemUnion, item.serialize(**kwargs)))
+                # Casting with the assumption that TSerializedItem is the serialized for of TSerialized
+                data["itemPool"].append(cast(TSerializedItem, item.serialize(**kwargs)))
         return data
 
 
@@ -365,7 +369,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType]):
 
 @gameItem.spawnableItem
 @singleTypeCrate(shipSkinTool.ShipSkinTool)
-class ShipSkinCrateTool(CrateTool[shipSkinTool.ShipSkinTool]):
+class ShipSkinCrateTool(CrateTool[shipSkinTool.ShipSkinTool, Union[shipSkinTool.TypedBuiltInSerializedShipSkinTool, shipSkinTool.TypedCustomInSerializedShipSkinTool]]):
     """A crate that only contains ShipSkinTools.
     Has a custom statsStringLong.
     """
@@ -429,4 +433,3 @@ class ShipSkinCrateTool(CrateTool[shipSkinTool.ShipSkinTool]):
         else:
             return "Use to open the crate and receive one of the following ship skins:\n\n" \
                 + "*" + " • ".join(i.skin.name for i in self.itemPool) + "*"
-
