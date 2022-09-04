@@ -146,6 +146,7 @@ class BasedClient(ClientBaseClass):
         self.add_listener(self.on_interaction)
         
         self._skinStorageChannel: Optional[TextChannel] = None
+        self._skinRendersChannel: Optional[TextChannel] = None
         self._bountyRouteImagesChannel: Optional[TextChannel] = None
         self._mediaServersLoaded = False
 
@@ -461,6 +462,20 @@ class BasedClient(ClientBaseClass):
 
 
     @property
+    def showmeRendersChannel(self):
+        """A discord text channel for storing custom skin renders.
+        Only available after on_ready.
+
+        :raises lib.exceptions.NotReady: Channel not loaded yet
+        :return: A discord text channel for storing custom skin renders.
+        :rtype: TextChannel
+        """
+        if not self._dbsLoaded:
+            raise lib.exceptions.NotReady("Not yet loaded. BasedClient.showmeRendersChannel is only available after on_ready.")
+        return cast(TextChannel, self._skinRendersChannel)
+
+
+    @property
     def bountyRouteImagesChannel(self):
         """A discord text channel for storing bounty route images.
         Only available after on_ready.
@@ -618,6 +633,13 @@ class BasedClient(ClientBaseClass):
             if not isinstance(skinsChannel, TextChannel):
                 raise ValueError(f"Channel is not a TextChannel for cfg.skinRendersChannel: {cfg.skinRendersChannel}")
             self._skinStorageChannel = skinsChannel
+
+            rendersChannel = mediaServer.get_channel(cfg.showmeSkinRendersChannel)
+            if rendersChannel is None:
+                raise ValueError(f"Unknown channel ID for cfg.showmeSkinRendersChannel: {cfg.showmeSkinRendersChannel}")
+            if not isinstance(rendersChannel, TextChannel):
+                raise ValueError(f"Channel is not a TextChannel for cfg.showmeSkinRendersChannel: {cfg.showmeSkinRendersChannel}")
+            self._skinRendersChannel = rendersChannel
 
             routesChannel = mediaServer.get_channel(cfg.bbcRouteImageChannel)
             if routesChannel is None:

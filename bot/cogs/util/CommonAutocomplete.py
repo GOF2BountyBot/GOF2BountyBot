@@ -159,8 +159,38 @@ def shipAutoComplete(paramName: str = "ship"):
     return decorator
 
 #endregion item-ship
-#region item-module
+#region item-ship-skin
 
+ITEM_CHOICES_SHIP_SKIN: Iterable[app_commands.Choice[str]] = sorted(set(
+    [
+        app_commands.Choice(name=skinName, value=skinName)
+        for skinName in bbData.builtInShipSkins
+    ]),
+    key=lambda c: c.name)
+
+async def _shipSkinAutoComplete(interaction: Interaction, current: str):
+    choices = []
+    for d in ITEM_CHOICES_SHIP_SKIN:
+        if current in d.name:
+            choices.append(d)
+            if len(choices) == 25:
+                break
+    return choices
+
+
+def shipSkinAutoComplete(paramName: str = "skin"):
+    """A decorator to add autocomplete for a single-value ship skin parameter, by name.
+
+    :param paramName: The name of the ship skin name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_shipSkinAutoComplete)
+        return func
+    return decorator
+
+#endregion item-ship-skin
+#region item-module
 
 def moduleAutoComplete(paramName: str = "name"):
     """A decorator to add autocomplete for a single-value criminal parameter, by name.
@@ -174,4 +204,3 @@ def moduleAutoComplete(paramName: str = "name"):
     return decorator
 
 #endregion item-module
-#

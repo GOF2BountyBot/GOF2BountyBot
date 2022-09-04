@@ -1,14 +1,15 @@
 from typing import List, cast
 
-from discord import app_commands, Interaction
+from discord import HTTPException, app_commands, Interaction, Colour
 from discord.abc import Snowflake
-from discord.app_commands import Range
 
-from .. import client
-from ..cfg import cfg
+from .. import client, lib
+from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
+from .util.CommonAutocomplete import shipAutoComplete, shipSkinAutoComplete
+from ..shipRenderer import shipRenderer
 
 PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
 
@@ -18,68 +19,249 @@ class DevSkinsCog(BasedCog):
         super().__init__(*args, **kwargs)
 
 
+    @shipAutoComplete()
+    @shipSkinAutoComplete()
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
     @app_commands.command(name="add-skin",
                             description="Make the specified ship compatible with the specified skin")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_addSkin(self, interaction: Interaction, balance: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_addSkin(self, interaction: Interaction, ship: str, skin: str):
         """Make the specified ship compatible with the specified skin.
         """
-        # verify a item was given
-        if args == "":
-            if isDM:
-                prefix = cfg.defaultCommandPrefix
-            else:
-                prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
-            await message.reply(mention_author=False, content=":x: Please provide a ship! Example: `" + prefix + "ship Groza Mk II`")
-            return
+        shipData = bbData.builtInShipData[ship]
 
-        if "+" in args:
-            if len(args.split("+")) > 2:
-                await message.reply(mention_author=False, content=":x: Please only provide one skin, with one `+`!")
-                return
-            args, skin = args.split("+")
+        if skin in shipData.get("compatibleSkins", []):
+            await interaction.response.send_message(f":x: That skin is already compatible with the **{shipData['name']}**!", ephemeral=True)
+
         else:
-            skin = ""
+            await interaction.response.defer(thinking=True, ephemeral=True)
+            await bbData.builtInShipSkins[skin].addShip(shipData['name'], self.bot.skinStorageChannel)
+            await interaction.followup.send("Done!", ephemeral=True)
 
-        # look up the ship object
-        itemName = args.rstrip(" ").title()
-        itemObj = None
-        for ship in bbData.builtInShipData.values():
-            shipObj = shipItem.Ship.deserialize(ship)
-            if shipObj.isCalled(itemName):
-                itemObj = shipObj
 
-        # report unrecognised ship names
-        if itemObj is None:
-            if len(itemName) < 20:
-                await message.reply(mention_author=False, content=":x: **" + itemName + "** is not in my database! :detective:")
-            else:
-                await message.reply(mention_author=False, content=":x: **" + itemName[0:15] + "**... is not in my database! :detective:")
+    @shipAutoComplete()
+    @shipSkinAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="del-skin",
+                            description="Remove the specified ship's compatibility with the specified skin")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_delSkin(self, interaction: Interaction, ship: str, skin: str):
+        """Remove the specified ship's compatibility with the specified skin.
+        """
+        shipData = bbData.builtInShipData[ship]
+
+        if skin not in shipData.get("compatibleSkins", []):
+            await interaction.response.send_message(f":x: That skin is already incompatible with the **{shipData['name']}**!", ephemeral=True)
+
+        else:
+            await interaction.response.defer(thinking=True, ephemeral=True)
+            await bbData.builtInShipSkins[skin].removeShip(shipData['name'], self.bot.skinStorageChannel)
+            await interaction.followup.send("Done!", ephemeral=True)
+
+
+    @shipSkinAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="apply-skin",
+                            description="Apply the specified ship skin to the equipped ship")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_applySkin(self, interaction: Interaction, skin: str):
+        """Remove the specified ship's compatibility with the specified skin.
+        """
+        activeShip = self.bot.usersDB.getOrAddID(interaction.user.id).activeShip
+        if activeShip.isSkinned:
+            await interaction.response.send_message(":x: Your ship already has a skin applied!", ephemeral=True)
             return
 
-        if skin != "":
-            skin = skin.lstrip(" ").lower()
-            if skin not in bbData.builtInShipSkins:
-                if len(skin) < 20:
-                    await message.reply(mention_author=False, content=":x: The **" + skin + "** skin is not in my database! :detective:")
+        shipData = bbData.builtInShipData[activeShip.name]
+
+        if not shipData["skinnable"]:
+            await interaction.response.send_message(":x: Your ship is not skinnable!", ephemeral=True)
+            return
+
+        if skin not in shipData.get("compatibleSkins", []):
+            await interaction.response.send_message(f":x: That skin is incompatible with your active ship! ({activeShip.name})", ephemeral=True)
+
+        else:
+            activeShip.applySkin(bbData.builtInShipSkins[skin])
+            await interaction.response.send_message("Done!", ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="unapply-skin",
+                            description="Remove the applied skin from the active ship")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_unapplySkin(self, interaction: Interaction):
+        """Remove the applied skin from the active ship.
+        """
+        activeShip = self.bot.usersDB.getOrAddID(interaction.user.id).activeShip
+        if not activeShip.isSkinned:
+            await interaction.response.send_message(":x: Your ship has no skin applied!", ephemeral=True)
+            return
+        elif not activeShip.builtIn:
+            await interaction.response.send_message(":x: Your ship is not built in, so the original icon cannot be recovered.", ephemeral=True)
+        else:
+            activeShip.icon = bbData.builtInShipData[activeShip.name]["icon"]
+            activeShip.skin = None
+            activeShip.isSkinned = False
+            await interaction.response.send_message("Done!", ephemeral=True)
+
+    
+    @shipSkinAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="add-skin-to-all-ships",
+                            description="Make all builtIn ships in the game compatible with the specified skin")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_add_skin_to_all_ships(self, interaction: Interaction, skin: str):
+        """Make all builtIn ships in the game compatible with the specified skin.
+        """
+        await interaction.response.defer(thinking=True, ephemeral=True)
+
+        succeededShips = 0
+        failedShips = 0
+        for shipName, shipData in bbData.builtInShipData.items():
+            if shipData["skinnable"] and skin not in shipData.get("compatibleSkins", []):
+                try:
+                    await bbData.builtInShipSkins[skin].addShip(shipName, self.bot.skinStorageChannel)
+                except shipRenderer.RenderFailed as e:
+                    self.bot.logger.log(DevSkinsCog.__name__, DevSkinsCog.dev_cmd_add_skin_to_all_ships.callback.__name__,
+                                        f"Failed to render ship '{shipName}' with skin '{skin}'", exception=e)
+                    failedShips += 1
                 else:
-                    await message.reply(mention_author=False, content=":x: The **" + skin[0:15] + "**... skin is not in my database! :detective:")
+                    succeededShips += 1
 
-            elif skin in bbData.builtInShipData[itemObj.name]["compatibleSkins"]:
-                await message.reply(mention_author=False, content=":x: That skin is already compatible with the **" + itemObj.name + "**!")
+        await interaction.response.send_message(f"Ship renders complete, with {succeededShips} successful renders and {failedShips} failed renders. See logs for details.")
+
+
+    @shipSkinAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="del-skin-from-all-ships",
+                            description="Make all builtIn ships in the game incompatible with the specified skin")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_del_skin_from_all_ships(self, interaction: Interaction, skin: str):
+        """Make all builtIn ships in the game incompatible with the specified skin.
+        """
+        await interaction.response.defer(thinking=True, ephemeral=True)
+
+        for shipName, shipData in bbData.builtInShipData.items():
+            if shipData["skinnable"] and skin in shipData.get("compatibleSkins", []):
+                await bbData.builtInShipSkins[skin].removeShip(shipName, self.bot.skinStorageChannel)
+
+        await interaction.followup.send("Done!", ephemeral=True)
+
+
+    @shipAutoComplete()
+    @shipSkinAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="show-incompatible-skin",
+                            description="Render any ship with any skin, ignoring compatibility")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_show_incompatible_skin(self, interaction: Interaction, ship: str, skin: str):
+        """Render any ship with any skin, ignoring compatibility
+        """
+        shipData = bbData.builtInShipData[ship]
+
+        if not shipData["skinnable"]:
+            await interaction.response.send_message(":x: That ship is not skinnable!", ephemeral=True)
+            return
+        else:
+            if skin in shipData.get("compatibleSkins", []):
+                itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
+                                                        img=bbData.builtInShipSkins[skin].shipRenders[shipData["name"]][0],
+                                                        titleTxt=shipData["name"], footerTxt="Custom skin: " + skin.capitalize())
+                await interaction.response.send_message(embed=itemEmbed, ephemeral=True)
 
             else:
-                await lib.discordUtil.startLongProcess(message)
-                await bbData.builtInShipSkins[skin].addShip(itemObj.name, botState.client.skinStorageChannel)
-                await lib.discordUtil.endLongProcess(message)
-                await message.reply(mention_author=False, content="Done!")
+                await interaction.response.defer(thinking=True, ephemeral=True)
+                await bbData.builtInShipSkins[skin].addShip(shipData["name"], self.bot.showmeRendersChannel)
+                itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
+                                                        img=bbData.builtInShipSkins[skin].shipRenders[shipData["name"]][0],
+                                                        titleTxt=shipData["name"], footerTxt="Custom skin: " + skin.capitalize())
+                await interaction.followup.send(embed=itemEmbed, ephemeral=True)
+                await bbData.builtInShipSkins[skin].removeShip(shipData["name"], self.bot.showmeRendersChannel)
 
+
+    @shipAutoComplete()
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="try-all-skins",
+                            description="Render all skins onto the specified ship")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_try_all_skins(self, interaction: Interaction, ship: str):
+        """Render all skins onto the specified ship
+        """
+        shipData = bbData.builtInShipData[ship]
+
+        if not shipData["skinnable"]:
+            await interaction.response.send_message(":x: That ship is not skinnable!", ephemeral=True)
+            return
         else:
-            await message.reply(mention_author=False, content=":x: Please provide a skin, prefaced by a `+`!")
+            compatibleSkins = shipData.get("compatibleSkins", [])
 
-    textCommandsDB.register("addSkin", dev_cmd_addSkin, 3, helpSection="skins", useDoc=True)
+            try:
+                await interaction.user.send("Sending renders for ship " + shipData["name"] + "...")
+            except HTTPException:
+                await interaction.response.send_message(":x: I can't DM you!")
+                return
+            
+            await interaction.response.defer(thinking=True, ephemeral=True)
 
+            for skin in bbData.builtInShipSkins:
+                if skin not in bbData.builtInShipSkins:
+                    await interaction.user.send("Ignoring unrecognised skin: " + skin)
+
+                elif skin in compatibleSkins:
+                    itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
+                                                            img=bbData.builtInShipSkins[skin].shipRenders[shipData["name"]][0],
+                                                            titleTxt=shipData["name"], footerTxt="Custom skin: " + skin.capitalize())
+                    await interaction.user.send(embed=itemEmbed)
+
+                else:
+                    await bbData.builtInShipSkins[skin].addShip(shipData["name"], self.bot.showmeRendersChannel)
+                    itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
+                                                            img=bbData.builtInShipSkins[skin].shipRenders[shipData["name"]][0],
+                                                            titleTxt=shipData["name"], footerTxt="Custom skin: " + skin.capitalize())
+                    await interaction.user.send(embed=itemEmbed)
+                    await bbData.builtInShipSkins[skin].removeShip(shipData["name"], self.bot.showmeRendersChannel)
+
+        await interaction.user.send("All skins sent for ship " + shipData["name"] + ".")
+        await interaction.followup.send("All skins sent.", ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="set-showme-res",
+                            description="Configure the resolution that cmd_showme_ship will render to")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_set_autoskin_resolution(self, interaction: Interaction, width: int, height: int):
+        """Configure the resolution that cmd_showme_ship will render to.
+        """
+        cfg.skinRenderShowmeResolution = [width, height]
+        await interaction.response.send_message(f"✅ Done!", ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="set-showme-samples",
+                            description="Configure the samples that cmd_showme_ship will render to")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_set_autoskin_samples(self, interaction: Interaction, samples: int):
+        """Configure the samples that cmd_showme_ship will render to.
+        """
+        cfg.skinRenderShowmeSamples = samples
+        await interaction.response.send_message(f"✅ Done!", ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")
+    @app_commands.command(name="showme-config",
+                            description="Get the current configuration for rendering with cmd_showme_ship")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_get_autoskin_configuration(self, interaction: Interaction):
+        """Get the current configuration for rendering with cmd_showme_ship
+        """
+        e = lib.discordUtil.makeEmbed(authorName="Ship Renderer Configuration",
+                                        icon=PAINTBRUSH_ICON, desc="For command: `$showme ship`",
+                                        col=Colour.random())
+        e.add_field(name="Samples", value=str(cfg.skinRenderShowmeSamples))
+        e.add_field(name="Resolution", value=f"x: {cfg.skinRenderShowmeResolution[0]}\ny: {cfg.skinRenderShowmeResolution[1]}")
+        await interaction.response.send_message(embed=e, ephemeral=True)
+    
 
 async def setup(bot: client.BasedClient):
     # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,

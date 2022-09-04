@@ -219,6 +219,7 @@ includedCogs = (
     cogPath("DevLomaCog"),
     cogPath("DevMedalsCog"),
     cogPath("DevMiscCog"),
+    cogPath("DevSkinsCog"),
 
     cogPath("AdminChannelsCog"),
     cogPath("AdminMiscCog"),
