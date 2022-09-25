@@ -1,8 +1,7 @@
 from __future__ import annotations
-from abc import abstractmethod
-from asyncio.exceptions import CancelledError, InvalidStateError
-from typing import Any, Awaitable, Callable, Coroutine, Generator, Generic, List, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
-from typing_extensions import ParamSpec, Concatenate
+from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild

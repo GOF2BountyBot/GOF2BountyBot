@@ -1,6 +1,7 @@
 from datetime import timedelta
-from typing import Optional, Set, List
-from typing_extensions import Never
+from typing import Optional, Set, List, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import Never
 from discord import Member, Message, Colour, Role
 from . import reactionMenu, expiryFunctions
 from .. import botState

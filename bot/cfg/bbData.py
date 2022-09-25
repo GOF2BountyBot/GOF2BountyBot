@@ -1,5 +1,6 @@
 from typing import Dict, List, Union, TYPE_CHECKING
-from typing_extensions import Never
+if TYPE_CHECKING:
+    from typing_extensions import Never
 from discord import Colour
 from datetime import timedelta
 from enum import Enum
