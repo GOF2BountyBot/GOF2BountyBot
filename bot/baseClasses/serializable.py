@@ -34,8 +34,8 @@ class SerializesToSchema(SerializesToType[JsonType], Serializable, Generic[Seria
     @abstractmethod
     def serialize(self, **kwargs) -> SerializedSchema: return {}
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def deserialize(cls: Type[TSelf], data: SerializedSchema, **kwargs) -> TSelf: raise NotImplementedError()
 
 SerializesToJson = SerializesToType[JsonType]
