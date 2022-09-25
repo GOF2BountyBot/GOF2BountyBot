@@ -2,10 +2,7 @@ from typing import Awaitable, Callable, cast
 import discord
 
 from . import commandsDB as textCommandsDB
-from ..cfg import cfg, bbData
-from ..gameObjects.items import shipItem
-from .. import lib, botState
-from ..shipRenderer import shipRenderer
+from .. import lib
 import importlib
 cmd_showme_ship = cast(Callable[[discord.Message, str, bool], Awaitable], importlib.import_module("bot.commands.usr_gof2-info").cmd_showme_ship)
 from datetime import datetime

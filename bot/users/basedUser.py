@@ -1,13 +1,17 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Optional, Type, TypedDict, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
+from typing import Callable, Optional, Sequence, Tuple, Type, TypedDict, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
 from datetime import datetime, timedelta
 from typing_extensions import NotRequired
-from discord import Guild, Member
+from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPException, Interaction, Member, Message, MessageReference, PartialMessage, StickerItem, User
+import discord
+from discord.ui import View
+from discord.utils import MISSING
 
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
+    from .. import client
 
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.basedEnum import BasedEnum
@@ -24,6 +28,7 @@ from ..userAlerts import userAlerts
 from ..users import basedGuild
 from .. import lib, botState
 from ..lib import gameMaths
+from ..lib.discordUtil import userNameIn, findBUserDCGuild
 from ..logging import LogCategory
 from ..reactionMenus import reactionMenu
 
@@ -88,6 +93,10 @@ class OwnedMenuType(BasedEnum):
     poll = "poll"
 
 
+def guildHasMemberAndPlayChannel(dcClient: "client.BasedClient", guild: Optional[Guild], otherUserId: int) -> bool:
+    return guild is not None and guild.get_member(otherUserId) is not None and dcClient.guildsDB.idExists(guild.id) and dcClient.guildsDB.getGuild(guild.id).hasPlayChannel()
+
+
 class SerializedBasedUser(TypedDict):
     credits: NotRequired[int]
     lifetimeBountyCreditsWon: NotRequired[int]
@@ -114,7 +123,7 @@ class SerializedBasedUser(TypedDict):
     inactiveWeapons: NotRequired[List[inventoryListing.SerializedInventoryListing[primaryWeapon.SerializedWeaponUnion]]]
     inactiveModules: NotRequired[List[inventoryListing.SerializedInventoryListing[moduleItem.SerializedModuleItemUnion]]]
     inactiveTurrets: NotRequired[List[inventoryListing.SerializedInventoryListing[turretWeapon.SerializedWeaponUnion]]]
-    inactiveTools: NotRequired[List[inventoryListing.SerializedInventoryListing[toolItem.SerializedToolItem]]]
+    inactiveTools: NotRequired[List[inventoryListing.SerializedInventoryListing[toolItem.TypedSerializedToolItem]]]
 
 
 class BasedUser(SerializesToSchema[SerializedBasedUser]):
@@ -299,39 +308,42 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         self.inactiveTools = inactiveTools if inactiveTools is not None else \
                                 userInventory.UserToolInventory(self)
 
-        self.duelRequests = {}
+        # TODO: should probably be user IDs instead
+        self.duelRequests: Dict[BasedUser, duelRequest.DuelRequest] = {}
         self.duelWins = duelWins
         self.duelLosses = duelLosses
 
         self.duelCreditsWins = duelCreditsWins
         self.duelCreditsLosses = duelCreditsLosses
 
-        self.userAlerts = {}
+        self.userAlerts: Dict[Type[userAlerts.UABase], userAlerts.UABase] = {}
         # Convert the given user alerts to types and instances. The given alerts may be IDs instead of types,
         # or booleans instead of instances.
         for alertID in userAlerts.userAlertsIDsTypes:
             alertType = userAlerts.userAlertsIDsTypes[alertID]
+            alertValue = alerts[alertType]
+            
             if alertType in alerts:
-                if isinstance(alerts[alertType], userAlerts.UABase):
-                    self.userAlerts[alertType] = alerts[alertType]
-                elif isinstance(alerts[alertType], bool):
+                if isinstance(alertValue, userAlerts.UABase):
+                    self.userAlerts[alertType] = alertValue
+                elif isinstance(alertValue, bool):
                     # I've just checked that this is a bool!
-                    self.userAlerts[alertType] = alertType(alerts[alertType]) # type: ignore[reportGeneralTypeIssues]
+                    self.userAlerts[alertType] = alertType(alertValue) # type: ignore[reportGeneralTypeIssues]
                 else:
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
-                        + ". Must be either UABase or bool, given " + type(alerts[alertType]).__name__ \
+                        + ". Must be either UABase or bool, given " + type(alertValue).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
                         category=LogCategory.usersDB, eventType="LOAD-UA_STATE_TYPE")
                     self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
             elif alertID in alerts:
-                if isinstance(alerts[alertID], userAlerts.UABase):
-                    self.userAlerts[alertType] = alerts[alertID]
-                elif isinstance(alerts[alertID], bool):
+                if isinstance(alertValue, userAlerts.UABase):
+                    self.userAlerts[alertType] = alertValue
+                elif isinstance(alertValue, bool):
                     # I've just checked that this is a bool!
-                    self.userAlerts[alertType] = alertType(alerts[alertID]) # type: ignore[reportGeneralTypeIssues]
+                    self.userAlerts[alertType] = alertType(alertValue) # type: ignore[reportGeneralTypeIssues]
                 else:
                     botState.client.logger.log("bbUsr", "init", "Given unknown alert state type for UA " + alertID \
-                        + ". Must be either UABase or bool, given " + type(alerts[alertID]).__name__ \
+                        + ". Must be either UABase or bool, given " + type(alertValue).__name__ \
                         + ". Alert reset to default (" + str(alertType(cfg.userAlertsIDsDefaults[alertID])) + ")",
                         category=LogCategory.usersDB, eventType="LOAD-UA_STATE_TYPE")
                     self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
@@ -568,9 +580,9 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
             data[itemCategoryUserKeys[ItemCategory.tool]] = self.inactiveTools.serialize(**kwargs)["items"]
 
         data["alerts"] = {}
-        for alertType in self.userAlerts:
-            if issubclass(alertType, userAlerts.StateUserAlert):
-                data["alerts"][userAlerts.userAlertsTypesIDs[alertType]] = self.userAlerts[alertType].state
+        for alertType, alertValue in self.userAlerts.items():
+            if isinstance(alertValue, userAlerts.StateUserAlert):
+                data["alerts"][userAlerts.userAlertsTypesIDs[alertType]] = alertValue.state
 
         if self.kaamo is not None:
             data["kaamo"] = self.kaamo.serialize(**kwargs)
@@ -732,7 +744,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         self.removeDuelChallengeObj(self.duelRequests[duelTarget])
 
 
-    async def setAlertByType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member,
+    async def setAlertByType(self, alertType: Type[userAlerts.UABase], dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member,
             newState: bool) -> bool:
         """Set the state of one of this users's userAlerts, identifying the alert by its class.
 
@@ -764,7 +776,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         return await self.setAlertByType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember, newState)
 
 
-    async def toggleAlertType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild,
+    async def toggleAlertType(self, alertType: Type[userAlerts.UABase], dcGuild: Guild, bbGuild: basedGuild.BasedGuild,
             dcMember: Member) -> bool:
         """Toggle the state of one of this users's userAlerts, identifying the alert by its class.
 
@@ -792,7 +804,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         return await self.toggleAlertType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember)
 
 
-    def isAlertedForType(self, alertType: type, dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member) -> bool:
+    def isAlertedForType(self, alertType: Type[userAlerts.UABase], dcGuild: Guild, bbGuild: basedGuild.BasedGuild, dcMember: Member) -> bool:
         """Get the state of one of this users's userAlerts, identifying the alert by its class.
 
         :param type alertType: The class of the alert whose state to get. Must be a subclass of userAlerts.UABase
@@ -817,6 +829,22 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         :param discord.Member dcMember: This user's member object in dcGuild (TODO: Just grab dcMember from dcGuild in here)
         """
         return self.isAlertedForType(userAlerts.userAlertsIDsTypes[alertID], dcGuild, bbGuild, dcMember)
+
+
+    def isAlertedForStatefulType(self, alertType: Type[userAlerts.StateUserAlert]) -> bool:
+        """Get the state of one of this users's userAlerts, identifying the alert by its class.
+
+        :param type alertType: The class of the alert whose state to get. Must be a subclass of userAlerts.UABase
+        :param discord.Guild dcGuild: The discord guild in which to get the alert state (currently only relevent for
+                                        role-based alerts)
+        :param bbGuild bbGuild: The bbGuild in which to get the alert state (currently only relevent for role-based alerts,
+                                as the role must be looked up)
+        :param discord.Member dcMember: This user's member object in dcGuild (TODO: Just grab dcMember from dcGuild in here)
+        """
+        alertValue = self.userAlerts[alertType]
+        if not isinstance(alertValue, userAlerts.StateUserAlert):
+            raise TypeError(f"{alertType.__name__} is not a {userAlerts.StateUserAlert.__name__} subclass")
+        return alertValue.state
 
 
     def hasHomeGuild(self) -> bool:
@@ -961,6 +989,203 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         Returns false if the user has classic mode enabled, or has no home guild.
         """
         return not self.classicModeEnabled and self.hasHomeGuild() and self.bountyHuntingXpSurplus != -1
+
+
+    async def individualNotify(self, client: "client.BasedClient",
+            content: Optional[str] = None, *,
+            tts: bool = False,
+            embed: Embed = MISSING,
+            file: File = MISSING,
+            stickers: Sequence[Union[GuildSticker, StickerItem]] = MISSING,
+            delete_after: float = MISSING,
+            nonce: Union[str, int] = MISSING,
+            allowed_mentions: AllowedMentions = MISSING,
+            reference: Union[Message, MessageReference, PartialMessage] = MISSING,
+            mention_author: bool = MISSING,
+            view: View = MISSING,
+            suppress_embeds: bool = False) -> Optional[Message]:
+        """Locate this user in a guild, and send them a notification message.
+        If the user can't be found, attempt to send them a DM.
+
+        :param client: discord client used to locate the user
+        :type client: client.BasedClient
+        :returns: The created message, if this operation was successful. None otherwise
+        """
+        guild = findBUserDCGuild(self, client=client)
+        if guild is None:
+            sender = client.get_user(self.id)
+        else:
+            bGuild = client.guildsDB.getGuild(guild.id) 
+            sender = bGuild.getPlayChannel() if bGuild.hasPlayChannel() else None
+        
+        if sender is None: return None
+
+        try:
+            message = await sender.send(content=content, tts=tts,
+                                        embed=embed,
+                                        file=file,
+                                        stickers=stickers,
+                                        delete_after=delete_after,
+                                        nonce=nonce,
+                                        allowed_mentions=allowed_mentions,
+                                        reference=reference,
+                                        mention_author=mention_author,
+                                        view=view,
+                                        suppress_embeds=suppress_embeds)
+        except HTTPException:
+            return None
+
+        return message
+
+
+    def findSharedGuildWithPlayChannel(self, client: "client.BasedClient", other: Union[BasedUser, User, Member, int]) -> Optional[basedGuild.BasedGuild]:
+        """Find a BasedGuild containing both this user and `other`, that has a playChannel set.
+
+        :param client: The client used to look up users and guilds
+        :type client: client.BasedClient
+        :param other: The other user
+        :type other: Union[BasedUser, User, Member, int]
+        :return: A guild containing both this user and `other` that has a play channel set, if one could be found. None otherwise.
+        :rtype: Optional[basedGuild.BasedGuild]
+        """
+        otherId = other if isinstance(other, int) else other.id
+
+        # Use home guilds first
+        if self.hasHomeGuild() and client.guildsDB.idExists(self.homeGuildID):
+            bGuild = client.guildsDB.getGuild(self.homeGuildID)
+            if bGuild.hasPlayChannel():
+                dcGuild = client.get_guild(self.homeGuildID)
+                if dcGuild is not None and dcGuild.get_member(otherId) is not None:
+                    return bGuild
+
+        if not isinstance(other, BasedUser) and client.usersDB.idExists(otherId):
+            other = client.usersDB.getUser(otherId)
+        if isinstance(other, BasedUser) and other.hasHomeGuild() and client.guildsDB.idExists(self.homeGuildID):
+            bGuild = client.guildsDB.getGuild(other.homeGuildID)
+            if bGuild.hasPlayChannel():
+                dcGuild = client.get_guild(other.homeGuildID)
+                if dcGuild is not None and dcGuild.get_member(self.id) is not None:
+                    return bGuild
+
+        # No home guild match - just use mutual guilds
+        dcUser = client.get_user(self.id)
+        if dcUser is not None and dcUser.mutual_guilds:
+            for guild in dcUser.mutual_guilds:
+                if guildHasMemberAndPlayChannel(client, guild, otherId):
+                    return client.guildsDB.getGuild(guild.id)
+        
+        return None
+
+    
+    async def tryNotifyTwo(self,
+            other: Union[BasedUser, User, Member, int],
+            client: "client.BasedClient",
+            mentionOther: bool = True,
+            requireNotifyMe: bool = False,
+            content: Optional[str] = None, *,
+            tts: bool = False,
+            embed: Embed = MISSING,
+            file: File = MISSING,
+            stickers: Sequence[Union[GuildSticker, StickerItem]] = MISSING,
+            delete_after: float = MISSING,
+            nonce: Union[str, int] = MISSING,
+            allowed_mentions: AllowedMentions = MISSING,
+            reference: Union[Message, MessageReference, PartialMessage] = MISSING,
+            mention_author: bool = MISSING,
+            view: View = MISSING,
+            suppress_embeds: bool = False) -> Tuple[bool, Optional[Message], Optional[Message]]:
+        """Locate this user and `other` in guilds, and send them a notification message.
+        If a user can't be found, attempt to send them a DM.
+        This method exists to avoid sending the same notification message twice, if two users are in the same server.
+        `content` should include `{meMention}` and `{otherMention}` templates.
+
+        :param client: discord client used to locate the user
+        :type client: client.BasedClient
+        :param other: The other user to notify, or their ID
+        :type other: Union[BasedUser, User, Member, int]
+        :returns: This user's created message followed by `other`'s message. Either can be None if their send failed
+        """
+        async def send(sendChannel, sendContent) -> Optional[Message]:
+            try:
+                return await sendChannel.send(content=sendContent, tts=tts,
+                                                embed=embed,
+                                                file=file,
+                                                stickers=stickers,
+                                                delete_after=delete_after,
+                                                nonce=nonce,
+                                                allowed_mentions=allowed_mentions,
+                                                reference=reference,
+                                                mention_author=mention_author,
+                                                view=view,
+                                                suppress_embeds=suppress_embeds)
+            except HTTPException:
+                return None
+        
+        otherId = other if isinstance(other, int) else other.id
+
+        # If the users share a guild that has a playChannel, just send a single message there
+        sharedGuild = self.findSharedGuildWithPlayChannel(client, other)
+        if sharedGuild is not None:
+            sendContent = None if content is None else content.format(meMention=f"<@{self.id}>", otherMention=f"<@{otherId}>" if mentionOther else userNameIn(client, otherId, client.get_guild(otherId)))
+            created = await send(sharedGuild.getPlayChannel(), sendContent)
+            return True, created, None
+
+
+        async def guildSend(guild: Guild, meMention: str, otherMention: str) -> Optional[Message]:
+            if client.guildsDB.idExists(guild.id):
+                bGuild = client.guildsDB.getGuild(guild.id)
+                if bGuild.hasPlayChannel():
+                    sendContent = None if content is None else content.format(meMention=meMention, otherMention=otherMention)
+                    return await send(bGuild.getPlayChannel(), sendContent)
+
+
+        async def mutualGuildOrDmSend(user: User, meMention: Callable[[Optional[Guild]], str], otherMention: Callable[[Optional[Guild]], str]) -> Optional[Message]:
+            # Try sending to any mutual guild
+            for guild in user.mutual_guilds:
+                newMessage = await guildSend(guild, meMention(guild), otherMention(guild))
+                if newMessage is not None: break
+
+            # Otherwise attempt to DM each user
+            sendContent = None if content is None else content.format(meMention=meMention(None), otherMention=otherMention(None))
+            return await send(user, sendContent)
+
+
+        # If each user is in a guild that has a playChannel, send individual messages
+        meMessage: Optional[Message] = None
+        # Try home guilds first
+        if self.hasHomeGuild():
+            guild = client.get_guild(self.homeGuildID)
+            if guild is not None:
+                meMessage = await guildSend(guild, f"<@{self.id}>", userNameIn(client, otherId, guild))
+        if meMessage is None:
+            user = client.get_user(self.id)
+            if user is not None:
+                meMention = lambda g: f"<@{self.id}>"
+                otherMention = lambda g: userNameIn(client, otherId, g)
+                # Otherwise try sending to any mutual guild, or fall back on DM
+                meMessage = await mutualGuildOrDmSend(user, meMention, otherMention)
+
+        if meMessage is None and requireNotifyMe:
+            raise IndexError("Unable to notify this user")
+
+        # If each user is in a guild that has a playChannel, send individual messages
+        otherMessage: Optional[Message] = None
+        if not isinstance(other, BasedUser) and client.usersDB.idExists(otherId):
+            other = client.usersDB.getUser(otherId)
+        # Try home guilds first
+        if isinstance(other, BasedUser) and other.hasHomeGuild():
+            guild = client.get_guild(other.homeGuildID)
+            if guild is not None:
+                otherMessage = await guildSend(guild, userNameIn(client, self.id, guild), f"<@{otherId}>" if mentionOther else userNameIn(client, otherId, guild))
+        if otherMessage is None:
+            user = client.get_user(otherId)
+            if user is not None:
+                meMention = lambda g: userNameIn(client, self.id, g)
+                otherMention = lambda g: f"<@{otherId}>" if mentionOther else userNameIn(client, otherId, guild)
+                # Otherwise try sending to any mutual guild, or fall back on DM
+                meMessage = await mutualGuildOrDmSend(user, meMention, otherMention)
+        
+        return False, meMessage, otherMessage
 
 
     def __str__(self) -> str:

@@ -2,7 +2,7 @@ from discord import app_commands, Interaction
 from discord.utils import MISSING
 from typing import Callable, Dict, Optional, Tuple, Type, TypeVar, Union, Awaitable
 from .accessLevels import AccessLevelType, accessLevelNamed, defaultAccessLevel
-from .commandChecks import requireAccess
+from .commandChecks import create_requireAccess
 from .basedApp import basedApp, BasedAppType
 from . import basedComponent
 from ..cfg import cfg
@@ -118,7 +118,7 @@ def basedCommand(
         setattr(func.callback, "__based_command_meta__", BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
 
         if accessLevel is not MISSING:
-            func.add_check(requireAccess(accessLevel))
+            func.add_check(create_requireAccess(accessLevel))
 
         return func
 

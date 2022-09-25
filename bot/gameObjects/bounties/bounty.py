@@ -249,7 +249,7 @@ class Bounty(SerializesToSchema[SerializedBountyUnion]):
         :return: A symbollic integer representing the result of the check, as defined above
         :rtype: int
         """
-        if system not in self.route:
+        if system not in self.checked:
             return CheckResult.NOT_FOUND
         elif self.systemChecked(system):
             return CheckResult.ALREADY_CHECKED

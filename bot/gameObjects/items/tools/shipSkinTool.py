@@ -1,18 +1,20 @@
 from __future__ import annotations
 from typing import Optional, Union, cast
-from discord import Message
+from discord import Interaction
 
 from . import toolItem
 from .... import lib
 from ....lib import gameMaths
+from ....lib.discordUtil import interactionSend
+from ....client import onboardInteractionBasedUser
 from ....cfg import cfg, bbData
 from ...shipSkin import ShipSkin, SerializedShipSkinUnion
-from ..shipItem import Ship
 from .... import botState
 from ..gameItem import spawnableItem
-from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
+from ....views.confirmView import ConfirmView
+from ....users.basedUser import BasedUser
 
 
 class BuiltInSerializedShipSkinTool(toolItem.SerializedToolItem): pass
@@ -64,93 +66,66 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[Seriali
         self.skin = skin
 
 
-    async def use(self, *args, **kwargs):
+    @toolItem.singleUse
+    async def use(self, *, callingBUser: BasedUser, **_) -> bool:
         """Apply the skin to the given ship.
         After use, the tool will be removed from callingBUser's inventory. To disable this, pass callingBUser as None.
         """
-        if "ship" not in kwargs:
-            raise NameError("Required kwarg not given: ship")
-        if not isinstance(kwargs["ship"], Ship):
-            raise TypeError("Required kwarg is of the wrong type. Expected bbShip, received " \
-                            + type(kwargs["ship"]).__name__)
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-        if kwargs["callingBUser"] is not None and type(kwargs["callingBUser"]).__name__ != "BasedUser":
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
+        if not isinstance(callingBUser, BasedUser):
+            raise TypeError("Required kwarg calingBUser is of the wrong type. Expected BasedUser, received " \
+                            + type(callingBUser).__name__)
 
-        ship, callingBUser = kwargs["ship"], kwargs["callingBUser"]
-
-        if not callingBUser.ownsShip(ship):
-            raise RuntimeError("User '" + str(callingBUser.id) \
-                                + "' attempted to skin a ship that does not belong to them: " \
-                                + ship.getNameAndNick())
+        ship = callingBUser.activeShip
 
         if ship.isSkinned:
-            return ValueError("Attempted to apply a skin to an already-skinned ship")
+            raise ValueError("Attempted to apply a skin to an already-skinned ship")
         if not self.skin.compatibleWithShip(ship):
-            return TypeError("The given skin is not compatible with this ship")
+            raise TypeError("The given skin is not compatible with this ship")
 
         ship.applySkin(self.skin)
-        if self in callingBUser.inactiveTools:
-            callingBUser.inactiveTools.removeItem(self)
+        return True
 
 
-    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
+    @toolItem.userFriendlySingleUse
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **_) -> bool:
         """Apply the skin to the given ship.
         After use, the tool will be removed from callingBUser's inventory. To disable this, pass callingBUser as None.
 
-        :param Message message: The discord message that triggered this tool use
-        :param str argsStr: Ignored
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if "ship" not in kwargs:
-            raise NameError("Required kwarg not given: ship")
-        if not isinstance(kwargs["ship"], Ship):
-            raise TypeError("Required kwarg is of the wrong type. Expected bbShip, received " \
-                            + type(kwargs["ship"]).__name__)
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-
-        # converted to soft type check due to circular import
-        """if (not isinstance(kwargs["callingBUser"], BasedUser)) and kwargs["callingBUser"] is not None:
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)"""
-        if (type(kwargs["callingBUser"]).__name__ != "BasedUser") and kwargs["callingBUser"] is not None:
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
-
-        ship, callingBUser = kwargs["ship"], kwargs["callingBUser"]
-
-        if not callingBUser.ownsShip(ship):
-            raise RuntimeError("User '" + str(callingBUser.id) \
-                                + "' attempted to skin a ship that does not belong to them: " \
-                                + ship.getNameAndNick())
+        callingBUser = onboardInteractionBasedUser(interaction)
+        ship = callingBUser.activeShip
 
         if ship.isSkinned:
-            return ":x: This ship already has a skin applied! Please equip a different ship."
+            await interactionSend(interaction, respond, followup,
+                                    ":x: This ship already has a skin applied! Please equip a different ship.",
+                                    ephemeral=True)
+            return False
         if not self.skin.compatibleWithShip(ship):
-            if message.guild is None:
-                prefix = cfg.defaultCommandPrefix
-            else:
-                prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
-            return ":x: Your ship is not compatible with this skin! Please equip a different ship, or use `" \
-                    + prefix + "info skin " + self.skin.name + "` to see what ships are compatible with this skin."
+            await interactionSend(interaction, respond, followup,
+                                    f":x: Your ship is not compatible with this skin! Use `/info skin {self.skin.name}` to see what ships are compatible with this skin.")
+            return False
 
-        callingBUser = kwargs["callingBUser"]
-        confirmMsg = await message.reply(mention_author=False, content="Are you sure you want to apply the " + self.skin.name \
-                                                + " skin to your " + ship.getNameAndNick() + "?")
-        confirmation = await InlineConfirmationMenu(confirmMsg, message.author,
-                                                    cfg.toolUseConfirmTimeoutSeconds).doMenu()
+        view = ConfirmView(timeout=60, clearView=True, respond=False)
 
-        if cfg.defaultEmojis.accept in confirmation:
+        await interactionSend(interaction, respond, followup,
+                                f"Are you sure you want to apply the {self.skin.name} skin to your {ship.getNameAndNick()}?")
+        
+        if await view.wait():
+            await view.interaction.response.send_message("🛑 Skin application cancelled - out of time!", ephemeral=True)
+        elif not view.confirmed:
+            await view.interaction.response.send_message("🛑 Skin application cancelled.", ephemeral=True)
+        else:
             ship.applySkin(self.skin)
             if self in callingBUser.inactiveTools:
                 callingBUser.inactiveTools.removeItem(self)
 
-            return "🎨 Success! Your skin has been applied."
-        return "🛑 Skin application cancelled."
+            await view.interaction.response.send_message("🎨 Success! Your skin has been applied.", ephemeral=True)
+            return True
+            
+        return False
 
 
     def statsStringShort(self) -> str:

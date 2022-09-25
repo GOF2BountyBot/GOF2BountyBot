@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 from typing_extensions import NotRequired
-from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role
+from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, User
 from discord import TextChannel
 from discord.utils import MISSING
 from typing import Any, List, Dict, Optional, TypedDict, Union, cast
@@ -12,6 +12,7 @@ import random
 from ..baseClasses.serializable import SerializesToSchema, SerializesToType
 
 from .. import botState, lib
+from ..lib import gameMaths
 from ..lib.stringTyping import commaSplitNum
 from ..logging import LogCategory
 from ..gameObjects import guildShop
@@ -21,6 +22,8 @@ from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..databases import bountyDivision
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
+from ..gameObjects.items.gameItem import GameItem
+from . import basedUser
 
 
 def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:
@@ -344,7 +347,7 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
         self.hasBountyAlertRoles = False
 
 
-    async def levelUpSwapRoles(self, dcUser: Member, oldRole: Role, newRole: Role,
+    async def levelUpSwapRoles(self, dcUser: Member, oldRole: Optional[Role], newRole: Optional[Role],
                                     actionOverride="leveled up") -> List[str]:
         """Remove oldRole from dcUser, and grant newRole.
         If errors occur, they will be printed in the context of dcUser leveling up their bounty Hunting level,
@@ -392,7 +395,7 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
                                     + "The error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
-                                        + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
+                                        + f"{newRole.name}#{newRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
                                     category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError as e:
@@ -400,7 +403,7 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
                                     + "the error has been logged.")
                 botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
-                                        + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
+                                        + f"{newRole.name}#{newRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
                                     category=LogCategory.userAlerts, exception=e)
         return errors
@@ -784,8 +787,8 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
 
 
     async def announceBountyWon(self, bounty: bounty.Bounty, rewards: Dict[int, Dict[str, Union[int, bool]]],
-                                winningUser: Member, rewardsMeta: Dict[int, bounty.RewardsMeta],
-                                divUpUnlockedUserIDs: List[int], prestigeUnlockedUserIDs: List[int]):
+                                winningUser: Union[Member, User], rewardsMeta: Dict[int, bounty.RewardsMeta],
+                                leveledUp: Dict["basedUser.BasedUser", List[GameItem]]):
         """Announce the completion of a bounty
         Messages will be sent to the playChannel if one is set
 
@@ -799,64 +802,73 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
         :param prestigeUnlockedUserIDs: IDs for each user that unlocked prestiging with this bounty.
         :type prestigeUnlockedUserIDs: List[int]
         """
-        if self.dcGuild is not None:
-            if self.hasPlayChannel():
-                winningUserId = winningUser.id
-                # Create the announcement embed
-                rewardsEmbed = lib.discordUtil.makeEmbed(titleTxt="Bounty Complete!",
-                                                        authorName=lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
-                                                        + " Arrested", icon=bounty.criminal.icon,
-                                                        col=bbData.factionColours[bounty.faction],
-                                                        desc="`Suspect located in '" + bounty.answer + "'`")
-
-                # Add the winning user to the embed
-                rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUserId, rewards[winningUserId],
-                                                                    rewardsMeta[winningUserId]))
-
-                # The index of the current user in the embed
-                place = 2
-                # Loop over all non-winning users in the rewards dictionary
-                for userID, userRewards in rewards.items():
-                    if not userRewards["won"]:
-                        rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
-                        place += 1
-
-                if divUpUnlockedUserIDs:
-                    if len(divUpUnlockedUserIDs) > 1:
-                        divUpUnlockedStr = ", ".join(f"<@{i}>" for i in divUpUnlockedUserIDs[:-1]) + f" and <@{divUpUnlockedUserIDs[-1]}>"
-                    else:
-                        divUpUnlockedStr = f"<@{divUpUnlockedUserIDs[0]}>"
-                    
-                    divUpUnlockedStr += f" unlocked the next division! use the `{self.commandPrefix}div-up` command to " \
-                                        + "move up, and take on tougher bounties!\n"
-                else:
-                    divUpUnlockedStr = ""
-
-                if prestigeUnlockedUserIDs:
-                    if len(prestigeUnlockedUserIDs) > 1:
-                        prestigeUnlockedStr = ", ".join(f"<@{i}>" for i in prestigeUnlockedUserIDs[:-1]) + f" and <@{prestigeUnlockedUserIDs[-1]}>"
-                    else:
-                        prestigeUnlockedStr = f"<@{prestigeUnlockedUserIDs[0]}>"
-                    
-                    prestigeUnlockedStr += f" unlocked prestiging! use the `{self.commandPrefix}prestige` command to " \
-                                        + "gain special rewards and start a new run!"
-                else:
-                    prestigeUnlockedStr = ""
-
-                # Send the announcement to the guild's playChannel
-                await self.getPlayChannel().send(":trophy: **You win!**\n**" + winningUser.display_name \
-                                                    + "** located and EMP'd **" + bounty.criminal.name \
-                                                    + "**, who has been arrested by local security forces. :chains:\n\n" \
-                                                    + divUpUnlockedStr + prestigeUnlockedStr,
-                                                    embed=rewardsEmbed)
-
-        else:
+        if self.dcGuild is None:
             dcGuild = botState.client.get_guild(self.id)
             guildName = "<unknown>" if dcGuild is None else dcGuild.name
             botState.client.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty won to guild " \
                                 + guildName + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
+            return
+
+        if self.bountiesDB is None or not self.hasPlayChannel(): return
+        
+        # Create the announcement embed
+        rewardsEmbed = lib.discordUtil.makeEmbed(titleTxt="Bounty Complete!",
+                                                authorName=lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
+                                                + " Arrested", icon=bounty.criminal.icon,
+                                                col=bbData.factionColours[bounty.faction],
+                                                desc="`Suspect located in '" + bounty.answer + "'`")
+
+        # Add the winning user to the embed
+        rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUser.id, rewards[winningUser.id],
+                                                            rewardsMeta[winningUser.id]))
+
+        # The index of the current user in the embed
+        place = 2
+        # Loop over all non-winning users in the rewards dictionary
+        for userID, userRewards in rewards.items():
+            if not userRewards["won"]:
+                rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
+                place += 1
+
+        levelUpsStr = ""
+        division: Optional[bountyDivision.BountyDivision] = None
+        divUpUnlocked: List["basedUser.BasedUser"] = []
+
+        for user, userRewards in leveledUp.items():
+            level = gameMaths.calculateUserBountyHuntingLevel(user.bountyHuntingXP)
+            levelUpsStr += "\n:arrow_up: **Level Up!**\n" \
+                        + f"<@{user.id}> reached **Bounty Hunter Level {level}!** :partying_face:"
+
+            if len(userRewards) == 1:
+                levelUpsStr += f"\nYou got a **{userRewards[0].name}**."
+            elif len(userRewards) != 0:
+                levelUpsStr += "\nYou got:\n- " + "\n".join(f"- a **{i.name}**" for i in userRewards)
+            
+            division = division or self.bountiesDB.divisionForLevel(level)
+            if level == division.maxLevel:
+                divUpUnlocked.append(user)
+
+        if divUpUnlocked:
+            if len(divUpUnlocked) > 1:
+                levelUpsStr += ", ".join(f"<@{i.id}>" for i in divUpUnlocked[:-1]) + f" and <@{divUpUnlocked[-1].id}>"
+            else:
+                levelUpsStr += f"<@{divUpUnlocked[0].id}>"
+                
+            if cast(bountyDivision.BountyDivision, division).maxLevel == cfg.maxTechLevel:
+                levelUpsStr += f" unlocked prestiging! use the `{self.commandPrefix}prestige` command to " \
+                                + "gain special rewards and start a new run!"
+            else:
+                levelUpsStr += f" unlocked the next division! use the `/div-up` command to " \
+                                + "move up, and take on tougher bounties!\n"
+
+        # Send the announcement to the guild's playChannel
+        await self.getPlayChannel().send(":trophy: **You win!**\n**" + winningUser.display_name \
+                                            + "** located and EMP'd **" + bounty.criminal.name \
+                                            + "**, who has been arrested by local security forces. :chains:\n\n" \
+                                            + levelUpsStr,
+                                            embed=rewardsEmbed)
 
 
     async def announceBountyExpired(self, b: bounty.Bounty):

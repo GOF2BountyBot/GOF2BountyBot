@@ -113,6 +113,24 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
             self.tryStartBountySpawner()
 
 
+    def allBounties(self) -> List[Bounty]:
+        """Flatten all of this division's active bounties into a single list
+
+        :return: All currently active bounties
+        :rtype: List[Bounty]
+        """
+        return [b for tlBounties in self.bounties.values() for b in tlBounties.values()]
+
+    
+    def allBountiesForSystem(self, system: str) -> List[Bounty]:
+        """Get all active bounties in this division whose routes contain `system`.
+
+        :return: all active bounties in this division whose routes contain `system`
+        :rtype: List[Bounty]
+        """
+        return [b for b in self.allBounties() if system in b.checked]
+
+
     def hasMinTLBounty(self, includeEscaped: bool = True) -> bool:
         """Decide whether the division has at least one bounty at the division's lowest level.
         This is used for division full-ness decisions.

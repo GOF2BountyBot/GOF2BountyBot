@@ -863,7 +863,11 @@ class DevMiscCog(BasedCog):
             if dcUser is None:
                 userAlertsStr = "States unknown, dcUser unavailable.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
             else:
-                userAlertsStr = "\n".join(f"{t.__name__}: {a.getState(homeGuild.dcGuild, homeGuild, homeGuild.dcGuild.get_member(dcUser.id))}" for t, a in bUser.userAlerts.items())
+                homeGuildMember = homeGuild.dcGuild.get_member(dcUser.id)
+                if homeGuildMember is None:
+                    userAlertsStr = "States unknown, user is no longer a member of their home guild.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
+                else:
+                    userAlertsStr = "\n".join(f"{t.__name__}: {a.getState(homeGuild.dcGuild, homeGuild, homeGuildMember)}" for t, a in bUser.userAlerts.items())
         else:
             userAlertsStr = "States unknown, no homeguild.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
 

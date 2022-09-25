@@ -7,6 +7,7 @@ from typing_extensions import ParamSpec, Concatenate
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild
     from ..gameObjects.bounties import criminal
+    from .. import client
 
 if TYPE_CHECKING:
     TParams = ParamSpec('TParams')
@@ -15,7 +16,7 @@ else:
 
 import discord # type: ignore[import]
 from discord.errors import NotFound # type: ignore[import]
-from discord import PartialMessageable, User, Member, ClientUser, Guild, Message # type: ignore[import]
+from discord import Interaction, PartialMessageable, User, Member, ClientUser, Guild, Message # type: ignore[import]
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
@@ -23,7 +24,7 @@ from discord.abc import Messageable
 from . import stringTyping, emojis, exceptions
 from .. import botState
 import discord
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
 from discord import DMChannel, GroupChannel, TextChannel
 from ..cfg import cfg
 from ..userAlerts import userAlerts
@@ -32,6 +33,8 @@ from functools import wraps, partial
 import asyncio
 from enum import Enum
 from datetime import datetime
+from PIL.Image import Image
+from io import BytesIO
 
 from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
@@ -41,7 +44,7 @@ class AnyCoroutine(Protocol):
     def __call__(*args, **kwargs) -> Awaitable: ...
 
 
-def findBUserDCGuild(user: basedUser.BasedUser) -> Union[Guild, None]:
+def findBUserDCGuild(user: basedUser.BasedUser, client = None) -> Union[Guild, None]:
     """Attempt to find a discord.guild containing the given BasedUser.
     If a guild is found, it will be returned as a discord.guild. If no guild can be found, None will be returned.
 
@@ -50,11 +53,11 @@ def findBUserDCGuild(user: basedUser.BasedUser) -> Union[Guild, None]:
     :rtype: discord.guild or None
     """
     if user.hasHomeGuild():
-        homeGuild = botState.client.get_guild(user.homeGuildID)
+        homeGuild = (client or botState.client).get_guild(user.homeGuildID)
         if homeGuild is not None:
             return homeGuild
 
-    dcUser = botState.client.get_user(user.id)
+    dcUser = (client or botState.client).get_user(user.id)
     if dcUser is not None and dcUser.mutual_guilds:
         return dcUser.mutual_guilds[0]
 
@@ -82,6 +85,19 @@ def userOrMemberName(dcUser: User, dcGuild: Guild) -> str:
     if guildMember is None:
         return dcUser.name
     return guildMember.display_name
+
+
+def memberDisplayNameOrUserNameAndDiscrim(dcUser: Union[User, Member], dcGuild: Optional[Guild]) -> str:
+    """If `dcUser` is a member of `dcGuild`, return their `display_name` in `dcGuild`.
+    Otherwise, return their global username and discriminator.
+    """
+    if dcGuild is None: return str(dcUser)
+    if isinstance(dcUser, Member) and dcUser.guild == dcGuild: return dcUser.display_name
+    
+    member = dcGuild.get_member(dcUser.id)
+    if member is not None: return member.display_name
+
+    return str(dcUser)
 
 
 def getMemberFromRef(uRef: str, dcGuild: Guild) -> Union[Member, None]:
@@ -907,3 +923,56 @@ async def dummyCoroutine(value: Optional[Any]):
     :rtype: Optional[Any]
     """
     return value
+
+
+class ImageFile:
+    """A container for a Pillow image.
+    This class wraps the image in a `BytesIO` stream, and wraps that stream in a `discord.File` object.
+    Calling `closeAll` will close the image that you passed in, as well as the byte stream and `discord.File`.
+    """
+    def __init__(self, image: Image, fileName: str):
+        self.fileName = fileName
+        self.image = image
+        self.imageBytes = BytesIO()
+        image.save(self.imageBytes, fileName.split(".")[-1])
+        self.imageBytes.seek(0)
+        self.file = File(self.imageBytes, filename=fileName)
+        self.closed = False
+    
+
+    def closeAll(self):
+        if self.closed: return
+        # No isOpen check available for discord.File
+        self.file.close()
+        if not self.imageBytes.closed: self.imageBytes.close()
+        # No isOpen check available for PIL.Image.Image
+        self.image.close()
+        self.closed = True
+
+
+    def __enter__(self):
+        return self
+
+    
+    def __exit__(self, cls, value, traceback):
+        self.closeAll()
+        return False
+
+
+def userNameIn(client: "client.BasedClient", userId: int, dcGuild: Optional[Guild]) -> str:
+    if dcGuild is not None:
+        member = dcGuild.get_member(userId)
+        if member is not None: return member.display_name
+    user = client.get_user(userId)
+    if user is not None: return str(user)
+    return f"<unknown user {userId}>"
+
+
+async def interactionSend(interaction: Interaction, respond: bool, followup: bool, *sendArgs, **sendKwargs):
+    if respond:
+        return await interaction.response.send_message(*sendArgs, **sendKwargs)
+    elif followup:
+        return await interaction.followup.send(*sendArgs, **sendKwargs)
+    else:
+        sendKwargs.pop("ephemeral", None)
+        return await textChannel(interaction).send(*sendArgs, **sendKwargs)

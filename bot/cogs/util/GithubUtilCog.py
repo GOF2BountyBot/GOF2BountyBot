@@ -1,6 +1,5 @@
-from typing import Optional, Tuple, Callable, Any, Union, cast, Coroutine, List
+from typing import Optional, Union, cast, List
 
-from discord import Interaction
 from discord.abc import Snowflake
 from github import Github, UnknownObjectException
 from github.Repository import Repository
@@ -9,10 +8,6 @@ from github.Issue import Issue
 from ...interactions.basedApp import BasedCog
 from ... import client, lib
 from ...lib.discordUtil import asyncWrap
-from ...users import basedGuild
-from ...databases.bountyDB import BountyDB
-from ...databases.bountyDivision import BountyDivision
-from ...logging import LogCategory
 from ...cfg import cfg
 import re
 

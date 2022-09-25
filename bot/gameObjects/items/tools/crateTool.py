@@ -2,19 +2,20 @@ from __future__ import annotations
 from typing import Union, cast
 import random
 from typing import Dict, Generic, List, Optional, Type, TypeVar
-from discord import Message
+from discord import Interaction
 
 from . import toolItem
 from .... import lib, botState
 from ....lib import gameMaths
+from ....lib.discordUtil import interactionSend
 from ....cfg import cfg, bbData
 from .. import gameItem
-from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
 from ....users.basedUser import BasedUser
 from . import shipSkinTool
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
-
+from ....client import onboardInteractionBasedUser
+from ....views.confirmView import ConfirmView
 
 class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
     crateType: str
@@ -160,57 +161,57 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
         return random.choice(self.itemPoolByRarity[rarityLevel])
 
 
-    async def use(self, *args, **kwargs):
+    @toolItem.singleUse
+    async def use(self, *, callingBUser: BasedUser, **_) -> bool:
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
         then removes the crate from their inventory. For use in a command, use userFriendlyUse
 
         :param BasedUser callingBUser: The user who owns the crate
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-        if not isinstance(kwargs["callingBUser"], BasedUser):
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
+        if not isinstance(callingBUser, BasedUser):
+            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser, received " \
+                            + type(callingBUser).__name__)
 
-        callingBUser = kwargs["callingBUser"]
         newItem = self.pickItem()
         # Ignoring a warning here because pyright is complaining about potentially adding a GameItem to a UserToolInventory
         # But this can only happen if newItem is in fact a tool, due to the getInventoryForItem check
         callingBUser.getInventoryForItem(newItem).addItem(newItem) # type: ignore[reportGeneralTypeIssues]
-        callingBUser.inactiveTools.removeItem(self)
+        return True
 
 
-    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
+    @toolItem.userFriendlySingleUse
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs) -> bool:
         """A version of self.use intended to be called by users, where exceptions are never thrown in the case of
         user error, and results strings to send in response are always returned.
         First asks for user confirmation, then adds a random single item from the item pool to the user inventory,
         and finally removes the crate from the user inventory.
 
-        :param Message message: The discord message that triggered this tool use
-        :param str argsStr: Ignored
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-        if kwargs["callingBUser"] is not None and type(kwargs["callingBUser"]).__name__ != "BasedUser":
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
+        callingBUser = onboardInteractionBasedUser(interaction)
 
-        callingBUser = kwargs["callingBUser"]
-        confirmMsg = await message.reply(mention_author=False,
-                                        content=f"Are you sure you want to open your '{self.name}' crate?")
-        confirmation = await InlineConfirmationMenu(confirmMsg, message.author,
-                                                    cfg.toolUseConfirmTimeoutSeconds).doMenu()
+        view = ConfirmView(timeout=60, clearView=True, respond=False)
 
-        if cfg.defaultEmojis.accept in confirmation:
+        await interactionSend(interaction, respond, followup,
+                                f"Are you sure you want to open your '{self.name}' crate? Respond within 60s.",
+                                ephemeral=True, view=view)
+
+        if await view.wait():
+            await view.interaction.response.send_message("🛑 Crate open cancelled - out of time!", ephemeral=True)
+        elif not view.confirmed:
+            await view.interaction.response.send_message("🛑 Crate open cancelled.", ephemeral=True)
+        else:
             newItem = self.pickItem()
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
-            callingBUser.inactiveTools.removeItem(self)
 
-            return "🎉 Success! You got a " + newItem.name + "!"
-        else:
-            return "🛑 Crate open cancelled."
+            await view.interaction.response.send_message(f"🎉 Success! You got a {newItem.name}!")
+            return True
+
+        return False
 
 
     def statsStringShort(self) -> str:

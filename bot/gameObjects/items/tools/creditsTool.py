@@ -1,13 +1,15 @@
 from . import toolItem
 from typing import TYPE_CHECKING, Optional
-from discord import Message
+from discord import Interaction
 from typing import List
 
 if TYPE_CHECKING:
     from ....users import basedUser
-from .... import lib, botState
+from ....lib.emojis import BasedEmoji
+from ....lib.discordUtil import interactionSend
 from ....cfg import cfg
 from .. import gameItem
+from ....client import onboardInteractionBasedUser
 
 
 @gameItem.spawnableItem
@@ -16,7 +18,7 @@ class CreditsTool(toolItem.ToolItem):
     """
 
     def __init__(self, name: str, aliases: List[str], value: int = 0, wiki: str = "",
-            manufacturer: str = "", icon: str = cfg.moneyIcon, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            manufacturer: str = "", icon: str = cfg.moneyIcon, emoji: Optional[BasedEmoji] = None,
             techLevel: int = -1, builtIn: bool = False, autoUse: bool = True):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
@@ -25,7 +27,7 @@ class CreditsTool(toolItem.ToolItem):
         :param str wiki: A web page that is displayed as the wiki page for this item. (Default "")
         :param str manufacturer: The name of the manufacturer of this item (Default "")
         :param str icon: A URL pointing to an image to use for this item's icon (Default cfg.moneyIcon)
-        :param lib.emojis.BasedEmoji emoji: The emoji to use for this item's small icon (Default cfg.defaultEmojis.money)
+        :param BasedEmoji emoji: The emoji to use for this item's small icon (Default cfg.defaultEmojis.money)
         :param int techLevel: A rating from 1 to 10 of this item's technical advancement. Used as a measure for its
                                 effectiveness compared to other items of the same type (Default -1)
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData) or a custom spawned
@@ -39,22 +41,26 @@ class CreditsTool(toolItem.ToolItem):
 
 
     @toolItem.singleUse
-    async def use(self, /, callingBUser: "basedUser.BasedUser", *args, **kwargs):
+    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Add money to the calling user's account.
         """
+        if not isinstance(callingBUser, "basedUser.BasedUser"): raise ValueError("Missing required kwarg: callingBUser")
         callingBUser.credits += self.value
+        return True
 
 
     @toolItem.userFriendlySingleUse
-    async def userFriendlyUse(self, message: Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **_) -> bool:
         """Add money to the calling user's account.
-        :param Message message: The discord message that triggered this tool use
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        callingBUser = botState.client.usersDB.getOrAddID(message.author.id)
+        callingBUser = onboardInteractionBasedUser(interaction)
         callingBUser.credits += self.value
-        return f"You got {self.value} credits!"
+        await interactionSend(interaction, respond, followup, f"You got {self.value} credits!")
+        return True
 
 
     def statsStringShort(self) -> str:

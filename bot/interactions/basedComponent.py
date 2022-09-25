@@ -154,6 +154,11 @@ class StaticComponents(StaticComponentIDsEnum):
     Admin_MakeRoleMenu_Change_Emoji_Select = 22
     Admin_MakeRoleMenu_Change_Emoji = 23
 
+    # UserBountiesCog
+    User_ToggleClassicMode_Confirm = 37
+    User_DuelChallenge_Accept = 38
+    User_DuelChallenge_Reject = 39
+
 
 class StaticComponentMeta:
     """Data class carrying metadata about a static component.

@@ -1,10 +1,15 @@
 
-from typing import Callable, Iterable
+from typing import Callable, Iterable, List, TYPE_CHECKING, cast
 from discord import Interaction
 from discord import app_commands
 
 from ...cfg import cfg, bbData
 from ...baseClasses.aliasable import AliasableMixin
+from ... import client
+from ...users import basedUser
+from ...gameObjects.items import gameItem
+if TYPE_CHECKING:
+    from ...databases import bountyDB
 
 def _stringAutoComplete(possibleChoices: Iterable[app_commands.Choice[str]]):
     async def inner(interaction: Interaction, current: str):
@@ -63,7 +68,7 @@ def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = 
 #endregion division
 #region system
 
-def systemAutoComplete(paramName: str = "division"):
+def systemAutoComplete(paramName: str = "system"):
     """A decorator to add autocomplete for a single-value solar system parameter, by name.
 
     :param paramName: The name of the solar system name parameter
@@ -85,6 +90,58 @@ def criminalAutoComplete(paramName: str = "name"):
     """
     def decorator(func: app_commands.Command):
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInCriminalObjs.values()))
+        return func
+    return decorator
+
+
+async def _activeCriminalAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice]:
+    if not isinstance(interaction.client, client.BasedClient):
+        raise TypeError(f"{activeCriminalAutoComplete.__name__} can only be applied to commands which are handled by a {client.BasedClient.__name__}")
+
+    if not interaction.guild: return []
+    if not interaction.client.guildsDB.idExists(interaction.guild.id): return []
+
+    guild = interaction.client.guildsDB.getGuild(interaction.guild.id)
+    if guild.bountiesDisabled: return []
+
+    # casting here due to the bountiesDisabled check above
+    bountiesDB = cast("bountyDB.BountyDB", guild.bountiesDB)
+    
+    criminals = set()
+    choices = []
+    
+    for div in bountiesDB.divisions.values():
+        for bounty in div.allBounties():
+            if bounty.criminal in criminals: continue
+            criminals.add(bounty.criminal)
+
+            if bounty.criminal.isPlayer:
+                userId = int(bounty.criminal.name.lstrip("<@!").rstrip(">"))
+                dcUser = interaction.client.get_user(userId) or await interaction.client.tryFetchUser(userId)
+                bountyName = f"<Player {userId}>" if dcUser is None else str(dcUser)
+
+            else:
+                bountyName = bounty.criminal.name
+            
+            if current in bountyName:
+                choices.append(app_commands.Choice(name=bountyName, value=bountyName))
+                if len(choices) == 25:
+                    break
+
+    return choices
+    
+
+def activeCriminalAutoComplete(paramName: str = "name"):
+    """A decorator to add autocomplete for a single-value criminal parameter, by name.
+    This decorator is different to `criminalAutoComplete` because it inspects the active criminals in the guild.
+    This is useful for limiting the potential options, but also for allowing selection of players and non-builtIn criminals.
+    Criminals will be listed across all divisions.
+    
+    :param paramName: The name of the criminal name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_activeCriminalAutoComplete)
         return func
     return decorator
 
@@ -192,10 +249,10 @@ def shipSkinAutoComplete(paramName: str = "skin"):
 #endregion item-ship-skin
 #region item-module
 
-def moduleAutoComplete(paramName: str = "name"):
-    """A decorator to add autocomplete for a single-value criminal parameter, by name.
+def moduleAutoComplete(paramName: str = "module"):
+    """A decorator to add autocomplete for a single-value module parameter, by name.
 
-    :param paramName: The name of the criminal name parameter
+    :param paramName: The name of the module name parameter
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
@@ -204,3 +261,49 @@ def moduleAutoComplete(paramName: str = "name"):
     return decorator
 
 #endregion item-module
+#region inventory
+
+def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory, fallbackOnDefaultUser: bool):
+    async def _inventoryCategoryItemNumberAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[int]]:
+        if not isinstance(interaction.client, "client.BasedClient"):
+            raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
+
+        choices: List[app_commands.Choice[int]] = []
+        if interaction.client.usersDB.idExists(interaction.user.id):
+            bUser = interaction.client.usersDB.getUser(interaction.user.id)
+            for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
+                if current in item.name:
+                    choices.append(app_commands.Choice(name=item.name, value=itemNum))
+                    if len(choices) == 25:
+                        break
+        
+        elif fallbackOnDefaultUser:
+            defaultItems = cast(List[gameItem.SerializedGameItemUnion], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
+            for itemNum, item in enumerate(defaultItems):
+                if current in item["name"]:
+                    choices.append(app_commands.Choice(name=item["name"], value=itemNum))
+                    if len(choices) == 25:
+                        break
+        
+        return choices
+    return _inventoryCategoryItemNumberAutoComplete
+
+
+def inventoryItemNumberAutoComplete(paramName: str, itemCategory: bbData.ItemCategory):
+    """A decorator to add autocomplete for a single-value item reference parameter.
+    The items will appear as names in discord, but returned to code as item indices (int).
+    Only applies to a single inventory on the user (or default user) at this time.
+
+    :param paramName: The name of the item number parameter
+    :type paramName: str
+    :param itemCategory: The inventory to select items from
+    :type itemCategory: ItemCategory
+    """
+    def decorator(func: app_commands.Command):
+        autocomplete = _make_inventoryCategoryItemNumberAutoComplete(itemCategory, True)
+        # TODO: Apparently my autocomplete is of the wrong type?
+        func.autocomplete(paramName)(autocomplete) # type: ignore[reportGeneralTypeIssues]
+        return func
+    return decorator
+
+#endregion inventory

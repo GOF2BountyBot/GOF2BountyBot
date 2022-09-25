@@ -1,15 +1,9 @@
-from typing import Optional, cast
+from typing import cast
 import discord
-import time
-from datetime import timedelta
 
 from . import commandsDB as textCommandsDB
-from . import util_help
-from .. import botState, lib
+from .. import botState
 from ..cfg import cfg
-from ..userAlerts import userAlerts
-from ..scheduling import timedTask
-from ..reactionMenus import reactionRolePicker
 from . import util_autoskin
 
 

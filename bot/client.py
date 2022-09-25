@@ -5,7 +5,7 @@ from typing import Any, Coroutine, List, Optional, Dict, Union, cast, overload
 from pathlib import Path
 import aiohttp
 import discord
-from discord import NotFound, User, app_commands, TextChannel
+from discord import Interaction, NotFound, User, app_commands, TextChannel
 from discord.ext.commands import Bot as ClientBaseClass
 from discord.ext import tasks
 from discord.utils import MISSING
@@ -22,6 +22,7 @@ from . import logging
 from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
 from .users.basedGuild import BasedGuild
+from .users.basedUser import BasedUser
 from .cfg import gameConfigurator
 from .reactionMenus import reactionMenu
 from .baseClasses.serializable import SerializesToJson
@@ -262,7 +263,7 @@ class BasedClient(ClientBaseClass):
             self.addBasedCommand(func)
 
             if accessLevel is not MISSING:
-                func.add_check(commandChecks.requireAccess(accessLevel))
+                func.add_check(commandChecks.create_requireAccess(accessLevel))
 
             return func
 
@@ -720,3 +721,21 @@ class BasedClient(ClientBaseClass):
             return self.fetch_user(id)
         except NotFound:
             return lib.discordUtil.dummyCoroutine(None)
+
+
+def ensureBasedClient(interaction: Interaction) -> BasedClient:
+    if not isinstance(interaction.client, BasedClient):
+        raise TypeError(f"This interaction is only supported when handled by a {BasedClient.__name__}")
+    return interaction.client
+
+
+def interactionBasedUser(interaction: Interaction) -> Optional[BasedUser]:
+    client = ensureBasedClient(interaction)
+    if client.usersDB.idExists(interaction.user.id):
+        return client.usersDB.getUser(interaction.user.id)
+    return None
+
+
+def onboardInteractionBasedUser(interaction: Interaction) -> BasedUser:
+    client = ensureBasedClient(interaction)
+    return client.usersDB.getOrAddID(interaction.user.id)
