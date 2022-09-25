@@ -1,8 +1,7 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Optional, Tuple, Union, cast, TYPE_CHECKING
-if TYPE_CHECKING:
-    from typing_extensions import NotRequired
+from typing import List, Optional, Tuple, Union, cast
+from typing_extensions import NotRequired
 import math
 
 from ..gameObject import LoadedObject, SerializedLoadedObject

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from typing import Callable, Optional, Sequence, Tuple, Type, TypedDict, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
-if TYPE_CHECKING:
-    from typing_extensions import NotRequired
+from typing_extensions import NotRequired
 from datetime import datetime, timedelta
-from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPException, Interaction, Member, Message, MessageReference, PartialMessage, StickerItem, User
+from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPException, Member, Message, MessageReference, PartialMessage, StickerItem, User
 from discord.ui import View
 from discord.utils import MISSING
 

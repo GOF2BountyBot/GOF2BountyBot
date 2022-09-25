@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Dict, TYPE_CHECKING, Optional, Tuple, TypedDict, cast
+from typing_extensions import NotRequired
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
-    from typing_extensions import NotRequired
 
 from ..baseClasses.aliasableDict import AliasableDict
 from ..gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEscapedBounty

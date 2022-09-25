@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild

@@ -1,16 +1,15 @@
 from enum import Enum
 from inspect import iscoroutinefunction, signature
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Generic, Iterable, List, Optional, Protocol, Tuple, Type, TypeVar, TYPE_CHECKING, Union, cast
+from typing import Any, Awaitable, Callable, Dict, Generic, Optional, Protocol, Type, TypeVar, TYPE_CHECKING, Union, cast
 from functools import wraps
 
 from discord.ext.commands.cog import Cog
-from discord import app_commands, Interaction, Component
+from discord import app_commands
 
 from . import basedCommand, basedComponent
 from .. import client, lib
 
 if TYPE_CHECKING:
-    from .basedCommand import CallBackType, TClass, TParams
     from ..cogs.util import EmbedEditorCog, CommonStaticComponentsCog, GuildsUtilCog, UsersUtilCog, GithubUtilCog
 
 TAnyCallback = Callable[..., Awaitable[Any]]
@@ -137,7 +136,7 @@ class BasedCog(Cog):
     :var staticComponentCallbacks: All static component callbacks defined within the cog, by ID
     :type staticComponentCallbacks: Dict[basedComponent.StaticComponents, basedComponent.StaticComponentCallbackMeta]
     """
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
+    def __init__(self, bot: "client.BasedClient", *args, **kwargs):
         self.bot = bot
         super().__init__(*args, **kwargs)
         self._basedCommands: Optional[Dict[app_commands.Command, "basedCommand.BasedCommandMeta"]] = None

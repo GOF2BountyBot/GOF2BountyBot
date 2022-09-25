@@ -1,6 +1,5 @@
-from typing import TypedDict, TYPE_CHECKING
-if TYPE_CHECKING:
-    from typing_extensions import NotRequired
+from typing import TypedDict
+from typing_extensions import NotRequired
 from ...baseClasses.serializable import SerializesToSchema
 from ...cfg import bbData
 from ... import lib

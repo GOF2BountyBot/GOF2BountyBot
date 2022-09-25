@@ -10,11 +10,11 @@ from ....lib import gameMaths
 from ....lib.discordUtil import interactionSend
 from ....cfg import cfg, bbData
 from .. import gameItem
-from ....users.basedUser import BasedUser
+from ....users import basedUser
 from . import shipSkinTool
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
-from ....client import onboardInteractionBasedUser
+from .... import client
 from ....views.confirmView import ConfirmView
 
 class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
@@ -162,7 +162,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
 
 
     @toolItem.singleUse
-    async def use(self, *, callingBUser: BasedUser, **_) -> bool:
+    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
         then removes the crate from their inventory. For use in a command, use userFriendlyUse
 
@@ -170,7 +170,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
         :returns: Whether or not the use was successful
         :rtype: bool
         """
-        if not isinstance(callingBUser, BasedUser):
+        if not isinstance(callingBUser, basedUser.BasedUser):
             raise TypeError("Required kwarg is of the wrong type. Expected BasedUser, received " \
                             + type(callingBUser).__name__)
 
@@ -192,7 +192,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
         :returns: Whether or not the use was successful
         :rtype: bool
         """
-        callingBUser = onboardInteractionBasedUser(interaction)
+        callingBUser = client.onboardInteractionBasedUser(interaction)
 
         view = ConfirmView(timeout=60, clearView=True, respond=False)
 

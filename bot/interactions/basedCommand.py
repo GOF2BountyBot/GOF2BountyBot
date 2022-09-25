@@ -1,9 +1,9 @@
 from discord import app_commands, Interaction
 from discord.utils import MISSING
-from typing import Callable, Dict, Optional, Tuple, Type, TypeVar, Union, Awaitable
-from .accessLevels import AccessLevelType, accessLevelNamed, defaultAccessLevel
+from typing import Callable, Dict, Optional, Tuple, TypeVar, Union, Awaitable
+from . import accessLevels
 from .commandChecks import create_requireAccess
-from .basedApp import basedApp, BasedAppType
+from . import basedApp
 from . import basedComponent
 from ..cfg import cfg
 from ..cogs.util.helpUtil import *
@@ -28,7 +28,7 @@ class BasedCommandMeta:
     :var formattedParamDescs: Descriptions for each parameter of the command with more allowed length and markdown formatting, to be used in help commands
     :type formattedParamDescs: Optional[Dict[str, str]]
     """
-    def __init__(self, accessLevel: AccessLevelType = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs: Optional[Dict[str, str]] = None):
+    def __init__(self, accessLevel: "accessLevels.AccessLevelType" = MISSING, showInHelp: bool = True, helpSection: Optional[str] = None, formattedDesc: Optional[str] = None, formattedParamDescs: Optional[Dict[str, str]] = None):
         self._accessLevel = accessLevel
         self.showInHelp = showInHelp
         self._helpSection = helpSection
@@ -43,7 +43,7 @@ class BasedCommandMeta:
         :return: The access level required to use the command
         :rtype: AccessLevelType
         """
-        return self._accessLevel if self._accessLevel is not MISSING else defaultAccessLevel()
+        return self._accessLevel if self._accessLevel is not MISSING else accessLevels.defaultAccessLevel()
 
 
     @property
@@ -85,7 +85,7 @@ def validateHelpSection(helpSection: str):
 
 def basedCommand(
     *,
-    accessLevel: Union[AccessLevelType, str] = MISSING,
+    accessLevel: Union["accessLevels.AccessLevelType", str] = MISSING,
     showInHelp: bool = True,
     helpSection: Optional[str] = None,
     formattedDesc: Optional[str] = None,
@@ -109,12 +109,12 @@ def basedCommand(
             raise TypeError("decorator can only be applied to app commands")
 
         if isinstance(accessLevel, str):
-            accessLevel = accessLevelNamed(accessLevel)
+            accessLevel = accessLevels.accessLevelNamed(accessLevel)
 
         if helpSection is not None:
             validateHelpSection(helpSection)
 
-        basedApp(func.callback, BasedAppType.AppCommand)
+        basedApp.basedApp(func.callback, basedApp.BasedAppType.AppCommand)
         setattr(func.callback, "__based_command_meta__", BasedCommandMeta(accessLevel, showInHelp, helpSection, formattedDesc, formattedParamDescs))
 
         if accessLevel is not MISSING:
@@ -139,7 +139,7 @@ def commandMeta(command: app_commands.Command) -> BasedCommandMeta:
     return BasedCommandMeta()
 
 
-def accessLevel(command: app_commands.Command) -> AccessLevelType:
+def accessLevel(command: app_commands.Command) -> "accessLevels.AccessLevelType":
     """Get the access level required to use a BASED command
     If the command is not a BASED command, then the default access level is returned
 
