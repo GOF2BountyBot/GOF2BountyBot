@@ -1,4 +1,6 @@
-from typing_extensions import NotRequired
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 from ..cfg import bbData, cfg
 import os
 from ..shipRenderer import shipRenderer

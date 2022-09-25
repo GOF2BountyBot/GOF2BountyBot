@@ -523,8 +523,8 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
         return data
 
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def deserialize(cls: Type[TSelf], shopDict: SerializedShopBase, **kwargs) -> TSelf:
         """Recreate a guildShop instance from its dictionary-serialized representation - the opposite of guildShop.serialize
         A default implementation is provided here, to load plain old Inventory objects.

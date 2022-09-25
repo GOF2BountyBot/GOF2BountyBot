@@ -20,6 +20,6 @@ class LoadedObject(SerializesToSchema[SerializedLoadedObject]):
     @abstractmethod
     def serialize(self, **kwargs) -> SerializedLoadedObject: ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def deserialize(cls: Type[TSelf], data: SerializedLoadedObject, **kwargs) -> TSelf: ...

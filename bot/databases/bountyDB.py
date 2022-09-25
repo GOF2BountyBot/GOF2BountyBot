@@ -1,9 +1,7 @@
 from __future__ import annotations
-from typing import Dict, Optional, TypedDict, cast
-import asyncio
-from typing_extensions import NotRequired
-
-from ..logging import LogCategory
+from typing import Dict, Optional, TypedDict, cast, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from ..gameObjects.bounties import bounty
@@ -11,10 +9,7 @@ from ..gameObjects.bounties.criminal import Criminal
 from typing import List
 from ..cfg import cfg
 from ..users import basedGuild
-from .. import botState, lib
 from .bountyDivision import BountyDivision
-from datetime import datetime
-from ..scheduling.timedTask import TimedTask
 from ..baseClasses.serializable import SerializesToSchema
 
 

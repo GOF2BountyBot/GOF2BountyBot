@@ -1,10 +1,10 @@
 # Typing imports
 from __future__ import annotations
 from typing import Dict, List, Optional, Set, TypedDict, Union, TYPE_CHECKING, cast
-from typing_extensions import NotRequired
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
+    from typing_extensions import NotRequired
 
 from .bountyConfig import BountyConfig, GeneratedConfig
 from ...cfg import bbData, cfg

@@ -1,7 +1,8 @@
 # Typing imports
 from __future__ import annotations
-from typing import Union, cast
-from typing_extensions import NotRequired
+from typing import Union, cast, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 
 from ..cfg import bbData
 from .items import shipItem

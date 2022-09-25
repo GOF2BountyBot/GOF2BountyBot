@@ -1,8 +1,9 @@
 # Typing imports
 from __future__ import annotations
-from typing import Any, Dict, List, TypedDict
+from typing import Any, Dict, List, TypedDict, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 from abc import abstractmethod
-from typing_extensions import NotRequired
 
 from .serializable import SerializesToSchema
 

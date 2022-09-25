@@ -1,11 +1,12 @@
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
-from typing_extensions import NotRequired
 from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, User
 from discord import TextChannel
 from discord.utils import MISSING
-from typing import Any, List, Dict, Optional, TypedDict, Union, cast
+from typing import Any, List, Dict, Optional, TypedDict, Union, cast, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 from aiohttp import client_exceptions
 import random
 

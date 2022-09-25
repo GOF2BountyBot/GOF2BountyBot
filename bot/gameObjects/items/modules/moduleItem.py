@@ -1,7 +1,8 @@
-from typing_extensions import NotRequired
 from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem
 from .... import lib
-from typing import List, Union
+from typing import List, Union, TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
 from ....baseClasses.serializable import SerializesToSchema
 
 

@@ -1,5 +1,7 @@
-from typing_extensions import NotRequired
-from ...baseClasses.serializable import Serializable, SerializesToSchema
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing_extensions import NotRequired
+from ...baseClasses.serializable import SerializesToSchema
 from ..itemDiscount import ItemDiscount, SerializedItemDiscount
 from ..items import gameItem
 from typing import Generic, List, TypeVar, TypedDict, cast
