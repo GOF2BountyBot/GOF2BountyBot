@@ -395,7 +395,7 @@ class DevBountiesCog(basedApp.BasedCog):
         end="the end system. Defaults to random.",
         answer="The answer system. Defaults to random.",
         reward="The credits pool to share amongst contributors. Defaults to auto-generated based on loadout.",
-        endTime="The end of the bounty as a unix timestamp. Defaults to auto-generated based on the route length. ",
+        end_time="The end of the bounty as a unix timestamp. Defaults to auto-generated based on the route length. ",
         icon="The icon of the bounty. Defaults to the criminal's icon.",
         ship_dict="The loadout of the bounty as json. Defaults to random based on difficulty."
     )
@@ -406,13 +406,13 @@ class DevBountiesCog(basedApp.BasedCog):
             guild_id: str = "here", difficulty: Optional[Range[int, cfg.minTechLevel, cfg.maxTechLevel]] = None, 
             division: Optional[str] = None, name: Optional[str] = None, faction: Optional[str] = None,
             route: Optional[str] = None, start: Optional[str] = None, end: Optional[str] = None, 
-            answer: Optional[str] = None, reward: Optional[int] = None, endTime: Optional[str] = None,
+            answer: Optional[str] = None, reward: Optional[int] = None, end_time: Optional[str] = None,
             icon: Optional[str] = None, ship_dict: Optional[str] = None):
         """developer command making a new bounty
         """
         await self._makeBounty(interaction, guild_id=guild_id, difficulty=difficulty, division=division,
                                 name=name, faction=faction, route=route, start=start, end=end, answer=answer,
-                                reward=reward, endTime=endTime, icon=icon, ship_dict=ship_dict)
+                                reward=reward, endTime=end_time, icon=icon, ship_dict=ship_dict)
 
 
     @systemAutoComplete("start")
@@ -432,7 +432,7 @@ class DevBountiesCog(basedApp.BasedCog):
         end="the end system. Defaults to random.",
         answer="The answer system. Defaults to random.",
         reward="The credits pool to share amongst contributors. Defaults to auto-generated based on loadout.",
-        endTime="The end of the bounty as a unix timestamp. Defaults to auto-generated based on the route length. ",
+        end_time="The end of the bounty as a unix timestamp. Defaults to auto-generated based on the route length. ",
         icon="The icon of the bounty. Defaults to the criminal's icon.",
         ship_dict="The loadout of the bounty as json. Defaults to random based on difficulty."
     )
@@ -443,13 +443,13 @@ class DevBountiesCog(basedApp.BasedCog):
             guild_id: str = "here", difficulty: Optional[Range[int, cfg.minTechLevel, cfg.maxTechLevel]] = None, 
             division: Optional[str] = None, faction: Optional[str] = None,
             route: Optional[str] = None, start: Optional[str] = None, end: Optional[str] = None, 
-            answer: Optional[str] = None, reward: Optional[int] = None, endTime: Optional[str] = None,
+            answer: Optional[str] = None, reward: Optional[int] = None, end_time: Optional[str] = None,
             icon: Optional[str] = None, ship_dict: Optional[str] = None):
         """developer command making a new bounty for a user
         """
         await self._makeBounty(interaction, guild_id=guild_id, difficulty=difficulty, division=division,
                                 player_id=player_id, faction=faction, route=route, start=start, end=end, answer=answer,
-                                reward=reward, endTime=endTime, icon=icon, ship_dict=ship_dict)
+                                reward=reward, endTime=end_time, icon=icon, ship_dict=ship_dict)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")

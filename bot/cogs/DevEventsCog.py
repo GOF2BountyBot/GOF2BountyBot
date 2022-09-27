@@ -24,7 +24,7 @@ class DevEventsCog(BasedCog):
     @app_commands.command(name="start-xmas-stocking-giveaway",
                             description="Start a giveaway of the christmas stocking for this year, for 48 hours")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_start_stocking_giveaway(self, interaction: Interaction, event_year: Optional[int] = None, guild_id: str = "here", channel_id: str = "", channel_type: Optional[PlayOrAnnounceChannel] = None, crateType: str = "christmas", active_minutes: Range[int, 0] = 0, active_hours: Range[int, 0] = 48):
+    async def dev_cmd_start_stocking_giveaway(self, interaction: Interaction, event_year: Optional[int] = None, guild_id: str = "here", channel_id: str = "", channel_type: Optional[PlayOrAnnounceChannel] = None, crate_type: str = "christmas", active_minutes: Range[int, 0] = 0, active_hours: Range[int, 0] = 48):
         """developer command starting a giveaway of the keith stocking crate for 48 hours
         """
         valid, guild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)
@@ -36,11 +36,11 @@ class DevEventsCog(BasedCog):
 
         event_year = event_year or utcnow().year
 
-        if not crateTool.CrateTool.crateTypeExists(crateType):
-            await interaction.response.send_message(f":x: Unknwn crateType '{crateType}'", ephemeral=True)
+        if not crateTool.CrateTool.crateTypeExists(crate_type):
+            await interaction.response.send_message(f":x: Unknwn crateType '{crate_type}'", ephemeral=True)
             return
-        if not crateTool.CrateTool.crateTypeNumExists(crateType, event_year):
-            await interaction.response.send_message(f":x: No '{crateType}' crate exists for year {event_year}", ephemeral=True)
+        if not crateTool.CrateTool.crateTypeNumExists(crate_type, event_year):
+            await interaction.response.send_message(f":x: No '{crate_type}' crate exists for year {event_year}", ephemeral=True)
             return
 
 
@@ -54,7 +54,7 @@ class DevEventsCog(BasedCog):
                     channel = guild.getAnnounceChannel()
 
             giveawayMsg = await channel.send("‎")
-            stocking = crateTool.CrateTool.deserialize({"type": "CrateTool", "crateType": crateType, "typeNum": event_year, "builtIn": True})
+            stocking = crateTool.CrateTool.deserialize({"type": "CrateTool", "crateType": crate_type, "typeNum": event_year, "builtIn": True})
             menu = GiveawayMenu(giveawayMsg, [stocking], activeTime=timedelta(hours=active_hours, minutes=active_minutes),
                                                 titleTxt="Merry Christmas!", 
                                                 desc="React below to receive your stocking!\nFind it in your `$hangar tool`, and open it with the new `$use` command.",

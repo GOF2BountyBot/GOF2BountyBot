@@ -495,8 +495,12 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
                 return
             if spec == "copy to here":
                 botState.client.tree.copy_global_to(guild=interaction.guild)
-            fmt = await botState.client.tree.sync(guild=interaction.guild)
-            await interaction.followup.send(f"{'Copied' if spec == 'copy to here' else 'Synced'} {len(fmt)} commands to the current guild")
+            try:
+                fmt = await botState.client.tree.sync(guild=interaction.guild)
+            except discord.app_commands.CommandSyncFailure as e:
+                await interaction.followup.send(f"Failed to sync: {e}")
+            else:
+                await interaction.followup.send(f"{'Copied' if spec == 'copy to here' else 'Synced'} {len(fmt)} commands to the current guild")
         return
 
     synced = []
