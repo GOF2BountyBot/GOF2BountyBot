@@ -165,7 +165,7 @@ class UserDuelsCog(BasedCog):
     @app_commands.describe(
         target="The user to challenge.",
         target_id="The id of the user to challenge. Useful if they are in another server.",
-        stages="The number of credits the loser must pay the winner. Can be 0."
+        stakes="The number of credits the loser must pay the winner. Can be 0."
     )
     @app_commands.command(name="duel-challenge", description="Challenge another player to a duel!")
     async def cmd_duel_send_challenge(self, interaction: Interaction, target: Optional[Union[User, Member]] = None, target_id: Optional[str] = None, stakes: app_commands.Range[int, 0] = 0):
