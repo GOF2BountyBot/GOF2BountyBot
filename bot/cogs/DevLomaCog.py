@@ -63,7 +63,7 @@ class DevLomaCog(basedApp.BasedCog):
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
     @app_commands.command(name="debug-loma",
-                            description="")
+                            description="A debug view of the requested user's Loma shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
     async def dev_cmd_debug_loma(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the requested user's loma, including object memory addresses.

@@ -65,7 +65,7 @@ class DevKaamoCog(basedApp.BasedCog):
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
     @app_commands.command(name="debug-kaamo",
-                            description="")
+                            description="A debug view of the requested user's Kaamo shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
     async def dev_cmd_debug_kaamo(self, interaction: Interaction, user_id: str = ""):
         """developer command printing the requested user's kaamo, including object memory addresses.

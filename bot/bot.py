@@ -498,7 +498,7 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
             try:
                 fmt = await botState.client.tree.sync(guild=interaction.guild)
             except discord.app_commands.CommandSyncFailure as e:
-                await interaction.followup.send(f"Failed to sync: {e}")
+                await interaction.followup.send(f"Failed to sync: {e.status} {e.text}")
             else:
                 await interaction.followup.send(f"{'Copied' if spec == 'copy to here' else 'Synced'} {len(fmt)} commands to the current guild")
         return
