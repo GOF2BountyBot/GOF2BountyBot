@@ -653,7 +653,7 @@ class BasedClient(ClientBaseClass):
 
         if not self._githubLoaded:
             self._githubClient = Github(cfg.githubAccessToken)
-            self._githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
+            self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)
             self._githubLoaded = True
 
         gameConfigurator.loadAllGameObjectData()
