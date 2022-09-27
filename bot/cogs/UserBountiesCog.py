@@ -35,10 +35,6 @@ from ..views.confirmView import ConfirmView
 
 
 class UserBountiesCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 
     async def fightShips(self, initiator: BasedUser, dcInitiator: Union[User, Member], receiver: Bounty) -> Tuple[Optional[Ship], Embed, Optional[Image]]:
@@ -478,7 +474,7 @@ class UserBountiesCog(BasedCog):
     @guildOnly(bountiesEnabled=True)
     @activeCriminalAutoComplete(paramName="criminal")
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting")
-    @app_commands.command(name="bounties", description="Get the named criminal's current route.")
+    @app_commands.command(name="route", description="Get the named criminal's current route.")
     @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_route(self, interaction: Interaction, criminal: str):
         """Display the current route of the requested criminal
@@ -605,7 +601,7 @@ class UserBountiesCog(BasedCog):
         callingBBUser.bountyHuntingXpSurplus = -1
 
         msg = f":astronaut: **{memberDisplayNameOrUserNameAndDiscrim(interaction.user, interaction.guild)}" + \
-            f" prestiged!** :tada:\n • You got a **{newCrate.name!}**"
+            f" prestiged!** :tada:\n • You got a **{newCrate.name}!**"
         
         if errors:
             msg += f"\n\nThe following error(s) occurred when updating your bounty alert role:\n" \

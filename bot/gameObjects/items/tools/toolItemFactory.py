@@ -1,6 +1,6 @@
-from typing import cast
 from . import toolItem, shipSkinTool, throwSnowballTool
 from . import crateTool
+from .crates import shipSkinCrateTool
 from .. import shipItem, moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
 from ....baseClasses.serializable import Factory
@@ -33,6 +33,6 @@ class ToolItemFactory(Factory[toolItem.TypedSerializedToolItem, toolItem.ToolIte
 toolTypeConstructors = {shipSkinTool.ShipSkinTool.__name__: shipSkinTool.ShipSkinTool,
                         crateTool.CrateTool.__name__: crateTool.CrateTool,
                         "ToolItem": ToolItemFactory,
-                        crateTool.ShipSkinCrateTool.__name__: crateTool.ShipSkinCrateTool,
+                        shipSkinCrateTool.ShipSkinCrateTool.__name__: shipSkinCrateTool.ShipSkinCrateTool,
                         throwSnowballTool.ThrowSnowballTool.__name__: throwSnowballTool.ThrowSnowballTool}
 itemConstructors.update(toolTypeConstructors)

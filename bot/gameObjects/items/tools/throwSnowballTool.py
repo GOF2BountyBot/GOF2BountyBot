@@ -1,6 +1,6 @@
 from . import toolItem
 from typing import TYPE_CHECKING, Optional
-from discord import Guild, Interaction, Message, MessageType, File, Embed, Colour
+from discord import Guild, Interaction, Message, MessageType, Embed, Colour
 from typing import List, cast
 from random import randint
 from PIL import Image

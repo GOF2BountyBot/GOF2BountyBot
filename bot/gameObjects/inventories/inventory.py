@@ -3,7 +3,6 @@ from . import inventoryListing
 from ...baseClasses.serializable import SerializesToSchema
 from typing import Dict, Generic, List, Tuple, Type, TypeVar, TypedDict, cast
 from ..items import gameItem
-from ..itemDiscount import ItemDiscount
 
 TListingType = TypeVar("TListingType", bound="inventoryListing.InventoryListing")
 TItemType = TypeVar("TItemType", bound="gameItem.GameItem")

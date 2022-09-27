@@ -67,10 +67,6 @@ class EmbedFieldParams(Modal):
 
 
 class EmbedEditorCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 
     async def messageForInteraction(self, interaction: Interaction, funcName: str, staticComponentId: StaticComponents) -> Optional[Message]:

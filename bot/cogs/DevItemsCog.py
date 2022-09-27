@@ -23,10 +23,6 @@ from ..logging import LogCategory
 
 
 class DevItemsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region commands
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="items")
@@ -69,7 +65,7 @@ class DevItemsCog(BasedCog):
     @app_commands.command(name="delete-item",
                             description="Delete one of an item in a user's inventory. If they have more several, the other are not affected.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete an item in a requested user's inventory.
         """
         user, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
@@ -107,7 +103,7 @@ class DevItemsCog(BasedCog):
     @app_commands.command(name="delete-all-of-item",
                             description="Delete all of an item from a user's inventory.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete ALL of an item in a requested user's inventory.
         """
         user, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)

@@ -7,11 +7,6 @@ from ...interactions.basedApp import BasedCog
 from ...interactions.basedComponent import StaticComponents
 
 class CommonStaticComponentsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @BasedCog.staticComponentCallback(StaticComponents.Clear_View)
     async def clearViewFromMessage(self, interaction: Interaction, userId: str) -> bool:
         "Returns True if the operation succeeded, or False if it didn't (e.g unmatched userId)"

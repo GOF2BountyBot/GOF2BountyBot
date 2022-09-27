@@ -27,10 +27,6 @@ def unpackDuelChallengeMenuArgs(args: str) -> Tuple[int, int]:
 
 
 class UserDuelsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 
     async def getDuelChallengeTarget(self, interaction: Interaction, target: Optional[Union[User, Member]], target_id: Optional[str]) -> Optional[Union[User, Member]]:
@@ -173,7 +169,7 @@ class UserDuelsCog(BasedCog):
     )
     @app_commands.command(name="duel-challenge", description="Challenge another player to a duel!")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_duel_send_challenge(self, interaction: Interaction, target: Optional[Union[User, Member]] = None, target_id: Optional[str] = None, stakes: app_commands.Range[int, 0, ...] = 0):
+    async def cmd_duel_send_challenge(self, interaction: Interaction, target: Optional[Union[User, Member]] = None, target_id: Optional[str] = None, stakes: app_commands.Range[int, 0] = 0):
         """⚠ WARNING: MARKED FOR CHANGE ⚠
         The following function is provisional and marked as planned for overhaul.
         Details: Overhaul is part-way complete, with a few fighting algorithm provided in gameObjects.items.battles.

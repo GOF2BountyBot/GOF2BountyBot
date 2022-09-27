@@ -1,4 +1,4 @@
-from typing import List, cast, TYPE_CHECKING
+from typing import List, cast
 from .. import client
 from discord import Colour, app_commands, Interaction, Embed
 from discord.abc import Snowflake
@@ -17,17 +17,13 @@ class OpenClose(Enum):
 
 
 class DevGithubCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region commands
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer)
     @app_commands.command(name="announce-issue",
                             description="Send a pretty message saying that a Github issue has been opened/closed.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_announce_issue(self, interaction: Interaction, issue_number: Range[int, 1, ...], action: OpenClose):
+    async def dev_cmd_announce_issue(self, interaction: Interaction, issue_number: Range[int, 1], action: OpenClose):
         """Send a pretty looking message saying that an issue has been opened/closed.
         """
         issue = await self.GithubUtilCog.getIssueByNumber(issue_number)

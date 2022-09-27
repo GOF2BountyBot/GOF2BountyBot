@@ -2,6 +2,8 @@ from ..cfg import cfg
 from .. import lib
 from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
 from .. import client
+from ..interactions.basedApp import BasedCog
+
 from typing import List, cast
 from discord.abc import Snowflake
 
@@ -9,10 +11,9 @@ from discord.ext import commands # type: ignore[import]
 from discord.ext import tasks # type: ignore[attr-defined]
 
 
-class BASED_VersionCog(commands.Cog): # type: ignore[name-defined]
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
+class BASED_VersionCog(BasedCog): # type: ignore[name-defined]
+    def __init__(self, bot: "client.BasedClient", *args, **kwargs):
+        super().__init__(bot, *args, **kwargs)
         bot.add_listener(self.on_ready)
 
 

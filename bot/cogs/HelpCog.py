@@ -99,12 +99,7 @@ def unpackHelpPageArgs(args: str) -> Tuple[Optional[str], Optional[int], Optiona
 
 
 class HelpCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
-    def _commandsForAccessLevel(self, level: Optional[basedCommand.AccessLevelType] = None, guild: Optional[Union[Object, Guild]] = None, type=AppCommandType.chat_input, exactLevel=True):
+    def _commandsForAccessLevel(self, level: Optional["accessLevels.AccessLevelType"] = None, guild: Optional[Union[Object, Guild]] = None, type=AppCommandType.chat_input, exactLevel=True):
         return list(c for c in self.bot.tree.walk_commands(guild=guild, type=type) if isinstance(c, app_commands.Command)) if level is None else \
             [c for c in self.bot.tree.walk_commands(guild=guild, type=type) \
                 if isinstance(c, app_commands.Command) and ((basedCommand.accessLevel(c) is level) \
@@ -112,7 +107,7 @@ class HelpCog(basedApp.BasedCog):
                 (commandChecks.accessLevelSufficient(level, basedCommand.accessLevel(c))))]
 
 
-    def getCommands(self, interaction: Interaction, level: Optional[basedCommand.AccessLevelType] = None, exactLevel=True) -> List[app_commands.Command]:
+    def getCommands(self, interaction: Interaction, level: Optional["accessLevels.AccessLevelType"] = None, exactLevel=True) -> List[app_commands.Command]:
         foundCommands = self._commandsForAccessLevel(level, exactLevel=exactLevel)
         if interaction.guild is not None:
             foundCommands.extend(self._commandsForAccessLevel(level, guild=interaction.guild, exactLevel=exactLevel))
@@ -186,7 +181,7 @@ class HelpCog(basedApp.BasedCog):
             await self.showHelpPageSingleSection(interaction, commandAccessLevel, category, pageNum=pageNum)
 
 
-    async def showHelpPageAllSections(self, interaction: Interaction, commandAccessLevel: basedCommand.AccessLevelType, category: Optional[str] = None, pageNum: Optional[int] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
+    async def showHelpPageAllSections(self, interaction: Interaction, commandAccessLevel: "accessLevels.AccessLevelType", category: Optional[str] = None, pageNum: Optional[int] = None, helpSections: Optional[Dict[str, List[app_commands.Command]]] = None):
         # This method calls itself sometimes. The helpSections argument acts as a cache, so we don't keep having to look up potential commands.
         helpSections = helpSections if helpSections is not None else self.bot.helpSectionsForAccessLevel(commandAccessLevel)
         
@@ -246,7 +241,7 @@ class HelpCog(basedApp.BasedCog):
         await self.fillAndSendHelpPage(interaction, True, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
 
     
-    async def showHelpPageSingleSection(self, interaction: Interaction, commandAccessLevel: basedCommand.AccessLevelType, category: str, pageNum: Optional[int] = None):
+    async def showHelpPageSingleSection(self, interaction: Interaction, commandAccessLevel: "accessLevels.AccessLevelType", category: str, pageNum: Optional[int] = None):
         userAccessLevel = await commandChecks.inferUserPermissions(interaction)
 
         if category not in self.bot.helpSections:
@@ -295,7 +290,7 @@ class HelpCog(basedApp.BasedCog):
         await self.fillAndSendHelpPage(interaction, False, e, category, pageNum, commandAccessLevel, notLastInSection, possibleCommands, offset, last, notFirstPage, notLastPage, switchableAccessLevels, userAccessLevel)
 
 
-    async def fillAndSendHelpPage(self, interaction: Interaction, showAll: bool, embed: Embed, category: str, pageNum: int, commandAccessLevel: basedCommand.AccessLevelType, notLastInSection: bool, possibleCommands: List[app_commands.Command], offset: int, last: int, notFirstPage: bool, notLastPage: bool, switchableAccessLevels: List[basedCommand.AccessLevelType], userAccessLevel: basedCommand.AccessLevelType):
+    async def fillAndSendHelpPage(self, interaction: Interaction, showAll: bool, embed: Embed, category: str, pageNum: int, commandAccessLevel: "accessLevels.AccessLevelType", notLastInSection: bool, possibleCommands: List[app_commands.Command], offset: int, last: int, notFirstPage: bool, notLastPage: bool, switchableAccessLevels: List["accessLevels.AccessLevelType"], userAccessLevel: "accessLevels.AccessLevelType"):
         embed.title = f"{commandAccessLevel.name.title()} Commands"
         embed.colour = Colour.blue()
 

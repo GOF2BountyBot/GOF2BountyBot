@@ -14,11 +14,6 @@ from ..shipRenderer import shipRenderer
 PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
 
 class DevSkinsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @shipAutoComplete()
     @shipSkinAutoComplete()
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="skins")

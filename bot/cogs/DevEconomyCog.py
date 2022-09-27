@@ -12,16 +12,11 @@ from ..interactions.basedApp import BasedCog
 
 
 class DevEconomyCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="economy")
     @app_commands.command(name="set-balance",
                             description="Set a user's credits balance")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_setbalance(self, interaction: Interaction, balance: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_setbalance(self, interaction: Interaction, balance: Range[int, 1], user_id: str = ""):
         """developer command setting the requested user's balance.
         """
         requestedBUser, _, _, _ = await self.UsersUtilCog.getOrCreateBasedUserOrAuthor(interaction, user_id)

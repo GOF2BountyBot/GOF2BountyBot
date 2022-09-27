@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import List, Optional, cast
 
-from discord import HTTPException, app_commands, Interaction, Colour
+from discord import app_commands, Interaction, Colour
 from discord.abc import Snowflake, Messageable
 from discord.utils import utcnow
 from discord.app_commands import Range
@@ -14,23 +14,17 @@ from ..interactions.basedApp import BasedCog
 from ..gameObjects.items.tools import crateTool
 from .util.transformers import PlayOrAnnounceChannel
 from ..users.basedGuild import BasedGuild
-from ..lib.stringTyping import isInt
 from ..reactionMenus.giveawayMenu import GiveawayMenu
 
 
 class DevEventsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="events",
                                 formattedDesc="Start a giveaway of the christmas stocking for this year, for 48 hours.\n" \
                                             + "When starting operating on all guilds, only guilds that have an announce channel (or play channel, if you specify), will receive the giveaway.")
     @app_commands.command(name="start-xmas-stocking-giveaway",
                             description="Start a giveaway of the christmas stocking for this year, for 48 hours")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_start_stocking_giveaway(self, interaction: Interaction, event_year: Optional[int] = None, guild_id: str = "here", channel_id: str = "", channel_type: Optional[PlayOrAnnounceChannel] = None, crateType: str = "christmas", active_minutes: Range[int, 0, ...] = 0, active_hours: Range[int, 0, ...] = 48):
+    async def dev_cmd_start_stocking_giveaway(self, interaction: Interaction, event_year: Optional[int] = None, guild_id: str = "here", channel_id: str = "", channel_type: Optional[PlayOrAnnounceChannel] = None, crateType: str = "christmas", active_minutes: Range[int, 0] = 0, active_hours: Range[int, 0] = 48):
         """developer command starting a giveaway of the keith stocking crate for 48 hours
         """
         valid, guild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id)

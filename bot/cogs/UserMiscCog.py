@@ -10,11 +10,6 @@ from discord.abc import Snowflake
 
 
 class UserMiscCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @basedCommand.basedCommand()
     @app_commands.command(name="source",
                             description="Get information about the bot, including a link to source code.")

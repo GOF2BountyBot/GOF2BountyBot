@@ -14,11 +14,10 @@ class ConcatenatableSerializablePath(SerializablePath):
         if cls is ConcatenatableSerializablePath:
             cls = ConcatenatableSerializableWindowsPath if os.name == 'nt' else ConcatenatableSerializablePosixPath
         # Ignoring a warning here because pyright can't see the private member _from_parts. It's there if you look at the class
-        self = cls._from_parts(args, init=False) # type: ignore[reportGeneralTypeIssues]
+        self = cls._from_parts(args) # type: ignore[reportGeneralTypeIssues]
         if not self._flavour.is_supported:
             raise NotImplementedError("cannot instantiate %r on your system"
                                       % (cls.__name__,))
-        self._init()
         return self
 
     def __add__(self, o: T) -> Union[T, str]:

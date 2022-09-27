@@ -1,4 +1,4 @@
-from discord import Message, Embed, Colour # type: ignore[import]
+from discord import Message, Embed, Colour
 from typing import Dict, List
 from ..cfg import cfg
 from .commandRegistry import CommandRegistry, COMMAND_FUNCTION_TYPE

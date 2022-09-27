@@ -22,7 +22,7 @@ from . import logging
 from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
 from .users.basedGuild import BasedGuild
-from .users.basedUser import BasedUser
+from .users import basedUser
 from .cfg import gameConfigurator
 from .reactionMenus import reactionMenu
 from .baseClasses.serializable import SerializesToJson
@@ -729,13 +729,13 @@ def ensureBasedClient(interaction: Interaction) -> BasedClient:
     return interaction.client
 
 
-def interactionBasedUser(interaction: Interaction) -> Optional[BasedUser]:
+def interactionBasedUser(interaction: Interaction) -> Optional["basedUser.BasedUser"]:
     client = ensureBasedClient(interaction)
     if client.usersDB.idExists(interaction.user.id):
         return client.usersDB.getUser(interaction.user.id)
     return None
 
 
-def onboardInteractionBasedUser(interaction: Interaction) -> BasedUser:
+def onboardInteractionBasedUser(interaction: Interaction) -> "basedUser.BasedUser":
     client = ensureBasedClient(interaction)
     return client.usersDB.getOrAddID(interaction.user.id)

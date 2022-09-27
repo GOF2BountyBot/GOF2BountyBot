@@ -116,10 +116,6 @@ def roleMenuCreatorView(interaction: Interaction, userId: Optional[Union[int, st
 
 
 class AdminMiscCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region static components
 
     """These are being replaced with the manage roles selector

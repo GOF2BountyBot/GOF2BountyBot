@@ -17,11 +17,6 @@ from ..gameObjects import guildShop
 from ..logging import LogCategory
 
 class DevKaamoCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
     @app_commands.command(name="kaamo-give",
                             description="Developer command spawning the described item, and placing it in the given user's kaamo shop.")
@@ -69,7 +64,7 @@ class DevKaamoCog(basedApp.BasedCog):
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
-    @app_commands.command(name="",
+    @app_commands.command(name="debug-kaamo",
                             description="")
     @app_commands.guilds(*cfg.developmentGuilds)
     async def dev_cmd_debug_kaamo(self, interaction: Interaction, user_id: str = ""):
@@ -169,7 +164,7 @@ class DevKaamoCog(basedApp.BasedCog):
     @app_commands.command(name="del-kaamo-item",
                             description="Delete one of an item in a requested user's kaamo. If the user has multiple, only one is affected.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_kaamo_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_kaamo_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete an item in a requested user's kaamo.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
@@ -237,7 +232,7 @@ class DevKaamoCog(basedApp.BasedCog):
     @app_commands.command(name="del-kaamo-item-key",
                             description="Delete ALL of an item in a requested user's kaamo.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_kaamo_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_kaamo_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete ALL OF an item in a requested user's kaamo.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)

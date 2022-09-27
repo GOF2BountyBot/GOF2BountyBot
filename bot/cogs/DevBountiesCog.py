@@ -2,7 +2,7 @@ import discord
 from discord import app_commands, Interaction
 from discord.utils import utcnow
 from discord.abc import Snowflake
-from discord.ext.commands import Range
+from discord.app_commands import Range
 from typing import List, Optional, cast
 from datetime import datetime, timezone, timedelta
 from carica import SerializableTimedelta
@@ -27,10 +27,6 @@ from .util.parameterVerifiers import verifyCriminalName, verifyDivName, verifyFa
 
 
 class DevBountiesCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
     
     async def _makeBounty(self, interaction: Interaction,
@@ -169,7 +165,7 @@ class DevBountiesCog(basedApp.BasedCog):
             await callingBBGuild.announceNewBounty(newBounty)
 
 
-    async def _setBountyXP(self, interaction: Interaction, xp: Range[int, 0, ...], user_id: str):
+    async def _setBountyXP(self, interaction: Interaction, xp: Range[int, 0], user_id: str):
         callingUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if callingUser is None:
             return
@@ -280,7 +276,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="set-check-cooldown",
                             description="set the cooldown of the /check command.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_setcheckcooldown(self, interaction: Interaction, seconds: Range[int, 0, ...] = 0, minutes: Range[int, 0, ...] = 0, hours: Range[int, 0, ...] = 0):
+    async def dev_cmd_setcheckcooldown(self, interaction: Interaction, seconds: Range[int, 0] = 0, minutes: Range[int, 0] = 0, hours: Range[int, 0] = 0):
         """developer command setting the checking cooldown applied to users
         this does not update cfg and will be reverted on bot restart
         """
@@ -295,7 +291,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="set-bounty-period",
                             description="set the new bounty generation period")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_setbountyperiodm(self, interaction: Interaction, seconds: Range[int, 0, ...] = 0, minutes: Range[int, 0, ...] = 0, hours: Range[int, 0, ...] = 0):
+    async def dev_cmd_setbountyperiodm(self, interaction: Interaction, seconds: Range[int, 0] = 0, minutes: Range[int, 0] = 0, hours: Range[int, 0] = 0):
         """developer command setting the number of minutes in the new bounty generation period
         this does not update cfg and will be reverted on bot restart
         """
@@ -460,7 +456,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="set-bounty-hunter-xp",
                             description="Set the requested user's bounty hunting xp")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_set_bounty_xp(self, interaction: Interaction, xp: Range[int, 0, ...], user_id: str = ""):
+    async def dev_cmd_set_bounty_xp(self, interaction: Interaction, xp: Range[int, 0], user_id: str = ""):
         """developer command setting the requested user's bounty hunting xp.
         """
         await self._setBountyXP(interaction, xp, user_id)
@@ -756,7 +752,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="set-xp-surplus",
                             description="Enable a user's ability to div-up or prestige by setting their xp surplus")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_set_user_divup_surplus(self, interaction: Interaction, xp_surplus: Range[int, -1, ...], user_id: str = ""):
+    async def dev_cmd_set_user_divup_surplus(self, interaction: Interaction, xp_surplus: Range[int, -1], user_id: str = ""):
         """Change a user's ability to div-up or prestige by setting their xp surplus
         """
         u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)

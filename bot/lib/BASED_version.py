@@ -1,6 +1,6 @@
 import os
 
-from ..baseClasses.serializable import JsonType, SerializesToJson
+from ..baseClasses.serializable import SerializesToJson
 from ..cfg import cfg
 from .. import lib
 from datetime import datetime, timezone
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, cast
 
-from discord.utils import utcnow # type: ignore[import]
+from discord.utils import utcnow
 
 # Path to the BASED version json descriptor file. File also contains the timestamp of the next scheduled version check.
 BASED_VERSIONFILE = str(Path(".BASED", "BASED_version.json"))

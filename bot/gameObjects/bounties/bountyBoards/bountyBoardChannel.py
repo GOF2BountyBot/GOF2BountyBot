@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Coroutine, List, Tuple, TypedDict
-from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel, File, TextChannel
+from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
@@ -12,8 +12,7 @@ from ....cfg import bbData, cfg
 from .... import lib
 from .. import criminal, bounty
 from .... import botState
-import asyncio
-from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union, cast
+from typing import Dict, Optional, Set, Union, cast
 from .. import solarSystem
 from ....logging import LogCategory
 

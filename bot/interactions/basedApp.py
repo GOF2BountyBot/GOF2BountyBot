@@ -1,6 +1,6 @@
 from enum import Enum
 from inspect import iscoroutinefunction, signature
-from typing import Any, Awaitable, Callable, Dict, Generic, Optional, Protocol, Type, TypeVar, TYPE_CHECKING, Union, cast
+from typing import Any, Awaitable, Callable, Dict, Generic, Optional, Protocol, Set, Type, TypeVar, TYPE_CHECKING, Union, cast
 from functools import wraps
 
 from discord.ext.commands.cog import Cog
@@ -125,6 +125,16 @@ def getCogAppCogName(callback: Callable) -> str:
     # return callback.__cog_name__
     return callback.__dict__["__cog_name__"]
 
+_basedAppIgnored: Set[str] = set()
+_TIgnoredMethod = TypeVar("_TIgnoredMethod", bound=Callable)
+
+def _basedAppIgnore(method: _TIgnoredMethod) -> _TIgnoredMethod:
+    _basedAppIgnored.add(method.__name__)
+    return method
+
+def _isIgnored(methodName: str) -> bool:
+    return methodName in _basedAppIgnored
+
 TStaticComponentCallback = TypeVar("TStaticComponentCallback", bound="basedComponent.StaticComponentCallbackType")
 
 class BasedCog(Cog):
@@ -136,27 +146,28 @@ class BasedCog(Cog):
     :var staticComponentCallbacks: All static component callbacks defined within the cog, by ID
     :type staticComponentCallbacks: Dict[basedComponent.StaticComponents, basedComponent.StaticComponentCallbackMeta]
     """
+    @_basedAppIgnore
     def __init__(self, bot: "client.BasedClient", *args, **kwargs):
         self.bot = bot
         super().__init__(*args, **kwargs)
         self._basedCommands: Optional[Dict[app_commands.Command, "basedCommand.BasedCommandMeta"]] = None
         self._staticComponentCallbacks: Optional[Dict["basedComponent.StaticComponents", "basedComponent.StaticComponentCallbackMeta"]] = None
 
-
     @property
+    @_basedAppIgnore
     def basedCommands(self):
         if self._basedCommands is None:
             raise ValueError("basedCommands is only available after cog injection")
         return self._basedCommands
 
-
     @property
+    @_basedAppIgnore
     def staticComponentCallbacks(self):
         if self._staticComponentCallbacks is None:
             raise ValueError("staticComponentCallbacks is only available after cog injection")
         return self._staticComponentCallbacks
 
-
+    @_basedAppIgnore
     async def cog_load(self) -> None:
         """Registers all BASED apps, e.g static components callbacks, based commands, etc.
         """
@@ -168,7 +179,9 @@ class BasedCog(Cog):
                 setCogApp(command.callback, type(self))
                 self.bot.addBasedCommand(command)
         
-        for methodName in dir(self):
+        for methodName in [n for n in dir(self) \
+                            if not _isIgnored(n) and \
+                                (not hasattr(type(self), n) or not isinstance(getattr(type(self), n), property))]:
             method = getattr(self, methodName)
             if appType(method) == BasedAppType.StaticComponent:
                 meta = basedComponent.staticComponentCallbackMeta(method)
@@ -178,7 +191,7 @@ class BasedCog(Cog):
 
         return await super().cog_load()
 
-    
+    @_basedAppIgnore
     async def cog_unload(self) -> None:
         """Unregisters all BASED apps in the cog from the provided client
         """
@@ -195,7 +208,7 @@ class BasedCog(Cog):
 
         return await super().cog_unload()
 
-
+    @_basedAppIgnore
     @classmethod
     def staticComponentCallback(cls, ID: "basedComponent.StaticComponents"):
         """Decorator marking a coroutine as a static component callback.
@@ -244,14 +257,14 @@ class BasedCog(Cog):
 
         return decorator
 
-    
+    @_basedAppIgnore
     def tryGetCog(self, cogName: str, callingFuncName: Optional[str] = None) -> Optional[Cog]:
         foundCog = self.bot.get_cog(cogName)
         if foundCog is None:
             self.bot.logger.log("DevMiscCog", callingFuncName or "tryGetCog", f"Unable to find cog on self.bot: {cogName}", eventType="COG_NOT_FOUND")
         return foundCog
 
-
+    @_basedAppIgnore
     def getEmbedEditorCog(self, callingFuncName: Optional[str] = None) -> Optional["EmbedEditorCog.EmbedEditorCog"]:
         """Get the loaded instance of the shared 'EmbedEditorCog' cog.
 
@@ -259,8 +272,8 @@ class BasedCog(Cog):
         """
         return cast(Optional["EmbedEditorCog.EmbedEditorCog"], self.tryGetCog("EmbedEditorCog", callingFuncName=callingFuncName))
 
-
     @property
+    @_basedAppIgnore
     def EmbedEditorCog(self) -> "EmbedEditorCog.EmbedEditorCog":
         """Get the loaded instance of the shared 'EmbedEditorCog' cog.
 
@@ -272,7 +285,7 @@ class BasedCog(Cog):
             raise lib.exceptions.SharedCogNotLoaded("EmbedEditorCog")
         return cast("EmbedEditorCog.EmbedEditorCog", c)
 
-
+    @_basedAppIgnore
     def getCommonStaticComponentsCog(self, callingFuncName: Optional[str] = None) -> Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"]:
         """Get the loaded instance of the shared 'CommonStaticComponentsCog' cog.
 
@@ -280,8 +293,8 @@ class BasedCog(Cog):
         """
         return cast(Optional["CommonStaticComponentsCog.CommonStaticComponentsCog"], self.tryGetCog("CommonStaticComponentsCog", callingFuncName=callingFuncName))
 
-
     @property
+    @_basedAppIgnore
     def CommonStaticComponentsCog(self) -> "CommonStaticComponentsCog.CommonStaticComponentsCog":
         """Get the loaded instance of the shared 'CommonStaticComponentsCog' cog.
 
@@ -293,7 +306,7 @@ class BasedCog(Cog):
             raise lib.exceptions.SharedCogNotLoaded("CommonStaticComponentsCog")
         return cast("CommonStaticComponentsCog.CommonStaticComponentsCog", c)
 
-    
+    @_basedAppIgnore
     def getGuildsUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["GuildsUtilCog.GuildsUtilCog"]:
         """Get the loaded instance of the shared 'GuildsUtilCog' cog.
 
@@ -301,8 +314,8 @@ class BasedCog(Cog):
         """
         return cast(Optional["GuildsUtilCog.GuildsUtilCog"], self.tryGetCog("GuildsUtilCog", callingFuncName=callingFuncName))
 
-
     @property
+    @_basedAppIgnore
     def GuildsUtilCog(self) -> "GuildsUtilCog.GuildsUtilCog":
         """Get the loaded instance of the shared 'GuildsUtilCog' cog.
 
@@ -314,7 +327,7 @@ class BasedCog(Cog):
             raise lib.exceptions.SharedCogNotLoaded("GuildsUtilCog")
         return cast("GuildsUtilCog.GuildsUtilCog", c)
 
-
+    @_basedAppIgnore
     def getUsersUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["UsersUtilCog.UsersUtilCog"]:
         """Get the loaded instance of the shared 'UsersUtilCog' cog.
 
@@ -322,8 +335,8 @@ class BasedCog(Cog):
         """
         return cast(Optional["UsersUtilCog.UsersUtilCog"], self.tryGetCog("UsersUtilCog", callingFuncName=callingFuncName))
 
-
     @property
+    @_basedAppIgnore
     def UsersUtilCog(self) -> "UsersUtilCog.UsersUtilCog":
         """Get the loaded instance of the shared 'UsersUtilCog' cog.
 
@@ -335,8 +348,8 @@ class BasedCog(Cog):
             raise lib.exceptions.SharedCogNotLoaded("UsersUtilCog")
         return cast("UsersUtilCog.UsersUtilCog", c)
 
-
     @property
+    @_basedAppIgnore
     def GithubUtilCog(self) -> "GithubUtilCog.GithubUtilCog":
         """Get the loaded instance of the shared 'GithubUtilCog' cog.
 
@@ -348,7 +361,7 @@ class BasedCog(Cog):
             raise lib.exceptions.SharedCogNotLoaded("GithubUtilCog")
         return cast("GithubUtilCog.GithubUtilCog", c)
 
-
+    @_basedAppIgnore
     def getGithubUtilCog(self, callingFuncName: Optional[str] = None) -> Optional["GithubUtilCog.GithubUtilCog"]:
         """Get the loaded instance of the shared 'GithubUtilCog' cog.
 

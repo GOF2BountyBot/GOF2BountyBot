@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, overload
+from typing import List, Optional, Union
 import string
 
 _idToIndex = {c: i for i, c in enumerate(string.printable)}

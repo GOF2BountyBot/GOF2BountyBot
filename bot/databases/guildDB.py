@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, TypedDict, cast
+from typing import List, Dict, cast
 from discord import Guild, Interaction
 from concurrent.futures import ThreadPoolExecutor
 import os

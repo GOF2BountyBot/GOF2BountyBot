@@ -1,14 +1,13 @@
 from inspect import iscoroutinefunction
 import inspect
-from discord import ButtonStyle, Embed
+from discord import Embed
 from discord import Message, Interaction
-from discord.ui import View, Button, Item, Select, TextInput
+from discord.ui import View, Button, Select, TextInput
 
-from typing import Any, Awaitable, List, Optional, TypeVar, Union, Callable, Protocol, cast, overload, Dict
+from typing import Any, Awaitable, Optional, TypeVar, Union, Callable, Protocol, cast, Dict
 from enum import Enum, EnumMeta, _EnumDict
 
 from .. import lib
-from ..cfg import cfg
 from . import basedApp
 
 
@@ -87,14 +86,18 @@ class StaticComponentEnumMeta(EnumMeta):
         # Ignoring warning for unknown field _member_names. Go to the _EnumDict source, it's there.
         enumMembers: Dict[str, Any] = {k: classdict[k] for k in classdict._member_names} # type: ignore[reportGeneralTypeIssues]
         maxId = lib.ids.maxIndex(STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
+        idsSoFar: Dict[int, str] = {}
         for name, value in enumMembers.items():
             if not isinstance(value, int):
                 raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be int and at most {maxId}")
             if value > maxId:
                 raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be int and at most {maxId}")
+            if value in idsSoFar:
+                raise TypeError(f"Static component '{name}' is registered with ID {value}, but this is already being used for component '{idsSoFar[value]}'")
             enumMembers[name] = lib.ids.indexToID(value, pad=STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
+            idsSoFar[value] = name
             validateParam(f"component ID for component named '{name}'", enumMembers[name])
-        classdict.update(enumMembers)
+        # classdict.update(enumMembers)
         return super().__new__(cls, clsName, bases, classdict, **kwds)
 
 
@@ -126,38 +129,38 @@ class StaticComponents(StaticComponentIDsEnum):
     Dev_Say_Embed_Reorder_Fields = 12
     Dev_Say_Embed_Reorder_Fields_Select = 13
 
-    Dev_Broadcast_Embed_Remove_Field = 24
-    Dev_Broadcast_Embed_Remove_Field_Select = 25
-    Dev_Broadcast_Embed_Edit_Field = 26
-    Dev_Broadcast_Embed_Edit_Field_Select = 27
-    Dev_Broadcast_Embed_Reorder_Fields = 28
-    Dev_Broadcast_Embed_Reorder_Fields_Select = 29
-    Dev_Broadcast_Submit = 29
+    Dev_Broadcast_Embed_Remove_Field = 14
+    Dev_Broadcast_Embed_Remove_Field_Select = 15
+    Dev_Broadcast_Embed_Edit_Field = 16
+    Dev_Broadcast_Embed_Edit_Field_Select = 17
+    Dev_Broadcast_Embed_Reorder_Fields = 18
+    Dev_Broadcast_Embed_Reorder_Fields_Select = 19
+    Dev_Broadcast_Submit = 20
 
-    Dev_Announce_Broadcast_Embed_Remove_Field = 30
-    Dev_Announce_Broadcast_Embed_Remove_Field_Select = 31
-    Dev_Announce_Broadcast_Embed_Edit_Field = 32
-    Dev_Announce_Broadcast_Embed_Edit_Field_Select = 33
-    Dev_Announce_Broadcast_Embed_Reorder_Fields = 34
-    Dev_Announce_Broadcast_Embed_Reorder_Fields_Select = 35
-    Dev_Announce_Broadcast_Submit = 36
+    Dev_Announce_Broadcast_Embed_Remove_Field = 21
+    Dev_Announce_Broadcast_Embed_Remove_Field_Select = 22
+    Dev_Announce_Broadcast_Embed_Edit_Field = 23
+    Dev_Announce_Broadcast_Embed_Edit_Field_Select = 24
+    Dev_Announce_Broadcast_Embed_Reorder_Fields = 25
+    Dev_Announce_Broadcast_Embed_Reorder_Fields_Select = 26
+    Dev_Announce_Broadcast_Submit = 27
 
     # AdminMiscCog
-    Admin_MakeRoleMenu_Submit_New_Menu = 14
-    Admin_MakeRoleMenu_Cancel_New_Menu = 15
-    Admin_MakeRoleMenu_Remove_Role = 16
-    Admin_MakeRoleMenu_Reorder_Roles = 17
-    Admin_MakeRoleMenu_Remove_Role_Select = 18
-    Admin_MakeRoleMenu_Reorder_Roles_Select = 19
-    Admin_MakeRoleMenu_Manage_Roles = 20
-    Admin_MakeRoleMenu_Manage_Roles_Refresh = 21
-    Admin_MakeRoleMenu_Change_Emoji_Select = 22
-    Admin_MakeRoleMenu_Change_Emoji = 23
+    Admin_MakeRoleMenu_Submit_New_Menu = 28
+    Admin_MakeRoleMenu_Cancel_New_Menu = 29
+    Admin_MakeRoleMenu_Remove_Role = 30
+    Admin_MakeRoleMenu_Reorder_Roles = 31
+    Admin_MakeRoleMenu_Remove_Role_Select = 32
+    Admin_MakeRoleMenu_Reorder_Roles_Select = 33
+    Admin_MakeRoleMenu_Manage_Roles = 34
+    Admin_MakeRoleMenu_Manage_Roles_Refresh = 35
+    Admin_MakeRoleMenu_Change_Emoji_Select = 36
+    Admin_MakeRoleMenu_Change_Emoji = 37
 
     # UserBountiesCog
-    User_ToggleClassicMode_Confirm = 37
-    User_DuelChallenge_Accept = 38
-    User_DuelChallenge_Reject = 39
+    User_ToggleClassicMode_Confirm = 38
+    User_DuelChallenge_Accept = 39
+    User_DuelChallenge_Reject = 40
 
 
 class StaticComponentMeta:

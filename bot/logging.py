@@ -2,7 +2,7 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from .lib.exceptions import formatExceptionTrace
 import discord
 from enum import Enum

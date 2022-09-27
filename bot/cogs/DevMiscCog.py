@@ -145,10 +145,6 @@ def announce_broadcast_editorView(interaction: Interaction, userId: Optional[Uni
 
 
 class DevMiscCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 
     def describeTT(self, tt: Optional[TimedTask], issueTime: bool = True, expiryFunc: bool = True, nextExpiry: bool = True,

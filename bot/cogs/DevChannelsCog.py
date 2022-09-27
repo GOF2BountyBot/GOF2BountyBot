@@ -15,10 +15,6 @@ def formatChannel(c: GuildChannel):
 
 
 class DevChannelsCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region commands
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer)

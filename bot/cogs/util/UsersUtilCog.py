@@ -15,10 +15,6 @@ from ...baseClasses.serializable import JsonType
 
 
 class UsersUtilCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 
     async def userOrAuthorId(self, interaction: Interaction, user_id: str, sendError: bool = True, errorEphemeral: bool = True) -> Tuple[int, bool]:
@@ -72,7 +68,7 @@ class UsersUtilCog(BasedCog):
         return (self.bot.usersDB.getOrAddID(userId), isAuthor, False, userCreated)
 
 
-    async def getUserItemByIndex(self, interaction: Interaction, user: basedUser.BasedUser, item_type: ItemCategory, item_number: Range[int, 1, ...], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[Tuple[Inventory, GameItem]]:
+    async def getUserItemByIndex(self, interaction: Interaction, user: basedUser.BasedUser, item_type: ItemCategory, item_number: Range[int, 1], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[Tuple[Inventory, GameItem]]:
         """Get an item from a user's inventory, from the item category name and item number.
 
         :param interaction: the command usage that triggered this function. Used for sending errors.
@@ -82,7 +78,7 @@ class UsersUtilCog(BasedCog):
         :param item_type: name of the category if items to look in
         :type item_type: ItemCategory
         :param item_number: index of the item in the user's inventory
-        :type item_number: Range[int, 1, ...]
+        :type item_number: Range[int, 1]
         :param sendErrors: if this is true and an error occurs, respond to the interaction with the error (Default True)
         :type sendErrors: bool, optional
         :param sendErrorsEphemeral: if sendErrors is true, send errors as ephemeral (Default True)
@@ -100,7 +96,7 @@ class UsersUtilCog(BasedCog):
         return userItemInactives, userItemInactives.itemAtIndex(item_number - 1)
 
 
-    async def getDefaultUserItemByIndex(self, interaction: Interaction, isAuthor: bool, item_type: ItemCategory, item_number: Range[int, 1, ...], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[GameItem]:
+    async def getDefaultUserItemByIndex(self, interaction: Interaction, isAuthor: bool, item_type: ItemCategory, item_number: Range[int, 1], sendErrors: bool = True, sendErrorsEphemeral: bool = True) -> Optional[GameItem]:
         """Get an item from a non-existent user's inventory, from the item category name and item number, using the default user from basedUser.defaultUserDict.
 
         :param interaction: the command usage that triggered this function. Used for sending errors.
@@ -109,7 +105,7 @@ class UsersUtilCog(BasedCog):
         :param item_type: name of the category if items to look in
         :type item_type: ItemCategory
         :param item_number: index of the item in the specified inventory
-        :type item_number: Range[int, 1, ...]
+        :type item_number: Range[int, 1]
         :param sendErrors: if this is true and an error occurs, respond to the interaction with the error (Default True)
         :type sendErrors: bool, optional
         :param sendErrorsEphemeral: if sendErrors is true, send errors as ephemeral (Default True)

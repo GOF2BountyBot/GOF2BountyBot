@@ -11,11 +11,6 @@ from ..databases.bountyDB import BountyDB, nameForDivision
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 class AdminChannelsCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     async def setGuildChannel(self, interaction: Interaction, channelType: GuildChannelType, friendlyName: str):
         requestedBBGuild = self.bot.guildsDB.fromInteraction(interaction)
         if not isinstance(interaction.channel, TextChannel):

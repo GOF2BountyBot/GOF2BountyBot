@@ -1,47 +1,34 @@
 # Set up bot config
 
-import github
-from bot.gameObjects.items import shipItem
-from .cfg import cfg, bbData, gameConfigurator
-from typing import List, Literal, Optional, Union, cast
+from typing import Literal, Optional, cast
 from .cfg import cfg
 
 # Discord Imports
 
-import discord # type: ignore[import]
-from discord import Member, Object, app_commands, Interaction
+import discord
+from discord import Member, app_commands, Interaction
 from discord.ext.commands import ExtensionNotLoaded
 from discord.abc import GuildChannel
-from .interactions import basedCommand
 
 
 # Util imports
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import traceback
 import asyncio
-import signal
-import aiohttp
-import sys
-from github import Github
 
 
 # BASED Imports
 
-from . import lib, botState, logging
+from . import lib, botState
 from .lib import BASED_version
-from .lib.emojis import UninitializedBasedEmoji
-from .databases import guildDB, reactionMenuDB, userDB, bountyDB
+from .databases import bountyDB
 from .scheduling.timedTask import TimedTask
-from .scheduling.timedTaskHeap import TimedTaskHeap
-from .scheduling import timedTaskHeap
-from .reactionMenus import reactionMenu
-from .users.basedGuild import BasedGuild
 from .gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 # register as spawnable
-from .gameObjects.items.tools import creditsTool, throwSnowballTool
+# from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
 from . import lib, botState
 from .lib import BASED_version
@@ -200,11 +187,8 @@ async def on_guild_join(guild: discord.Guild):
 
     :param discord.Guild guild: the guild just joined.
     """
-    guildExists = True
-    if not botState.client.guildsDB.idExists(guild.id):
-        guildExists = False
-        newGuild = BasedGuild.deserialize({}, guildID=guild.id)
-        botState.client.guildsDB.addBasedGuild(newGuild)
+    if not (guildExists := botState.client.guildsDB.idExists(guild.id)):
+        botState.client.guildsDB.addDcGuild(guild)
 
     botState.client.logger.log("Main", "guild_join", "I joined a new guild! " + guild.name + "#" + str(guild.id) +
                             ("\n -- The guild was added to botState.client.guildsDB" if not guildExists else ""),

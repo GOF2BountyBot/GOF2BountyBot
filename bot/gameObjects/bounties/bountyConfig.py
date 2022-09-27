@@ -1,6 +1,6 @@
 # Typing imports
 from __future__ import annotations, division
-from typing import TYPE_CHECKING, Callable, List, Dict, Optional, Protocol, Tuple, Any, Type, Union
+from typing import TYPE_CHECKING, List, Dict, Optional, Protocol, Any, Type, Union
 if TYPE_CHECKING:
     from ..items import shipItem
     from ...databases import bountyDivision

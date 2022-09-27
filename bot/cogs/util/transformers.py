@@ -6,11 +6,16 @@ class Equatable(Protocol):
     def __eq__(self, __o) -> bool: ...
 
 
+# Workaround so that BoolTransformerBase is not validated by the BoolEnumMeta constructor
+_first = [None]
+
 class BoolEnumMeta(EnumMeta):
     def __new__(cls: type, clsName, bases, classdict, trueVal: Equatable = True, **kwds):
-        if trueVal not in classdict.values():
-            raise ValueError(f"trueVal {trueVal} is not a member value of enum {cls.__name__}")
         o: "BoolTransformerBase" = super().__new__(cls, clsName, bases, classdict, **kwds)
+        if _first:
+            _first.clear()
+        elif trueVal not in classdict.values():
+            raise ValueError(f"trueVal {trueVal} is not a member value of enum {type(o).__name__}")
         o.trueVal = trueVal
         return o
 

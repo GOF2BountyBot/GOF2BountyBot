@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
 from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, TypedDict, Union
-from collections.abc import Mapping
 import carica
 from carica import ISerializable, SerializesToType, PrimativeType
 from .defaultable import DefaultableMixin

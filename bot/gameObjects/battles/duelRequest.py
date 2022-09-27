@@ -12,7 +12,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import aiohttp
 import textwrap
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class FightStats:
@@ -33,8 +33,8 @@ class FightResults:
     initiatorShip: shipItem.Ship
     receiverShip: shipItem.Ship
     winnerShip: Optional[shipItem.Ship] = None
-    initiatorStats: FightStats = FightStats(0, 0, 0, 0, -1, True)
-    receiverStats: FightStats = FightStats(0, 0, 0, 0, -1, True)
+    initiatorStats: FightStats = field(default_factory = lambda: FightStats(0, 0, 0, 0, -1, True))
+    receiverStats: FightStats = field(default_factory = lambda: FightStats(0, 0, 0, 0, -1, True))
 
     def shipStats(self, ship: shipItem.Ship) -> FightStats:
         if ship is self.initiatorShip: return self.initiatorStats

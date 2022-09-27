@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Optional, TypedDict, cast
+from typing import Dict, Optional, TypedDict, cast, TYPE_CHECKING
 from typing_extensions import NotRequired
 
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
@@ -7,9 +7,11 @@ from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
 from ..cfg import cfg
-from ..users import basedGuild
 from .bountyDivision import BountyDivision
 from ..baseClasses.serializable import SerializesToSchema
+
+if TYPE_CHECKING:
+    from ..users import basedGuild
 
 
 def nameForDivision(div: BountyDivision) -> str:
@@ -480,7 +482,7 @@ class BountyDB(SerializesToSchema[SerializedBountyDB]):
 
 
     @classmethod
-    def deserialize(cls, bountyDBDict: SerializedBountyDB, owningBasedGuild: Optional[basedGuild.BasedGuild] = None, dbReload: bool = False, **kwargs) -> BountyDB:
+    def deserialize(cls, bountyDBDict: SerializedBountyDB, owningBasedGuild: Optional["basedGuild.BasedGuild"] = None, dbReload: bool = False, **kwargs) -> BountyDB:
         """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.serialize.
 
         :param dict bountyDBDict: a dictionary representation of the bountyDB, to convert to an object

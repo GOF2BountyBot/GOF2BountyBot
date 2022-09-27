@@ -19,11 +19,6 @@ from ..logging import LogCategory
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
 
 class DevLomaCog(basedApp.BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
     @app_commands.command(name="loma-give",
                             description="Developer command spawning the described item, and placing it in the given user's loma shop.")
@@ -67,7 +62,7 @@ class DevLomaCog(basedApp.BasedCog):
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
-    @app_commands.command(name="",
+    @app_commands.command(name="debug-loma",
                             description="")
     @app_commands.guilds(*cfg.developmentGuilds)
     async def dev_cmd_debug_loma(self, interaction: Interaction, user_id: str = ""):
@@ -182,7 +177,7 @@ class DevLomaCog(basedApp.BasedCog):
     @app_commands.command(name="del-loma-item",
                             description="Delete one of an item in a requested user's loma. If the user has multiple, only one is affected.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_loma_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_loma_item(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete an item in a requested user's loma.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
@@ -250,7 +245,7 @@ class DevLomaCog(basedApp.BasedCog):
     @app_commands.command(name="del-loma-item-key",
                             description="Delete ALL of an item in a requested user's loma.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_loma_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], user_id: str = ""):
+    async def dev_cmd_del_loma_item_key(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], user_id: str = ""):
         """Delete ALL OF an item in a requested user's loma.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
@@ -327,7 +322,7 @@ class DevLomaCog(basedApp.BasedCog):
     @app_commands.command(name="loma-give-discount",
                             description="Give a user a discount for an item in their loma shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_loma_give_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_json: str, user_id: str = ""):
+    async def dev_cmd_loma_give_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], discount_json: str, user_id: str = ""):
         """developer command creating the described item item discount, and placing it in the given user's loma shop, for the described item.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
@@ -379,7 +374,7 @@ class DevLomaCog(basedApp.BasedCog):
     @app_commands.command(name="loma-del-discount",
                             description="Delete a discount that a user has for an item in their loma shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_del_loma_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1, ...], discount_index: Range[int, 0, ...], user_id: str = ""):
+    async def dev_cmd_del_loma_discount(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], discount_index: Range[int, 0], user_id: str = ""):
         """Delete a discount that a user has for an item in their loma shop.
         """
         requestedBBUser, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)

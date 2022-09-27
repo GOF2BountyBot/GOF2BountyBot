@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import Optional, Union, cast
+from typing import Optional, Union, cast, TYPE_CHECKING
 from discord import Interaction
 
 from . import toolItem
 from .... import lib
 from ....lib import gameMaths
 from ....lib.discordUtil import interactionSend
-from ....client import onboardInteractionBasedUser
+from .... import client
 from ....cfg import cfg, bbData
 from ...shipSkin import ShipSkin, SerializedShipSkinUnion
 from .... import botState
@@ -14,7 +14,9 @@ from ..gameItem import spawnableItem
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
 from ....views.confirmView import ConfirmView
-from ....users.basedUser import BasedUser
+
+if TYPE_CHECKING:
+    from ....users import basedUser
 
 
 class BuiltInSerializedShipSkinTool(toolItem.SerializedToolItem): pass
@@ -67,11 +69,11 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[Seriali
 
 
     @toolItem.singleUse
-    async def use(self, *, callingBUser: BasedUser, **_) -> bool:
+    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Apply the skin to the given ship.
         After use, the tool will be removed from callingBUser's inventory. To disable this, pass callingBUser as None.
         """
-        if not isinstance(callingBUser, BasedUser):
+        if not isinstance(callingBUser, "basedUser.BasedUser"):
             raise TypeError("Required kwarg calingBUser is of the wrong type. Expected BasedUser, received " \
                             + type(callingBUser).__name__)
 
@@ -95,7 +97,7 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[Seriali
         :returns: Whether or not the use was successful
         :rtype: bool
         """
-        callingBUser = onboardInteractionBasedUser(interaction)
+        callingBUser = client.onboardInteractionBasedUser(interaction)
         ship = callingBUser.activeShip
 
         if ship.isSkinned:

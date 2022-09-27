@@ -15,10 +15,6 @@ from ...gameObjects.guildShop import TechLeveledShop
 
 
 class GuildsUtilCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
 #region util
 #region guild lookups
 

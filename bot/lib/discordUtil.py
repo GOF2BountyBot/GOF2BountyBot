@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 else:
     TParams = TypeVar('TParams')
 
-import discord # type: ignore[import]
-from discord.errors import NotFound # type: ignore[import]
-from discord import Interaction, PartialMessageable, User, Member, ClientUser, Guild, Message # type: ignore[import]
-from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent # type: ignore[import]
+import discord
+from discord.errors import NotFound
+from discord import Interaction, PartialMessageable, User, Member, ClientUser, Guild, Message
+from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
 

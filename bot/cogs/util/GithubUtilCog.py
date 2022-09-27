@@ -15,9 +15,8 @@ ISSUE_TEMPLATE_NAME_SEARCH = re.compile("name: ")
 ISSUE_TEMPLATE_ABOUT_SEARCH = re.compile("about: ")
 
 class GithubUtilCog(BasedCog):
-    def __init__(self, bot: client.BasedClient, *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
+    def __init__(self, bot: "client.BasedClient", *args, **kwargs):
+        super().__init__(bot, *args, **kwargs)
         self._githubClient: Optional[Github] = None
         self._githubRepo: Optional[Repository] = None
         self._githubLoaded = False
