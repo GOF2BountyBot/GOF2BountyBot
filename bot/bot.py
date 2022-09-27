@@ -28,7 +28,7 @@ from .scheduling.timedTask import TimedTask
 from .gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 # register as spawnable
-# from .gameObjects.items.tools import creditsTool, throwSnowballTool
+from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
 from . import lib, botState
 from .lib import BASED_version

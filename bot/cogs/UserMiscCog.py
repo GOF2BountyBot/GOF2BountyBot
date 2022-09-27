@@ -13,7 +13,6 @@ class UserMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand()
     @app_commands.command(name="source",
                             description="Get information about the bot, including a link to source code.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_source(self, interaction: Interaction):
         """Print a short message with information about the bot's source code.
         """
@@ -38,6 +37,4 @@ class UserMiscCog(basedApp.BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(UserMiscCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(UserMiscCog(bot))

@@ -60,6 +60,4 @@ class CommonStaticComponentsCog(BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    # TODO: Fix SerializableDiscordObject somehow not matching Snowflake protocol
-    await bot.add_cog(CommonStaticComponentsCog(bot),
-                        guilds=cfg.developmentGuilds) # type: ignore[reportGeneralTypeIssues]
+    await bot.add_cog(CommonStaticComponentsCog(bot))

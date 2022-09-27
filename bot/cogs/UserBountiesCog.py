@@ -191,7 +191,6 @@ class UserBountiesCog(BasedCog):
                             description="Toggle \"classic mode\", which emulates the BountyBot beta. " \
                                         + "See /help for more info.")
     @app_commands.default_permissions(administrator=True)
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_toggle_classic_mode(self, interaction: Interaction):
         """Toggle 'classic mode' for the calling user.
         """
@@ -241,7 +240,6 @@ class UserBountiesCog(BasedCog):
                                             + "\n🌎 This command must be used in your **home server**.")
     @app_commands.command(name="check",
                             description="🌎 Check if any criminals are in the given system, and fight them! (home server only)")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_check(self, interaction: Interaction, system: str):
         """Check a system for bounties and handle rewards
         """
@@ -418,7 +416,6 @@ class UserBountiesCog(BasedCog):
                                             + "If a division is given, show all bountis in that division.\n")
     @app_commands.command(name="bounties",
                             description="List all active bounties in your division, or the one specified")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_bounties(self, interaction: Interaction, division: Optional[str] = None):
         """List a summary of all currently active bounties in one division.
         If no division is specified, the calling user's division is used.
@@ -475,7 +472,6 @@ class UserBountiesCog(BasedCog):
     @activeCriminalAutoComplete(paramName="criminal")
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting")
     @app_commands.command(name="route", description="Get the named criminal's current route.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_route(self, interaction: Interaction, criminal: str):
         """Display the current route of the requested criminal
         """
@@ -494,7 +490,6 @@ class UserBountiesCog(BasedCog):
     @inventoryItemNumberAutoComplete("tool", ItemCategory.tool)
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting")
     @app_commands.command(name="use", description="Use a tool from your tools inventory.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_use(self, interaction: Interaction, tool: int):
         """Use the specified tool from the user's inventory.
         """
@@ -513,7 +508,6 @@ class UserBountiesCog(BasedCog):
                                             + "You can save items from being removed by first storing them in `Kaamo`. Items stored in " \
                                             + "`Kaamo` will be made accessible again once you reach level 10!")
     @app_commands.command(name="prestige", description="Reset your items and bounty hunting XP, in exchange for a ship upgrade! See /help for more details.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_prestige(self, interaction: Interaction):
         """Reset the calling user's bounty hunter xp to zero and remove all of their items.
         Can only be used by level 10 bounty hunters.
@@ -619,7 +613,6 @@ class UserBountiesCog(BasedCog):
                                             + "you can drop back down a division with the `div-down` command, though you'll have to " \
                                             + "work your way back up again.")
     @app_commands.command(name="div-up", description="Level up into the next division of bounties, and unlock tougher bounties with bigger rewards!")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_div_up(self, interaction: Interaction):
         """Ascend to the next division.
         """
@@ -716,7 +709,6 @@ class UserBountiesCog(BasedCog):
                                             + " on easier bounties and build up your gear.\nYou will need to work your way back up to " \
                                             + "your current division again before you can return!")
     @app_commands.command(name="div-down", description="Drop to the top of the next lowest division of bounties, to work your way back up again.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_div_down(self, interaction: Interaction):
         """Descend a division.
         """
@@ -804,6 +796,4 @@ class UserBountiesCog(BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(UserBountiesCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(UserBountiesCog(bot))

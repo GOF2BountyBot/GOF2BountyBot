@@ -480,7 +480,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
     @app_commands.command(name="ping",
                             description="Measure the latency between the bot sending a message, and receiving a response from discord.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_ping(self, interaction: Interaction):
         """admin command testing bot latency.
 
@@ -504,7 +503,6 @@ class AdminMiscCog(basedApp.BasedCog):
                                         + "or disable large amounts of functionality all together.")
     @app_commands.command(name="config",
                             description="Set various settings for how bountybot will function in this server.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_config(self, interaction: Interaction, setting: GuildConfigSettings, value: BoolEnableDisable):
         """Apply various bountybot configuration settings for the calling guild.
         TODO: Refactor - change this into a UI kind of like the SDB deck master menu
@@ -536,7 +534,6 @@ class AdminMiscCog(basedApp.BasedCog):
                                             + "developer mode, right click on the menu, and click Copy ID.")
     @app_commands.command(name="del-reaction-menu",
                             description="Remove the specified reaction menu. Menu IDs are usually shown in the bottom of menus.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_del_reaction_menu(self, interaction: Interaction, menu_id: str):
         """Force the expiry of the specified reaction menu message, regardless of reaction menu type.
         """
@@ -557,7 +554,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
     @app_commands.command(name="set-notify-role",
                             description="Set a role to ping when various events occur.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_set_notify_role(self, interaction: Interaction, alert_type: userAlerts.GuildRoleAlertNames, role: Role):
         """For the current guild, set a role to mention when certain events occur.
         """
@@ -573,7 +569,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
     @app_commands.command(name="remove-notify-role",
                             description="Disable role pings for various events.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_notify_role(self, interaction: Interaction, alert_type: userAlerts.GuildRoleAlertNames):
         """For the current guild, remove role mentioning when certain events occur.
         """
@@ -596,7 +591,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @app_commands.command(name="make-bounty-notify-roles",
                             description=f"Make {len(cfg.bountyDivisionNames)} roles, one for each division, " \
                                         + "which the bot will ping when new bounties are spawned.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_make_bounty_notify_roles(self, interaction: Interaction):
         """For the current guild, create 10 notify-able roles, one for each user tech level.
         These roles will be used to alert users when new bounties spawn at each tech level.
@@ -620,7 +614,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
     @app_commands.command(name="remove-bounty-notify-roles",
                             description="Disable new bounty notifications, and remove all new bounty alert roles from the server.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_bounty_notify_roles(self, interaction: Interaction):
         """Remove all new bounty alert roles in the calling guild.
         """
@@ -643,7 +636,6 @@ class AdminMiscCog(basedApp.BasedCog):
                                                 f"\nEach server may have a maximum of {cfg.maxRoleMenusPerGuild} role menus active at any one time.")
     @app_commands.command(name="make-role-menu",
                             description="Create a reaction role menu, allowing users to self-assign roles by adding and removing reactions.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_make_role_menu(self, interaction: Interaction,):
         """Create a reaction role menu, allowing users to self-assign or remove roles by adding and removing reactions.
         Each guild may have a maximum of cfg.maxRoleMenusPerGuild role menus active at any one time.
@@ -681,7 +673,6 @@ class AdminMiscCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
     @app_commands.command(name="add-role",
                             description="Add a role to a role menu.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_add_role_menu_role(self, interaction: Interaction, emoji: str, role: Role, menu_id: str):
         if not lib.stringTyping.isInt(menu_id.strip()):
             await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.", ephemeral=True)
@@ -719,6 +710,4 @@ class AdminMiscCog(basedApp.BasedCog):
 #endregion
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(AdminMiscCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(AdminMiscCog(bot))

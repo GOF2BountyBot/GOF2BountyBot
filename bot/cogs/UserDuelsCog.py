@@ -168,7 +168,6 @@ class UserDuelsCog(BasedCog):
         stages="The number of credits the loser must pay the winner. Can be 0."
     )
     @app_commands.command(name="duel-challenge", description="Challenge another player to a duel!")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_duel_send_challenge(self, interaction: Interaction, target: Optional[Union[User, Member]] = None, target_id: Optional[str] = None, stakes: app_commands.Range[int, 0] = 0):
         """⚠ WARNING: MARKED FOR CHANGE ⚠
         The following function is provisional and marked as planned for overhaul.
@@ -247,7 +246,6 @@ class UserDuelsCog(BasedCog):
         target_id="The id of the user who was challenged. Useful if they are in another server.",
     )
     @app_commands.command(name="duel-cancel", description="Cancel an active duel challenge")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_duel_cancel_challenge(self, interaction: Interaction, target: Optional[Union[User, Member]] = None, target_id: Optional[str] = None):
         target = await self.getDuelChallengeTarget(interaction, target, target_id)
         if target is None: return
@@ -283,7 +281,6 @@ class UserDuelsCog(BasedCog):
         challenger_id="The id of the user who challenged you. Useful if they are in another server.",
     )
     @app_commands.command(name="duel-reject", description="Reject someone's duel challenge")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_duel_reject_challenge(self, interaction: Interaction, challenger: Optional[Union[User, Member]] = None, challenger_id: Optional[str] = None):
         challenger = await self.getDuelChallengeTarget(interaction, challenger, challenger_id)
         if challenger is None: return
@@ -297,7 +294,6 @@ class UserDuelsCog(BasedCog):
         challenger_id="The id of the user who challenged you. Useful if they are in another server.",
     )
     @app_commands.command(name="duel-accept", description="Accept someone's duel challenge")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_duel_accept_challenge(self, interaction: Interaction, challenger: Optional[Union[User, Member]] = None, challenger_id: Optional[str] = None):
         challenger = await self.getDuelChallengeTarget(interaction, challenger, challenger_id)
         if challenger is None: return
@@ -306,6 +302,4 @@ class UserDuelsCog(BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(UserDuelsCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(UserDuelsCog(bot))

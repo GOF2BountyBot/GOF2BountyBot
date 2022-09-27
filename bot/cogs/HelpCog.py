@@ -119,7 +119,6 @@ class HelpCog(basedApp.BasedCog):
                             command="Only view help for a single command")
     @app_commands.command(name="help",
                             description="Look up help for a particular command or section, or view all available commands.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def cmd_help(self, interaction: Interaction, command: Optional[str] = None, help_section: Optional[str] = None):
         if command is None:
             if help_section is None:
@@ -360,6 +359,4 @@ class HelpCog(basedApp.BasedCog):
 
 async def setup(bot: client.BasedClient):
     bot.remove_command("help")
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(HelpCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(HelpCog(bot))

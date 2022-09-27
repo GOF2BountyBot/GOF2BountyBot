@@ -38,6 +38,4 @@ class BASED_VersionCog(BasedCog): # type: ignore[name-defined]
 
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(BASED_VersionCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(BASED_VersionCog(bot))

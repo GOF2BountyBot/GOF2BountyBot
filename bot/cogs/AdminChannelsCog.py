@@ -33,7 +33,6 @@ class AdminChannelsCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin, helpSection="channels")
     @app_commands.command(name="set-announcements-channel",
                             description="Set the channel where BountyBot will send announcements (e.g new bounties)")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_set_announce_channel(self, interaction: Interaction):
         """admin command for setting the current guild's announcements channel
         """
@@ -44,7 +43,6 @@ class AdminChannelsCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin, helpSection="channels")
     @app_commands.command(name="remove-announcements-channel",
                             description="Disable BountyBot announcements in the server's announcements channel (e.g new bounties)")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_announce_channel(self, interaction: Interaction):
         """admin command for removing the current guild's announcements channel
         """
@@ -55,7 +53,6 @@ class AdminChannelsCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin, helpSection="channels")
     @app_commands.command(name="set-play-channel",
                             description="Set the channel where BountyBot will send info about completed bounties")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_set_play_channel(self, interaction: Interaction):
         """admin command for setting the current guild's play channel
         """
@@ -66,7 +63,6 @@ class AdminChannelsCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin, helpSection="channels")
     @app_commands.command(name="remove-play-channel",
                             description="Disable completed bounties info messages in the server's play channel")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_play_channel(self, interaction: Interaction):
         """admin command for removing the current guild's play channel
         """
@@ -78,7 +74,6 @@ class AdminChannelsCog(basedApp.BasedCog):
                                 formattedDesc="Restrict custom skin rendering with the `showme ship` command to this channel")
     @app_commands.command(name="set-renders-channel",
                             description="Restrict custom skin rendering with the showme ship command to this channel")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_set_renders_channel(self, interaction: Interaction):
         """admin command for setting the current guild's renders channel
         """
@@ -90,7 +85,6 @@ class AdminChannelsCog(basedApp.BasedCog):
                                 formattedDesc="Stop restricting custom skin rendering with the `showme ship` command to the server's renders channel")
     @app_commands.command(name="remove-renders-channel",
                             description="Stop restricting custom skin rendering with the showme ship command to the server's renders channel")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_renders_channel(self, interaction: Interaction):
         """admin command for removing the current guild's renders channel
         """
@@ -105,7 +99,6 @@ class AdminChannelsCog(basedApp.BasedCog):
                                             + "(listings for located bounties are removed).")
     @app_commands.command(name="make-bounty-board-channels",
                             description=f"Create {len(cfg.bountyDivisionNames)} new channels, and activate them as bountyboards.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_make_bounty_board_channels(self, interaction: Interaction):
         """admin command for creating and activating new channels for each division, as bounty board channels
         """
@@ -161,7 +154,6 @@ class AdminChannelsCog(basedApp.BasedCog):
                                                 "The channels themselves will not be deleted, they will simply become inactive.")
     @app_commands.command(name="disable-bounty-board-channels",
                             description="Send from any channel to disable the server's bountyboard channels, without deleting them.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_remove_bounty_board_channels(self, interaction: Interaction):
         """admin command for removing the current guild's bounty board channels
         """
@@ -185,7 +177,6 @@ class AdminChannelsCog(basedApp.BasedCog):
                                             + "This will not remove any other messages.")
     @app_commands.command(name="bbc-rebuild",
                             description="Completely rebuilds the bountyboard, removing known listing messages.")
-    @app_commands.guilds(*cfg.developmentGuilds)
     async def admin_cmd_rebuild_bounty_board_channel(self, interaction: Interaction):
         """admin command to rebuild bounty board channel where the message was sent
         """
@@ -214,6 +205,4 @@ class AdminChannelsCog(basedApp.BasedCog):
 
 
 async def setup(bot: client.BasedClient):
-    # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,
-    # even though it extends discord.Object
-    await bot.add_cog(AdminChannelsCog(bot), guilds=cast(List[Snowflake], cfg.developmentGuilds))
+    await bot.add_cog(AdminChannelsCog(bot))
