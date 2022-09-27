@@ -97,7 +97,6 @@ class ToolItem(gameItem.GameItem, SerializesToSchema[SerializedToolItemUnion]):
         return self.statsStringShort()
 
 
-    @abstractmethod
     def serialize(self, **kwargs) -> SerializedToolItemUnion:
         """Serialize this tool into dictionary format.
         This step of implementation adds a 'type' string indicating the name of this tool's subclass.
