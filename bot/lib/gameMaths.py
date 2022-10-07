@@ -1,7 +1,7 @@
 from ..cfg import cfg
 import math
 import random
-from typing import List, Union, cast
+from typing import List, Optional, Union, cast
 
 
 def makeMatrix(xDim: int, yDim: int) -> List[List[float]]:
@@ -175,7 +175,8 @@ BHLd = 13.55
 def bountyHuntingXPForLevel(level):
     return cfg.bountyXPLevelBoundaries[level]
     
-def calculateUserBountyHuntingLevel(xp):
+def calculateUserBountyHuntingLevel(xp: Optional[int]):
+    if xp is None: return 0
     try:
         return next(i-1 for i, v in enumerate(cfg.bountyXPLevelBoundaries) if v > xp)
     except StopIteration:

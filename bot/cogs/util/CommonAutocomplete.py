@@ -1,5 +1,5 @@
 
-from typing import Callable, Iterable, List, TYPE_CHECKING, cast
+from typing import Callable, Iterable, List, TYPE_CHECKING, Tuple, cast
 from discord import Interaction
 from discord import app_commands
 
@@ -264,16 +264,16 @@ def moduleAutoComplete(paramName: str = "module"):
 #region inventory
 
 def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory, fallbackOnDefaultUser: bool):
-    async def _inventoryCategoryItemNumberAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[int]]:
+    async def _inventoryCategoryItemNumberAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
         if not isinstance(interaction.client, "client.BasedClient"):
             raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
 
-        choices: List[app_commands.Choice[int]] = []
+        choices: List[app_commands.Choice[str]] = []
         if interaction.client.usersDB.idExists(interaction.user.id):
             bUser = interaction.client.usersDB.getUser(interaction.user.id)
             for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
                 if current in item.name:
-                    choices.append(app_commands.Choice(name=item.name, value=itemNum))
+                    choices.append(app_commands.Choice(name=item.name, value=str(itemNum)))
                     if len(choices) == 25:
                         break
         
@@ -281,7 +281,7 @@ def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory,
             defaultItems = cast(List[gameItem.SerializedGameItemUnion], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
             for itemNum, item in enumerate(defaultItems):
                 if current in item["name"]:
-                    choices.append(app_commands.Choice(name=item["name"], value=itemNum))
+                    choices.append(app_commands.Choice(name=item["name"], value=str(itemNum)))
                     if len(choices) == 25:
                         break
         
@@ -291,8 +291,12 @@ def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory,
 
 def inventoryItemNumberAutoComplete(paramName: str, itemCategory: bbData.ItemCategory):
     """A decorator to add autocomplete for a single-value item reference parameter.
-    The items will appear as names in discord, but returned to code as item indices (int).
+    The items will appear as names in discord, but returned to code as item indices.
     Only applies to a single inventory on the user (or default user) at this time.
+
+    Discord requires that autocomplete return Choices with str values, but item indices are int.
+    TODO: This is untested, but you might need to convert to int before usage in the command.
+    I would just use List[Choice[int]], but pyright complains saying it has to be str
 
     :param paramName: The name of the item number parameter
     :type paramName: str
@@ -302,7 +306,65 @@ def inventoryItemNumberAutoComplete(paramName: str, itemCategory: bbData.ItemCat
     def decorator(func: app_commands.Command):
         autocomplete = _make_inventoryCategoryItemNumberAutoComplete(itemCategory, True)
         # TODO: Apparently my autocomplete is of the wrong type?
-        func.autocomplete(paramName)(autocomplete) # type: ignore[reportGeneralTypeIssues]
+        func.autocomplete(paramName)(autocomplete)
+        return func
+    return decorator
+
+
+ITEM_TYPE_IDS = {
+    bbData.ItemCategory.module: "0",
+    bbData.ItemCategory.ship: "1",
+    bbData.ItemCategory.tool: "2",
+    bbData.ItemCategory.turret: "3",
+    bbData.ItemCategory.weapon: "4"
+}
+
+ID_ITEM_TYPES = {v: k for k, v in ITEM_TYPE_IDS.items()}
+
+def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCategory, int]:
+    return ID_ITEM_TYPES[v[0]], int(v[1:])
+
+def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
+    async def _anyUserHangerItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+        if not isinstance(interaction.client, "client.BasedClient"):
+            raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
+
+        choices: List[app_commands.Choice[str]] = []
+        if interaction.client.usersDB.idExists(interaction.user.id):
+            bUser = interaction.client.usersDB.getUser(interaction.user.id)
+            for category in ITEM_TYPE_IDS.keys():
+                for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
+                    if current in item.name:
+                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                        if len(choices) == 25:
+                            break
+        
+        elif fallbackOnDefaultUser:
+            for category in ITEM_TYPE_IDS.keys():
+                defaultItems = cast(List[gameItem.SerializedGameItemUnion], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
+                for itemNum, item in enumerate(defaultItems):
+                    if current in item["name"]:
+                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {item['name']}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                        if len(choices) == 25:
+                            break
+        
+        return choices
+    return _anyUserHangerItemAutoComplete
+
+
+def anyUserHangerItemAutoComplete(paramName: str = "item"):
+    """A decorator to add autocomplete for a single-value item reference parameter.
+    The items will appear as names in discord, but returned to code as an encoded (item type (ItemCategory), item index (int)) tuple.
+    Retrieve this tuple with the anyUserHangerItemAutoComplete_decodeValue function.
+
+    Will always show all items of all categories on the user (or default user) at this time.
+
+    :param paramName: The name of the item number parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        autocomplete = _make_anyUserHangerItemAutoComplete(True)
+        func.autocomplete(paramName)(autocomplete)
         return func
     return decorator
 

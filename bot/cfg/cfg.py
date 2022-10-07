@@ -226,6 +226,7 @@ includedCogs = (
 
     cogPath("UserBountiesCog"),
     cogPath("UserDuelsCog"),
+    cogPath("UserEconomyCog"),
     cogPath("UserMiscCog")
 )
 
@@ -292,6 +293,20 @@ bountyDivisionNames = ["bronze", "silver", "gold"]
 
 # Tech-level boundaries, for players and bounties, for each division, in the same order as bountyDivisionNames
 bountyDivisionLevels = [(0, 3), (4, 7), (8, 10)]
+
+
+def divisionNameForPlayerLevel(l: int) -> str:
+    """Find the name of the bounty division that a player with bounty hunter level `l` belongs to.
+
+    :param l: The bouny hunter level to match
+    :type l: int
+    :return: The name of the division that a player of level `l` belongs to
+    :rtype: str
+    """
+    try:
+        return next(bountyDivisionNames[i] for i, boundaries in enumerate(bountyDivisionLevels) if l <= boundaries[1])
+    except StopIteration:
+        return bountyDivisionNames[-1]
 
 
 # Price ranges by which ships should be ranked into tech levels. 0th index = tech level 1

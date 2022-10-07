@@ -461,11 +461,12 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
             raise NotImplementedError("unsupported item name: " + item.value)
 
 
-    def unequipAll(self, ship: shipItem.Ship):
+    def unequipAll(self, ship: shipItem.Ship) -> int:
         """Unequip all items from the given shipItem, and move them into the user's inactive items ('hangar')
         The user must own ship.
 
         :param shipItem ship: the ship whose items to transfer to storage
+        :returns: The number of items that were unequipped
         :raise TypeError: When given any other type than shipItem
         :raise RuntimeError: when given a shipItem that is not owned by this user
         """
@@ -474,6 +475,8 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
 
         if not self.ownsShip(ship):
             raise RuntimeError("Attempted to unequipAll on a ship that isnt owned by this BasedUser")
+
+        itemsUnequipped = len(ship.weapons) + len(ship.modules) + len(ship.turrets)
 
         for weapon in ship.weapons:
             self.inactiveWeapons.addItem(weapon)
@@ -486,6 +489,8 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         for turret in ship.turrets:
             self.inactiveTurrets.addItem(turret)
         ship.clearTurrets()
+
+        return itemsUnequipped
 
 
     def validateLoadout(self):
@@ -623,6 +628,26 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         return data[:-1]
 
 
+    def getTotalValue(self) -> int:
+        modulesValue = 0
+        for module in self.inactiveModules.keys:
+            modulesValue += self.inactiveModules.items[module].count * module.getValue()
+        turretsValue = 0
+        for turret in self.inactiveTurrets.keys:
+            turretsValue += self.inactiveTurrets.items[turret].count * turret.getValue()
+        weaponsValue = 0
+        for weapon in self.inactiveWeapons.keys:
+            weaponsValue += self.inactiveWeapons.items[weapon].count * weapon.getValue()
+        shipsValue = 0
+        for ship in self.inactiveShips.keys:
+            shipsValue += self.inactiveShips.items[ship].count * ship.getValue()
+        toolsValue = 0
+        for tool in self.inactiveTools.keys:
+            toolsValue += self.inactiveTools.items[tool].count * tool.getValue()
+
+        return modulesValue + turretsValue + weaponsValue + shipsValue + self.activeShip.getValue() + self.credits
+
+
     def getStatByName(self, stat: str) -> Union[int, float]:
         """Get a user attribute by its string name. This method is primarily used in leaderboard generation.
 
@@ -650,23 +675,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         elif stat == "prestiges":
             return self.prestiges
         elif stat == "value":
-            modulesValue = 0
-            for module in self.inactiveModules.keys:
-                modulesValue += self.inactiveModules.items[module].count * module.getValue()
-            turretsValue = 0
-            for turret in self.inactiveTurrets.keys:
-                turretsValue += self.inactiveTurrets.items[turret].count * turret.getValue()
-            weaponsValue = 0
-            for weapon in self.inactiveWeapons.keys:
-                weaponsValue += self.inactiveWeapons.items[weapon].count * weapon.getValue()
-            shipsValue = 0
-            for ship in self.inactiveShips.keys:
-                shipsValue += self.inactiveShips.items[ship].count * ship.getValue()
-            toolsValue = 0
-            for tool in self.inactiveTools.keys:
-                toolsValue += self.inactiveTools.items[tool].count * tool.getValue()
-
-            return modulesValue + turretsValue + weaponsValue + shipsValue + self.activeShip.getValue() + self.credits
+            return self.getTotalValue()
         else:
             raise ValueError("Unknown stat name: " + str(stat))
 
@@ -881,7 +890,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         if not self.canTransferGuild(now=now):
             raise ValueError("This user cannot transfer guild again yet (" \
                                 + lib.timeUtil.td_format_noYM(now - self.guildTransferCooldownEnd) + " remaining)")
-        if await newGuild.fetch_member(self.id) is None:
+        if newGuild.get_member(self.id) or await newGuild.fetch_member(self.id) is None:
             raise NameError("This user is not a member of the given guild '" + newGuild.name + "#" + str(newGuild.id) + "'")
 
         self.homeGuildID = newGuild.id
