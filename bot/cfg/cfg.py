@@ -227,6 +227,7 @@ includedCogs = (
     cogPath("UserBountiesCog"),
     cogPath("UserDuelsCog"),
     cogPath("UserEconomyCog"),
+    cogPath("UserGithubCog"),
     cogPath("UserMiscCog")
 )
 

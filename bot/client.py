@@ -11,7 +11,6 @@ from discord.ext import tasks
 from discord.utils import MISSING
 from datetime import datetime, timedelta
 import os
-from github import Github
 from github.Repository import Repository
 
 from .interactions import accessLevels, commandChecks
@@ -152,7 +151,7 @@ class BasedClient(ClientBaseClass):
         self._mediaServersLoaded = False
 
         self._githubRepo = None
-        self._githubClient = False
+        self._githubClient = None
         self._githubLoaded = False
 
 
@@ -515,7 +514,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._githubLoaded:
             raise lib.exceptions.NotReady("GitHub client not yet loaded. BasedClient.githubClient is only available after on_ready.")
-        return cast(Github, self._githubClient)
+        return cast(lib.github.BasedGithub, self._githubClient)
 
 
     @property
@@ -652,7 +651,7 @@ class BasedClient(ClientBaseClass):
             self._mediaServersLoaded = True
 
         if not self._githubLoaded:
-            self._githubClient = Github(cfg.githubAccessToken)
+            self._githubClient = lib.github.BasedGithub(cfg.githubAccessToken)
             self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)
             self._githubLoaded = True
 
