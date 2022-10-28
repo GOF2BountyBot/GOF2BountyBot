@@ -241,20 +241,37 @@ class UserGof2InfoCog(BasedCog):
 
     
     @shipAutoComplete()
+    @shipSkinAutoComplete()
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-ship",
                             description="Look up the image for a ship.")
-    async def cmd_showme_ship(self, interaction: Interaction, ship: str):
+    async def cmd_showme_ship(self, interaction: Interaction, ship: str, skin: Optional[str] = None):
         """Get the icon for the specified ship
         """
-        obj = ShipBlueprint.deserialize(bbData.builtInShipData[ship])
-        if obj.hasIcon:
-            embed = Embed(title=obj.name)
-            embed.set_image(url=obj.icon)
-            embed.colour = Colour.random()
-            await interaction.response.send_message(embed=embed)
+        shipData = bbData.builtInShipData[ship]
+        if skin is not None:
+            if not shipData["skinnable"]:
+                await interaction.response.send_message(":x: That ship is not skinnable!", ephemeral=True)
+                return
+
+            if skin not in shipData.get("compatibleSkins", []):
+                await interaction.response.send_message(f":x: That skin is not compatible with the **{ship}**!", ephemeral=True)
+                return
+
+            itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
+                                                    img=bbData.builtInShipSkins[skin].shipRenders[ship][0],
+                                                    titleTxt=ship,
+                                                    footerTxt="Custom skin: " + skin.capitalize())
+            await interaction.response.send_message(embed=itemEmbed)
         else:
-            await interaction.response.send_message(f"I don't have an image for the {obj.name}!", ephemeral=True)
+            obj = ShipBlueprint.deserialize(shipData)
+            if obj.hasIcon:
+                embed = Embed(title=obj.name)
+                embed.set_image(url=obj.icon)
+                embed.colour = Colour.random()
+                await interaction.response.send_message(embed=embed)
+            else:
+                await interaction.response.send_message(f"I don't have an image for the {obj.name}!", ephemeral=True)
 
     
     @weaponAutoComplete()
