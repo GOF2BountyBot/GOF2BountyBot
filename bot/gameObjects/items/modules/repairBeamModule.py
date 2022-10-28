@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedRepairBeamModule(moduleItem.CustomSerializedModuleItem):
     effect: float
@@ -16,7 +17,7 @@ SerializedRepairBeamModuleUnion = Union[SerializedRepairBeamModule, TypedSeriali
 
 
 @spawnableItem
-class RepairBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepairBeamModuleUnion]):
+class RepairBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedRepairBeamModuleUnion]):
     """A module providing a ship with the ability to slowly add health points to nearby friendly ships
 
     :var effect: The amount of health added to nearby ships per time quantum
@@ -50,6 +51,15 @@ class RepairBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepai
         self.effect = effect
         self.count = count
 
+#region embed fields
+
+    @embedField("Effect")
+    def formattedEffect(self): return f"{self.effect*100}%"
+    
+    @embedField("Count")
+    def formattedCount(self): return self.count
+
+#endregion
 
     def statsStringShort(self):
         return "*Effect: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) \

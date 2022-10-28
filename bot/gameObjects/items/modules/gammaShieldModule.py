@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedGammaShieldModule(moduleItem.CustomSerializedModuleItem):
     effect: float
@@ -15,7 +16,7 @@ SerializedGammaShieldModuleUnion = Union[SerializedGammaShieldModule, TypedSeria
 
 
 @spawnableItem
-class GammaShieldModule(moduleItem.ModuleItem, SerializesToSchema[SerializedGammaShieldModuleUnion]):
+class GammaShieldModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedGammaShieldModuleUnion]):
     """"A module providing a ship with protection agains gamma radiation
 
     :var effect: The reduction in gamma radiation received as a multiplier
@@ -44,6 +45,13 @@ class GammaShieldModule(moduleItem.ModuleItem, SerializesToSchema[SerializedGamm
                                                 emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
         self.effect = effect
+
+#region embed fields
+
+    @embedField("Effect")
+    def formattedEffect(self): return f"{self.effect*100}%"
+
+#endregion
 
 
     def statsStringShort(self):

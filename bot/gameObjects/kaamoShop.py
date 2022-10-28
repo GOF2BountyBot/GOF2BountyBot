@@ -1,11 +1,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
+
+from .items.ships import shipItem, shipBase
 if TYPE_CHECKING:
     from ..users import basedUser
 
 from . import guildShop
 from ..cfg import cfg
-from .items import gameItem, shipItem
+from .items import gameItem
 from .items.weapons import primaryWeapon, turretWeapon
 from .items.modules import moduleItem
 from .items.tools import toolItem
@@ -18,7 +20,7 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
     KaamoShops have a maximum capacity defined in cfg. Items equipped onto ships count towards this cap.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+    def __init__(self, shipsStock: Optional[inventory.Inventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
             weaponsStock: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
             modulesStock: Optional[inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
             turretsStock: Optional[inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,

@@ -1,8 +1,11 @@
-from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem
+from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
 from .... import lib
+from ....lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from typing import List, Union
 from typing_extensions import NotRequired
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from ....cfg import bbData
 
 
 class BuiltInSerializedModuleItem(BuiltInSerializedGameItem): pass
@@ -30,7 +33,7 @@ SerializedModuleItemUnion = Union[CustomSerializedModuleItemUnion, BuiltInSerial
 
 
 @spawnableItem
-class ModuleItem(GameItem, SerializesToSchema[SerializedModuleItemUnion]):
+class ModuleItem(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedModuleItemUnion]):
     """"An equippable item, providing ships with various stat perks and new functionality.
     All, none, or any combination of a moduleItem's attributes may be populated.
 
@@ -107,6 +110,27 @@ class ModuleItem(GameItem, SerializesToSchema[SerializedModuleItemUnion]):
         self.handling = handling
         self.handlingMultiplier = handlingMultiplier
 
+#region embed fields
+
+    @embedField("Armour", hideWhenNone=True)
+    def formattedArmour(self): return formattedAdditiveAndOrMultiplierOrNone(self.armour, self.armourMultiplier)
+    
+    @embedField("Shield", hideWhenNone=True)
+    def formattedShield(self): return formattedAdditiveAndOrMultiplierOrNone(self.shield, self.shieldMultiplier)
+
+    @embedField("DPS", hideWhenNone=True)
+    def formattedDPS(self): return formattedAdditiveAndOrMultiplierOrNone(self.dps, self.dpsMultiplier)
+
+    @embedField("Cargo", hideWhenNone=True)
+    def formattedCargo(self): return formattedAdditiveAndOrMultiplierOrNone(self.cargo, self.cargoMultiplier)
+
+    @embedField("Handling", hideWhenNone=True)
+    def formattedHandling(self): return formattedAdditiveAndOrMultiplierOrNone(self.handling, self.handlingMultiplier)
+    
+    @embedField("BB Shop Spawn Rate", hideWhenNone=True)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.moduleObjsByTL)
+
+#endregion
 
     def statsStringShort(self) -> str:
         """Summarise all effects of this module as a string.

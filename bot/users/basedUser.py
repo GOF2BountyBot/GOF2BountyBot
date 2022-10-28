@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Sequence, Tuple, Type, TypedDict, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
-from typing_extensions import NotRequired
+from typing import Callable, Optional, Sequence, Tuple, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
+from typing_extensions import NotRequired, TypedDict
 from datetime import datetime, timedelta
 from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPException, Member, Message, MessageReference, PartialMessage, StickerItem, User
 from discord.ui import View
 from discord.utils import MISSING
+
+from ..gameObjects.items.ships import shipItem, shipBase
 
 if TYPE_CHECKING:
     from ..gameObjects.battles import duelRequest
@@ -16,7 +18,7 @@ from ..baseClasses.basedEnum import BasedEnum
 from ..cfg import cfg, bbData
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
 from ..gameObjects import kaamoShop, lomaShop, guildShop
-from ..gameObjects.items import shipItem, moduleItemFactory, gameItem
+from ..gameObjects.items import moduleItemFactory, gameItem
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
 from ..gameObjects.items.tools import toolItemFactory, toolItem
 from ..gameObjects.items.modules import moduleItem
@@ -32,7 +34,7 @@ from ..reactionMenus import reactionMenu
 
 
 # Dictionary-serialized shipItem to give to new players
-defaultShipLoadoutDict: shipItem.TypedBuiltInSerializedShip = \
+defaultShipLoadoutDict: shipBase.TypedBuiltInSerializedShip = \
 {
     "name": "Betty", "type": "Ship", "builtIn": True, "nickname": "", "shipUpgrades": [], "turrets": [],
     "weapons": [{"type": "PrimaryWeapon", "name": "Micro Gun MK I", "builtIn": True}],
@@ -58,7 +60,7 @@ itemCategoryStoredTypes: Dict[ItemCategory, Type[gameItem.GameItem]] = {
 }
 
 StoredInventoryUnion = Union[
-    inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion],
+    inventory.Inventory[shipItem.Ship, shipBase.SerializedShipUnion],
     inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion],
     inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion],
     inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion],
@@ -66,7 +68,7 @@ StoredInventoryUnion = Union[
 ]
 
 SerializedStoredItemUnion = Union[
-    shipItem.SerializedShipUnion,
+    shipBase.SerializedShipUnion,
     moduleItem.SerializedModuleItemUnion,
     primaryWeapon.SerializedWeaponUnion,
     turretWeapon.SerializedWeaponUnion,
@@ -101,7 +103,7 @@ class SerializedBasedUser(TypedDict):
     bountyCooldownEnd: NotRequired[float]
     systemsChecked: NotRequired[int]
     bountyWins: NotRequired[int]
-    activeShip: shipItem.SerializedShipUnion
+    activeShip: shipBase.SerializedShipUnion
     duelWins: NotRequired[int]
     duelLosses: NotRequired[int]
     duelCreditsWins: NotRequired[int]
@@ -117,7 +119,7 @@ class SerializedBasedUser(TypedDict):
     medals: NotRequired[List[str]]
     classicModeEnabled: NotRequired[bool]
     bountyHuntingXpSurplus: NotRequired[int]
-    inactiveShips: NotRequired[List[inventoryListing.SerializedInventoryListing[shipItem.SerializedShipUnion]]]
+    inactiveShips: NotRequired[List[inventoryListing.SerializedInventoryListing[shipBase.SerializedShipUnion]]]
     inactiveWeapons: NotRequired[List[inventoryListing.SerializedInventoryListing[primaryWeapon.SerializedWeaponUnion]]]
     inactiveModules: NotRequired[List[inventoryListing.SerializedInventoryListing[moduleItem.SerializedModuleItemUnion]]]
     inactiveTurrets: NotRequired[List[inventoryListing.SerializedInventoryListing[turretWeapon.SerializedWeaponUnion]]]
@@ -193,7 +195,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
     def __init__(self, userID: int, activeShip: shipItem.Ship, credits: int = 0, lifetimeBountyCreditsWon: int = 0,
                     bountyHuntingXP: int = gameMaths.bountyHuntingXPForLevel(1), bountyCooldownEnd: float = -1.0,
                     systemsChecked: int = 0, bountyWins: int = 0,
-                    inactiveShips: Optional[inventory.Inventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+                    inactiveShips: Optional[inventory.Inventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
                     inactiveModules: Optional[inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
                     inactiveWeapons: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
                     inactiveTurrets: Optional[inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
@@ -294,7 +296,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         self.systemsChecked = systemsChecked
         self.bountyWins = bountyWins
 
-        self.activeShip: shipItem.Ship = activeShip
+        self.activeShip = activeShip
         self.inactiveShips = inactiveShips if inactiveShips is not None else \
                                 inventory.Inventory(shipItem.Ship)
         self.inactiveModules = inactiveModules if inactiveModules is not None else \
@@ -901,7 +903,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         # Lots of casting going on here - I look for an inventory that stores the given type and returns it.
         # The inventory is guaranteed to be of the right type - just check the revealed type of the returned inventory!
         if isinstance(item, shipItem.Ship):
-            return cast(inventory.Inventory[TItem, shipItem.SerializedShipUnion], self.inactiveShips)
+            return cast(inventory.Inventory[TItem, shipBase.SerializedShipUnion], self.inactiveShips)
         elif isinstance(item, primaryWeapon.PrimaryWeapon):
             return cast(inventory.Inventory[TItem, primaryWeapon.SerializedWeaponUnion], self.inactiveWeapons)
         elif isinstance(item, turretWeapon.TurretWeapon):

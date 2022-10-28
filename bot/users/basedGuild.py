@@ -4,8 +4,8 @@ from enum import Enum
 from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, User
 from discord import TextChannel
 from discord.utils import MISSING
-from typing import Any, List, Dict, Optional, TypedDict, Union, cast
-from typing_extensions import NotRequired
+from typing import Any, List, Dict, Optional, Union, cast
+from typing_extensions import NotRequired, TypedDict
 from aiohttp import client_exceptions
 import random
 

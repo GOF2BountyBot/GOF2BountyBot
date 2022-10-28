@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedShieldInjectorModule(moduleItem.CustomSerializedModuleItem):
     plasmaConsumption: int
@@ -15,7 +16,7 @@ SerializedShieldInjectorModuleUnion = Union[SerializedShieldInjectorModule, Type
 
 
 @spawnableItem
-class ShieldInjectorModule(moduleItem.ModuleItem, SerializesToSchema[SerializedShieldInjectorModuleUnion]):
+class ShieldInjectorModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedShieldInjectorModuleUnion]):
     """A module providing a ship with the ability to instantly refill their shield capacity, in exchange for blue plasma
 
     :var plasmaConsumption: The amount of plasma required to refill shields
@@ -45,6 +46,12 @@ class ShieldInjectorModule(moduleItem.ModuleItem, SerializesToSchema[SerializedS
 
         self.plasmaConsumption = plasmaConsumption
 
+#region embed fields
+
+    @embedField("Plasma Consumption")
+    def formattedPlasmaConsumption(self): return self.plasmaConsumption
+
+#endregion
 
     def statsStringShort(self):
         return "*Plasma Consumption: " + str(self.plasmaConsumption) + "*"

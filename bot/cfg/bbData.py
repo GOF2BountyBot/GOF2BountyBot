@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ..gameObjects.items.tools import toolItem
     from ..gameObjects import shipSkin
     from ..gameObjects.bounties import criminal
-    from ..gameObjects.items import shipItem
+    from ..gameObjects.items.ships import shipBase
     from ..gameObjects.items.modules import moduleItem
     from ..gameObjects.items.weapons import weapon
     from ..gameObjects.items.weapons import primaryWeapon
@@ -106,7 +106,7 @@ factionColours = {  "terran": Colour.gold(),
 # which are stored in builtInShipObjs in a similar dict format.
 # Ships to not have tech levels in GOF2, so tech levels will be automaticaly generated
 # for the sake of the bot during bot.on_ready.
-builtInShipData: Dict[str, "shipItem.CustomSerializedShipUnion"] = {}
+builtInShipData: Dict[str, "shipBase.CustomSerializedShipUnion"] = {}
 
 def findShipDataByAlias(shipName: str, ignoreCase: bool = True) -> dict:
     """Look up ship data in builtInShipData by name or alias

@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, List, Optional, Set, TypedDict, Union, TYPE_CHECKING, cast
-from typing_extensions import NotRequired
+from typing import Dict, List, Optional, Set, Union, TYPE_CHECKING, cast
+from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
@@ -13,7 +13,8 @@ from ...baseClasses.serializable import SerializesToSchema
 from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
-from ..items.shipItem import Ship, SerializedShipUnion
+from ..items.ships.shipItem import Ship
+from ..items.ships.shipBase import SerializedShipUnion
 from enum import Enum
 
 

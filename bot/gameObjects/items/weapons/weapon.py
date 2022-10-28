@@ -1,9 +1,11 @@
 from __future__ import annotations
 from typing import List, Union, cast
 
-from ..gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem
+from ..gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
 from .... import lib
+from ....cfg import bbData
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class BuiltInSerializedWeapon(BuiltInSerializedGameItem): pass
 class TypedBuiltInSerializedWeapon(TypedBuiltInSerializedGameItem): pass
@@ -17,7 +19,7 @@ BuiltInSerializedWeaponUnion = Union[BuiltInSerializedWeapon, TypedBuiltInSerial
 CustomSerializedWeaponUnion = Union[CustomSerializedWeapon, TypedCustomSerializedWeapon]
 SerializedWeaponUnion = Union[BuiltInSerializedWeaponUnion, CustomSerializedWeaponUnion]
 
-class Weapon(GameItem, SerializesToSchema[SerializedWeaponUnion]):
+class Weapon(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedWeaponUnion]):
     """An abstract class representing weapons that can be equipped onto a bbShip for use in duels.
 
     :var dps: The weapon's damage per second to a target ship.
@@ -45,6 +47,10 @@ class Weapon(GameItem, SerializesToSchema[SerializedWeaponUnion]):
                                             emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
         self.dps = dps
+
+    
+    @embedField("Damage Per Second (DPS)")
+    def formattedDps(self): return self.dps
 
 
     def statsStringShort(self) -> str:

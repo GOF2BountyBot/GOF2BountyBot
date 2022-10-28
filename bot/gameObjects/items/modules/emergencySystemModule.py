@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedEmergencySystemModule(moduleItem.CustomSerializedModuleItem):
     duration: float
@@ -15,7 +16,7 @@ SerializedEmergencySystemModuleUnion = Union[SerializedEmergencySystemModule, Ty
 
 
 @spawnableItem
-class EmergencySystemModule(moduleItem.ModuleItem, SerializesToSchema[SerializedEmergencySystemModuleUnion]):
+class EmergencySystemModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedEmergencySystemModuleUnion]):
     """"A module providing a ship with a short period of invincibility just before dying
 
     :var duration: The number of seconds the effect is active for
@@ -44,6 +45,13 @@ class EmergencySystemModule(moduleItem.ModuleItem, SerializesToSchema[Serialized
                                                     icon=icon, emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
         self.duration = duration
+
+#region embed fields
+
+    @embedField("Duration", hideWhenNone=True)
+    def formattedDuration(self): return f"{self.duration}s"
+
+#endregion
 
 
     def statsStringShort(self):

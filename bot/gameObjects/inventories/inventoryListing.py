@@ -2,7 +2,8 @@ from typing_extensions import NotRequired
 from ...baseClasses.serializable import SerializesToSchema
 from ..itemDiscount import ItemDiscount, SerializedItemDiscount
 from ..items import gameItem
-from typing import Generic, List, TypeVar, TypedDict, cast
+from typing import Generic, List, TypeVar, cast
+from typing_extensions import TypedDict
 
 TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
 TItemSerialized = TypeVar("TItemSerialized", bound=gameItem.SerializedGameItemUnion)

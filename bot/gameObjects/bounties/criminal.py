@@ -1,10 +1,11 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Union
+from typing import List, Optional, Union
 
 from ...cfg import bbData
 from ...baseClasses import aliasable
 from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour, embedFooterUrl
 from ...baseClasses.serializable import SerializesToSchema
 
 class BuiltInSerializedCriminal(aliasable.SerializedAliasable, SerializedLoadedObject): pass
@@ -14,11 +15,9 @@ class TypedBuiltInSerializedCriminal(BuiltInSerializedCriminal):
 
 class CustomSerializedCriminal(BuiltInSerializedCriminal):
     isPlayer: bool
-    name: str
     icon: str
     faction: str
     aliases: List[str]
-    wiki: str
 
 class TypedCustomSerializedCriminal(CustomSerializedCriminal, TypedBuiltInSerializedCriminal): pass
 
@@ -47,7 +46,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Serial
     """
 
     def __init__(self, name: str, faction: str, icon: str, builtIn: bool = False,
-                    isPlayer: bool = False, aliases: List[str] = [], wiki: str = ""):
+                    isPlayer: bool = False, aliases: List[str] = [], wiki: Optional[str] = None):
         """
         :param str name: The name of the criminal
         :param str faction: the faction that this criminal is wanted by
@@ -57,7 +56,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Serial
         :param bool builtIn: If this criminal is an NPC, are they built in or custom?
         :param list[str] aliases: Alias names that can be used to refer to this criminal
         """
-        super(Criminal, self).__init__(name, aliases)
+        super().__init__(name=name, aliases=aliases, wiki=wiki, builtIn=builtIn)
         if name == "":
             raise RuntimeError("CRIM_CONS_NONAM: Attempted to create a Criminal with an empty name")
         # if faction == "":
@@ -65,13 +64,23 @@ class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Serial
         if faction == "":
             raise RuntimeError("CRIM_CONS_NOICO: Attempted to create a Criminal with an empty icon")
 
-        self.name = name
         self.faction = faction
-        self.icon = icon
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
+        self._icon = icon
         self.isPlayer = isPlayer
-        self.builtIn = builtIn
+
+
+    @embedThumbnailUrl
+    @property
+    def icon(self): return self._icon
+
+
+    @embedField("Wanted By")
+    @property
+    def formattedFaction(self): return self.faction.title() + "s"
+
+
+    @embedColour
+    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
 
 
     def serialize(self, **kwargs) -> SerializedCriminalUnion:

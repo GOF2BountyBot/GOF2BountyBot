@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import TypeVar, Union, cast, TypedDict
+from typing import TypeVar, Union, cast
+from typing_extensions import TypedDict
 
 import emoji
 import traceback

@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedRepairBotModule(moduleItem.CustomSerializedModuleItem):
     HPps: float
@@ -15,7 +16,7 @@ SerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerialize
 
 
 @spawnableItem
-class RepairBotModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepairBotModuleUnion]):
+class RepairBotModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedRepairBotModuleUnion]):
     """A module providing a ship with a slow health point increase to its hull and armour
 
     :var HPps: The amount of health points regained per second
@@ -45,6 +46,12 @@ class RepairBotModule(moduleItem.ModuleItem, SerializesToSchema[SerializedRepair
 
         self.HPps = HPps
 
+#region embed fields
+
+    @embedField("Healing Rate")
+    def formattedEffect(self): return f"{self.HPps} HP/s"
+
+#endregion
 
     def statsStringShort(self):
         return "*HP/s: " + str(self.HPps) + "*"

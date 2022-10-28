@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Dict, TYPE_CHECKING, Optional, Tuple, TypedDict, cast
-from typing_extensions import NotRequired
+from typing import Dict, TYPE_CHECKING, Optional, Tuple, cast
+from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
 

@@ -15,6 +15,7 @@ class SimpleHashMixin():
         """
         return hash(repr(self))
 
+
 T = TypeVar("T", bound=type)
 
 def simpleHash(cls: T) -> T:

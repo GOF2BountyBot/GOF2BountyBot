@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedTransfusionBeamModule(moduleItem.CustomSerializedModuleItem):
     HPps: int
@@ -16,7 +17,7 @@ SerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, Ty
 
 
 @spawnableItem
-class TransfusionBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTransfusionBeamModuleUnion]):
+class TransfusionBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedTransfusionBeamModuleUnion]):
     """A module that slowly steals health from nearby ships, and adds the stolen heath to this ship's health.
 
     :var HPps: The amount of health points per second to steal
@@ -50,6 +51,15 @@ class TransfusionBeamModule(moduleItem.ModuleItem, SerializesToSchema[Serialized
         self.HPps = HPps
         self.count = count
 
+#region embed fields
+
+    @embedField("Healing Rate")
+    def formattedHealingRate(self): return f"{self.HPps} HP/s"
+    
+    @embedField("Count")
+    def formattedCount(self): return self.count
+
+#endregion
 
     def statsStringShort(self):
         return "*HP/s: " + str(self.HPps) + ", Count: " + str(self.count) + "*"

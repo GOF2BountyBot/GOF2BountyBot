@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedMiningDrillModule(moduleItem.CustomSerializedModuleItem):
     oreYield: float
@@ -16,7 +17,7 @@ SerializedMiningDrillModuleUnion = Union[SerializedMiningDrillModule, TypedSeria
 
 
 @spawnableItem
-class MiningDrillModule(moduleItem.ModuleItem, SerializesToSchema[SerializedMiningDrillModuleUnion]):
+class MiningDrillModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedMiningDrillModuleUnion]):
     """"A module providing a ship with the ability to mine ore from asteroids
 
     :var oreYield: The percentage of the maximum ore this drill will receive from an asteroid
@@ -49,6 +50,16 @@ class MiningDrillModule(moduleItem.ModuleItem, SerializesToSchema[SerializedMini
 
         self.oreYield = oreYield
         self.drillHandling = drillHandling
+
+#region embed fields
+
+    @embedField("Ore Yield")
+    def formattedYield(self): return f"{self.oreYield*100}%"
+    
+    @embedField("Handling")
+    def formattedDrillHandling(self): return f"{self.drillHandling*100}%"
+
+#endregion
 
 
     def statsStringShort(self):

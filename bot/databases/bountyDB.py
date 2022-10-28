@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Dict, Optional, TypedDict, cast, TYPE_CHECKING
-from typing_extensions import NotRequired
+from typing import Dict, Optional, cast, TYPE_CHECKING
+from typing_extensions import NotRequired, TypedDict
 
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from ..gameObjects.bounties import bounty

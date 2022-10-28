@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedTractorBeamModule(moduleItem.CustomSerializedModuleItem):
     timeToLock: float
@@ -15,7 +16,7 @@ SerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSeria
 
 
 @spawnableItem
-class TractorBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTractorBeamModuleUnion]):
+class TractorBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedTractorBeamModuleUnion]):
     """A module providing a ship with the ability to pull nearby debris and items into the ship's cargo hold
 
     :var timeToLock: The amount of time in seconds needed for the beam to lock onto an item and pull it into the hold
@@ -46,6 +47,12 @@ class TractorBeamModule(moduleItem.ModuleItem, SerializesToSchema[SerializedTrac
 
         self.timeToLock = timeToLock
 
+#region embed fields
+
+    @embedField("Time to Lock")
+    def formattedTimeToLock(self): return f"{self.timeToLock}s"
+
+#endregion
 
     def statsStringShort(self):
         return "*Time To Lock: " + str(self.timeToLock) + "s*"

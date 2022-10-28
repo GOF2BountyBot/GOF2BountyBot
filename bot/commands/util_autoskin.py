@@ -10,7 +10,7 @@ from ..cfg import cfg, bbData
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
 from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
-from ..gameObjects.items import shipItem
+from ..gameObjects.items.ships import shipItem
 from ..shipRenderer import shipRenderer
 from ..reactionMenus.reactionMenu import DummySingleUserReactionMenu
 

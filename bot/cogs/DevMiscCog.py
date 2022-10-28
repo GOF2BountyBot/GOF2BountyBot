@@ -30,7 +30,7 @@ from .util.CommonAutocomplete import criminalAutoComplete
 from .util.parameterVerifiers import verifyCriminalName
 from ..logging import LogCategory
 from ..baseClasses.basedEnum import BasedEnum
-from ..gameObjects.items import shipItem
+from ..gameObjects.items.ships import shipItem
 from ..gameObjects.bounties import solarSystem
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 

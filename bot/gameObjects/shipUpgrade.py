@@ -4,14 +4,16 @@ from typing import Union, cast
 from typing_extensions import NotRequired
 
 from ..cfg import bbData
-from .items import shipItem
+from .items.ships import shipBase
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
+from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .. import lib
+from ..lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from .gameObject import LoadedObject, SerializedLoadedObject
 
 class BuiltInSerializedShipUpgrade(SerializedLoadedObject):
-    name: str
+    pass
 
 class TypedBuiltInSerializedShipUpgrade(BuiltInSerializedShipUpgrade):
     type: str
@@ -43,7 +45,7 @@ SerializedShipUpgradeUnion = Union[BuiltInSerializedShipUpgrade, TypedBuiltInSer
 
 'https://stackoverflow.com/a/53519136'
 @simpleHash
-class ShipUpgrade(LoadedObject, SerializesToSchema[SerializedShipUpgradeUnion]):
+class ShipUpgrade(LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedShipUpgradeUnion]):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.
@@ -129,7 +131,6 @@ class ShipUpgrade(LoadedObject, SerializesToSchema[SerializedShipUpgradeUnion]):
                                 compare against other ship upgrades.
         :param bool builtIn: Whether this upgrade is built into BountyBot (loaded in from bbData) or was custom spawned.
         """
-        self.name = name
         self.shipToUpgradeValueMult = shipToUpgradeValueMult
         self.vendor = vendor
         self.hasVendor = vendor != ""
@@ -155,14 +156,35 @@ class ShipUpgrade(LoadedObject, SerializesToSchema[SerializedShipUpgradeUnion]):
         self.maxModules = maxModules
         self.maxModulesMultiplier = maxModulesMultiplier
 
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
-
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
 
-        super().__init__(builtIn=builtIn)
+        super().__init__(builtIn=builtIn, wiki=wiki, name=name)
 
+#region embed fields
+
+    @embedField("Upgrade Cost", hideWhenNone=True)
+    def formattedShipToUpgradeValueMult(self): return f"{self.shipToUpgradeValueMult*100}% of the ship" if self.shipToUpgradeValueMult != 0 else None
+    @embedField("Vendor", hideWhenNone=True)
+    def formattedVendor(self): return self.vendor or None
+    @embedField("Armour", hideWhenNone=True)
+    def formattedArmour(self): return formattedAdditiveAndOrMultiplierOrNone(self.armour, self.armourMultiplier)
+    @embedField("Cargo", hideWhenNone=True)
+    def formattedCargo(self): return formattedAdditiveAndOrMultiplierOrNone(self.cargo, self.cargoMultiplier)
+    @embedField("Max Secondaries", hideWhenNone=True)
+    def formattedMaxSecondaries(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxSecondaries, self.maxSecondariesMultiplier)
+    @embedField("Handling", hideWhenNone=True)
+    def formattedHandling(self): return formattedAdditiveAndOrMultiplierOrNone(self.handling, self.handlingMultiplier)
+    @embedField("Max Primaries", hideWhenNone=True)
+    def formattedMaxPrimaries(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxPrimaries, self.maxPrimariesMultiplier)
+    @embedField("Max Turrets", hideWhenNone=True)
+    def formattedMaxTurrets(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxTurrets, self.maxTurretsMultiplier)
+    @embedField("Max Modules", hideWhenNone=True)
+    def formattedMaxModules(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxModules, self.maxModulesMultiplier)
+    @embedField("Tech Level", hideWhenNone=True)
+    def formattedTechLevel(self): return self.techLevel if self.hasTechLevel else None
+
+#endregion
 
     def __eq__(self, other: ShipUpgrade) -> bool:
         """Decide whether two ship upgrades are the same, based purely on their name and object type.
@@ -174,10 +196,10 @@ class ShipUpgrade(LoadedObject, SerializesToSchema[SerializedShipUpgradeUnion]):
         return type(self) == type(other) and self.name == other.name
 
 
-    def valueForShip(self, ship: shipItem.Ship) -> int:
+    def valueForShip(self, ship: shipBase.ShipBase) -> int:
         """Calculate the value of this ship upgrade, when it is to be applied to the given ship
 
-        :param shipItem ship: The ship that the upgrade is to be applied to
+        :param shipBase.ShipBase ship: The ship that the upgrade is to be applied to
         :return: The number of credits at which this upgrade is valued when being applied to ship
         :rtype: int
         """

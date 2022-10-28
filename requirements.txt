@@ -5,3 +5,4 @@ aiohttp[speedups]
 PyGithub
 typing-extensions
 pillow
+diff-match-patch

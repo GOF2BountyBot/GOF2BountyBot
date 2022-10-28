@@ -1,10 +1,14 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from ...baseClasses import aliasable, serializable
+from ...baseClasses.embedFillable import EmbedFillableMixin, embedField, embedThumbnailUrl, embedColour
 from abc import abstractmethod
 from ... import lib
+from ...lib import gameMaths
+from ...lib.stringTyping import commaSplitNum
+from ...cfg import bbData, cfg
 from..gameObject import LoadedObject, SerializedLoadedObject
 
 
@@ -12,7 +16,6 @@ class BuiltInSerializedGameItem(SerializedLoadedObject, aliasable.SerializedAlia
 
 class CustomSerializedGameItem(BuiltInSerializedGameItem):
     value: int
-    wiki: str
     manufacturer: str
     icon: str
     emoji: lib.emojis.SerializedBasedEmoji
@@ -36,7 +39,7 @@ subClassNames: Dict[str, Type["GameItem"]] = {}
 nameSubClasses: Dict[Type["GameItem"], str] = {}
 
 
-class GameItem(aliasable.AliasableMixin, LoadedObject, serializable.SerializesToSchema[SerializedGameItemUnion]):
+class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, serializable.SerializesToSchema[SerializedGameItemUnion]):
     """A game item, with a value, a manufacturer, a wiki page, an icon, an emoji, and a tech level.
 
     :var wiki: A web page to represent as the item's wikipedia article in its info page
@@ -86,9 +89,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, serializable.SerializesTo
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData)
                                 or a custom spawned item (Default False)
         """
-        super(GameItem, self).__init__(name, aliases, builtIn=builtIn)
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
+        super(GameItem, self).__init__(name, aliases, builtIn=builtIn, wiki=wiki)
 
         self.manufacturer = manufacturer
         self.hasManufacturer = manufacturer != ""
@@ -104,6 +105,25 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, serializable.SerializesTo
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
+
+#region embed attributes
+
+    @embedThumbnailUrl
+    def iconOrNone(self): return self.icon if self.hasIcon else None
+
+    @embedField("Manufacturer", hideWhenNone=True)
+    def formattedManufacturer(self): return self.manufacturer.title() if self.hasManufacturer else None
+
+    @embedField("Value")
+    def formattedValue(self): return f"{commaSplitNum(self.value)} Credits"
+
+    @embedField("Tech Level", hideWhenNone=True)
+    def formattedTechLevel(self): return self.techLevel if self.hasTechLevel else None
+
+    @embedColour
+    def manufacturerColour(self): return bbData.factionColours.get(self.manufacturer, bbData.factionColours["neutral"])
+
+#endregion
 
 
     @abstractmethod
@@ -188,3 +208,21 @@ def spawnableItemClassFromName(n: str) -> Type[GameItem]:
 
 def isSpawnableItemInstance(o):
     return isinstance(o, GameItem) and type(o) in nameSubClasses
+
+
+def topThreeItemSpawnRates(item: GameItem, shopPool: List[List[Any]]) -> Optional[str]:
+    """Get a string describing the top 3 spawn rates for an item with tech level `tl`.
+
+    :param item: The item
+    :type item: GameItem
+    :param shopPool: The shop's techlevel-sorted pool of items
+    :type shopPool: List[List[Any]]
+    :return: A string describing the item's top 3 spawn rates, or None if `tl` is invalid
+    :rtype: Optional[str]
+    """
+    if not item.hasTechLevel or item.techLevel < cfg.minTechLevel or item.techLevel > cfg.maxTechLevel:
+        return None
+    
+    tlRange = range(max(item.techLevel - 1, cfg.minTechLevel), min(item.techLevel + 1, cfg.maxTechLevel) + 1)
+    rates = [(tl, gameMaths.itemTLSpawnChanceForShopTL[tl - 1][item.techLevel - 1]) for tl in tlRange if shopPool[tl - 1]]
+    return "\n".join(f"Level {tl} Shops: {round((rate/len(shopPool[tl - 1]))*100, 2)}%" for tl, rate in rates)

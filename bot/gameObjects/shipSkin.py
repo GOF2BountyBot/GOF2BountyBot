@@ -1,19 +1,21 @@
-from typing_extensions import NotRequired
-from ..cfg import bbData, cfg
 import os
-from ..shipRenderer import shipRenderer
-from .. import lib
-from discord import File
-from typing import Dict, List, Union, cast
-from ..baseClasses.hasRarity import HasRarityMixin, SerializedWithRarity
-from .items import shipItem
 from os.path import join
-from .gameObject import LoadedObject, SerializedLoadedObject
+from typing import Dict, List, Union, cast
+from typing_extensions import NotRequired
+from discord import Colour, File
+
+from .. import lib, botState
+from ..baseClasses.hasRarity import HasRarityMixin, SerializedWithRarity
 from ..baseClasses.serializable import JsonType, SerializesToSchema
+from ..baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
+from ..cfg import bbData, cfg
+from ..shipRenderer import shipRenderer
+from .gameObject import LoadedObject, SerializedLoadedObject
+from .items.ships import shipBase
+
 
 
 class BuiltInSerializedShipSkin(SerializedLoadedObject, SerializedWithRarity):
-    name: str
     ships: NotRequired[Dict[str, str]]
 
 class TypedBuiltInSerializedShipSkin(BuiltInSerializedShipSkin):
@@ -23,7 +25,6 @@ class CustomSerializedShipSkin(BuiltInSerializedShipSkin):
     textureRegions: List[int]
     designer: NotRequired[str]
     designerId: NotRequired[int]
-    wiki: NotRequired[str]
     disabledRegions: NotRequired[List[int]]
     allShips: NotRequired[bool]
 
@@ -59,7 +60,6 @@ class ShipSkin(HasRarityMixin, LoadedObject, SerializesToSchema[SerializedShipSk
                     designerId: int = -1):
 
         self.allShips = allShips
-        self.name = name
         self.textureRegions = textureRegions
         self.compatibleShips = list(shipRenders.keys())
         self.shipRenders = shipRenders
@@ -75,14 +75,71 @@ class ShipSkin(HasRarityMixin, LoadedObject, SerializesToSchema[SerializedShipSk
 
         self.designer = designer
         self.designerId = designerId
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
         self.disabledRegions = disabledRegions
         for region in disabledRegions:
             if region < 1:
                 raise ValueError("Attempted to disable an invalid region number: " + str(region) + ", skin " + name)
         
-        super().__init__(rarityLevel, builtIn=builtIn)
+        super().__init__(rarityLevel, builtIn=builtIn, wiki=wiki, name=name)
+
+    
+    @embedField("Compatible Ships")
+    def compatibleShipsEmojisOrNames(self):
+        if self.allShips:
+            return "All skinnable ships"
+
+        compatibleShipStrs = []
+        for shipName in self.compatibleShips:
+            shipData = bbData.builtInShipData[shipName]
+            if "emoji" in shipData:
+                try:
+                    currentStr = lib.emojis.BasedEmoji.fromStr(shipData["emoji"], rejectInvalid=True).sendable
+                except lib.exceptions.UnrecognisedCustomEmoji:
+                    currentStr = shipData["name"]
+            else:
+                currentStr = shipData["name"]
+
+            compatibleShipStrs.append(currentStr)
+        
+        return " • ".join(compatibleShipStrs) if compatibleShipStrs != [] else "None"
+
+    
+    @embedField("Modified Texture Regions", hideWhenNone=True)
+    @property
+    def modifiedRegionsStr(self):
+        return (f"Region{'' if len(self.textureRegions) == 1 else 's'} " + ", ".join(str(i) for i in self.textureRegions)) if self.textureRegions else None
+
+    
+    @embedField("Disabled Texture Regions", hideWhenNone=True)
+    @property
+    def disabledRegionsStr(self):
+        return ", ".join(str(i) for i in self.disabledRegions) if self.disabledRegions else None
+
+
+    @embedField("Designed By", hideWhenNone=True)
+    @property
+    def designerStr(self):
+        user = botState.client.get_user(self.designerId)
+        return self.designer if user is None else f"{user.name}#{user.discriminator}"
+
+    
+    @embedThumbnailUrl
+    @property
+    def embedThumbnail(self): return cfg.defaultShipSkinToolIcon
+
+    
+    @embedFooterUrl
+    @property
+    def embedFooter(self): return ("Preview this skin with the /showme command.", None)
+
+    
+    @embedTitle
+    @property
+    def formattedName(self): return self.name.title()
+
+    
+    @embedColour
+    def embedColour(self): return Colour(cfg.itemRarityColours[self.rarityLevel])
 
 
     def serialize(self, ignoreBuiltIn: bool = False, **kwargs) -> SerializedShipSkinUnion:
@@ -127,11 +184,11 @@ class ShipSkin(HasRarityMixin, LoadedObject, SerializesToSchema[SerializedShipSk
                                     prettyPrint=True)
 
     
-    def compatibleWithShip(self, ship: "shipItem.Ship") -> bool:
+    def compatibleWithShip(self, ship: "shipBase.ShipBase") -> bool:
         """Decide whether this skin is compatible with a given ship.
 
         :param ship: The ship to check for compatibility
-        :type ship: shipItem.Ship
+        :type ship: baseShip.BaseShip
         :return: True if ship is skinnable and compatible with this skin, False otherwise
         :rtype: bool
         """

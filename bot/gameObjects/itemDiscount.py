@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import TypedDict, cast
+from typing import cast
+from typing_extensions import TypedDict
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
 

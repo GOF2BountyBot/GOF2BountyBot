@@ -1,12 +1,14 @@
 from typing import cast
 import discord
 
+from ..gameObjects.items.ships import shipItem
+
 from . import commandsDB as textCommandsDB
 from .. import lib, botState
 from ..cfg import cfg, bbData
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..users import basedUser
-from ..gameObjects.items import shipItem, gameItem
+from ..gameObjects.items import gameItem
 from ..gameObjects.inventories import inventory
 
 

@@ -11,7 +11,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory
 from ..interactions import basedCommand, basedApp
 from ..gameObjects.items import gameItem
-from ..gameObjects.items.shipItem import Ship
+from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.kaamoShop import KaamoShop
 from ..gameObjects import guildShop
 from ..logging import LogCategory

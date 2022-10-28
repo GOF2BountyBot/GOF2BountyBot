@@ -1,10 +1,13 @@
 # Typing imports
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, List, Optional, cast
+from typing_extensions import TypedDict
+
+from .items.ships import shipItem,shipBase
 if TYPE_CHECKING:
     from ..users import basedUser
 
-from .items import moduleItemFactory, shipItem
+from .items import moduleItemFactory
 from .items.weapons import primaryWeapon, turretWeapon, weapon
 from .items.modules import moduleItem
 from .inventories import inventory, inventoryListing
@@ -13,7 +16,7 @@ from . import guildShop, itemDiscount
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
 
 class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop.SerializedShopBase...
-    shipsStock: List[inventoryListing.SerializedDiscountableItemListing[shipItem.SerializedShipUnion]]
+    shipsStock: List[inventoryListing.SerializedDiscountableItemListing[shipBase.SerializedShipUnion]]
     weaponsStock: List[inventoryListing.SerializedDiscountableItemListing[weapon.SerializedWeaponUnion]]
     modulesStock: List[inventoryListing.SerializedDiscountableItemListing[moduleItem.SerializedModuleItemUnion]]
     turretsStock: List[inventoryListing.SerializedDiscountableItemListing[weapon.SerializedWeaponUnion]]
@@ -25,7 +28,7 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
     Items cannot be sold to Loma.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship, shipItem.SerializedShipUnion]] = None,
+    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
                     weaponsStock: Optional[inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
                     modulesStock: Optional[inventory.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
                     turretsStock: Optional[inventory.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,

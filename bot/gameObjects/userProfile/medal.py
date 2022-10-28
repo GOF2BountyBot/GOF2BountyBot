@@ -1,17 +1,16 @@
-from typing import TypedDict
-from typing_extensions import NotRequired
+from discord import Colour
 from ...baseClasses.serializable import SerializesToSchema
 from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
+from ...baseClasses.embedFillable import EmbedFillableMixin, embedColour, embedDescription, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
+from ..gameObject import LoadedObject, SerializedLoadedObject
 
-class SerializedMedal(TypedDict):
-    name: str
+class SerializedMedal(SerializedLoadedObject):
     desc: str
     icon: str
     emoji: SerializedBasedEmoji
-    wiki: NotRequired[str]
 
 
-class Medal(SerializesToSchema[SerializedMedal]):
+class Medal(LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedMedal]):
     """A non-functional cosmetic appearing at the top of a user's profile.
     Medals are used to commend users for special achievements which cannot be achieved through
     normal play. E.g contributing to development.
@@ -40,12 +39,29 @@ class Medal(SerializesToSchema[SerializedMedal]):
         :param BasedEmoji emoji: An emoji representing the medal, usually the same appearance as icon
         :param str wiki: A URL adding extra semantics to the medal (Default "")
         """
-        self.name = name
+        # Medals cannot be custom
+        super().__init__(builtIn=True, wiki=wiki, name=name)
         self.desc = desc
-        self.icon = icon
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
+        self._icon = icon
         self.emoji = emoji
+
+    
+    @embedTitle
+    def formattedName(self): return self.name.title()
+
+    @embedDescription
+    @property
+    def formattedDescription(self): return f"__Medal Information__\n{self.desc or '*(no description)*'}"
+
+    @embedFooterUrl
+    def embedFooter(self): return ("See all available medals with the /list command.", None)
+
+    @embedColour
+    def embedColour(self): return Colour.random()
+
+    @embedThumbnailUrl
+    @property
+    def icon(self): return self._icon
 
 
     def serialize(self, **kwargs) -> SerializedMedal:
@@ -54,7 +70,8 @@ class Medal(SerializesToSchema[SerializedMedal]):
         :return: A dictionary fully describing this medal and its attriutes
         :rtype: dict
         """
-        data: SerializedMedal = {"name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.serialize()}
+        # Medals cannot be custom
+        data: SerializedMedal = {"builtIn": True, "name": self.name, "desc": self.desc, "icon": self.icon, "emoji": self.emoji.serialize()}
         if self.hasWiki:
             data["wiki"] = self.wiki
         return data

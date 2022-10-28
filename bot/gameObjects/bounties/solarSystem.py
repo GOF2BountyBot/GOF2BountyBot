@@ -7,6 +7,8 @@ import math
 from ..gameObject import LoadedObject, SerializedLoadedObject
 from ...baseClasses import aliasable
 from ...baseClasses.serializable import SerializesToSchema
+from ...baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
+from ...cfg import bbData
 
 class BuiltInSerializedSolarSystem(aliasable.SerializedAliasable, SerializedLoadedObject): pass
 
@@ -18,7 +20,6 @@ class CustomSerializedSolarSystem(BuiltInSerializedSolarSystem):
     neighbours: List[str]
     security: int
     coordinates: Tuple[int, int]
-    wiki: NotRequired[str]
     techLevel: NotRequired[int]
 
 class TypedCustomSerializedSolarSystem(CustomSerializedSolarSystem, TypedBuiltInSerializedSolarSystem): pass
@@ -28,7 +29,7 @@ CustomSerializedSolarSystemUnion = Union[CustomSerializedSolarSystem, TypedCusto
 SerializedSolarSystemUnion = Union[BuiltInSerializedSolarSystem, TypedBuiltInSerializedSolarSystem, CustomSerializedSolarSystem, TypedCustomSerializedSolarSystem]
 
 
-class SolarSystem(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[SerializedSolarSystemUnion]):
+class SolarSystem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedSolarSystemUnion]):
     """A solar system where a bounty may be located.
 
     :var name: The name of this system
@@ -55,7 +56,7 @@ class SolarSystem(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Ser
     """
 
     def __init__(self, name: str, faction: str, neighbours: List[str], security: int,
-            coordinates: Tuple[int, int], aliases: List[str] = [], wiki: str = "", techLevel: int = -1,
+            coordinates: Tuple[int, int], aliases: List[str] = [], wiki: Optional[str] = None, techLevel: int = -1,
             builtIn: Optional[bool] = False):
         """
         :param str name: The name of this system
@@ -70,17 +71,36 @@ class SolarSystem(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Ser
         :param int techLevel: The tech level of the system, indicating the typical tech level of items that can be found here
                                 - this currently has no behaviour, and is used only for lore. (Default -1)
         """
-        super(SolarSystem, self).__init__(name, aliases, builtIn=builtIn)
-        self.name = name
+        super(SolarSystem, self).__init__(name, aliases, builtIn=builtIn, wiki=wiki)
         self.faction = faction
         self.neighbours = neighbours
         self.security = security
         self.coordinates = tuple(coordinates)
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
+
+    
+    @embedField("Neighbour Systems")
+    @property
+    def neighboursStr(self): return ", ".join(i.title() for i in self.neighbours) if self.neighbours else "No Jumpgate"
+
+
+    @embedFooterUrl
+    def formattedFaction(self): return (self.faction.title(), self.embedThumbnail())
+
+
+    @embedField("Security Level")
+    @property
+    def securityLevelName(self): return bbData.securityLevels[self.security].title()
+
+
+    @embedColour
+    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+
+
+    # @embedThumbnailUrl
+    def embedThumbnail(self): return bbData.factionIcons.get(self.faction, None)
 
 
     def getNeighbours(self) -> List[str]:

@@ -4,7 +4,7 @@ from discord import Embed, Interaction, Member, User, DiscordException, HTTPExce
 from discord.utils import MISSING
 from ...users import basedUser
 from ...scheduling import timedTask
-from ..items import shipItem
+from ..items.ships import shipItem
 from ..bounties import criminal
 import random
 from typing import Optional, Tuple, Union

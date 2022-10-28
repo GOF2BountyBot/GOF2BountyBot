@@ -1,7 +1,8 @@
+from ..ships import shipItem
 from . import toolItem, shipSkinTool, throwSnowballTool
 from . import crateTool
 from .crates import shipSkinCrateTool
-from .. import shipItem, moduleItemFactory
+from .. import moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
 from ....baseClasses.serializable import Factory
 

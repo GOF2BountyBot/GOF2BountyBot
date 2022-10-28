@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Coroutine, List, Tuple, TypedDict
+from typing import TYPE_CHECKING, Coroutine, List, Tuple
+from typing_extensions import NotRequired, TypedDict
 from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw

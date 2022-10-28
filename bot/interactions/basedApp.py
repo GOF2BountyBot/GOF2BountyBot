@@ -208,8 +208,8 @@ class BasedCog(Cog):
 
         return await super().cog_unload()
 
-    @_basedAppIgnore
     @classmethod
+    @_basedAppIgnore
     def staticComponentCallback(cls, ID: "basedComponent.StaticComponents"):
         """Decorator marking a coroutine as a static component callback.
         The callback for static components identifying this callback by ID will be preserved across bot restarts

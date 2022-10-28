@@ -4,7 +4,7 @@ from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, 
 from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..gameObjects.items import shipItem
+    from ..gameObjects.items.ships import shipBase
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(
@@ -228,6 +228,7 @@ includedCogs = (
     cogPath("UserDuelsCog"),
     cogPath("UserEconomyCog"),
     cogPath("UserGithubCog"),
+    cogPath("UserGof2InfoCog"),
     cogPath("UserMiscCog")
 )
 
@@ -455,7 +456,7 @@ criminalEquipDamagelessWeaponChance = 20
 # The maximum number of levels a criminal's gear may be above their difficulty rating
 criminalMaxGearUpgrade = 1
 
-level0CrimLoadout: "shipItem.SerializedShipUnion" = {
+level0CrimLoadout: "shipBase.SerializedShipUnion" = {
     "name": "Betty", "builtIn": True,
     "weapons":[{"name": "Nirai Impulse EX 1", "builtIn": True}],
     "modules":[{"name": "Telta Quickscan", "builtIn": True}, {"name": "ZMI Optistore", "builtIn": True},
@@ -600,6 +601,9 @@ crateTypes = ("levelUp", "special", "christmas")
 # Names of item rarities. Item rarity levels are integers that correspond to indices in this tuple.
 # Must be in ascending order of rarity.
 itemRarities = ("common", "uncommon", "rare", "epic")
+
+# Hex colours of item rarities. Must be in ascending order of rarity as above.
+itemRarityColours = (0x783f32, 0x828282, 0xccb031, 0x6934bf)
 
 # Probability distribution of an event occurring involving an item of a given rarity. E.g crate drop rates. Must be integers.
 itemRaritiesDistribution = (45, 28, 15, 7)

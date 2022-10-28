@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedBoosterModule(moduleItem.CustomSerializedModuleItem):
     effect: float
@@ -16,7 +17,7 @@ SerializedBoosterModuleUnion = Union[SerializedBoosterModule, TypedSerializedBoo
 
 
 @spawnableItem
-class BoosterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedBoosterModuleUnion]):
+class BoosterModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedBoosterModuleUnion]):
     """"A module providing a ship with the ability to boost its speed for a short period of time.
 
     :var effect: Multiplier to apply to the ship's velocity
@@ -49,6 +50,15 @@ class BoosterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedBoosterM
         self.effect = effect
         self.duration = duration
 
+#region embed fields
+
+    @embedField("Effect")
+    def formattedEffect(self): return f"{self.effect*100}%"
+    
+    @embedField("Duration", hideWhenNone=True)
+    def formattedDuration(self): return f"{self.duration}s"
+
+#endregion
 
     def statsStringShort(self):
         return "*Effect: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) \

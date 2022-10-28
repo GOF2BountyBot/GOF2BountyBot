@@ -14,8 +14,8 @@ class BoolEnumMeta(EnumMeta):
         o: "BoolTransformerBase" = super().__new__(cls, clsName, bases, classdict, **kwds)
         if _first:
             _first.clear()
-        elif trueVal not in classdict.values():
-            raise ValueError(f"trueVal {trueVal} is not a member value of enum {type(o).__name__}")
+        elif trueVal not in classdict._last_values:
+            raise ValueError(f"trueVal {trueVal} is not a member value of enum {clsName}")
         o.trueVal = trueVal
         return o
 

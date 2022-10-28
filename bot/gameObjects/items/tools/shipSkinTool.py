@@ -13,6 +13,7 @@ from .... import botState
 from ..gameItem import spawnableItem
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 from ....views.confirmView import ConfirmView
 
 if TYPE_CHECKING:
@@ -35,7 +36,7 @@ SerializedShipSkinToolUnion = Union[CustomSerializedShipSkinToolUnion, BuiltInSe
 
 
 @spawnableItem
-class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[SerializedShipSkinToolUnion]):
+class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, EmbedFillableMixin, SerializesToSchema[SerializedShipSkinToolUnion]):
     """A tool that can be used to apply a skin to a ship.
     This item is named after the skin it applies.
     The manufacturer is set to the skin designer.
@@ -67,6 +68,54 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, SerializesToSchema[Seriali
                             autoUse=autoUse, rarityLevel=skin.rarityLevel)
         self.skin = skin
 
+#region embed fields
+    
+    @embedField("Skin")
+    @property
+    def skinName(self): return self.skin.name
+
+    # The following fields were copied from the ShipSkin class
+
+    @embedField("Compatible Ships")
+    @property
+    def compatibleShipsEmojisOrNames(self):
+        if self.skin.allShips:
+            return "All skinnable ships"
+
+        compatibleShipStrs = []
+        for shipName in self.skin.compatibleShips:
+            shipData = bbData.builtInShipData[shipName]
+            if "emoji" in shipData:
+                try:
+                    currentStr = lib.emojis.BasedEmoji.fromStr(shipData["emoji"], rejectInvalid=True).sendable
+                except lib.exceptions.UnrecognisedCustomEmoji:
+                    currentStr = shipData["name"]
+            else:
+                currentStr = shipData["name"]
+
+            compatibleShipStrs.append(currentStr)
+        
+        return " • ".join(compatibleShipStrs[0]) if compatibleShipStrs != [] else "None"
+
+    
+    @embedField("Modified Texture Regions", hideWhenNone=True)
+    @property
+    def modifiedRegionsStr(self):
+        return ", ".join(str(i) for i in self.skin.textureRegions) if self.skin.textureRegions else None
+
+    
+    @embedField("Disabled Texture Regions", hideWhenNone=True)
+    @property
+    def disabledRegionsStr(self):
+        return ", ".join(str(i) for i in self.skin.disabledRegions) if self.skin.disabledRegions else None
+
+
+    @embedField("Designed By", hideWhenNone=True)
+    @property
+    def designerStr(self):
+        return lib.discordUtil.userTagOrDiscrim(self.skin.designer)
+
+#endregion
 
     @toolItem.singleUse
     async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:

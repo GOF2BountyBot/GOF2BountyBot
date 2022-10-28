@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, TypedDict, Union
+from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union
+from typing_extensions import TypedDict
 import carica
 from carica import ISerializable, SerializesToType, PrimativeType
 from .defaultable import DefaultableMixin
@@ -27,7 +28,7 @@ class Serializable(ISerializable, DefaultableMixin, SimpleHashMixin):
 SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
 TSelf = TypeVar("TSelf", bound="Serializable")
 
-class SerializesToSchema(SerializesToType[JsonType], Serializable, Generic[SerializedSchema]):
+class SerializesToSchema(Serializable, Generic[SerializedSchema]):
     """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing to/from a Json-compliant TypedDict schema.
     """
     @abstractmethod
@@ -40,8 +41,8 @@ class SerializesToSchema(SerializesToType[JsonType], Serializable, Generic[Seria
 SerializesToJson = SerializesToType[JsonType]
 
 
-TDeserialized = TypeVar("TDeserialized", bound=carica.SerializableType, covariant=True)
-TSerialized = TypeVar("TSerialized", bound=PrimativeType, contravariant=True)
+TDeserialized = TypeVar("TDeserialized", bound=Serializable, covariant=True)
+TSerialized = TypeVar("TSerialized", bound=Union[PrimativeType, TypedDict], contravariant=True)
 
 class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     """Any class that can be deserialized, but cannot be serialized.
@@ -59,8 +60,3 @@ class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     @classmethod
     @abstractmethod
     def deserialize(cls, data: TSerialized, **kwargs) -> TDeserialized: ...
-
-FromPrimativeFactory = Factory[PrimativeType, TDeserialized]
-
-TJsonDeserialized = TypeVar("TJsonDeserialized", bound=SerializesToJson)
-FromJsonFactory = Factory[JsonType, TJsonDeserialized]

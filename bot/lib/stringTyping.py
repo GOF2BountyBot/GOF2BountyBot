@@ -1,5 +1,25 @@
 # TODO: Remake most of these with regex
 from typing import List, Optional, Tuple, Union
+from diff_match_patch import diff_match_patch
+
+DMP = diff_match_patch()
+
+
+def stringDifference(a: str, b: str, deadline: int = 2) -> int:
+    """Compute a rough measure of the difference between two strings.
+    A lower score means the strings are more similar.
+
+    :param a: One of the strings to compare
+    :type a: str
+    :param b: The other string
+    :type b: str
+    :param deadline: Time when the diff should be complete by, defaults to 2
+    :type deadline: int, optional
+    :return: A rough measure of the difference between `a` and `b`
+    :rtype: int
+    """
+    changes = DMP.diff_main(a, b, True, 2)
+    return sum(1 for i in changes if i[0] == 1) #DMP.diff_levenshtein(changes)
 
 
 def isInt(x) -> bool:
@@ -106,6 +126,16 @@ def formatMultiplier(stat: float) -> str:
     :return: A sign symbol, followed by stat, followed by a percentage sign.
     """
     return f"{'+' if stat >= 1 else '-'}{round(((stat - 1) if stat > 1 else (1 - stat)) * 100)}%"
+
+
+def formattedAdditiveAndOrMultiplierOrNone(additive: Union[float, int], multiplier: float) -> Optional[str]:
+    """Format additive if it is not 0, and/or multiplier if it is not 1, or return None if neither are true.
+    Formatting is done with formatAdditive/formatMultiplier.
+    """
+    addStr = "" if additive == 0 else formatAdditive(additive)
+    multStr = "" if multiplier == 1 else formatMultiplier(multiplier)
+    if addStr and multStr: return f"{addStr}\n{multStr}"
+    return addStr or multStr or None
 
 
 def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign='left', valuesAlign='left',

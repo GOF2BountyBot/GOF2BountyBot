@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedScannerModule(moduleItem.CustomSerializedModuleItem):
     timeToLock: float
@@ -17,7 +18,7 @@ SerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedSca
 
 
 @spawnableItem
-class ScannerModule(moduleItem.ModuleItem, SerializesToSchema[SerializedScannerModuleUnion]):
+class ScannerModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedScannerModuleUnion]):
     """A module providing a ship with the ability to scan in-range objects, such as asteroids and ships
 
     :var timeToLock: The number of seconds this scanner takes to lock onto an object and obtain information
@@ -58,6 +59,19 @@ class ScannerModule(moduleItem.ModuleItem, SerializesToSchema[SerializedScannerM
         self.timeToLock = timeToLock
         self.showClassAAsteroids = showClassAAsteroids
         self.showCargo = showCargo
+
+#region embed fields
+
+    @embedField("Time to Lock")
+    def formattedTimeToLock(self): return f"{self.timeToLock}s"
+    
+    @embedField("Show Class A Asteroids")
+    def formattedShowClassAAsteroids(self): return "Yes" if self.showClassAAsteroids else "No"
+
+    @embedField("Show Cargo")
+    def formattedShowCargo(self): return "Yes" if self.showCargo else "No"
+
+#endregion
 
 
     def statsStringShort(self):

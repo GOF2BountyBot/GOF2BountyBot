@@ -2,7 +2,6 @@
 from __future__ import annotations, division
 from typing import TYPE_CHECKING, List, Dict, Optional, Protocol, Any, Type, Union
 if TYPE_CHECKING:
-    from ..items import shipItem
     from ...databases import bountyDivision
 
 import random
@@ -13,7 +12,7 @@ from ... import lib, botState
 from ...lib import gameMaths
 from ...logging import LogCategory
 from ..items.modules import armourModule, shieldModule, moduleItem
-from ..items import shipItem
+from ..items.ships import shipItem
 from ..items.weapons import primaryWeapon, turretWeapon
 from ...databases import bountyDB
 

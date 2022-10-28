@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import cast
-from ..gameItem import spawnableItem
+from ..gameItem import spawnableItem, topThreeItemSpawnRates
 from ....cfg import bbData
 from .... import lib
 from .weapon import Weapon, CustomSerializedWeaponUnion, SerializedWeaponUnion
+from ....baseClasses.embedFillable import embedField
 
 
 @spawnableItem
@@ -28,3 +29,7 @@ class TurretWeapon(Weapon):
             return TurretWeapon(**cls._makeDefaults(turretDict, ("type",),
                                                     emoji=lib.emojis.BasedEmoji.fromStr(turretDict["emoji"]) \
                                                             if "emoji" in turretDict else lib.emojis.BasedEmoji.EMPTY))
+
+    
+    @embedField("BB Shop Spawn Rate", hideWhenNone=True)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.turretObjsByTL)

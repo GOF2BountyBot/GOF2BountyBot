@@ -1,21 +1,28 @@
 # Typing imports
 from __future__ import annotations
-from typing import Any, Dict, List, TypedDict
-from typing_extensions import NotRequired
+from typing import Any, Dict, List, Tuple
+from typing_extensions import NotRequired, TypedDict
 from abc import abstractmethod
+from diff_match_patch import diff_match_patch
 
+from ..lib.stringTyping import stringDifference
 from .serializable import SerializesToSchema
+from .embedFillable import EmbedFillableMixin, embedField, embedTitle
+
+DMP = diff_match_patch()
 
 class SerializedAliasable(TypedDict):
     name: str
     aliases: NotRequired[List[str]]
 
 
-class AliasableMixin(SerializesToSchema[SerializedAliasable]):
+class AliasableMixin(EmbedFillableMixin, SerializesToSchema[SerializedAliasable]):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
     A great example and common use case is in BountyBot's Criminal class. Criminals are NPCs that each have a unique name.
     These names usually consist of a forename and sirname, for example 'Ganfor Kant'. Providing 'Ganfor' and 'Kant' as aliases
     allows the Ganfor Kant object to be identified by any of 'Ganfor', 'Kant', or 'Ganfor Kant', for user convenience.
+
+    This class comes with `EmbedFillableMixin`, and the class's name and aliases as embed fields
 
     :var name: The main identifier for the object
     :vartype name: str
@@ -41,8 +48,29 @@ class AliasableMixin(SerializesToSchema[SerializedAliasable]):
 
         if name.lower() not in aliases:
             self.aliases += [name.lower()]
+        
+        super().__init__(*args, name=name, **kwargs)
 
-        super().__init__(*args, **kwargs)
+
+    @embedTitle
+    @property
+    def formattedName(self):
+        """The main name for this aliasable object.
+        """
+        return self.name.title()
+
+
+    @embedField("Aliases", showLast=True, showInline=False, uniqueFieldName=True, hideWhenNone=True)
+    @property
+    def formattedAliases(self):
+        """A list of other names by which this object may be referred.
+        """
+        return ", ".join(i.title() for i in self.aliases if i.lower() != self.name.lower()) or None
+
+
+    def mostSimilarAlias(self, cmp: str, deadline: int = 2, ignoreCase: bool = True) -> Tuple[int, str]:
+        changes = [(stringDifference(alias.lower() if ignoreCase else alias, cmp.lower() if ignoreCase else cmp), alias) for alias in self.aliases]
+        return min(changes, key=lambda x: x[0])
 
 
     def isCalled(self, name: str) -> bool:

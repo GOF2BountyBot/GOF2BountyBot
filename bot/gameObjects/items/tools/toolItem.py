@@ -8,6 +8,7 @@ from .... import lib
 from discord import Interaction
 from typing import List
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 
 class SerializedToolItem(gameItem.CustomSerializedGameItem):
@@ -26,7 +27,7 @@ class UserFriendlyUseCallbackType(Protocol):
     def __call__(cbSelf, self, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs) -> Coroutine[Any, Any, bool]: ... # type: ignore[reportSelfClsParameterName]
 
 
-class ToolItem(gameItem.GameItem, SerializesToSchema[SerializedToolItemUnion]):
+class ToolItem(gameItem.GameItem, EmbedFillableMixin, SerializesToSchema[SerializedToolItemUnion]):
     """An item that has a function of some kind.
     Intended to be very generic at this level of implementation.
     """
@@ -52,6 +53,10 @@ class ToolItem(gameItem.GameItem, SerializesToSchema[SerializedToolItemUnion]):
         super().__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon, emoji=emoji,
                             techLevel=techLevel, builtIn=builtIn)
         self.autoUse = autoUse
+
+    
+    @embedField("Applies on Pickup", hideWhenNone=True)
+    def formattedAutoUse(self): return "This item will `/use` automatically when it enters your inventory" if self.autoUse else None
 
 
     @abstractmethod

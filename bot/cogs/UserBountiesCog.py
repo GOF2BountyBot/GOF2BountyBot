@@ -3,7 +3,6 @@ from typing import Dict, List, Optional, Tuple, Union, cast
 from PIL.Image import Image
 
 from discord import Colour, Embed, File, Guild, HTTPException, Member, User, app_commands, Interaction, ButtonStyle
-from discord.abc import Snowflake
 from discord.ui import View, Button
 
 from .. import client, botState
@@ -25,7 +24,7 @@ from ..lib.emojis import BasedEmoji
 from ..databases.bountyDB import BountyDB, nameForDivision
 from ..gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
 from ..gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
-from ..gameObjects.items.shipItem import Ship
+from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.items.gameItem import GameItem
 from ..gameObjects.items.tools import toolItemFactory
 from ..gameObjects.items.tools.crateTool import CrateTool

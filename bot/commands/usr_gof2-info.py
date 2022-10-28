@@ -5,11 +5,13 @@ import os
 import asyncio
 from PIL import Image
 
+from ..gameObjects.items.ships import shipItem
+
 from . import commandsDB as textCommandsDB
 from ..cfg import bbData, cfg
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
-from ..gameObjects.items import shipItem, gameItem
+from ..gameObjects.items import gameItem
 from ..gameObjects.items.tools import toolItem
 from ..reactionMenus import reactionMenu
 from ..reactionMenus.reactionSkinRegionPicker import ReactionSkinRegionPicker
@@ -24,112 +26,6 @@ textCommandsDB.addHelpSection(0, "gof2 info")
 CWD = os.getcwd()
 robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 SCROLL_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/scroll_1f4dc.png"
-
-
-async def cmd_map(message: discord.Message, args: str, isDM: bool):
-    """send the image of the GOF2 starmap. If -g is passed, send the grid image
-
-    :param discord.Message message: the discord message calling the command
-    :param str args: string, can be empty or contain -g
-    :param bool isDM: Whether or not the command is being called from a DM channel
-    """
-    # If -g is specified, send the image with grid overlay
-    if args == "-g":
-        await message.reply(mention_author=False, content=bbData.mapImageWithGraphLink)
-    # otherwise, send the image with no grid overlay
-    else:
-        await message.reply(mention_author=False, content=bbData.mapImageNoGraphLink)
-
-textCommandsDB.register("map", cmd_map, 0, aliases=["starmap"], allowDM=True, helpSection="gof2 info", signatureStr="**map**",
-                        shortHelp="Send the complete GOF2 starmap.",
-                        longHelp="Send the complete GOF2 starmap with jumpgate routes, including all secret and DLC systems.")
-
-
-async def cmd_make_route(message: discord.Message, args: str, isDM: bool):
-    """display the shortest route between two systems
-
-    :param discord.Message message: the discord message calling the command
-    :param str args: string containing the start and end systems, separated by a comma and a space
-    :param bool isDM: Whether or not the command is being called from a DM channel
-    """
-    if isDM:
-        prefix = cfg.defaultCommandPrefix
-    else:
-        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
-    # verify two systems are given separated by a comma and a space
-    if args == "" or "," not in args or len(args[:args.index(",")]) < 1 or len(args[args.index(","):]) < 2:
-        await message.reply(mention_author=False, content=":x: Please provide source and destination systems, separated with a comma and space.\n" \
-                                    + "For example: `" + prefix + "make-route Pescal Inartu, Loma`")
-        return
-    if args.count(",") > 1:
-        await message.reply(mention_author=False, content=":x: Please only provide **two** systems!")
-        return
-
-    requestedStart = args.split(",")[0].title()
-    requestedEnd = args.split(",")[1][1:].title()
-    startSyst = ""
-    endSyst = ""
-
-    # attempt to look up the requested systems in the built in systems database
-    systemsFound = {requestedStart: False, requestedEnd: False}
-    for syst in bbData.builtInSystemObjs.keys():
-        if bbData.builtInSystemObjs[syst].isCalled(requestedStart):
-            systemsFound[requestedStart] = True
-            startSyst = syst
-        if bbData.builtInSystemObjs[syst].isCalled(requestedEnd):
-            systemsFound[requestedEnd] = True
-            endSyst = syst
-
-    # report any unrecognised systems
-    for syst in [requestedStart, requestedEnd]:
-        if not systemsFound[syst]:
-            if len(syst) < 20:
-                await message.reply(mention_author=False, content=":x: The **" + syst + "** system is not on my star map! :map:")
-            else:
-                await message.reply(mention_author=False, content=":x: The **" + syst[0:15] + "**... system is not on my star map! :map:")
-            return
-
-    # report any systems that were recognised, but do not have any neighbours
-    for syst in [startSyst, endSyst]:
-        if not bbData.builtInSystemObjs[syst].hasJumpGate():
-            if len(syst) < 20:
-                await message.reply(mention_author=False, content=":x: The **" + syst + "** system does not have a jump gate! :rocket:")
-            else:
-                await message.reply(mention_author=False, content=":x: The **" + syst[0:15] + "**... system does not have a jump gate! :rocket:")
-            return
-
-    # build and print the route, reporting any errors in the route generation process
-    routeStr = ""
-    route = lib.pathfinding.makeRoute(startSyst, endSyst)
-    
-    if route is lib.pathfinding.PathfindingError.MAX_LENGTH_REACHED:
-        await message.reply(mention_author=False, content=":x: ERR: The route was too long to compute! :stopwatch:")
-    elif route is lib.pathfinding.PathfindingError.NO_ROUTE_FOUND:
-        await message.reply(mention_author=False, content=":x: ERR: No route found! :triangular_flag_on_post:")
-    elif startSyst == endSyst:
-        await message.reply(mention_author=False, content=":thinking: You're already there, pilot!")
-    else:
-        routeStr = ", ".join(route)
-        routeImg = bountyBoardChannel.renderRouteMap(route)
-        if routeImg is None:
-            routeFile = None
-        else:
-            routeImageBytes = BytesIO()
-            routeImg.save(routeImageBytes, "PNG")
-            routeImageBytes.seek(0)
-            routeFile = discord.File(routeImageBytes, filename="route.png")
-        await message.reply(f"Here's the shortest route from **{startSyst}** to **{endSyst}**:\n> {routeStr} :rocket:",
-                            mention_author=False, file=routeFile)
-        if routeImg is not None:
-            routeImg.close()
-            routeImageBytes.close()
-            routeFile.close()
-
-textCommandsDB.register("make-route", cmd_make_route, 0, allowDM=True, helpSection="gof2 info",
-                        signatureStr="**make-route <startSystem>, <endSystem>**",
-                        shortHelp="Find the shortest route from `startSystem` to `endSystem`.",
-                        longHelp="Find the shortest route from `startSystem` to `endSystem`. Both systems must have jump " \
-                                    + "gates. To find out if a system has a jump gate, use `info`.")
 
 
 async def cmd_info_system(message: discord.Message, args: str, isDM: bool):

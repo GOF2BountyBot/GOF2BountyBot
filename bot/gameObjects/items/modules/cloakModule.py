@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedCloakModule(moduleItem.CustomSerializedModuleItem):
     duration: float
@@ -15,7 +16,7 @@ SerializedCloakModuleUnion = Union[SerializedCloakModule, TypedSerializedCloakMo
 
 
 @spawnableItem
-class CloakModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCloakModuleUnion]):
+class CloakModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedCloakModuleUnion]):
     """"A module providing a ship with the ability to turn invisible for a short period of time
 
     :var duration: The number of seconds this effect lasts
@@ -44,6 +45,13 @@ class CloakModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCloakModul
                                             emoji=emoji, techLevel=techLevel, builtIn=builtIn)
 
         self.duration = duration
+
+#region embed fields
+
+    @embedField("Duration", hideWhenNone=True)
+    def formattedDuration(self): return f"{self.duration}s"
+
+#endregion
 
 
     def statsStringShort(self):

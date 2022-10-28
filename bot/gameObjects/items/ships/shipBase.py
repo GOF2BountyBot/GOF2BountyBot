@@ -1,22 +1,24 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING, cast
+from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING, cast, TypeVar
 from typing_extensions import NotRequired
 if TYPE_CHECKING:
-    from .modules import moduleItem
+    from ..modules import moduleItem
 
 from discord import Embed
 
-from .gameItem import GameItem, spawnableItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem
-from . import moduleItemFactory
-from .modules.moduleItem import SerializedModuleItemUnion
-from .weapons.primaryWeapon import PrimaryWeapon
-from .weapons.turretWeapon import TurretWeapon
-from .weapons.weapon import SerializedWeaponUnion
-from .. import shipSkin, shipUpgrade
-from ...cfg import cfg, bbData
-from ...cfg.bbData import ItemCategory
-from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
-from ...baseClasses.serializable import SerializesToSchema
+from ..gameItem import GameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
+from .. import moduleItemFactory
+from ..modules.moduleItem import SerializedModuleItemUnion
+from ..weapons.primaryWeapon import PrimaryWeapon
+from ..weapons.turretWeapon import TurretWeapon
+from ..weapons.weapon import SerializedWeaponUnion
+from ... import shipSkin, shipUpgrade
+from ....cfg import cfg, bbData
+from ....cfg.bbData import ItemCategory
+from ....lib.emojis import BasedEmoji, SerializedBasedEmoji
+from ....lib import gameMaths
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 
 class BuiltInSerializedShip(BuiltInSerializedGameItem):
@@ -53,7 +55,6 @@ class CustomSerializedShip(BuiltInSerializedShip):
     shopSpawnRate: float
     textureRegions: int
     value: int
-    wiki: str
     manufacturer: str
     icon: str
     emoji: SerializedBasedEmoji
@@ -76,10 +77,10 @@ CustomSerializedShipUnion = Union[CustomSerializedShip, TypedCustomSerializedShi
 SerializedShipUnion = Union[BuiltInSerializedShipUnion, CustomSerializedShipUnion]
 SkinnedSerializedShipUnion = Union[SkinnedBuiltInSerializedShip, TypedSkinnedBuiltInSerializedShip, SkinnedCustomSerializedShip, TypedSkinnedCustomSerializedShip]
 
+TShip = TypeVar("TShip", bound="ShipBase")
 
-@spawnableItem
-class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
-    """An equippable and customisable ship for use by players and NPCs.
+class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUnion]):
+    """Base class for Ships.
 
     TODO: All of these 'get total' functions could probably be consolidated into a single function,
     # making use of getActives etc
@@ -163,8 +164,8 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
                                     (i.e its spawn probability for a shop of the same techLevel) (Default 0)
         :param ShipSkin skin: The skin applied to the ship
         """
-        super(Ship, self).__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon, emoji=emoji,
-                                        techLevel=techLevel, builtIn=builtIn)
+        super().__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon, emoji=emoji,
+                        techLevel=techLevel, builtIn=builtIn)
 
         # TODO: Log to bbLogger in these cases
         if len(weapons) > maxPrimaries:
@@ -194,8 +195,9 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
 
         self.nickname = ""
         self.hasNickname = False
+        self.nickname = nickname
         if nickname != "":
-            self.changeNickname(nickname)
+            self.hasNickname = True
 
         self.upgradesApplied = upgradesApplied
 
@@ -203,6 +205,88 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
 
         self.skin = skin
         self.isSkinned = skin is not None
+
+#region embed fields
+    # upgraded and unupgraded are separated here to allow for pretend dynamic changing of field names
+#region upgraded
+    @embedField("Armour (+)", hideWhenNone=True)
+    def formattedUpgradedArmour(self): return self.getArmour() if self.armourIsUpgraded() else None
+
+    @embedField("Cargo (+)", hideWhenNone=True)
+    def formattedUpgradedCargo(self): return self.getCargo() if self.cargoIsUpgraded() else None
+
+    @embedField("Handling (+)", hideWhenNone=True)
+    def formattedUpgradedHandling(self): return self.getHandling() if self.handlingIsUpgraded() else None
+
+    @embedField("Max Primaries (+)", hideWhenNone=True)
+    def formattedUpgradedMaxPrimaries(self): return self.getMaxPrimaries() if self.maxPrimariesIsUpgraded() else None
+
+    @embedField("Max Secondaries (+)", hideWhenNone=True)
+    def formattedUpgradedMaxSecondaries(self): return self.getMaxSecondaries() if self.maxSecondariesIsUpgraded() else None
+
+    @embedField("Max Turrets (+)", hideWhenNone=True)
+    def formattedUpgradedMaxTurrets(self): return self.getMaxTurrets() if self.maxTurretsIsUpgraded() else None
+
+    @embedField("Max Modules (+)", hideWhenNone=True)
+    def formattedUpgradedMaxModules(self): return self.getMaxModules() if self.maxModulesIsUpgraded() else None
+#endregion
+#region unupgraded
+    @embedField("Armour", hideWhenNone=True)
+    def formattedArmour(self): return None if self.armourIsUpgraded() else self.getArmour()
+
+    @embedField("Cargo", hideWhenNone=True)
+    def formattedCargo(self): return None if self.cargoIsUpgraded() else self.getCargo()
+
+    @embedField("Handling", hideWhenNone=True)
+    def formattedHandling(self): return None if self.handlingIsUpgraded() else self.getHandling()
+
+    @embedField("Max Primaries", hideWhenNone=True)
+    def formattedMaxPrimaries(self): return None if self.maxPrimariesIsUpgraded() else self.getMaxPrimaries()
+
+    @embedField("Max Secondaries", hideWhenNone=True)
+    def formattedMaxSecondaries(self): return None if self.maxSecondariesIsUpgraded() else self.getMaxSecondaries()
+
+    @embedField("Max Turrets", hideWhenNone=True)
+    def formattedMaxTurrets(self): return None if self.maxTurretsIsUpgraded() else self.getMaxTurrets()
+
+    @embedField("Max Modules", hideWhenNone=True)
+    def formattedMaxModules(self): return None if self.maxModulesIsUpgraded() else self.getMaxModules()
+#endregion
+    
+    @embedField("Upgrades Applied", hideWhenNone=True)
+    def formattedUpgradesApplied(self): return ("- " + "\n- ".join(upgrade.name for upgrade in self.upgradesApplied)) if self.upgradesApplied else None
+
+    @embedField("BB Shop Spawn Rate", hideWhenNone=True)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.shipKeysByTL)
+
+#endregion
+
+    def armourIsUpgraded(self) -> bool:
+        return any(upgrade.armour or (upgrade.armourMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def cargoIsUpgraded(self) -> bool:
+        return any(upgrade.cargo or (upgrade.cargoMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def handlingIsUpgraded(self) -> bool:
+        return any(upgrade.handling or (upgrade.handlingMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def maxPrimariesIsUpgraded(self) -> bool:
+        return any(upgrade.maxPrimaries or (upgrade.maxPrimariesMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def maxSecondariesIsUpgraded(self) -> bool:
+        return any(upgrade.maxSecondaries or (upgrade.maxSecondariesMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def maxTurretsIsUpgraded(self) -> bool:
+        return any(upgrade.maxTurrets or (upgrade.maxTurretsMultiplier != 1) for upgrade in self.upgradesApplied)
+
+
+    def maxModulesIsUpgraded(self) -> bool:
+        return any(upgrade.maxModules or (upgrade.maxModulesMultiplier != 1) for upgrade in self.upgradesApplied)
 
 
     def getNumWeaponsEquipped(self) -> int:
@@ -286,33 +370,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         return self.getNumTurretsEquipped() > 0
 
 
-    def equipWeapon(self, weapon: PrimaryWeapon):
-        """Equip the given weapon onto the ship
-
-        :param PrimaryWeapon weapon: The weapon object to equip
-        :raise OverflowError: If no weapon slots are available on the ship
-        """
-        if not self.canEquipMoreWeapons():
-            raise OverflowError("Attempted to equip a weapon but all weapon slots are full")
-        self.weapons.append(weapon)
-
-
-    def unequipWeaponObj(self, weapon: PrimaryWeapon):
-        """Unequip the given weapon object reference from the ship
-
-        :param PrimaryWeapon weapon: The weapon object to unequip
-        """
-        self.weapons.remove(weapon)
-
-
-    def unequipWeaponIndex(self, index: int):
-        """Unequip a weapon by its index in the weapons array.
-
-        :param int index: The index of the weapon to unequip from the ship
-        """
-        self.weapons.pop(index)
-
-
     def getWeaponAtIndex(self, index: int) -> PrimaryWeapon:
         """Fetch the weapon object equipped at the given index
 
@@ -341,37 +398,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         return True
 
 
-    def equipModule(self, module: moduleItem.ModuleItem):
-        """Equip the given moduleItem onto the ship.
-
-        :param moduleItem module: The moduleItem object to equip
-        :raise OverflowError: When no module slots are free
-        :raise ValueError: When the ship already has the maximum number of modules equipped of the given type.
-        """
-        if not self.canEquipMoreModules():
-            raise OverflowError("Attempted to equip a module but all module slots are full")
-        if not self.canEquipModuleType(type(module)):
-            raise ValueError("Attempted to equip a module of a type that is already at its maximum capacity: " + str(module))
-
-        self.modules.append(module)
-
-
-    def unequipModuleObj(self, module: moduleItem.ModuleItem):
-        """Unequip the given module object reference
-
-        :param moduleItem module: The module to unequip
-        """
-        self.modules.remove(module)
-
-
-    def unequipModuleIndex(self, index: int):
-        """Unequip the module equipped at the given index in the modules array
-
-        :param int index: The index of the module to unequip
-        """
-        self.modules.pop(index)
-
-
     def getModuleAtIndex(self, index: int) -> moduleItem.ModuleItem:
         """Fetch the moduleItem object reference that is equipped at the given index
 
@@ -380,33 +406,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         :rtype: moduleItem
         """
         return self.modules[index]
-
-
-    def equipTurret(self, turret: TurretWeapon):
-        """Equip the given turret onto the ship
-
-        :param TurretWeapon turret: The turret object to equip
-        :raise OverflowError: If no turret slots are available on the ship
-        """
-        if not self.canEquipMoreTurrets():
-            raise OverflowError("Attempted to equip a turret but all turret slots are full")
-        self.turrets.append(turret)
-
-
-    def unequipTurretObj(self, turret: TurretWeapon):
-        """Unequip the given turret object reference from the ship
-
-        :param TurretWeapon turret: The turret object to unequip
-        """
-        self.turrets.remove(turret)
-
-
-    def unequipTurretIndex(self, index: int):
-        """Unequip a turret by its index in the turrets array.
-
-        :param int index: The index of the turret to unequip from the ship
-        """
-        self.turrets.pop(index)
 
 
     def getTurretAtIndex(self, index: int) -> TurretWeapon:
@@ -646,34 +645,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         return total
 
 
-    def applyUpgrade(self, upgrade: shipUpgrade.ShipUpgrade):
-        """Apply the given ship upgrade, locking it and its stats into the ship.
-        Ship upgrades cannot be removed.
-
-        :param shipUpgrade upgrade: the upgrade to apply
-        """
-        self.upgradesApplied.append(upgrade)
-
-
-    def changeNickname(self, nickname: str):
-        """Change the ship's custom nickname.
-        giving nickname = "" is equivilent to a call to removeNickname
-
-        :param str nickname: The new nickname to set
-        """
-        self.nickname = nickname
-        if nickname != "":
-            self.hasNickname = True
-
-
-    def removeNickname(self):
-        """Remove the ship's custom nickname, setting BB to display the ship type instead where needed.
-        """
-        if self.hasNickname:
-            self.nickname = ""
-            self.hasNickname = False
-
-
     def getNameOrNick(self) -> str:
         """Return the ship's nickname if it has one, or the name of the ship.
 
@@ -694,33 +665,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         return self.name if not self.hasNickname else (self.nickname + " (" + self.name + ")")
 
 
-    def transferItemsTo(self, other: Ship):
-        """Attempt to transfer as many equipped items as possible from this ship to another one.
-        If there is not enough space to transfer any items, they will remain on this ship.
-
-        :param shipItem other: The ship to transfer items to
-        :raise TypeError: When given any type other than shipItem
-        """
-        if not isinstance(other, Ship):
-            raise TypeError("Can only transfer items to another shipItem. Given " + str(type(other)))
-
-        while self.hasWeaponsEquipped() and other.canEquipMoreWeapons():
-            other.equipWeapon(self.weapons.pop(0))
-
-        leftoverModules = []
-        while self.hasModulesEquipped() and other.canEquipMoreModules():
-            if other.canEquipModuleType(type(self.modules[0])):
-                other.equipModule(self.modules.pop(0))
-            else:
-                leftoverModules.append(self.modules.pop(0))
-
-        for leftoverModule in leftoverModules:
-            self.modules.append(leftoverModule)
-
-        while self.hasTurretsEquipped() and other.canEquipMoreTurrets():
-            other.equipTurret(self.turrets.pop(0))
-
-
     def getActives(self, item: ItemCategory) -> Union[List[PrimaryWeapon], List[moduleItem.ModuleItem], List[TurretWeapon]]:
         """Return a requested array of equipped items, specified by string name.
 
@@ -737,42 +681,6 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
             return self.turrets
         else:
             raise ValueError("unrecognised item type: " + item.value)
-
-
-    def clearWeapons(self):
-        """Delete all weapons equipped on the ship, without saving them.
-        """
-        self.weapons = []
-
-
-    def clearModules(self):
-        """Delete all modules equipped on the ship, without saving them.
-        """
-        self.modules = []
-
-
-    def clearTurrets(self):
-        """Delete all turrets equipped on the ship, without saving them.
-        """
-        self.turrets = []
-
-
-    def applySkin(self, skin: shipSkin.ShipSkin):
-        """Applies the given skin to this ship.
-        Must be compatible with this ship.
-        This ship must not be skinned already.
-
-        :param shipSkin.shipSkin skin: The skin to apply
-        :raise ValueError: If this ship already has a skin applied
-        :raise TypeError: If the given skin is not compatible with this ship
-        """
-        if self.isSkinned:
-            return ValueError("Attempted to apply a skin to an already-skinned ship")
-        if not skin.compatibleWithShip(self):
-            return TypeError("The given skin is not compatible with this ship")
-        self.icon = skin.shipRenders[self.name][0]
-        self.skin = skin
-        self.isSkinned = True
 
 
     def statsStringShort(self) -> str:
@@ -875,7 +783,7 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         :rtype: dict
         """
         # Casting here so that I can add the new fields
-        itemDict = cast(SerializedShipUnion, super(Ship, self).serialize(**kwargs))
+        itemDict = cast(SerializedShipUnion, super().serialize(**kwargs))
 
         weaponsList = [weapon.serialize(**kwargs) for weapon in self.weapons]
         modulesList = [module.serialize(**kwargs) for module in self.modules]
@@ -919,7 +827,7 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
 
 
     @classmethod
-    def deserialize(cls, shipDict: SerializedShipUnion, **kwargs) -> Ship:
+    def deserialize(cls: Type[TShip], shipDict: SerializedShipUnion, **kwargs) -> TShip:
         """Factory function constructing a new shipItem object from the given dictionary representation -
         the opposite of shipItem.serialize
         As with most other item deserialize functions, all missing information for builtIn ships is replaced
@@ -971,7 +879,7 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
 
             emojiStr = cast(Optional[str], shipDict.get("emoji", builtInDict.get("emoji", None)))
 
-            newShip = Ship(**cls._makeDefaults(shipArgs, ignoredData,
+            newShip = cls(**cls._makeDefaults(shipArgs, ignoredData,
                                                 weapons=weapons if "weapons" in shipDict else builtInWeapons,
                                                 modules=modules if "modules" in shipDict else builtInModules,
                                                 turrets=turrets if "turrets" in shipDict else builtInTurrets,
@@ -984,7 +892,7 @@ class Ship(GameItem, SerializesToSchema[SerializedShipUnion]):
         else:
             # Casting here because we know the ship is not builtIn
             shipDict = cast(CustomSerializedShipUnion, shipDict)
-            return Ship(**cls._makeDefaults(shipDict, ignoredData,
+            return cls(**cls._makeDefaults(shipDict, ignoredData,
                                             weapons=weapons, modules=modules, turrets=turrets,
                                             upgradesApplied=shipUpgrades, builtIn=False,
                                             emoji=BasedEmoji.fromStr(shipDict["emoji"])

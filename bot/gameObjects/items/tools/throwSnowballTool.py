@@ -78,7 +78,7 @@ class ThrowSnowballTool(toolItem.ToolItem):
             # Casting here because the message must be a reply to one sent in the same channel as the message that triggered the use
             return      m.type == MessageType.default \
                     and m.reference is not None \
-                    and m.reference.message_id == pickMsg.id \
+                    and m.reference.message_id == cast(Message, pickMsg).id \
                     and ((len(m.mentions) == 1 and m.mentions[0] == cast(Guild, interaction.guild).me)
                         or (len([u for u in m.mentions if u != cast(Guild, interaction.guild).me]) == 1))
 

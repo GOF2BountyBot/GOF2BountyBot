@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedCabinModule(moduleItem.CustomSerializedModuleItem):
     cabinSize: int
@@ -15,7 +16,7 @@ SerializedCabinModuleUnion = Union[SerializedCabinModule, TypedSerializedCabinMo
 
 
 @spawnableItem
-class CabinModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCabinModuleUnion]):
+class CabinModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedCabinModuleUnion]):
     """"A module providing a ship with the ability to carry passengers.
 
     :var cabinSize: The number of passengers that can fit in this cabin
@@ -45,6 +46,12 @@ class CabinModule(moduleItem.ModuleItem, SerializesToSchema[SerializedCabinModul
 
         self.cabinSize = cabinSize
 
+#region embed fields
+
+    @embedField("Cabin Size")
+    def formattedCabinSize(self): return self.cabinSize
+
+#endregion
 
     def statsStringShort(self):
         return "*Cabin Size: " + str(self.cabinSize) + "*"

@@ -1,8 +1,9 @@
 from typing import cast
-from ..gameItem import spawnableItem
+from ..gameItem import spawnableItem, topThreeItemSpawnRates
 from ....cfg import bbData
 from .... import lib
 from .weapon import Weapon, SerializedWeaponUnion, CustomSerializedWeaponUnion
+from ....baseClasses.embedFillable import embedField
 
 
 @spawnableItem
@@ -27,3 +28,7 @@ class PrimaryWeapon(Weapon):
             return PrimaryWeapon(**cls._makeDefaults(weaponDict, ("type",),
                                 emoji=lib.emojis.BasedEmoji.fromStr(weaponDict["emoji"]) \
                                         if "emoji" in weaponDict else lib.emojis.BasedEmoji.EMPTY))
+
+    
+    @embedField("BB Shop Spawn Rate", hideWhenNone=True)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.weaponObjsByTL)

@@ -7,7 +7,8 @@ from ..baseClasses.serializable import SerializesToSchema
 from discord import Colour, Guild, Role, Message, User
 from datetime import datetime
 from ..scheduling import timedTask
-from typing import Optional, Tuple, TypedDict, Union, Dict, cast
+from typing import Optional, Tuple, Union, Dict, cast
+from typing_extensions import TypedDict
 
 
 async def giveRole(args: Tuple[Guild, Role, int], reactingUser: Union[User, Member]):

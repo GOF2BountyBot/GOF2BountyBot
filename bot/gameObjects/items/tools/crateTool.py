@@ -13,6 +13,7 @@ from .. import gameItem
 from ....users import basedUser
 from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .... import client
 from ....views.confirmView import ConfirmView
 
@@ -233,6 +234,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
             return "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
+    @embedField("Item Pool")
     def statsStringLong(self) -> str:
         if self.useRarities:
             largePool = len(self.itemPool) > 30

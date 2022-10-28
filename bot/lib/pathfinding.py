@@ -114,9 +114,10 @@ def bbAStar(start: str, end: str,
                 node = closed[-1]
                 while node:
                     route.append(node.syst.name)
-                    if isinstance(node, AStarRootNode):
+                    if isinstance(node, AStarNode):
+                        node = cast(AStarNode, node).parent
+                    else:
                         break
-                    node = node.parent
                 return route[::-1]
 
             succ = AStarNode(graph[succName], q)

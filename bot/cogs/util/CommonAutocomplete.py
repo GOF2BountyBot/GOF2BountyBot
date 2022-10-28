@@ -1,52 +1,86 @@
 
-from typing import Callable, Iterable, List, TYPE_CHECKING, Tuple, cast
+from typing import Callable, Iterable, List, TYPE_CHECKING, Sequence, Tuple, cast
 from discord import Interaction
 from discord import app_commands
+import heapq
 
 from ...cfg import cfg, bbData
 from ...baseClasses.aliasable import AliasableMixin
 from ... import client
 from ...users import basedUser
 from ...gameObjects.items import gameItem
+from ...lib.stringTyping import stringDifference
+
 if TYPE_CHECKING:
     from ...databases import bountyDB
 
-def _stringAutoComplete(possibleChoices: Iterable[app_commands.Choice[str]]):
+MAX_CHOICES = 25
+
+lowerSystems = {}
+lowerSystemKeys = []
+first25 = []
+
+
+def _stringAutoComplete(getPossibleChoices: Callable[[], Sequence[str]]):
     async def inner(interaction: Interaction, current: str):
-        choices = []
-        for choice in possibleChoices:
-            if current in choice.name:
-                choices.append(choice)
-                if len(choices) == 25:
-                    break
-        return choices
+        possibleChoices = getPossibleChoices()
+        if current == "":
+            bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
+        elif len(possibleChoices) <= MAX_CHOICES:
+            bestChoices = possibleChoices
+        else:
+            bestChoices = heapq.nsmallest(MAX_CHOICES, possibleChoices, lambda x: stringDifference(x, current))
+        return [app_commands.Choice(name=i, value=i) for i in bestChoices]
     return inner
 
 
-def _aliasableAutoComplete(getPossibleChoices: Callable[[], Iterable[AliasableMixin]]):
-    async def inner(interaction: Interaction, current: str):
-        choices = []
-        for choice in getPossibleChoices():
-            if choice.isCalled(current):
-                choices.append(app_commands.Choice(name=choice.name, value=choice.name))
-                if len(choices) == 25:
-                    break
-        return choices
+
+def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMixin]]):
+    async def inner(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+        possibleChoices = getPossibleChoices()
+        if current == "":
+            bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
+        else:
+            firstLower = current[0].lower()
+            matchStartChoices = [i for i in possibleChoices if i.name[0].lower() == firstLower]
+            if matchStartChoices:
+                possibleChoices = matchStartChoices
+            bestChoices = heapq.nsmallest(min(MAX_CHOICES, len(possibleChoices)), possibleChoices, lambda x: x.mostSimilarAlias(current)[0])
+        return [app_commands.Choice(name=i.name, value=i.name) for i in bestChoices]
     return inner
+
+
+"""
+def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMixin]]):
+    async def inner(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+        global lowerSystems
+        global first25
+        global lowerSystemKeys
+        if lowerSystems == {}:
+            lowerSystems.update({s.name.lower(): s for s in bbData.builtInSystemObjs.values()})
+            lowerSystemKeys += list(lowerSystems.keys())
+            first25 += lowerSystemKeys[:min(MAX_CHOICES, len(lowerSystemKeys) - 1)]
+        if current == "":
+            bestChoices = first25
+        else:
+            firstLower = current[0].lower()
+            matchStartChoices = [i for i in lowerSystemKeys if i[0] == firstLower]
+            if matchStartChoices:
+                possibleChoices = matchStartChoices
+            else: possibleChoices = lowerSystemKeys
+            if len(possibleChoices) <= MAX_CHOICES:
+                bestChoices = possibleChoices
+            else:
+                bestChoices = heapq.nsmallest(min(MAX_CHOICES, len(possibleChoices)), possibleChoices, lambda x: x.mostSimilarAlias(current)[0])
+        return [app_commands.Choice(name=lowerSystems[i].name, value=lowerSystems[i].name) for i in bestChoices]
+    return inner
+"""
 
 #region division
 
-DIVISION_CHOICES = sorted(set(
-    [
-        app_commands.Choice(name=division, value=division)
-        for division in cfg.bountyDivisionNames
-    ] \
-        + [app_commands.Choice(name="all", value="all")]),
-    key=lambda c: c.name)
+DIVISION_CHOICES = cfg.bountyDivisionNames
 
-DIVISION_CHOICES_WITH_ALL = sorted(set(
-    DIVISION_CHOICES + [app_commands.Choice(name="all", value="all")]),
-    key=lambda c: c.name)
+DIVISION_CHOICES_WITH_ALL = DIVISION_CHOICES + ["all"]
 
 
 def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = True):
@@ -59,9 +93,9 @@ def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = 
     """
     def decorator(func: app_commands.Command):
         if allowAllDivisions:
-            func.autocomplete(paramName)(_stringAutoComplete(DIVISION_CHOICES))
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: DIVISION_CHOICES))
         else:
-            func.autocomplete(paramName)(_stringAutoComplete(DIVISION_CHOICES_WITH_ALL))
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: DIVISION_CHOICES_WITH_ALL))
         return func
     return decorator
 
@@ -75,7 +109,7 @@ def systemAutoComplete(paramName: str = "system"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInSystemObjs.values()))
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInSystemObjs.values())))
         return func
     return decorator
 
@@ -89,7 +123,7 @@ def criminalAutoComplete(paramName: str = "name"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInCriminalObjs.values()))
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInCriminalObjs.values())))
         return func
     return decorator
 
@@ -125,7 +159,7 @@ async def _activeCriminalAutoComplete(interaction: Interaction, current: str) ->
             
             if current in bountyName:
                 choices.append(app_commands.Choice(name=bountyName, value=bountyName))
-                if len(choices) == 25:
+                if len(choices) == MAX_CHOICES:
                     break
 
     return choices
@@ -153,7 +187,7 @@ async def _factionAutoComplete(interaction: Interaction, current: str):
     for faction in bbData.factions:
         if current in faction:
             choices.append(app_commands.Choice(name=faction, value=faction))
-            if len(choices) == 25:
+            if len(choices) == MAX_CHOICES:
                 break
     return choices
 
@@ -163,7 +197,7 @@ async def _factionAutoCompleteBountyFactionsOnly(interaction: Interaction, curre
     for faction in bbData.bountyFactions:
         if current in faction:
             choices.append(app_commands.Choice(name=faction, value=faction))
-            if len(choices) == 25:
+            if len(choices) == MAX_CHOICES:
                 break
     return choices
 
@@ -194,14 +228,26 @@ ITEM_CHOICES_SHIP: Iterable[app_commands.Choice[str]] = sorted(set(
     ]),
     key=lambda c: c.name)
 
-async def _shipAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for d in ITEM_CHOICES_SHIP:
-        if current in d.name:
-            choices.append(d)
-            if len(choices) == 25:
-                break
-    return choices
+# async def _shipAutoComplete(interaction: Interaction, current: str):
+#     choices = []
+#     for d in ITEM_CHOICES_SHIP:
+#         if current in d.name:
+#             choices.append(d)
+#             if len(choices) == MAX_CHOICES:
+#                 break
+#     return choices
+
+async def _shipAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+    possibleChoices = list(bbData.builtInShipData.values())
+    if current == "":
+        bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
+    else:
+        firstLower = current[0].lower()
+        matchStartChoices = [i for i in possibleChoices if i["name"][0].lower() == firstLower]
+        if matchStartChoices:
+            possibleChoices = matchStartChoices
+        bestChoices = heapq.nsmallest(min(MAX_CHOICES, len(possibleChoices)), possibleChoices, lambda x: stringDifference(x["name"], current))
+    return [app_commands.Choice(name=i["name"], value=i["name"]) for i in bestChoices]
 
 
 def shipAutoComplete(paramName: str = "ship"):
@@ -230,7 +276,7 @@ async def _shipSkinAutoComplete(interaction: Interaction, current: str):
     for d in ITEM_CHOICES_SHIP_SKIN:
         if current in d.name:
             choices.append(d)
-            if len(choices) == 25:
+            if len(choices) == MAX_CHOICES:
                 break
     return choices
 
@@ -242,7 +288,8 @@ def shipSkinAutoComplete(paramName: str = "skin"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_shipSkinAutoComplete)
+        func.autocomplete(paramName)(_stringAutoComplete(lambda: list(bbData.builtInShipSkins.keys())))
+        # func.autocomplete(paramName)(_shipSkinAutoComplete)
         return func
     return decorator
 
@@ -256,11 +303,67 @@ def moduleAutoComplete(paramName: str = "module"):
     :type paramName: str
     """
     def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: bbData.builtInModuleObjs.values()))
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInModuleObjs.values())))
         return func
     return decorator
 
 #endregion item-module
+#region item-weapon
+
+def weaponAutoComplete(paramName: str = "weapon"):
+    """A decorator to add autocomplete for a single-value primary weapon parameter, by name.
+
+    :param paramName: The name of the weapon name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInWeaponObjs.values())))
+        return func
+    return decorator
+
+#endregion item-weapon
+#region item-turret
+
+def turretAutoComplete(paramName: str = "turret"):
+    """A decorator to add autocomplete for a single-value turret parameter, by name.
+
+    :param paramName: The name of the turret name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInTurretObjs.values())))
+        return func
+    return decorator
+
+#endregion item-turret
+#region item-tool
+
+def toolAutoComplete(paramName: str = "tool"):
+    """A decorator to add autocomplete for a single-value tool parameter, by name.
+
+    :param paramName: The name of the tool name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInToolObjs.values())))
+        return func
+    return decorator
+
+#endregion item-tool
+#region item-medal
+
+def medalAutoComplete(paramName: str = "medal"):
+    """A decorator to add autocomplete for a single-value medal parameter, by name.
+
+    :param paramName: The name of the medal name parameter
+    :type paramName: str
+    """
+    def decorator(func: app_commands.Command):
+        func.autocomplete(paramName)(_stringAutoComplete(lambda: list(bbData.medalObjs.keys())))
+        return func
+    return decorator
+
+#endregion item-medal
 #region inventory
 
 def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory, fallbackOnDefaultUser: bool):
@@ -274,7 +377,7 @@ def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory,
             for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
                 if current in item.name:
                     choices.append(app_commands.Choice(name=item.name, value=str(itemNum)))
-                    if len(choices) == 25:
+                    if len(choices) == MAX_CHOICES:
                         break
         
         elif fallbackOnDefaultUser:
@@ -282,7 +385,7 @@ def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory,
             for itemNum, item in enumerate(defaultItems):
                 if current in item["name"]:
                     choices.append(app_commands.Choice(name=item["name"], value=str(itemNum)))
-                    if len(choices) == 25:
+                    if len(choices) == MAX_CHOICES:
                         break
         
         return choices
@@ -336,7 +439,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
                 for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
                     if current in item.name:
                         choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
-                        if len(choices) == 25:
+                        if len(choices) == MAX_CHOICES:
                             break
         
         elif fallbackOnDefaultUser:
@@ -345,7 +448,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
                 for itemNum, item in enumerate(defaultItems):
                     if current in item["name"]:
                         choices.append(app_commands.Choice(name=f"{category.value.title()}: {item['name']}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
-                        if len(choices) == 25:
+                        if len(choices) == MAX_CHOICES:
                             break
         
         return choices

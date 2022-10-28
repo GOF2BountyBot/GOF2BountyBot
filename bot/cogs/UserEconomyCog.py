@@ -3,7 +3,7 @@ from typing import Dict, Literal, Optional, Union, cast
 from discord import Guild, Member, User, app_commands, Interaction
 from discord.app_commands import Range
 
-from bot.gameObjects.items.shipItem import Ship
+from bot.gameObjects.items.ships.shipItem import Ship
 
 from .. import client
 from ..lib.stringTyping import isInt, commaSplitNum
@@ -11,7 +11,7 @@ from ..lib.discordUtil import makeEmbed, ZWSP
 from ..lib.gameMaths import calculateUserBountyHuntingLevel
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory
+from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..users import basedUser
@@ -95,7 +95,7 @@ class UserEconomyCog(BasedCog):
                             division="The shop to view. Default: Your division's shop")
     @app_commands.command(name="shop",
                             description="View the current stock of this server's shop. Give no arguments to view all items in your division.")
-    async def cmd_shop(self, interaction: Interaction, item_type: Union[Literal['all'], ItemCategory] = "all", division: Optional[str] = None):
+    async def cmd_shop(self, interaction: Interaction, item_type: ItemCategoryOrAll = ItemCategoryOrAll.all, division: Optional[str] = None):
         """list the current stock of the guildShop owned by the guild containing the sent message.
         Can specify an item type to list.
         """
@@ -122,11 +122,13 @@ class UserEconomyCog(BasedCog):
                                 desc=f"__{guild.name}__\n" \
                                     + classicModeDesc \
                                     + f"`Current Tech Level: {shop.currentTechLevel}`",
-                                footerTxt="All items" if item_type == "all" else (item_type.value + "s").title(),
+                                footerTxt="All items" if item_type == ItemCategoryOrAll.all else (item_type.value + "s").title(),
                                 thumb="" if guild.icon is None else guild.icon.with_size(64).url)
 
+        allItems = item_type == ItemCategoryOrAll.all
+
         for currentItemType in [ItemCategory.ship, ItemCategory.weapon, ItemCategory.module, ItemCategory.turret, ItemCategory.tool]:
-            if item_type in ["all", currentItemType]:
+            if allItems or item_type.noAll() == currentItemType:
                 currentStock = shop.getStock(currentItemType)
 
                 for itemNum in range(1, currentStock.numKeys + 1):

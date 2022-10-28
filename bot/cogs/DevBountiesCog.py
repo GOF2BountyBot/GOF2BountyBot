@@ -16,7 +16,7 @@ from ..lib import gameMaths
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..gameObjects.bounties import bounty, bountyConfig
-from ..gameObjects.items import shipItem
+from ..gameObjects.items.ships import shipItem
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision, BountyDB
 from ..databases.bountyDivision import BountyDivision

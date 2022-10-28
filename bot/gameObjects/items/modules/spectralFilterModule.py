@@ -4,6 +4,7 @@ from .... import lib
 from typing import List, Union, cast
 from ..gameItem import spawnableItem, BuiltInSerializedGameItem
 from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedSpectralFilterModule(moduleItem.CustomSerializedModuleItem):
     showOnRadar: bool
@@ -16,7 +17,7 @@ SerializedSpectralFilterModuleUnion = Union[SerializedSpectralFilterModule, Type
 
 
 @spawnableItem
-class SpectralFilterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedSpectralFilterModuleUnion]):
+class SpectralFilterModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedSpectralFilterModuleUnion]):
     """A module allowing the user to see plasma clouds in space.
 
     :var showOnRadar: Whether or not plasma clouds are marked on the ships radar
@@ -51,6 +52,15 @@ class SpectralFilterModule(moduleItem.ModuleItem, SerializesToSchema[SerializedS
         self.showOnRadar = showOnRadar
         self.showInfo = showInfo
 
+#region embed fields
+
+    @embedField("Show On Radar")
+    def formattedShowOnRadar(self): return "Yes" if self.showOnRadar else "No"
+    
+    @embedField("Show Info")
+    def formattedShowInfo(self): return "Yes" if self.showInfo else "No"
+
+#endregion
 
     def statsStringShort(self):
         return "*Show Info? " + ("Yes" if self.showInfo else "No") \

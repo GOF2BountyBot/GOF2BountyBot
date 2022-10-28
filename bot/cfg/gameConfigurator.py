@@ -13,11 +13,11 @@ from ..gameObjects.items.tools import shipSkinTool, toolItemFactory, crateTool
 from ..gameObjects.userProfile import medal
 from .. import lib
 from ..lib import gameMaths
-from ..baseClasses.serializable import Factory, SerializesToJson, JsonType
+from ..baseClasses.serializable import Factory, Serializable, JsonType
 
 CWD = os.getcwd()
 PathType = Union[str, Path]
-TDeserialized = TypeVar("TDeserialized", bound=SerializesToJson)
+TDeserialized = TypeVar("TDeserialized", bound=Serializable)
 TDeserializer = Type[Union[TDeserialized, Factory[Any, TDeserialized]]]
 
 def _loadGameItemsFromDir(itemDir: PathType, itemFolderExt: str, lowerKey: bool = False) -> Dict[str, dict]:

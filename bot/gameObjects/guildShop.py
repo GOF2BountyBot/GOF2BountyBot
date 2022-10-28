@@ -1,7 +1,8 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
+from typing_extensions import TypedDict
 from abc import abstractmethod
 import random
 
@@ -10,7 +11,8 @@ if TYPE_CHECKING:
 
 from ..cfg import bbData, cfg
 from ..cfg.bbData import ItemCategory
-from .items.shipItem import Ship, SerializedShipUnion
+from .items.ships.shipItem import Ship
+from .items.ships.shipBase import SerializedShipUnion
 from .items.weapons.weapon import SerializedWeaponUnion
 from .items.weapons.primaryWeapon import PrimaryWeapon
 from .items.weapons.turretWeapon import TurretWeapon
