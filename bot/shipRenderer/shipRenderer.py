@@ -75,7 +75,11 @@ def compositeTextures(outTexPath: str, shipPath: str, textures: Dict[int, str], 
     # Load and combine the base texture and under layer
     workingTex = ensureImageMode(Image.open(textures[0]))
     baseTex = ensureImageMode(Image.open(join(shipPath, "skinBase.png")))
-    workingTex = Image.alpha_composite(workingTex, baseTex)
+
+    try:
+        workingTex = Image.alpha_composite(workingTex, baseTex)
+    except Exception as e:
+        raise e
 
     maxLayerNum = max(max(textures), max(disabledLayers)) if disabledLayers else max(textures)
 

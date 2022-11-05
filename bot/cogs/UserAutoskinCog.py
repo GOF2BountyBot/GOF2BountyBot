@@ -4,14 +4,13 @@ from io import BytesIO
 import os
 from typing import Callable, List, Optional, Set, Tuple, Union, cast
 import aiohttp
-from discord import HTTPException, InteractionType, Member, Message, TextChannel, app_commands, Interaction, ButtonStyle, SelectOption, User
+from discord import Colour, Embed, HTTPException, InteractionType, Member, Message, TextChannel, app_commands, Interaction, ButtonStyle, SelectOption, User
 import discord
 from discord.abc import Messageable
 from discord.ui import View, Button, button, select, Select
 from PIL import Image
 import shutil
 
-from ..reactionMenus.reactionMenu import DummySingleUserReactionMenu
 from .. import client, botState, lib
 from ..lib.discordUtil import textChannel
 from ..lib import AEPi
@@ -91,6 +90,47 @@ class TextureFormat(Enum):
     AEI_DXT5 = "2"
 
 
+class ImageResizeMethod(Enum):
+    stretch = "0"
+    crop = "1"
+    cancelled = "2"
+
+
+class ImageResizeMethodView(View):
+    def __init__(self, *, timeout: Optional[float] = 180):
+        super().__init__(timeout=timeout)
+        self.result = ImageResizeMethod.cancelled
+        self._interaction = None
+
+    
+    @button(emoji="↔", style=ButtonStyle.blurple)
+    async def stretchButton(self, interaction: Interaction, _: Button):
+        self.result = ImageResizeMethod.stretch
+        self.stop()
+        self._interaction = interaction
+
+
+    @button(emoji="✂", style=ButtonStyle.primary)
+    async def cropButton(self, interaction: Interaction, _: Button):
+        self.result = ImageResizeMethod.stretch
+        self.stop()
+        self._interaction = interaction
+
+    
+    @button(emoji="🇽", style=ButtonStyle.red)
+    async def cancelButton(self, interaction: Interaction, _: Button):
+        self.result = ImageResizeMethod.cancelled
+        self.stop()
+        self._interaction = interaction
+
+    
+    @property
+    def interaction(self):
+        if self._interaction == None:
+            raise RuntimeError("This view is still active")
+        return cast(Interaction, self._interaction)
+
+
 # Unfinished: select-based region selection
 # Dynamic updating of options is currently broken... I think sending new selects breaks discord.py's listening because they get new custom IDs
 # Might need to make a new class that repeatedly waits for interactions on a view until confirm/select/timeout
@@ -136,7 +176,7 @@ class AutoskinRegionSelectorView(ConfirmView):
             self.disabledRegionsSelector.disabled = True
 
 
-    @select(placeholder="Extra areas to skin", min_values=0, row=1)
+    @select(placeholder="Optional areas to skin...", min_values=0, row=1)
     async def skinnedRegionsSelector(self, interaction: Interaction, selector: Select):
         if interaction.user != self.owner:
             await interaction.response.send_message(f":x: This menu belongs to somebody else.", ephemeral=True)
@@ -147,7 +187,7 @@ class AutoskinRegionSelectorView(ConfirmView):
         # await interaction.response.edit_message(view=self)
 
 
-    @select(placeholder="Extra areas to hide", min_values=0, row=2)
+    @select(placeholder="Optional areas to hide...", min_values=0, row=2)
     async def disabledRegionsSelector(self, interaction: Interaction, selector: Select):
         if interaction.user != self.owner:
             await interaction.response.send_message(f":x: This menu belongs to somebody else.", ephemeral=True)
@@ -335,29 +375,39 @@ class UserAutoskinCog(BasedCog):
                 the message used for reaction menus
         :rtype: Tuple[bool, discord.Message]
         """
+        view = ImageResizeMethodView(timeout=cfg.timeouts.selectImageSizeHandling.total_seconds())
+        embed = Embed(colour=Colour.random(),
+                        description=f"↔ : Stretch\n\n" + \
+                                    f"✂ : Crop\n\n" + \
+                                    f"🇽 : Cancel")
+
         if menuMsg is None:
-            menuMsg = await message.reply("** **", mention_author=False)
+            menuMsg = await message.reply("Your image is not square, should I crop it or stretch it?",
+                                            embed=embed, view=view, mention_author=False)
+        else:
+            await menuMsg.edit(content="Your image is not square, should I crop it or stretch it?",
+                                embed=embed, view=view)
 
-        menuOptions = {
-            cfg.defaultEmojis.cropImage: "Crop",
-            cfg.defaultEmojis.stretchImage: "Stretch",
-            cfg.defaultEmojis.cancel: "Cancel"
-        }
+        for child in view.children:
+            if isinstance(child, (Button, Select)):
+                child.disabled = True
 
-        actionMenu = DummySingleUserReactionMenu(menuMsg, message.author,
-                                                cfg.timeouts.selectImageSizeHandling,
-                                                menuOptions,
-                                                list(menuOptions.keys()),
-                                                desc="Your image is not square, should I crop it or stretch it?")
-        action = await actionMenu.doMenu()
-        if not action or action[0] == cfg.defaultEmojis.cancel:
-            await message.reply("🛑 Render cancelled.")
+        if await view.wait():
+            await view.interaction.response.edit_message(content="🛑 Out of time! Please try this command again.", view=view)
+            return True, menuMsg
+        
+        if view.result == ImageResizeMethod.cancelled:
+            await view.interaction.response.edit_message(content="🛑 Operation cancelled.", view=view)
             return True, menuMsg
 
+        await view.interaction.response.edit_message(view=view)
+
         with Image.open(skinPath) as workingSF: 
-            side = max(workingSF.width, workingSF.height)
+            # TODO: get from ship texture
+            # side = max(workingSF.width, workingSF.height)
+            side = 2048
         
-            if action[0] == cfg.defaultEmojis.cropImage:
+            if view.result == ImageResizeMethod.crop:
                 resizedSF = lib.graphics.cropAndScale(workingSF, side, side)
             else:
                 resizedSF = workingSF.resize((side, side))
@@ -490,7 +540,6 @@ class UserAutoskinCog(BasedCog):
         
 
     async def collectAutoskinArgs(self, interaction: Interaction, ship: str,
-                                    reservation: Optional[RendererReservation],
                                     full: bool, res_x: int, res_y: int, numSamples: int,
                                     folder: TempFolder) -> Optional[shipRenderer.AutoskinArgs]:
         """Collect the necessary images from a user to perform a render, possibly with autoskin.
@@ -518,7 +567,7 @@ class UserAutoskinCog(BasedCog):
         shipData = bbData.builtInShipData[ship]
         skinPaths = {}
 
-        path, _ = await self.requestSquareImage(interaction.user, interaction, "the main texture", "0", folder)
+        path, menuMsg = await self.requestSquareImage(interaction.user, interaction, "the main texture", "0", folder)
         if path is None: return None
         
         skinPaths[0] = path
@@ -528,10 +577,14 @@ class UserAutoskinCog(BasedCog):
                                             [], res_x, res_y, numSamples, full=full)
 
         view = AutoskinRegionSelectorView(interaction.user, ship, timeout=cfg.timeouts.menuInteractionDefault.total_seconds())
-        menuMsg = await textChannel(interaction).send(f"This ship has **{shipData['textureRegions']}** optional texture regions.\n" \
-                                                    + "By default, these will appear with the default texture.\n" \
-                                                    + "Use the menus below to hide these regions, or provide new textures for them, or leave them at the default.",
-                                                    view=view)
+        content = f"This ship has **{shipData['textureRegions']}** optional texture regions.\n" \
+                + "By default, these will appear with the default texture.\n" \
+                + "Use the menus below to hide these regions, or provide new textures for them, or leave them at the default."
+        
+        if menuMsg is None:
+            menuMsg = await textChannel(interaction).send(content, view=view)
+        else:
+            await menuMsg.edit(content=content, view=view, embed=None)
 
         cancelled = await view.wait()
 
@@ -551,8 +604,9 @@ class UserAutoskinCog(BasedCog):
 
         await view.interaction.response.edit_message(view=view)
 
+        newMenu = None
         for regionNum in view.skinnedRegions:
-            path, _ = await self.requestSquareImage(interaction.user, menuMsg,
+            path, newMenu  = await self.requestSquareImage(interaction.user, newMenu or menuMsg,
                                                     f"texture region #{regionNum}",
                                                     str(regionNum), folder)
             if path is None: return None
@@ -615,11 +669,11 @@ class UserAutoskinCog(BasedCog):
                 textureMsg = await self.bot.showmeRendersChannel.send(renderIdentifier, file=discord.File(textureFile, filename=f"{interaction.id}.png"))
 
             view = View(timeout=None) \
-                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🖼"), f"{TextureFormat.JPG.value}{textureMsg.id}")) \
-                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🤖"), f"{TextureFormat.AEI_ETC1.value}{textureMsg.id}")) \
-                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🖥"), f"{TextureFormat.AEI_DXT5.value}{textureMsg.id}"))
+                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🖼", style=ButtonStyle.blurple), f"{TextureFormat.JPG.value}{textureMsg.id}")) \
+                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🤖", style=ButtonStyle.blurple), f"{TextureFormat.AEI_ETC1.value}{textureMsg.id}")) \
+                .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🖥", style=ButtonStyle.blurple), f"{TextureFormat.AEI_DXT5.value}{textureMsg.id}"))
 
-            renderEmbed = lib.discordUtil.makeEmbed(desc=f"> *Select a format to get the generated texture file.\n🖼 JPG - 🤖 AEI (android) - 🖥 AEI (PC)*",
+            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI (PC)*",
                                                     col=discord.Colour.random(),
                                                     img="attachment://render.png",
                                                     authorName="Skin Render Complete!",
@@ -665,7 +719,7 @@ class UserAutoskinCog(BasedCog):
             return
 
         with RendererReservation(ship, botState.currentRenders) as reservation, TempFolder(str(interaction.id)) as folder:
-            rendererArgs = await self.collectAutoskinArgs(interaction, ship, reservation, not _autoskin, cfg.skinRenderShowmeResolution[0],
+            rendererArgs = await self.collectAutoskinArgs(interaction, ship, not _autoskin, cfg.skinRenderShowmeResolution[0],
                                                             cfg.skinRenderShowmeResolution[1],
                                                             cfg.skinRenderShowmeSamples, folder)
             if rendererArgs is None:
@@ -699,7 +753,7 @@ class UserAutoskinCog(BasedCog):
             return
 
         with TempFolder(str(interaction.id)) as folder:
-            rendererArgs = await self.collectAutoskinArgs(interaction, ship, None, not _autoskin, cfg.skinRenderShowmeResolution[0],
+            rendererArgs = await self.collectAutoskinArgs(interaction, ship, not _autoskin, cfg.skinRenderShowmeResolution[0],
                                                             cfg.skinRenderShowmeResolution[1],
                                                             cfg.skinRenderShowmeSamples, folder)
             if rendererArgs is None:
@@ -711,7 +765,7 @@ class UserAutoskinCog(BasedCog):
             else:
                 texPath = os.path.join(folder.folderPath, rendererArgs.textures[0])
 
-            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file.\n> *🖼 JPG - 🤖 AEI (android) - 🖥 AEI(PC)*",
+            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI(PC)*",
                                                     col=discord.Colour.random(),
                                                     img=f"attachment://{interaction.id}.jpg",
                                                     authorName="Texture Generated!",
@@ -722,8 +776,8 @@ class UserAutoskinCog(BasedCog):
                 textureMsg = await textChannel(interaction).send(file=discord.File(textureFile, filename=f"{interaction.id}.jpg"), embed=renderEmbed)
 
         view = View(timeout=None) \
-            .add_item(StaticComponents.User_ConvertTexture_EmbedImage(Button(emoji="🤖"), TextureFormat.AEI_ETC1.value)) \
-            .add_item(StaticComponents.User_ConvertTexture_EmbedImage(Button(emoji="🖥"), TextureFormat.AEI_DXT5.value))
+            .add_item(StaticComponents.User_ConvertTexture_EmbedImage(Button(emoji="🤖", style=ButtonStyle.blurple), TextureFormat.AEI_ETC1.value)) \
+            .add_item(StaticComponents.User_ConvertTexture_EmbedImage(Button(emoji="🖥", style=ButtonStyle.blurple), TextureFormat.AEI_DXT5.value))
 
         await textureMsg.edit(view=view)
 
