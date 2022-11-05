@@ -577,9 +577,8 @@ class UserAutoskinCog(BasedCog):
                                             [], res_x, res_y, numSamples, full=full)
 
         view = AutoskinRegionSelectorView(interaction.user, ship, timeout=cfg.timeouts.menuInteractionDefault.total_seconds())
-        content = f"This ship has **{shipData['textureRegions']}** optional texture regions.\n" \
-                + "By default, these will appear with the default texture.\n" \
-                + "Use the menus below to hide these regions, or provide new textures for them, or leave them at the default."
+        content = f"This ship has **{shipData['textureRegions']}** optional texture regions. These will appear with the default texture.\n" \
+                + "Alternatively, you can use the menus below to hide these regions, or provide new textures for them."
         
         if menuMsg is None:
             menuMsg = await textChannel(interaction).send(content, view=view)
