@@ -1,12 +1,13 @@
 
-from typing import Optional, cast
-from discord.ui import View, button, Button
+from typing import Callable, Coroutine, Optional, cast
+from discord.ui import View, button, Button, Item
 from discord import ButtonStyle, Interaction
 
 class ConfirmView(View):
-    def __init__(self, *, timeout: Optional[float] = 180, clearView: bool = True, respond: bool = True):
-        """`Accept` or `Cancel` buttons.
-
+    """`Accept` or `Cancel` buttons.
+    """
+    def __init__(self, *, timeout: Optional[float] = 180, clearView: bool = True, respond: bool = True, confirmLabel: str = "Confirm", cancelLabel: str = "Cancel", confirmRow: int = 1, cancelRow: int = 1):
+        """
         :param timeout: The menu timeout in seconds, defaults to 180
         :type timeout: Optional[float]
         :param clearView: When the interaction is responded to, clear the view from the menu, defaults to True
@@ -20,6 +21,10 @@ class ConfirmView(View):
         self._timedOut = None
         self._clearView = clearView
         self._respond = respond
+        self.confirm.label = confirmLabel
+        self.confirm.row = confirmRow
+        self.cancel.label = cancelLabel
+        self.cancel.row = cancelRow
 
 
     @property
@@ -27,7 +32,7 @@ class ConfirmView(View):
         """Whether or not the menu has completed.
         This is `True` if the menu has been reponded to or has timed out, and is `False` otherwise.
         """
-        return self._timedOut is None
+        return self._timedOut is not None
 
 
     @property
@@ -72,6 +77,7 @@ class ConfirmView(View):
                 await interaction.response.edit_message(view=None)
             else:
                 await interaction.edit_original_response(view=None)
+        self.stop()
 
 
     async def on_timeout(self) -> None:

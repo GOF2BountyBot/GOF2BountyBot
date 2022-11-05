@@ -224,6 +224,7 @@ includedCogs = (
     cogPath("AdminChannelsCog"),
     cogPath("AdminMiscCog"),
 
+    cogPath("UserAutoskinCog"),
     cogPath("UserBountiesCog"),
     cogPath("UserDuelsCog"),
     cogPath("UserEconomyCog"),

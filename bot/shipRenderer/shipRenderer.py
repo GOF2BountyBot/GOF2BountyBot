@@ -127,14 +127,14 @@ def start_render():
                     shell=True)
 
 
-async def renderShip(skinName: str, shipPath: str, shipModelName: str, textures: Dict[int, str],
-                        disabledLayers: List[int], res_x: int, res_y: int, numSamples: int, full=False):
+async def renderShip(shipPath: str, shipModelName: str, textures: Dict[int, str],
+                        disabledLayers: List[int], res_x: int, res_y: int, numSamples: int,
+                        renderOutputPath: str, compositesTexturePath: str, full=False):
     """Render the given ship model with the specified skin layer(s).
     The resulting image is cropped to content and saved in shipPath + "/skins/" + skinName.jpg
     TODO: Add 'useBaseTexture' argument. Pass to render_vars. If true, should bypass skinBase
     (for 'full' skins that don't use skinBase)
 
-    :param str skinName: The name of the skin being rendered. Depicts the name of the output file.
     :param str shipPath: Path to the bbShip being rendered. Must contain shipModelName
     :param str shipModelName: The name of the model file to render. Not a path. Must be contained within shipPath
     :param Dict[int, str] textures: Dictionary associating mask indices to texture file paths to composite. If a mask index is
@@ -153,8 +153,8 @@ async def renderShip(skinName: str, shipPath: str, shipModelName: str, textures:
     """
     # Generate render arguments
     current_model = join(shipPath, shipModelName)
-    render_output_file = join(shipPath, "skins", skinName + "-RENDER.png")
-    texture_output_file = join(shipPath, "skins", skinName + ".jpg")
+    render_output_file = os.path.abspath(renderOutputPath) #join(shipPath, "skins", skinName + "-RENDER.png")
+    texture_output_file = compositesTexturePath #join(shipPath, "skins", skinName + ".jpg")
 
     if res_x > 1920:
         raise ValueError("Attempted to render an image above 1080p (width=" + str(res_x) + ")")
@@ -227,19 +227,3 @@ class AutoskinArgs:
         :rtype: Any
         """
         return getattr(self, k)
-
-
-async def renderShipByArgs(args: AutoskinArgs):
-    """Call renderShip, using an AutoskinArgs object instead of individual arguments.
-    """
-    return await renderShip(
-        args.skinName,
-        args.shipPath,
-        args.shipModelName,
-        args.textures,
-        args.disabledLayers,
-        args.res_x,
-        args.res_y,
-        args.numSamples,
-        args.full
-    )

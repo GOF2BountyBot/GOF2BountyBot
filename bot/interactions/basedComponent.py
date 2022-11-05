@@ -94,10 +94,12 @@ class StaticComponentEnumMeta(EnumMeta):
                 raise TypeError(f"Invalid static component ID for component named '{name}'. IDs must be int and at most {maxId}")
             if value in idsSoFar:
                 raise TypeError(f"Static component '{name}' is registered with ID {value}, but this is already being used for component '{idsSoFar[value]}'")
+            if name == "User_LookupRenderedTexture":
+                print()
             enumMembers[name] = lib.ids.indexToID(value, pad=STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
             idsSoFar[value] = name
             validateParam(f"component ID for component named '{name}'", enumMembers[name])
-        # classdict.update(enumMembers)
+        classdict.update(enumMembers)
         return super().__new__(cls, clsName, bases, classdict, **kwds)
 
 
@@ -161,6 +163,10 @@ class StaticComponents(StaticComponentIDsEnum):
     User_ToggleClassicMode_Confirm = 38
     User_DuelChallenge_Accept = 39
     User_DuelChallenge_Reject = 40
+
+    # UserAutoskinCog
+    User_ConvertTexture_RenderLookup = 41
+    User_ConvertTexture_EmbedImage = 42
 
 
 class StaticComponentMeta:

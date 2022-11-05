@@ -5,7 +5,7 @@ import sys
 #   This could have been done with an OrderedDict, but they have been optimized for reorder efficiency, which is not needed.
 # Require python 3.11, because:
 # - all serializable classes now have a serialized schema as a dataclass. 3.11 adds NotRequired, and Generic TypedDicts
-MIN_PYTHON = (3, 11)
+MIN_PYTHON = (3, 7)
 if sys.version_info < MIN_PYTHON:
     sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
 

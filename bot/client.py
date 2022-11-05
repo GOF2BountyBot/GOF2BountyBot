@@ -1,7 +1,7 @@
 import asyncio
 from inspect import iscoroutinefunction
 import signal
-from typing import Any, Coroutine, List, Optional, Dict, Union, cast, overload
+from typing import Any, Callable, Coroutine, List, Optional, Dict, Tuple, Union, cast, overload
 from pathlib import Path
 import aiohttp
 import discord
@@ -720,6 +720,27 @@ class BasedClient(ClientBaseClass):
             return self.fetch_user(id)
         except NotFound:
             return lib.discordUtil.dummyCoroutine(None)
+
+
+    async def multiWaitFor(self, eventTypes: Union[List[str], Tuple[str]], timeout: float, check: Optional[Callable[..., bool]] = None):
+        done, pending = await asyncio.wait(
+            [self.wait_for(eventType, check=check) for eventType in eventTypes],
+            return_when=asyncio.FIRST_COMPLETED,
+            timeout=timeout
+        )
+
+        stuff = done.pop().result()
+
+        for future in done:
+            # If any exception happened in any other done tasks
+            # we don't care about the exception, but don't want the noise of
+            # non-retrieved exceptions
+            future.exception()
+
+        for future in pending:
+            future.cancel()  # we don't need these anymore
+
+        return stuff
 
 
 def ensureBasedClient(interaction: Interaction) -> BasedClient:
