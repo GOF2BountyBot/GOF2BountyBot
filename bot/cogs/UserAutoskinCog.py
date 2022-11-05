@@ -644,6 +644,10 @@ class UserAutoskinCog(BasedCog):
 
     @shipAutoComplete()
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Autoskin")
+    @app_commands.describe(
+        ship="The ship to render",
+        autoskin="Give No to disable skin generation and use your texture as is (defaults to Yes)"
+    )
     @app_commands.command(name="render-skin",
                             description="Generate a ship skin, and render it.")
     async def usr_cmd_render(self, interaction: Interaction, ship: str, autoskin: BoolYesNo = BoolYesNo.Yes):
@@ -674,6 +678,10 @@ class UserAutoskinCog(BasedCog):
 
     @shipAutoComplete()
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Autoskin")
+    @app_commands.describe(
+        ship="The ship to generate a texture for",
+        autoskin="Give No to disable skin generation and use your texture as is (defaults to Yes)"
+    )
     @app_commands.command(name="make-skin-texture",
                             description="Generate a ship skin, and get the generated texture.")
     async def usr_cmd_make_texture(self, interaction: Interaction, ship: str, autoskin: BoolYesNo = BoolYesNo.Yes):
