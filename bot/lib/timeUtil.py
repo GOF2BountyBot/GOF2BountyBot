@@ -1,6 +1,10 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from typing import Dict, Optional
 import random
+from discord.utils import utcnow
+
+def utcfromtimestamp(timestamp: float):
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 def td_format_noYM(td_object: timedelta) -> str:
@@ -54,7 +58,7 @@ def tomorrow(today: Optional[datetime] = None) -> datetime:
     :return: a timestamp for 12am tomorrow utc time if today is not given. Return today after changing to tomorrow otherwise.
     """
     if today is None:
-        today = datetime.utcnow()
+        today = utcnow()
     return today.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
 
     

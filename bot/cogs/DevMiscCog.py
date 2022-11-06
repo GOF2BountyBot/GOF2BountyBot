@@ -11,7 +11,8 @@ import random
 
 from .. import client, lib, botState
 from ..lib.discordUtil import ZWSP, textChannel
-from..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
+from ..lib.timeUtil import utcfromtimestamp
+from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
@@ -821,7 +822,7 @@ class DevMiscCog(BasedCog):
         embed.add_field(name="Credits",     value=f"Current: {bUser.credits}\nlifetimeBountyCreditsWon: {bUser.lifetimeBountyCreditsWon}")
         embed.add_field(name="Bounty Wins", value=str(bUser.bountyWins))
         
-        embed.add_field(name="$check Cooldown", value=datetime.utcfromtimestamp(bUser.bountyCooldownEnd).strftime("%d/%m/%Y, %H:%M:%S"))
+        embed.add_field(name="$check Cooldown", value=utcfromtimestamp(bUser.bountyCooldownEnd).strftime("%d/%m/%Y, %H:%M:%S"))
         embed.add_field(name="Systems Checked", value=str(bUser.systemsChecked))
 
         shipStr = f"{bUser.activeShip.name}\nNickname: {bUser.activeShip.nickname if bUser.activeShip.hasNickname else ''}\n" \
@@ -958,7 +959,7 @@ class DevMiscCog(BasedCog):
         embed.add_field(name="Stats", value=f"Faction: {b.faction}\nTech level/Difficulty: {b.techLevel}\n" \
                                             + f"Reward: {b.reward}\nReward per check: {b.rewardPerSys}")
 
-        embed.add_field(name="Times", value=f"Issued: {datetime.utcfromtimestamp(b.issueTime).strftime('%d/%m/%Y, %H:%M:%S')}\n" \
+        embed.add_field(name="Times", value=f"Issued: {utcfromtimestamp(b.issueTime).strftime('%d/%m/%Y, %H:%M:%S')}\n" \
                                         + f"ExpiryTT: {self.describeTT(b.expiryTT)}\n" \
                                         + f"RespawnTT: {self.describeTT(b.respawnTT)}")
         
@@ -1063,7 +1064,7 @@ class DevMiscCog(BasedCog):
 
         elif field is BountyEditField.endTime:
             try:
-                newTime = datetime.utcfromtimestamp(float(new_value))
+                newTime = utcfromtimestamp(float(new_value))
             except Exception as e:
                 await interaction.followup.send(f"{type(e).__name__} error converting timestamp str to datetime: {e}", ephemeral=True)
                 botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
@@ -1075,11 +1076,11 @@ class DevMiscCog(BasedCog):
             if b.expiryTT is not None:
                 b.expiryTT.forceExpire(callExpiryFunc=False)
 
-            if newTime < datetime.utcnow():
+            if newTime < utcnow():
                 b.expiryTT = None
                 await b.expire(dbReload=True)
             else:
-                b.expiryTT = TimedTask(datetime.utcnow(), newTime, None, b.expire)
+                b.expiryTT = TimedTask(utcnow(), newTime, None, b.expire)
                 botState.client.taskScheduler.scheduleTask(b.expiryTT)
 
             b.endTime = newTime.timestamp()
@@ -1099,11 +1100,11 @@ class DevMiscCog(BasedCog):
             elif newExpired:
                 await b.expire()
             else:
-                endDT = datetime.utcfromtimestamp(b.endTime)
-                if endDT < datetime.utcnow():
+                endDT = utcfromtimestamp(b.endTime)
+                if endDT < utcnow():
                     await interaction.followup.send("bounty expiry time is in the past. Set a new expiry time to unexpire bounty.", ephemeral=True)
                     return
-                b.expiryTT = TimedTask(datetime.utcnow(), endDT, None, b.expire)
+                b.expiryTT = TimedTask(utcnow(), endDT, None, b.expire)
                 botState.client.taskScheduler.scheduleTask(b.expiryTT)
         
 
@@ -1252,7 +1253,7 @@ class DevMiscCog(BasedCog):
 
         elif field is BountyEditField.respawnTime:
             try:
-                newTime = datetime.utcfromtimestamp(float(new_value))
+                newTime = utcfromtimestamp(float(new_value))
             except Exception as e:
                 await interaction.followup.send(f"{type(e).__name__} error converting timestamp str to datetime: {e}", ephemeral=True)
                 botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")

@@ -230,6 +230,7 @@ includedCogs = (
     cogPath("UserEconomyCog"),
     cogPath("UserGithubCog"),
     cogPath("UserGof2InfoCog"),
+    cogPath("UserHomeGuildsCog"),
     cogPath("UserMiscCog")
 )
 

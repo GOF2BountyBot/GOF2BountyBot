@@ -14,7 +14,6 @@ from .gameObject import LoadedObject, SerializedLoadedObject
 from .items.ships import shipBase
 
 
-
 class BuiltInSerializedShipSkin(SerializedLoadedObject, SerializedWithRarity):
     ships: NotRequired[Dict[str, str]]
 
@@ -227,8 +226,9 @@ class ShipSkin(HasRarityMixin, LoadedObject, SerializesToSchema[SerializedShipSk
                     if disabledRegionNum <= shipData["textureRegions"]:
                         regionsToDisable.append(disabledRegionNum)
 
-            await shipRenderer.renderShip(self.name, shipData["path"], shipData["model"], textureFiles, regionsToDisable,
-                                            cfg.skinRenderIconResolution[0], cfg.skinRenderIconResolution[1], cfg.skinRenderIconSamples)
+            await shipRenderer.renderShip(shipData["path"], shipData["model"], textureFiles, regionsToDisable,
+                                            cfg.skinRenderIconResolution[0], cfg.skinRenderIconResolution[1],
+                                            cfg.skinRenderIconSamples, renderPath, texPath)
 
             # == Scrapped code for creating custom emojis for each ship reskin ==
             # await shipRenderer.renderShip(self.name + "_emoji", shipData["path"], shipData["model"], [texPath],

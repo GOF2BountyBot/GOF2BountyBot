@@ -4,6 +4,7 @@ from PIL.Image import Image
 
 from discord import Colour, Embed, File, Guild, HTTPException, Member, User, app_commands, Interaction, ButtonStyle
 from discord.ui import View, Button
+from discord.utils import utcnow
 
 from .. import client, botState
 from ..cfg import cfg, bbData
@@ -21,6 +22,7 @@ from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForL
 from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
 from ..lib.stringTyping import commaSplitNum
 from ..lib.emojis import BasedEmoji
+from ..lib.timeUtil import utcfromtimestamp
 from ..databases.bountyDB import BountyDB, nameForDivision
 from ..gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
 from ..gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
@@ -245,8 +247,8 @@ class UserBountiesCog(BasedCog):
         requestedBBUser = self.bot.usersDB.getUser(interaction.user.id)
 
         # If the calling user is on checking cooldown
-        if datetime.utcfromtimestamp(requestedBBUser.bountyCooldownEnd) < datetime.utcnow():
-            diff = datetime.utcfromtimestamp(requestedBBUser.bountyCooldownEnd) - datetime.utcnow()
+        if utcfromtimestamp(requestedBBUser.bountyCooldownEnd) < utcnow():
+            diff = utcfromtimestamp(requestedBBUser.bountyCooldownEnd) - utcnow()
             await interaction.response.send_message(":stopwatch: Your *Khador Drive* is still charging!" \
                                                     + f" please wait **{td_format_noYM(diff)}.**")
             return
@@ -401,7 +403,7 @@ class UserBountiesCog(BasedCog):
         if systemInBountyRoute:
             requestedBBUser.systemsChecked += 1
             # Put the calling user on checking cooldown
-            requestedBBUser.bountyCooldownEnd = (datetime.utcnow() \
+            requestedBBUser.bountyCooldownEnd = (utcnow() \
                                                     + cfg.timeouts.checkCooldown
                                                     + botState.utcOffset).timestamp()
 
@@ -454,7 +456,7 @@ class UserBountiesCog(BasedCog):
             msgEmbed.add_field(name=ZWSP, value=f"__Level {tl}__", inline=False)
 
             for crim, bounty in tlBounties.items():
-                timeLeft = datetime.utcfromtimestamp(bounty.endTime) - datetime.utcnow()
+                timeLeft = utcfromtimestamp(bounty.endTime) - utcnow()
                 if bounty.faction in bbData.bountyFactionEmojis:
                     factionEmoji = BasedEmoji(id=bbData.bountyFactionEmojis[bounty.faction]).sendable + " "
                 else:

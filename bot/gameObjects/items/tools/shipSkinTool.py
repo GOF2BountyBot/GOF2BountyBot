@@ -15,6 +15,7 @@ from ....baseClasses.hasRarity import HasRarityMixin
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 from ....views.confirmView import ConfirmView
+from ....views.viewBase import ViewCleanup
 
 if TYPE_CHECKING:
     from ....users import basedUser
@@ -159,7 +160,7 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, EmbedFillableMixin, Serial
                                     f":x: Your ship is not compatible with this skin! Use `/info skin {self.skin.name}` to see what ships are compatible with this skin.")
             return False
 
-        view = ConfirmView(timeout=60, clearView=True, respond=False)
+        view = ConfirmView(timeout=60, cleanup=ViewCleanup.clearView, respondOnCleanup=False)
 
         await interactionSend(interaction, respond, followup,
                                 f"Are you sure you want to apply the {self.skin.name} skin to your {ship.getNameAndNick()}?")

@@ -1,5 +1,6 @@
-from typing import Tuple, Union
+from typing import Tuple
 import discord
+from discord.utils import utcnow
 from datetime import datetime, timedelta
 from aiohttp import client_exceptions
 import operator
@@ -56,7 +57,7 @@ async def cmd_source(message: discord.Message, args: str, isDM: bool):
                                          footerTxt="Bot Source",
                                          footerIcon="https://i.imgur.com/7SMgF0t.png")
     srcEmbed.add_field(name="Uptime",
-                       value=lib.timeUtil.td_format_noYM(datetime.utcnow() - botState.client.launchTime))
+                       value=lib.timeUtil.td_format_noYM(utcnow() - botState.client.launchTime))
     srcEmbed.add_field(name="Author",
                        value="Trimatix#2244")
     srcEmbed.add_field(name="API",
@@ -885,7 +886,7 @@ async def cmd_drink_premium(message: discord.Message, args: str, isDM: bool):
     :param str args: ignored
     :param bool isDM: Whether or not the command is being called from a DM channel
     """
-    now = datetime.utcnow()
+    now = utcnow()
     if botState.premiumCooldownEnd is None or now > botState.premiumCooldownEnd:
         botState.premiumCooldownEnd = now + bbData.premiumDrinkTimeout
         await message.reply(random.choice(bbData.premiumDrinkMessages), mention_author=False)

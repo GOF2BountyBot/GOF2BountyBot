@@ -16,6 +16,7 @@ from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .... import client
 from ....views.confirmView import ConfirmView
+from ....views.viewBase import ViewCleanup
 
 class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
     crateType: str
@@ -194,7 +195,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
         """
         callingBUser = client.onboardInteractionBasedUser(interaction)
 
-        view = ConfirmView(timeout=60, clearView=True, respond=False)
+        view = ConfirmView(timeout=60, cleanup=ViewCleanup.clearView, respondOnCleanup=False)
 
         await interactionSend(interaction, respond, followup,
                                 f"Are you sure you want to open your '{self.name}' crate? Respond within 60s.",

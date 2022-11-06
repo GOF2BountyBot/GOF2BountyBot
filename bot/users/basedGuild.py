@@ -1,9 +1,8 @@
 from __future__ import annotations
-from datetime import datetime
 from enum import Enum
 from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, User
 from discord import TextChannel
-from discord.utils import MISSING
+from discord.utils import MISSING, utcnow
 from typing import Any, List, Dict, Optional, Union, cast
 from typing_extensions import NotRequired, TypedDict
 from aiohttp import client_exceptions
@@ -14,6 +13,7 @@ from ..baseClasses.serializable import SerializesToSchema, SerializesToType
 from .. import botState, lib
 from ..lib import gameMaths
 from ..lib.stringTyping import commaSplitNum
+from ..lib.timeUtil import utcfromtimestamp
 from ..logging import LogCategory
 from ..gameObjects import guildShop
 from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
@@ -80,7 +80,7 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     e.set_author(name="Bounty Expired", icon_url=b.criminal.icon)
     e.description = f"**{b.criminal.name}**\nOut of time! The bounty has expired."
     e.colour = bbData.factionColours[b.faction]
-    activeTime = datetime.utcnow() - datetime.utcfromtimestamp(b.issueTime)
+    activeTime = utcnow() - utcfromtimestamp(b.issueTime)
     e.set_footer(text=f"Active time: {lib.timeUtil.td_format_noYM(activeTime)}")
     return e
 

@@ -909,7 +909,7 @@ def timestamp(t: datetime, format=TimeStampStyle.ShortDateTime) -> str:
     :return: A discord timestamp, i.e `<t:TIMESTAMP:STYLE>`
     :rtype: str
     """
-    return f"<t:{int(t.timestamp())}:{format.value}"
+    return f"<t:{int(t.timestamp())}:{format.value}>"
 
 
 async def dummyCoroutine(value: Optional[Any]):

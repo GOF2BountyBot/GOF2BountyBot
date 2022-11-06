@@ -15,7 +15,9 @@ from datetime import datetime, timedelta
 from ... import lib, botState
 from ..items.ships.shipItem import Ship
 from ..items.ships.shipBase import SerializedShipUnion
+from ...lib.timeUtil import utcfromtimestamp
 from enum import Enum
+from discord.utils import utcnow
 
 
 class CheckResult(Enum):
@@ -178,12 +180,12 @@ class Bounty(SerializesToSchema[SerializedBountyUnion]):
             if self.endTime == -1:
                 self.expiryTT = None
             else:
-                endDT = datetime.utcfromtimestamp(self.endTime)
-                if endDT < datetime.utcnow():
+                endDT = utcfromtimestamp(self.endTime)
+                if endDT < utcnow():
                     self.expiryTT = None
                     lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
                 else:
-                    self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
+                    self.expiryTT = TimedTask(utcnow(), endDT, None, self.expire)
                     botState.client.taskScheduler.scheduleTask(self.expiryTT)
         else:
             self.expiryTT = expiryTT
@@ -518,8 +520,8 @@ class Bounty(SerializesToSchema[SerializedBountyUnion]):
             if "respawnTime" not in data:
                 raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
 
-            respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(data["issueTime"]),
-                                    expiryTime=datetime.utcfromtimestamp(data["respawnTime"]), 
+            respawnTT = TimedTask(issueTime=utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=utcfromtimestamp(data["respawnTime"]), 
                                     expiryFunction=newBounty._respawn,
                                     rescheduleOnExpiryFuncFailure=True)
             newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)

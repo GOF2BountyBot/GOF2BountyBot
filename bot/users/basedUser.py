@@ -5,7 +5,7 @@ from typing_extensions import NotRequired, TypedDict
 from datetime import datetime, timedelta
 from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPException, Member, Message, MessageReference, PartialMessage, StickerItem, User
 from discord.ui import View
-from discord.utils import MISSING
+from discord.utils import MISSING, utcnow
 
 from ..gameObjects.items.ships import shipItem, shipBase
 
@@ -29,6 +29,7 @@ from ..users import basedGuild
 from .. import lib, botState
 from ..lib import gameMaths
 from ..lib.discordUtil import userNameIn, findBUserDCGuild
+from ..lib.timeUtil import utcfromtimestamp
 from ..logging import LogCategory
 from ..reactionMenus import reactionMenu
 
@@ -283,7 +284,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
             raise TypeError("bountyWins must be int, given " + str(type(bountyWins)))
 
         if guildTransferCooldownEnd is None:
-            guildTransferCooldownEnd = datetime.utcnow()
+            guildTransferCooldownEnd = utcnow()
 
         self.githubIssueSubmitDelayEnd: Union[timedelta, None] = None
         self.classicModeEnabled = classicModeEnabled
@@ -321,9 +322,10 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         # or booleans instead of instances.
         for alertID in userAlerts.userAlertsIDsTypes:
             alertType = userAlerts.userAlertsIDsTypes[alertID]
-            alertValue = alerts[alertType]
             
             if alertType in alerts:
+                alertValue = alerts[alertType]
+
                 if isinstance(alertValue, userAlerts.UABase):
                     self.userAlerts[alertType] = alertValue
                 elif isinstance(alertValue, bool):
@@ -336,6 +338,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
                         category=LogCategory.usersDB, eventType="LOAD-UA_STATE_TYPE")
                     self.userAlerts[alertType] = alertType(cfg.userAlertsIDsDefaults[alertID])
             elif alertID in alerts:
+                alertValue = alerts[alertID]
                 if isinstance(alertValue, userAlerts.UABase):
                     self.userAlerts[alertType] = alertValue
                 elif isinstance(alertValue, bool):
@@ -390,7 +393,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         self.bountyHuntingXP = gameMaths.bountyHuntingXPForLevel(1)
         self.bountyHuntingXpSurplus = -1
         self.homeGuildID = -1
-        self.guildTransferCooldownEnd = datetime.utcnow()
+        self.guildTransferCooldownEnd = utcnow()
         self.kaamo = None
         self.loma = None
         self.prestiges = 0
@@ -875,7 +878,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         :rtype: bool
         """
         if now is None:
-            now = datetime.utcnow()
+            now = utcnow()
         return (not self.hasHomeGuild()) or now > self.guildTransferCooldownEnd
 
 
@@ -888,11 +891,11 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
         :raise ValueError: When this user is still in guild transfer cooldown
         :raise NameError: When this user is not a member of newGuild
         """
-        now = datetime.utcnow()
+        now = utcnow()
         if not self.canTransferGuild(now=now):
             raise ValueError("This user cannot transfer guild again yet (" \
                                 + lib.timeUtil.td_format_noYM(now - self.guildTransferCooldownEnd) + " remaining)")
-        if newGuild.get_member(self.id) or await newGuild.fetch_member(self.id) is None:
+        if not (newGuild.get_member(self.id) or await newGuild.fetch_member(self.id)):
             raise NameError("This user is not a member of the given guild '" + newGuild.name + "#" + str(newGuild.id) + "'")
 
         self.homeGuildID = newGuild.id
@@ -1278,7 +1281,7 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
                         "bountyWinsToday", "dailyBountyWinsReset", "lastSeenGuildId")
                         
         # Casting here because pyright doesn't know the structure of a serialized baseduser
-        guildTransferCooldownEnd = datetime.utcfromtimestamp(cast(int, userDict["guildTransferCooldownEnd"])) \
+        guildTransferCooldownEnd = utcfromtimestamp(cast(int, userDict["guildTransferCooldownEnd"])) \
                                     if "guildTransferCooldownEnd" in userDict else None
 
         newUser = BasedUser(**cls._makeDefaults(userDict, kwargIgnores,

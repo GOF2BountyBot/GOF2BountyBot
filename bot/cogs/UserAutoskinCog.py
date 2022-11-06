@@ -9,12 +9,12 @@ import discord
 from discord.abc import Messageable
 from discord.ui import View, Button, button, select, Select
 from PIL import Image
-import shutil
 
 from .. import client, botState, lib
 from ..lib.discordUtil import textChannel
 from ..lib import AEPi
 from ..lib.timeUtil import td_format_noYM
+from ..lib.tempFolder import TempFolder
 from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
@@ -55,28 +55,6 @@ class RendererReservation:
     def __exit__(self, cls, value, traceback):
         try:
             self.queue.remove(self.ship)
-        except ValueError:
-            pass
-        return False
-
-
-class TempFolder:
-    def __init__(self, folderName: str) -> None:
-        self.folderName = folderName
-
-    
-    @property
-    def folderPath(self): return os.path.join(cfg.paths.tempRenders, self.folderName)
-
-
-    def __enter__(self):
-        os.makedirs(self.folderPath, exist_ok=True)
-        return self
-
-
-    def __exit__(self, cls, value, traceback):
-        try:
-            shutil.rmtree(self.folderPath)
         except ValueError:
             pass
         return False

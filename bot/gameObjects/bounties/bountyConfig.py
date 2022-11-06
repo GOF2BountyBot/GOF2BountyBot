@@ -5,11 +5,13 @@ if TYPE_CHECKING:
     from ...databases import bountyDivision
 
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
+from discord.utils import utcnow
 
 from ...cfg import bbData, cfg
 from ... import lib, botState
 from ...lib import gameMaths
+from ...lib.timeUtil import utcfromtimestamp
 from ...logging import LogCategory
 from ..items.modules import armourModule, shieldModule, moduleItem
 from ..items.ships import shipItem
@@ -503,9 +505,9 @@ class BountyConfig:
         elif self.reward < 0:
             raise ValueError("Bounty constructor: Invalid reward requested '" + str(self.reward) + "'")
         if self.issueTime == -1.0:
-            self.issueTime = datetime.utcnow().replace(second=0).timestamp()
+            self.issueTime = utcnow().replace(second=0).timestamp()
         if self.endTime == -1.0:
-            self.endTime = (datetime.utcfromtimestamp(self.issueTime) + timedelta(days=len(self.route))).timestamp()
+            self.endTime = (utcfromtimestamp(self.issueTime) + timedelta(days=len(self.route))).timestamp()
 
         if not forceKeepChecked:
             self.checked = {}

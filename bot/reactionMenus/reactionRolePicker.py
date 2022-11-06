@@ -3,9 +3,9 @@ from discord.member import Member
 from . import reactionMenu, expiryFunctions
 from .. import botState
 from ..lib.emojis import BasedEmoji
+from ..lib.timeUtil import utcfromtimestamp
 from ..baseClasses.serializable import SerializesToSchema
 from discord import Colour, Guild, Role, Message, User
-from datetime import datetime
 from ..scheduling import timedTask
 from typing import Optional, Tuple, Union, Dict, cast
 from typing_extensions import TypedDict
@@ -177,7 +177,7 @@ class ReactionRolePicker(reactionMenu.ReactionMenu[ReactionRolePickerOption, Ser
 
         timeoutTT = None
         if "timeout" in rmDict:
-            expiryTime = datetime.utcfromtimestamp(rmDict["timeout"])
+            expiryTime = utcfromtimestamp(rmDict["timeout"])
             timeoutTT = timedTask.TimedTask(expiryTime=expiryTime,
                                             expiryFunction=expiryFunctions.markExpiredMenu,
                                             expiryFunctionArgs=msg.id)

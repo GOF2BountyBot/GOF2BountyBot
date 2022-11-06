@@ -13,6 +13,7 @@ from ..scheduling import timedTask
 from ..interactions import basedCommand, basedApp
 from .. import botState, lib, client
 from ..lib import gameMaths
+from ..lib.timeUtil import utcfromtimestamp
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..gameObjects.bounties import bounty, bountyConfig
@@ -247,13 +248,13 @@ class DevBountiesCog(basedApp.BasedCog):
         if callingUser is None:
             return
 
-        diff = datetime.utcfromtimestamp(callingUser.bountyCooldownEnd) - datetime.utcnow()
+        diff = utcfromtimestamp(callingUser.bountyCooldownEnd) - utcnow()
         minutes = int(diff.total_seconds() / 60)
         seconds = int(diff.total_seconds() % 60)
         await interaction.response.send_message("\n".join((
             str(callingUser.bountyCooldownEnd) + " = " + str(minutes) + "m, " + str(seconds) + "s.",
-            datetime.utcfromtimestamp(callingUser.bountyCooldownEnd).strftime("%Hh%Mm%Ss"),
-            datetime.utcnow().strftime("%Hh%Mm%Ss")
+            utcfromtimestamp(callingUser.bountyCooldownEnd).strftime("%Hh%Mm%Ss"),
+            utcnow().strftime("%Hh%Mm%Ss")
             )), ephemeral=True)
 
     
@@ -268,7 +269,7 @@ class DevBountiesCog(basedApp.BasedCog):
         if user is None:
             return
         
-        user.bountyCooldownEnd = datetime.utcnow().timestamp()
+        user.bountyCooldownEnd = utcnow().timestamp()
         await interaction.response.send_message("Done!", ephemeral=True)
 
 

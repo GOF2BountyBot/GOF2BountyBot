@@ -7,9 +7,8 @@ from .cfg import cfg
 
 import discord
 from discord import Member, app_commands, Interaction
-from discord.ext.commands import ExtensionNotLoaded, Cog
+from discord.ext.commands import ExtensionNotLoaded
 from discord.abc import GuildChannel
-
 
 # Util imports
 
