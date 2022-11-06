@@ -24,13 +24,11 @@ from ..shipRenderer import shipRenderer
 from ..views.confirmView import ConfirmView
 from ..interactions.basedComponent import StaticComponents
 from .util.transformers import BoolYesNo
+from ..views.cancelView import CancelView
+from ..views.viewBase import ViewBase
 
 ROBOT_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 CWD = os.getcwd()
-
-CANCEL_VIEW = View(timeout=cfg.timeouts.menuInteractionDefault.total_seconds())
-CANCEL_BUTTON = Button(style=ButtonStyle.red, label="Cancel", custom_id="autoskinImageUploadCancel")
-CANCEL_VIEW.add_item(CANCEL_BUTTON)
 
 
 class DummyScope:
@@ -96,39 +94,28 @@ class ImageResizeMethod(Enum):
     cancelled = "2"
 
 
-class ImageResizeMethodView(View):
+class ImageResizeMethodView(ViewBase):
     def __init__(self, *, timeout: Optional[float] = 180):
         super().__init__(timeout=timeout)
         self.result = ImageResizeMethod.cancelled
-        self._interaction = None
 
     
     @button(emoji="↔", style=ButtonStyle.blurple)
     async def stretchButton(self, interaction: Interaction, _: Button):
         self.result = ImageResizeMethod.stretch
-        self.stop()
-        self._interaction = interaction
+        await self.endView(interaction)
 
 
     @button(emoji="✂", style=ButtonStyle.primary)
     async def cropButton(self, interaction: Interaction, _: Button):
         self.result = ImageResizeMethod.stretch
-        self.stop()
-        self._interaction = interaction
+        await self.endView(interaction)
 
     
     @button(emoji="🇽", style=ButtonStyle.red)
     async def cancelButton(self, interaction: Interaction, _: Button):
         self.result = ImageResizeMethod.cancelled
-        self.stop()
-        self._interaction = interaction
-
-    
-    @property
-    def interaction(self):
-        if self._interaction == None:
-            raise RuntimeError("This view is still active")
-        return cast(Interaction, self._interaction)
+        await self.endView(interaction)
 
 
 # Unfinished: select-based region selection
@@ -141,7 +128,7 @@ class AutoskinRegionSelectorView(ConfirmView):
     """
 
     def __init__(self, owner: Union[User, Member], ship: str, *, timeout: Optional[float] = 180):
-        super().__init__(timeout=timeout, confirmLabel="Submit", confirmRow=3, cancelRow=3, clearView=False)
+        super().__init__(timeout=timeout, confirmLabel="Submit", confirmRow=3, cancelRow=3, cleanup=None)
         self.ship = ship
         self.owner = owner
         self.skinnedRegions: Set[int] = set()
@@ -210,6 +197,7 @@ class AutoskinRegionSelectorView(ConfirmView):
             return
         # I'm casting here because Buttons are actually callable. If I call button.callback, then I get an attribute error 'function has no attribute callback'
         await cast(Callable, super().confirm)(interaction, b)
+        await self.endView(interaction)
 
 
 RENDER_IDENTIFIER_SEPARATOR = "|"
@@ -393,11 +381,11 @@ class UserAutoskinCog(BasedCog):
                 child.disabled = True
 
         if await view.wait():
-            await view.interaction.response.edit_message(content="🛑 Out of time! Please try this command again.", view=view)
+            await view.interaction.response.edit_message(content="🛑 Out of time! Please try this command again.", view=view, embed=None)
             return True, menuMsg
         
         if view.result == ImageResizeMethod.cancelled:
-            await view.interaction.response.edit_message(content="🛑 Operation cancelled.", view=view)
+            await view.interaction.response.edit_message(content="🛑 Operation cancelled.", view=view, embed=None)
             return True, menuMsg
 
         await view.interaction.response.edit_message(view=view)
@@ -480,16 +468,20 @@ class UserAutoskinCog(BasedCog):
         :type folder: TempFolder
         :return: The path to the image (or `None` of the operation was cancelled), and a `Message` that was used for menus (or `None` if no menus were used)
         :rtype: Tuple[Optional[str], Optional[Message]]
-        """       
+        """
+        view = CancelView()
         if isinstance(trigger, Interaction):
-            await trigger.response.send_message(f"Please send your image for {friendlyName}," \
-                                                + f" within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.",
-                                                view=CANCEL_VIEW)
+            try:
+                await trigger.response.send_message(f"Please send your image for {friendlyName}," \
+                                                    + f" within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.",
+                                                    view=view)
+            except Exception as e:
+                raise e
             imgRequestMessage = None
         else:
             imgRequestMessage = await trigger.reply(f"Please send your image for {friendlyName}," \
                                                     + f" within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.",
-                                                    view=CANCEL_VIEW, mention_author=False)
+                                                    view=view, mention_author=False)
 
         def textureUploadCheck(response: Union[Message, Interaction]) -> bool:
             if isinstance(response, Message):
@@ -497,7 +489,7 @@ class UserAutoskinCog(BasedCog):
             response = cast(Interaction, response)
             # TODO: I don't check that the interaction was on the message created above! It could be any button with this CustomID.
             return response.user == user and response.type == InteractionType.component \
-                and response.data is not None and response.data.get("custom_id", None) == CANCEL_BUTTON.custom_id
+                and response.data is not None and response.data.get("custom_id", None) == view.cancel.custom_id
 
         try:
             imgMsg: Union[Interaction, Message]
@@ -513,16 +505,7 @@ class UserAutoskinCog(BasedCog):
             return None, None
 
         if isinstance(imgMsg, Interaction):
-            await imgMsg.response.send_message("🛑 Render cancelled.")
-            try:
-                if isinstance(trigger, Interaction):
-                    await trigger.delete_original_response()
-                elif imgRequestMessage is not None:
-                    await imgRequestMessage.delete()
-                else:
-                    raise RuntimeError("trigger is not an interaction, but no imgRqeuestMessage is present")
-            except HTTPException:
-                pass
+            await imgMsg.response.edit_message(content="🛑 Render cancelled.", view=None)
             return None, None
 
         result = await self.downloadImage(imgMsg, fileName, folder)
@@ -585,21 +568,17 @@ class UserAutoskinCog(BasedCog):
         else:
             await menuMsg.edit(content=content, view=view, embed=None)
 
-        cancelled = await view.wait()
+        timedOut = await view.wait()
+        view.disableAll()
 
-        if cancelled:
-            await view.interaction.response.send_message("🛑 Autoskin cancelled - out of time!", ephemeral=True)
+        if timedOut:
+            await view.interaction.response.edit_message(content="🛑 Autoskin cancelled - out of time!", embed=None, view=view)
             await menuMsg.delete()
             return None
 
         if not view.confirmed:
-            await view.interaction.response.send_message("🛑 Autoskin cancelled.", ephemeral=True)
-            await menuMsg.delete()
+            await view.interaction.response.edit_message(content="🛑 Autoskin cancelled.", embed=None, view=view)
             return None
-
-        for child in view.children:
-            if isinstance(child, (Button, Select)):
-                child.disabled = True
 
         await view.interaction.response.edit_message(view=view)
 
@@ -672,7 +651,7 @@ class UserAutoskinCog(BasedCog):
                 .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🤖", style=ButtonStyle.blurple), f"{TextureFormat.AEI_ETC1.value}{textureMsg.id}")) \
                 .add_item(StaticComponents.User_ConvertTexture_RenderLookup(Button(emoji="🖥", style=ButtonStyle.blurple), f"{TextureFormat.AEI_DXT5.value}{textureMsg.id}"))
 
-            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI (PC)*",
+            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file.\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI (PC)*",
                                                     col=discord.Colour.random(),
                                                     img="attachment://render.png",
                                                     authorName="Skin Render Complete!",
@@ -680,7 +659,7 @@ class UserAutoskinCog(BasedCog):
                                                     footerTxt=f"Custom skinned {shipName.capitalize()}")
 
             with open(renderPath, "rb") as renderFile:
-                await waitMsg.reply(embed=renderEmbed, view=view, file=discord.File(renderFile, filename="render.png"))
+                await waitMsg.reply(interaction.user.mention, embed=renderEmbed, view=view, file=discord.File(renderFile, filename="render.png"))
 
         try:
             os.remove(renderPath)
@@ -764,7 +743,7 @@ class UserAutoskinCog(BasedCog):
             else:
                 texPath = os.path.join(folder.folderPath, rendererArgs.textures[0])
 
-            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI(PC)*",
+            renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file.\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI(PC)*",
                                                     col=discord.Colour.random(),
                                                     img=f"attachment://{interaction.id}.jpg",
                                                     authorName="Texture Generated!",
@@ -772,7 +751,7 @@ class UserAutoskinCog(BasedCog):
                                                     footerTxt=f"Custom skinned {ship.capitalize()} texture")
 
             with open(texPath, "rb") as textureFile:
-                textureMsg = await textChannel(interaction).send(file=discord.File(textureFile, filename=f"{interaction.id}.jpg"), embed=renderEmbed)
+                textureMsg = await textChannel(interaction).send(interaction.user.mention, file=discord.File(textureFile, filename=f"{interaction.id}.jpg"), embed=renderEmbed)
 
         view = View(timeout=None) \
             .add_item(StaticComponents.User_ConvertTexture_EmbedImage(Button(emoji="🤖", style=ButtonStyle.blurple), TextureFormat.AEI_ETC1.value)) \
