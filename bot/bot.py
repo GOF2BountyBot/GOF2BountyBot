@@ -7,7 +7,7 @@ from .cfg import cfg
 
 import discord
 from discord import Member, app_commands, Interaction
-from discord.ext.commands import ExtensionNotLoaded
+from discord.ext.commands import ExtensionNotLoaded, Cog
 from discord.abc import GuildChannel
 
 
@@ -435,15 +435,45 @@ def loadExtensionCallback(extensionName: str):
     return loadExtension
 
 
+COMMON_EXTENSION_PATHS = ("bot.cogs", "bot.cogs.util")
+def lookupExtension(extensionName: str) -> Optional[str]:
+    """Look for a loaded extension with the given name, checking in folders where extensions are commonly kept.
+    If the extension is found, the qualified name for the extension is returned. Otherwise, `None` is returned.
+
+    :param str extensionName: The name of the extension to find
+    :return: The qualified name of the loaded extension with name `extensionName` if one is loaded, `None` otherwise
+    """
+    if extensionName in botState.client.extensions:
+        return extensionName
+    for base in COMMON_EXTENSION_PATHS:
+        if f"{base}.{extensionName}" in botState.client.extensions:
+            return f"{base}.{extensionName}"
+    return None
+
+
 @botState.client.basedCommand(accessLevel=cfg.basicAccessLevels.developer, helpSection="extensions")
+@app_commands.describe(extension_name="The name of the extension module. Can be just the name, or can be the qualified path.")
 @app_commands.command(name="reload-extension",
                         description="Unload and re-load a cog or other extension.")
 @app_commands.guilds(*cfg.developmentGuilds)
 async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str):
     await interaction.response.defer(ephemeral=True, thinking=True)
-    try:
-        await botState.client.reload_extension(extension_name)
-    except ExtensionNotLoaded:
+    _extension_name = lookupExtension(extension_name)
+    found = _extension_name is not None
+
+    if found:
+        try:
+            await botState.client.reload_extension(_extension_name)
+        except ExtensionNotLoaded:
+            found = False
+        except Exception as e:
+            await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+            return
+        else:
+            await interaction.followup.send(f"reloaded successfully!", ephemeral=True)
+            return
+            
+    if not found:
         view = discord.ui.View()
         cancelButton = discord.ui.Button(style=discord.ButtonStyle.red, label="cancel")
         cancelButton.callback = removeViewFromMessageCallback(await interaction.original_response())
@@ -451,26 +481,29 @@ async def dev_cmd_reload_extension(interaction: Interaction, extension_name: str
         acceptButton.callback = loadExtensionCallback(extension_name)
         view.add_item(cancelButton).add_item(acceptButton)
         await interaction.followup.send("No such extension is currently loaded. Load it?", ephemeral=True, view=view)
-    except Exception as e:
-        await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
-    else:
-        await interaction.followup.send(f"reloaded successfully!", ephemeral=True)
 
 botState.client.tree.add_command(dev_cmd_reload_extension, guilds=cfg.developmentGuilds)
 
 
 @botState.client.basedCommand(accessLevel=cfg.basicAccessLevels.developer, helpSection="extensions")
+@app_commands.describe(extension_name="The fully qualified path to the extension module")
 @app_commands.command(name="unload-extension",
                         description="Unload a cog or other extension.")
 @app_commands.guilds(*cfg.developmentGuilds)
 async def dev_cmd_unload_extension(interaction: Interaction, extension_name: str):
     await interaction.response.defer(ephemeral=True, thinking=True)
-    try:
-        await botState.client.unload_extension(extension_name)
-    except Exception as e:
-        await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+    _extension_name = lookupExtension(extension_name)
+    found = _extension_name is not None
+
+    if found:
+        try:
+            await botState.client.unload_extension(_extension_name)
+        except Exception as e:
+            await interaction.followup.send(f"{type(e).__name__}: {e}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"unloaded successfully!", ephemeral=True)
     else:
-        await interaction.followup.send(f"unloaded successfully!", ephemeral=True)
+        await interaction.followup.send(f"No such extension is currently loaded. Load it with `/reload-extension`.")
 
 botState.client.tree.add_command(dev_cmd_unload_extension, guilds=cfg.developmentGuilds)
 
