@@ -1,6 +1,6 @@
 # Set up bot config
 
-from typing import Literal, Optional, cast
+from typing import List, Literal, Optional, cast
 from .cfg import cfg
 
 # Discord Imports
@@ -519,8 +519,12 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
     await interaction.response.defer(ephemeral=True, thinking=True)
     if not guilds:
         if not spec:
-            fmt = await botState.client.tree.sync()
-            await interaction.followup.send(f"Synced {len(fmt)} commands globally")
+            try:
+                fmt = await botState.client.tree.sync()
+            except discord.app_commands.CommandSyncFailure as e:
+                await interaction.followup.send(f"Failed to sync: {e.status} {e.text}")
+            else:
+                await interaction.followup.send(f"Synced {len(fmt)} commands globally")
         else:
             if interaction.guild is None:
                 await interaction.followup.send("The spec option is only valid when used from within a guild")
@@ -535,14 +539,14 @@ async def dev_cmd_sync_app_commands(interaction: Interaction, guilds: Optional[s
                 await interaction.followup.send(f"{'Copied' if spec == 'copy to here' else 'Synced'} {len(fmt)} commands to the current guild")
         return
 
-    synced = []
+    synced: List[None] = []
     async def syncGuild(guild):
         try:
             await botState.client.tree.sync(guild=guild)
-        except discord.HTTPException:
-            pass
+        except discord.HTTPException as e:
+            raise e
         else:
-            synced.append(None) # stupid scoping workaround, can't use an int
+            synced.append(None) # scoping workaround, can't use an int
 
     _guilds = set(map(lambda x: discord.Object(int(x)), guilds.split(", ")))
 
