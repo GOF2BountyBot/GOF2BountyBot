@@ -10,6 +10,7 @@ from ... import client
 from ...users import basedUser
 from ...gameObjects.items import gameItem
 from ...lib.stringTyping import stringDifference
+from ...gameObjects.inventories import inventoryListing
 
 if TYPE_CHECKING:
     from ...databases import bountyDB
@@ -368,7 +369,7 @@ def medalAutoComplete(paramName: str = "medal"):
 
 def _make_inventoryCategoryItemNumberAutoComplete(category: bbData.ItemCategory, fallbackOnDefaultUser: bool):
     async def _inventoryCategoryItemNumberAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
-        if not isinstance(interaction.client, "client.BasedClient"):
+        if not isinstance(interaction.client, client.BasedClient):
             raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
 
         choices: List[app_commands.Choice[str]] = []
@@ -429,7 +430,7 @@ def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCatego
 
 def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
     async def _anyUserHangerItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
-        if not isinstance(interaction.client, "client.BasedClient"):
+        if not isinstance(interaction.client, client.BasedClient):
             raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
 
         choices: List[app_commands.Choice[str]] = []
@@ -444,10 +445,10 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
         
         elif fallbackOnDefaultUser:
             for category in ITEM_TYPE_IDS.keys():
-                defaultItems = cast(List[gameItem.SerializedGameItemUnion], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
-                for itemNum, item in enumerate(defaultItems):
-                    if current in item["name"]:
-                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {item['name']}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                defaultItems = cast(List[inventoryListing.SerializedInventoryListing[gameItem.SerializedGameItemUnion]], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
+                for itemNum, listing in enumerate(defaultItems):
+                    if current in listing["item"]["name"]:
+                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {listing['item']['name']}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
                         if len(choices) == MAX_CHOICES:
                             break
         
