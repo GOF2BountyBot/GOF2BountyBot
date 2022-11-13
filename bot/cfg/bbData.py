@@ -21,29 +21,13 @@ if TYPE_CHECKING:
     from ..gameObjects.items.tools import crateTool
     from ..gameObjects.items.tools import shipSkinTool
 
-class _ItemCategoryMeta(_BasedEnumMeta):
-    @classmethod
-    def orAll(cls):
-        # ignoring here because cls will only ever be an Enum
-        return ItemCategoryOrAll(cls.value) # type: ignore
+class _ItemCategoryBase(Enum, metaclass=_BasedEnumMeta):
+    def orAll(self):
+        return ItemCategoryOrAll(self.value)
 
-class _ItemCategoryBase(Enum, metaclass=_ItemCategoryMeta):
-    @classmethod
-    def orAll(cls):
-        # ignoring here because cls will only ever be an Enum
-        return ItemCategoryOrAll(cls.value) # type: ignore
-
-class _ItemCategoryOrAllMeta(_BasedEnumMeta):
-    @classmethod
-    def noAll(cls):
-        # ignoring here because cls will only ever be an Enum
-        return ItemCategory(cls.value) # type: ignore
-
-class _ItemCategoryOrAllBase(Enum, metaclass=_ItemCategoryOrAllMeta):
-    @classmethod
-    def noAll(cls):
-        # ignoring here because cls will only ever be an Enum
-        return ItemCategory(cls.value) # type: ignore
+class _ItemCategoryOrAllBase(Enum, metaclass=_BasedEnumMeta):
+    def noAll(self):
+        return ItemCategory(self.value)
 
 class ItemCategory(_ItemCategoryBase):
     """Names for types of items that can be stored in inventories.
