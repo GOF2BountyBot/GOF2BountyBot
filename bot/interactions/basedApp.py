@@ -183,7 +183,11 @@ class BasedCog(Cog):
                             if not _isIgnored(n) and \
                                 (not hasattr(type(self), n) or not isinstance(getattr(type(self), n), property))]:
             method = getattr(self, methodName)
-            if appType(method) == BasedAppType.StaticComponent:
+            if isinstance(method, app_commands.Command) and appType(method.callback) == BasedAppType.AppCommand:
+                self.basedCommands[method] = basedCommand.commandMeta(method)
+                setCogApp(method.callback, type(self))
+                self.bot.addBasedCommand(method)
+            elif iscoroutinefunction(method) and appType(method) == BasedAppType.StaticComponent:
                 meta = basedComponent.staticComponentCallbackMeta(method)
                 self.staticComponentCallbacks[meta.ID] = meta
                 setCogApp(method, type(self))
