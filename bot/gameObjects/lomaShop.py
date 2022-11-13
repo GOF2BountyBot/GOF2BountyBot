@@ -67,7 +67,7 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         itemValue = int(item.value * listing.discounts[0].mult) if listing.discounts else item.value
         return user.credits >= itemValue
 
-
+#region selling
 
     def userSellShipObj(self, user: basedUser.BasedUser, ship: shipItem.Ship):
         """Selling items to Loma is not allowed."""
@@ -122,6 +122,7 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         """Selling items to Loma is not allowed."""
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
+#endregion
 
     @classmethod
     def deserialize(cls, shopDict: SerializedLomaShop, **kwargs) -> LomaShop:

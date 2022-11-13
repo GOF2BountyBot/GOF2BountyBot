@@ -506,6 +506,19 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
         else:
             raise NotImplementedError(f"Unsupported item type: {type(item).__name__}")
 
+
+    def userBuyItem(self, user: basedUser.BasedUser, item: StoredItemType):
+        if isinstance(item, PrimaryWeapon):
+            self.userBuyWeaponObj(user, item)
+        elif isinstance(item, moduleItem.ModuleItem):
+            self.userBuyModuleObj(user, item)
+        elif isinstance(item, TurretWeapon):
+            self.userBuyTurretObj(user, item)
+        elif isinstance(item, toolItem.ToolItem):
+            self.userBuyToolObj(user, item)
+        else:
+            raise NotImplementedError(f"Unsupported item type: {type(item).__name__}")
+
 #region serializing
 
     def serialize(self, **kwargs) -> SerializedShopBase:

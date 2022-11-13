@@ -222,7 +222,8 @@ class _InventoryBase(SerializesToSchema[TSerializedInventory], Generic[TSerializ
         :raise IndexError: When given an index that isn't an int, or the given index is out of range
         :raise ValueError: When the inventory is empty
         """
-        return cast(TItemType, self[i].item)
+        v = self[i].item
+        return cast(TItemType, v)
 
 
     def __getitem__(self, key: int) -> TListingType:

@@ -57,8 +57,8 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         raise NotImplementedError("Item affordability is not applicable to KaamoShops.")
 
+#region ships
 
-    # SHIP MANAGEMENT
     def userCanAffordShipIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """No costs are incurred when transferring items to or from a KaamoShop.
         """
@@ -119,9 +119,9 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         self.userSellShipObj(user, user.inactiveShips.itemAtIndex(index))
 
+#endregion
+#region weapons
 
-
-    # WEAPON MANAGEMENT
     def userCanAffordWeaponIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """No costs are incurred when transferring items to or from a KaamoShop.
         """
@@ -133,7 +133,7 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         :param BasedUser user: The user to sell weapon to
         :param int index: The index of the weapon to sell to user, in the shop's weapon Inventory's array of keys
         """
-        self.userBuyWeaponObj(user, user.inactiveWeapons.itemAtIndex(index))
+        self.userBuyWeaponObj(user, self.weaponsStock.itemAtIndex(index))
 
 
     def userBuyWeaponObj(self, user: basedUser.BasedUser, requestedWeapon: primaryWeapon.PrimaryWeapon):
@@ -166,9 +166,9 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         self.userSellWeaponObj(user, user.inactiveWeapons.itemAtIndex(index))
 
+#endregion
+#region modules
 
-
-    # MODULE MANAGEMENT
     def userCanAffordModuleIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """No costs are incurred when transferring items to or from a KaamoShop.
         """
@@ -213,9 +213,9 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         self.userSellModuleObj(user, user.inactiveModules.itemAtIndex(index))
 
+#endregion
+#region turrets
 
-
-    # TURRET MANAGEMENT
     def userCanAffordTurretIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """No costs are incurred when transferring items to or from a KaamoShop.
         """
@@ -260,9 +260,9 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         self.userSellTurretObj(user, user.inactiveTurrets.itemAtIndex(index))
 
+#endregion
+#region tools
 
-
-    # TOOL MANAGEMENT
     def userCanAffordToolIndex(self, user: basedUser.BasedUser, index: int) -> bool:
         """No costs are incurred when transferring items to or from a KaamoShop.
         """
@@ -307,6 +307,7 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         """
         self.userSellToolObj(user, user.inactiveTools.itemAtIndex(index))
 
+#endregion
 
     @classmethod
     def deserialize(cls, shopDict: guildShop.SerializedShopBase, **kwargs) -> KaamoShop:
