@@ -17,7 +17,7 @@ from ..gameObjects import guildShop
 from ..logging import LogCategory
 
 class DevKaamoCog(basedApp.BasedCog):
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")
     @app_commands.command(name="kaamo-give",
                             description="Developer command spawning the described item, and placing it in the given user's kaamo shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
@@ -63,7 +63,7 @@ class DevKaamoCog(basedApp.BasedCog):
                                                 + userMention + "**!", ephemeral=True)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")
     @app_commands.command(name="debug-kaamo",
                             description="A debug view of the requested user's Kaamo shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
@@ -160,7 +160,7 @@ class DevKaamoCog(basedApp.BasedCog):
             await interaction.followup.send("Debug sent to DMs.", ephemeral=True)
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")
     @app_commands.command(name="del-kaamo-item",
                             description="Delete one of an item in a requested user's kaamo. If the user has multiple, only one is affected.")
     @app_commands.guilds(*cfg.developmentGuilds)
@@ -228,7 +228,7 @@ class DevKaamoCog(basedApp.BasedCog):
             requestedBBUser.kaamo = None
 
 
-    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo")
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")
     @app_commands.command(name="del-kaamo-item-key",
                             description="Delete ALL of an item in a requested user's kaamo.")
     @app_commands.guilds(*cfg.developmentGuilds)
