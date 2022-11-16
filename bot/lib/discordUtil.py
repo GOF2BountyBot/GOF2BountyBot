@@ -839,7 +839,7 @@ def truncateWithEllipse(s: str, maxLength: int, truncatedLength: int, ellipse: s
     return s if len(s) <= maxLength else s[:truncatedLength] + ellipse
 
 
-class SerializableDiscordObject(Serializable, discord.Object):
+class SerializableDiscordObject(discord.Object, Serializable):
     """A version of discord.Object with basic serializing, to support adding in configs.
     """
     def serialize(self, **kwargs) -> int:
