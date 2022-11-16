@@ -6,4 +6,3 @@ PyGithub
 typing-extensions
 pillow
 diff-match-patch
-shutil
