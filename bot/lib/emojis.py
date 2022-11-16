@@ -586,4 +586,4 @@ def randomEmoji() -> BasedEmoji:
     :return: A random unicode emoji
     :rtype: BasedEmoji
     """
-    return BasedEmoji(unicode=random.sample(emoji.EMOJI_DATA.keys(), 1)[0])
+    return BasedEmoji(unicode=random.choice(list(emoji.EMOJI_DATA)))
