@@ -15,13 +15,14 @@ from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.kaamoShop import KaamoShop
 from ..gameObjects import guildShop
 from ..logging import LogCategory
+from ..views.serializedItemModal import SerializedItemModal
 
 class DevKaamoCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")
     @app_commands.command(name="kaamo-give",
                             description="Developer command spawning the described item, and placing it in the given user's kaamo shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_kaamo_give(self, interaction: Interaction, item_json: str, user_id: str = ""):
+    async def dev_cmd_kaamo_give(self, interaction: Interaction, user_id: str = ""):
         """developer command spawning the described item, and placing it in the given user's kaamo shop.
         item must be a json format description in line with the item's deserialize function.
         """
@@ -35,23 +36,24 @@ class DevKaamoCog(basedApp.BasedCog):
             await interaction.response.send_message(":x: That user's Kaamo storage is full!", ephemeral=True)
             return
 
-        try:
-            itemDict = json.loads(item_json)
-        except json.JSONDecodeError as e:
-            await interaction.response.send_message(f":x: Your `item_json` is not valid json: {e}", ephemeral=True)
+        itemModal = SerializedItemModal()
+        await interaction.response.send_modal(itemModal)
+        if await itemModal.wait(): return
+        
+        if not itemModal.isValid:
+            await itemModal.interaction.response.send_message(f":x: One or more validation errors occurred when processing your serialized item:\n - " \
+                                                            + "\n - ".join(itemModal.errors))
             return
-
-        if "type" not in itemDict:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Missing 'type' property", ephemeral=True)
-            return
+        
+        itemDict = itemModal.itemJson()
 
         if itemDict["type"] not in gameItem.subClassNames:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
         newItem = gameItem.spawnItem(itemDict)
         if not isinstance(newItem, guildShop.StoredItemTypesTuple):
-            await interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
+            await itemModal.interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
             return
         
         if requestedUser.kaamo is None:
@@ -59,8 +61,7 @@ class DevKaamoCog(basedApp.BasedCog):
         itemStock = requestedUser.kaamo.getStockByType(type(newItem))
         itemStock.addItem(newItem)
 
-        await interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **" \
-                                                + userMention + "**!", ephemeral=True)
+        await itemModal.interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **{userMention}**!", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")

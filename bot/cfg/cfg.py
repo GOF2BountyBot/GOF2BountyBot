@@ -232,6 +232,7 @@ includedCogs = (
     cogPath("UserGof2InfoCog"),
     cogPath("UserHomeGuildsCog"),
     cogPath("UserKaamoCog"),
+    cogPath("UserLomaCog"),
     cogPath("UserMiscCog")
 )
 

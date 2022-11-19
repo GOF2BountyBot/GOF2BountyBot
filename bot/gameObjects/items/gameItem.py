@@ -189,7 +189,7 @@ def spawnableItem(cls: TClass) -> TClass:
     return cast(TClass, cls)
 
 
-def spawnItem(data: TypedCustomSerializedGameItem) -> GameItem:
+def spawnItem(data: TypedSerializedGameItemUnion) -> GameItem:
     if "type" not in data or data["type"] == "":
         raise NameError("Not given a type")
     elif data["type"] not in subClassNames:

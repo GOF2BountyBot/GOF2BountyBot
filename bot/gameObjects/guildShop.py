@@ -64,7 +64,6 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
     :var toolsStock: A inventory containing the shop's stock of tools
     :vartype toolsStock: inventory
     """
-
     def __init__(self, shipsStock: _InventoryBase[TSerializedInventory, TListingType, Ship],
                     weaponsStock: _InventoryBase[TSerializedInventory, TListingType, PrimaryWeapon],
                     modulesStock: _InventoryBase[TSerializedInventory, TListingType, moduleItem.ModuleItem],
@@ -77,11 +76,22 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
         :param Inventory turretsStock: The shop's current stock of turrets
         :param Inventory toolsStock: The shop's current stock of tools
         """
-        self.shipsStock = shipsStock
-        self.weaponsStock = weaponsStock
-        self.modulesStock = modulesStock
-        self.turretsStock = turretsStock
-        self.toolsStock = toolsStock
+        self._shipsStock = shipsStock
+        self._weaponsStock = weaponsStock
+        self._modulesStock = modulesStock
+        self._turretsStock = turretsStock
+        self._toolsStock = toolsStock
+        
+    @property
+    def shipsStock(self): return self._shipsStock
+    @property
+    def weaponsStock(self): return self._weaponsStock
+    @property
+    def modulesStock(self): return self._modulesStock
+    @property
+    def turretsStock(self): return self._turretsStock
+    @property
+    def toolsStock(self): return self._toolsStock
 
 
     def isEmpty(self) -> bool:

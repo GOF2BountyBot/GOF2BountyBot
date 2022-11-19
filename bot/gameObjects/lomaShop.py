@@ -13,7 +13,9 @@ from .items.modules import moduleItem
 from .inventories import inventory, inventoryListing
 from .items.tools import toolItem, toolItemFactory
 from . import guildShop, itemDiscount
-from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
+from .inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
+from ..cfg.bbData import ItemCategory
+from .items.gameItem import SerializedGameItemUnion
 
 class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop.SerializedShopBase...
     shipsStock: List[inventoryListing.SerializedDiscountableItemListing[shipBase.SerializedShipUnion]]
@@ -23,16 +25,23 @@ class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop
     toolsStock: List[inventoryListing.SerializedDiscountableItemListing[toolItem.SerializedToolItemUnion]]
     
 
+ShipInventoryType = inventory.DiscountableInventory[shipItem.Ship, shipBase.SerializedShipUnion]    
+WeaponInventoryType = inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]
+ModuleInventoryType = inventory.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]
+TurretInventoryType = inventory.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]
+ToolInventoryType = inventory.DiscountableInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]
+
+
 class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscountableItemListing], DiscountableItemListing]):
     """A private shop unique to each player, for purchasing special items intended only for that player.
     Items cannot be sold to Loma.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.DiscountableInventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
-                    weaponsStock: Optional[inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
-                    modulesStock: Optional[inventory.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
-                    turretsStock: Optional[inventory.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
-                    toolsStock: Optional[inventory.DiscountableInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None):
+    def __init__(self, shipsStock: Optional[ShipInventoryType] = None,
+                    weaponsStock: Optional[WeaponInventoryType] = None,
+                    modulesStock: Optional[ModuleInventoryType] = None,
+                    turretsStock: Optional[TurretInventoryType] = None,
+                    toolsStock: Optional[ToolInventoryType] = None):
         """
         :param shipsStock: The shop's current stock of ships (Default empty inventory.DiscountableInventory)
         :type shipsStock: inventory.DiscountableInventory
@@ -53,7 +62,18 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
-
+        
+#region inventories
+    @property
+    def shipsStock(self): return cast(ShipInventoryType, self._shipsStock)
+    @property
+    def weaponsStock(self): return cast(WeaponInventoryType, self._weaponsStock)
+    @property
+    def modulesStock(self): return cast(ModuleInventoryType, self._modulesStock)
+    @property
+    def turretsStock(self): return cast(TurretInventoryType, self._turretsStock)
+    @property
+    def toolsStock(self): return cast(ToolInventoryType, self._toolsStock)
 
     def userCanAffordItemObj(self, user: basedUser.BasedUser, item: guildShop.StoredItemType) -> bool:
         """Decide whether a user has enough credits to buy an item, taking into account any available discounts
@@ -66,6 +86,19 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         listing = self.getStockByType(type(item)).getListing(item)
         itemValue = int(item.value * listing.discounts[0].mult) if listing.discounts else item.value
         return user.credits >= itemValue
+    
+    
+    def getStock(self, item: ItemCategory) -> inventory.DiscountableInventory[guildShop.StoredItemType, SerializedGameItemUnion]:
+        """Get the inventory containing all current stock of the named type.
+        This object is mutable and can alter the stock of the shop.
+        This method is only on LomaShop to correct the typing of the Inventory returned.
+
+        :param str item: The name of the item type to fetch. Must be one of ship, weapon, module or turret
+        :return: The inventory used by the shop to store all stock of the requested type
+        :rtype: inventory
+        :raise ValueError: When requesting an unknown item type
+        """
+        return cast(inventory.DiscountableInventory, super().getStock(item))
 
 #region selling
 
@@ -123,6 +156,48 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         raise NotImplementedError("Attempted to sell an item to a Loma shop")
 
 #endregion
+#region buying
+
+    def userBuyWeaponObj(self, user: basedUser.BasedUser, requestedWeapon: primaryWeapon.PrimaryWeapon):
+        if not self.userCanAffordItemObj(user, requestedWeapon):
+            raise RuntimeError(f"user {user.id} attempted to buy weapon {requestedWeapon.name}"
+                                f" but can't afford it: {user.credits} < {requestedWeapon.getValue()}")
+        _, valueDiscount = self.weaponsStock.removeItemAndDiscount(requestedWeapon)
+        user.credits -= int(requestedWeapon.value * valueDiscount)
+        user.inactiveWeapons.addItem(requestedWeapon)
+        user.credits -= requestedWeapon.getValue()
+
+
+    def userBuyModuleObj(self, user: basedUser.BasedUser, item: moduleItem.ModuleItem):
+        if not self.userCanAffordItemObj(user, item):
+            raise RuntimeError(f"user {user.id} attempted to buy module {item.name}"
+                                f" but can't afford it: {user.credits} < {item.getValue()}")
+        _, valueDiscount = self.modulesStock.removeItemAndDiscount(item)
+        user.credits -= int(item.value * valueDiscount)
+        user.inactiveModules.addItem(item)
+        user.credits -= item.getValue()
+        
+        
+    def userBuyTurretObj(self, user: basedUser.BasedUser, item: turretWeapon.TurretWeapon):
+        if not self.userCanAffordItemObj(user, item):
+            raise RuntimeError(f"user {user.id} attempted to buy Turret {item.name}"
+                                f" but can't afford it: {user.credits} < {item.getValue()}")
+        _, valueDiscount = self.turretsStock.removeItemAndDiscount(item)
+        user.credits -= int(item.value * valueDiscount)
+        user.inactiveTurrets.addItem(item)
+        user.credits -= item.getValue()
+        
+        
+    def userBuyToolObj(self, user: basedUser.BasedUser, item: toolItem.ToolItem):
+        if not self.userCanAffordItemObj(user, item):
+            raise RuntimeError(f"user {user.id} attempted to buy tool {item.name}"
+                                f" but can't afford it: {user.credits} < {item.getValue()}")
+        _, valueDiscount = self.toolsStock.removeItemAndDiscount(item)
+        user.credits -= int(item.value * valueDiscount)
+        user.inactiveTools.addItem(item)
+        user.credits -= item.getValue()
+
+#endregion buying
 
     @classmethod
     def deserialize(cls, shopDict: SerializedLomaShop, **kwargs) -> LomaShop:

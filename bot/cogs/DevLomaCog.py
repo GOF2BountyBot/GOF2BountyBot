@@ -17,13 +17,14 @@ from ..gameObjects.lomaShop import LomaShop
 from ..gameObjects import guildShop
 from ..logging import LogCategory
 from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
+from ..views.serializedItemModal import SerializedItemModal
 
 class DevLomaCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")
     @app_commands.command(name="loma-give",
                             description="Developer command spawning the described item, and placing it in the given user's loma shop.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_loma_give(self, interaction: Interaction, item_json: str, user_id: str = ""):
+    async def dev_cmd_loma_give(self, interaction: Interaction, user_id: str = ""):
         """developer command spawning the described item, and placing it in the given user's loma shop.
         item must be a json format description in line with the item's deserialize function.
         """
@@ -32,24 +33,30 @@ class DevLomaCog(basedApp.BasedCog):
 
         dcUser = self.bot.get_user(requestedUser.id) or await self.bot.tryFetchUser(requestedUser.id)
         userMention = "<unknown user>" if dcUser is None else dcUser.mention
-
-        try:
-            itemDict = json.loads(item_json)
-        except json.JSONDecodeError as e:
-            await interaction.response.send_message(f":x: Your `item_json` is not valid json: {e}", ephemeral=True)
+        
+        itemModal = SerializedItemModal()
+        await interaction.response.send_modal(itemModal)
+        if await itemModal.wait(): return
+        
+        if not itemModal.isValid:
+            await itemModal.interaction.response.send_message(f":x: One or more validation errors occurred when processing your serialized item:\n - " \
+                                                            + "\n - ".join(itemModal.errors))
             return
-
-        if "type" not in itemDict:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Missing 'type' property", ephemeral=True)
-            return
+        
+        itemDict = itemModal.itemJson()
 
         if itemDict["type"] not in gameItem.subClassNames:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
-        newItem = gameItem.spawnItem(itemDict)
+        try:
+            newItem = gameItem.spawnItem(itemDict)
+        except Exception as e:
+            await itemModal.interaction.response.send_message(f":x: failed to deserialize your `item_json`: {type(e).__name__}: {e}", ephemeral=True)
+            return
+        
         if not isinstance(newItem, guildShop.StoredItemTypesTuple):
-            await interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
+            await itemModal.interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
             return
         
         if requestedUser.loma is None:
@@ -57,8 +64,7 @@ class DevLomaCog(basedApp.BasedCog):
         itemStock = requestedUser.loma.getStockByType(type(newItem))
         itemStock.addItem(newItem)
 
-        await interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **" \
-                                                + userMention + "**!", ephemeral=True)
+        await itemModal.interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **{userMention}**!", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")

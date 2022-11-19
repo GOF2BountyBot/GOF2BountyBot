@@ -21,7 +21,7 @@ from ..users.basedGuild import BasedGuild
 from ..gameObjects.guildShop import TechLeveledShop
 from ..databases.bountyDB import divisionNameForLevel
 from ..logging import LogCategory
-
+from ..views.serializedItemModal import SerializedItemModal
 
 
 class DevItemsCog(BasedCog):
@@ -31,7 +31,7 @@ class DevItemsCog(BasedCog):
     @app_commands.command(name="give-item",
                             description="Spawn in an item and give it to a user.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def dev_cmd_give(self, interaction: Interaction, item_json: str, user_id: str = ""):
+    async def dev_cmd_give(self, interaction: Interaction, user_id: str = ""):
         """developer command giving the provided user the provided item of the provided type.
         user must be either an ID or empty (to give the item to the calling user).
         item must be a json format description in line with the item's to and deserialize functions.
@@ -42,25 +42,29 @@ class DevItemsCog(BasedCog):
         dcUser = self.bot.get_user(requestedUser.id) or await self.bot.tryFetchUser(requestedUser.id)
         userMention = "<unknown user>" if dcUser is None else dcUser.mention
 
-        try:
-            itemDict = json.loads(item_json)
-        except json.JSONDecodeError as e:
-            await interaction.response.send_message(f":x: Your `item_json` is not valid json: {e}", ephemeral=True)
+        itemModal = SerializedItemModal()
+        await interaction.response.send_modal(itemModal)
+        if await itemModal.wait(): return
+        
+        if not itemModal.isValid:
+            await itemModal.interaction.response.send_message(f":x: One or more validation errors occurred when processing your serialized item:\n - " \
+                                                            + "\n - ".join(itemModal.errors))
             return
+        
+        itemDict = itemModal.itemJson()
 
-        if "type" not in itemDict:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Missing 'type' property", ephemeral=True)
+        if itemDict["type"] not in gameItem.subClassNames:
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
         if itemDict["type"] not in gameItem.subClassNames:
-            await interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
         newItem = gameItem.spawnItem(itemDict)
         requestedUser.getInventoryForItem(newItem).addItem(newItem)
 
-        await interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **" \
-                                                + userMention + "**!", ephemeral=True)
+        await itemModal.interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **{userMention}**!", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="items")
