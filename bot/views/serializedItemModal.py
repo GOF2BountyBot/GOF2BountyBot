@@ -11,10 +11,10 @@ class SerializedItemModal(Modal):
     """A modal for gathering a JSON-serialized item.
     `builtIn` bool, `name` str, `type` str and `extras` str
     """
-    _builtIn = TextInput(label="Built In Item?", style=TextStyle.short, placeholder="y/n", default="y", required=False, max_length=1)
     _typeName = TextInput(label="Item Type Name", style=TextStyle.short, required=True)
     _name = TextInput(label="Name", style=TextStyle.short, required=True)
     _extras = TextInput(label="Extras", style=TextStyle.paragraph, required=False, placeholder="{}", default="{\n    \n}")
+    _builtIn = TextInput(label="Built In Item?", style=TextStyle.short, placeholder="y/n", default="y", required=False, max_length=1)
     
     def __init__(self, *, title: Union[str, MISSING] = "SerializedItem", timeout: Optional[float] = 120, custom_id: Union[str, MISSING] = MISSING) -> None:
         super().__init__(title=title, timeout=timeout, custom_id=custom_id)
