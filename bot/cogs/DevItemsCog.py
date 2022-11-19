@@ -57,11 +57,12 @@ class DevItemsCog(BasedCog):
             await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
-        if itemDict["type"] not in gameItem.subClassNames:
-            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
+        try:
+            newItem = gameItem.spawnItem(itemDict)
+        except Exception as e:
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: {type(e).__name__} '{e}'", ephemeral=True)
             return
-
-        newItem = gameItem.spawnItem(itemDict)
+        
         requestedUser.getInventoryForItem(newItem).addItem(newItem)
 
         await itemModal.interaction.response.send_message(f":white_check_mark: Given one '{newItem.name}' to **{userMention}**!", ephemeral=True)

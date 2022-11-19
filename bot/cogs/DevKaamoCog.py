@@ -51,7 +51,12 @@ class DevKaamoCog(basedApp.BasedCog):
             await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: Unknown gameItem subclass '{itemDict['type']}'", ephemeral=True)
             return
 
-        newItem = gameItem.spawnItem(itemDict)
+        try:
+            newItem = gameItem.spawnItem(itemDict)
+        except Exception as e:
+            await itemModal.interaction.response.send_message(f":x: Failed to deserialize your `item_json`: {type(e).__name__} '{e}'", ephemeral=True)
+            return
+        
         if not isinstance(newItem, guildShop.StoredItemTypesTuple):
             await itemModal.interaction.response.send_message(f":x: Deserialized item type '{type(newItem).__name__}' is not stored in shops.", ephemeral=True)
             return
