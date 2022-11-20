@@ -10,6 +10,10 @@ from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion
 class SerializedItemModal(Modal):
     """A modal for gathering a JSON-serialized item.
     `builtIn` bool, `name` str, `type` str and `extras` str
+    
+    This modal could definitely be dynamic if I wanted.
+    E.g the commands using the modal could take the `type` field as an autocomplete and, given the concrete type, a view could be created dynamically with all of the correct fields.
+    Obviously this would need some special consideration like paging, and choosing when to finish (because most fields are optional)
     """
     _typeName = TextInput(label="Item Type Name", style=TextStyle.short, required=True)
     _name = TextInput(label="Name", style=TextStyle.short, required=True)
