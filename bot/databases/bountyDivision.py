@@ -113,7 +113,7 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
             self.tryStartBountySpawner()
 
 
-    def allBounties(self) -> List[Bounty]:
+    def allActiveBounties(self) -> List[Bounty]:
         """Flatten all of this division's active bounties into a single list
 
         :return: All currently active bounties
@@ -121,14 +121,23 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
         """
         return [b for tlBounties in self.bounties.values() for b in tlBounties.values()]
 
+
+    def allEscapedBounties(self) -> List[Bounty]:
+        """Flatten all of this division's escaped bounties into a single list
+
+        :return: All currently escaped bounties
+        :rtype: List[Bounty]
+        """
+        return [b for tlBounties in self.escapedBounties.values() for b in tlBounties.values()]
+
     
-    def allBountiesForSystem(self, system: str) -> List[Bounty]:
+    def allActiveBountiesForSystem(self, system: str) -> List[Bounty]:
         """Get all active bounties in this division whose routes contain `system`.
 
         :return: all active bounties in this division whose routes contain `system`
         :rtype: List[Bounty]
         """
-        return [b for b in self.allBounties() if system in b.checked]
+        return [b for b in self.allActiveBounties() if system in b.checked]
 
 
     def hasMinTLBounty(self, includeEscaped: bool = True) -> bool:

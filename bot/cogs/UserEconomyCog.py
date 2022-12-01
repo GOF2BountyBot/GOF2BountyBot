@@ -15,7 +15,8 @@ from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..users import basedUser
-from .util.CommonAutocomplete import divisionAutoComplete, anyUserHangerItemAutoComplete, anyUserHangerItemAutoComplete_decodeValue
+from .util.CommonAutocomplete import divisionAutoComplete, divisionVerify, \
+                                    anyUserHangerItemAutoComplete, anyUserHangerItemVerify, anyUserHangerItemAutoComplete_decodeValue
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
 from ..gameObjects.guildShop import TechLeveledShop
@@ -95,6 +96,7 @@ class UserEconomyCog(BasedCog):
                             division="The shop to view. Default: Your division's shop")
     @app_commands.command(name="shop",
                             description="View the current stock of this server's shop. Give no arguments to view all items in your division.")
+    @divisionVerify(allowAllDivisions=False)
     async def cmd_shop(self, interaction: Interaction, item_type: ItemCategoryOrAll = ItemCategoryOrAll.all, division: Optional[str] = None):
         """list the current stock of the guildShop owned by the guild containing the sent message.
         Can specify an item type to list.
@@ -188,6 +190,7 @@ class UserEconomyCog(BasedCog):
                             division="The shop to buy from. You can only buy from your division or lower. Default: Your division's shop")
     @app_commands.command(name="buy",
                             description="🌎 Buy the requested item from the shop. Item numbers can be seen in the `/shop`")
+    @divisionVerify(allowAllDivisions=False)
     async def cmd_shop_buy(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], sell_old_ship: BoolYesNo = BoolYesNo.No, move_equipped_items: BoolYesNo = BoolYesNo.No, division: Optional[str] = None):
         """Buy the item of the given item type, at the given index, from the guild's shop.
         if "transfer" is specified, the new ship's items are unequipped, and the old ship's items attempt to fill the new ship.
@@ -327,6 +330,7 @@ class UserEconomyCog(BasedCog):
                             unequip_items="When selling a ship, automatically unequip all items on the ship, and keep them. Default: Yes")
     @app_commands.command(name="sell",
                             description="🌎 Sell the requested item from your hangar, to your division's shop.")
+    @anyUserHangerItemVerify()
     async def cmd_shop_sell(self, interaction: Interaction, item: str, unequip_items: BoolYesNo = BoolYesNo.Yes):
         """Sell the item of the given item type, at the given index, from the user's inactive items, to the guild's shop.
         if "clear" is specified, the ship's items are unequipped before selling.

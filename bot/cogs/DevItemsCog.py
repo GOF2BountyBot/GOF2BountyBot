@@ -15,7 +15,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..gameObjects.items import gameItem
-from .util.CommonAutocomplete import divisionAutoComplete
+from .util.CommonAutocomplete import divisionAutoComplete, divisionVerify
 from .util.parameterVerifiers import verifyDivName
 from ..users.basedGuild import BasedGuild
 from ..gameObjects.guildShop import TechLeveledShop
@@ -153,6 +153,7 @@ class DevItemsCog(BasedCog):
     @app_commands.command(name="refresh-shop",
                             description="Developer command refreshing division shop(s) for given guild(s). Does not reset the refresh timer.")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_refreshshop(self, interaction: Interaction, guild_id: str = "here", division: str = "all", new_level: str = "random"):
         """Refresh the shop stock of the current guild. Does not reset the shop stock cooldown.
         """

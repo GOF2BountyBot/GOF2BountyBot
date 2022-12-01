@@ -22,7 +22,10 @@ from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision, BountyDB
 from ..databases.bountyDivision import BountyDivision
 from ..logging import LogCategory
-from .util.CommonAutocomplete import divisionAutoComplete, systemAutoComplete, criminalAutoComplete, factionAutoComplete
+from .util.CommonAutocomplete import divisionAutoComplete, divisionVerify, \
+                                    systemAutoComplete, systemVerify, \
+                                    criminalAutoComplete, criminalVerify, \
+                                    factionAutoComplete, factionVerify
 from .util.transformers import BoolYesNo
 from .util.parameterVerifiers import verifyCriminalName, verifyDivName, verifyFactionName, verifySystemName
 
@@ -218,6 +221,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="clear-bounties",
                             description="Developer command clearing all active bounties. See the help page for more info.")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_clear_bounties(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command clearing all active bounties. If a guild ID is given, clear bounties in that guild.
         If 'all' is given, clear bounties in all guilds. If nothing is given, clear bounties in the calling guild.
@@ -309,6 +313,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="reset-new-bounty-cool",
                             description="reset the current bounty generation period, triggering a bounty spawn.")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_resetnewbountycool(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command resetting the current bounty generation period,
         instantly generating a new bounty
@@ -334,6 +339,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="set-temp",
                             description="set the activity level for a given division in a given guild")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_set_temp(self, interaction: Interaction, division: str, temperature: Range[float, cfg.minTechLevel, cfg.maxTechLevel], guild_id: str = "here"):
         """developer command setting the activity level for the calling guild at the given tech level
         """
@@ -357,6 +363,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="can-make-bounties",
                             description="Decide whether the given division(s) have space for more bounties.")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_canmakebounty(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command printing whether or not the given division can accept new bounties
         """
@@ -403,6 +410,12 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="make-bounty",
                             description="spawn a new bounty in one guild")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify(allowAllDivisions=False)
+    @systemVerify("start")
+    @systemVerify("end")
+    @systemVerify("answer")
+    @criminalVerify()
+    @factionVerify(bountyFactionsOnly=True)
     async def dev_cmd_make_bounty(self, interaction: Interaction,
             guild_id: str = "here", difficulty: Optional[Range[int, cfg.minTechLevel, cfg.maxTechLevel]] = None, 
             division: Optional[str] = None, name: Optional[str] = None, faction: Optional[str] = None,
@@ -440,6 +453,11 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="make-player-bounty",
                             description="spawn a new bounty for the given user in one guild")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify(allowAllDivisions=False)
+    @systemVerify("start")
+    @systemVerify("end")
+    @systemVerify("answer")
+    @factionVerify(bountyFactionsOnly=True)
     async def dev_cmd_make_player_bounty(self, interaction: Interaction, player_id: str,
             guild_id: str = "here", difficulty: Optional[Range[int, cfg.minTechLevel, cfg.maxTechLevel]] = None, 
             division: Optional[str] = None, faction: Optional[str] = None,
@@ -478,6 +496,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="measure-temps",
                             description="fetch the current activity temperatures of a guild's bounty division(s)")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_measure_temps(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command fetching the current activity temperatures in the calling guild.
         """
@@ -509,6 +528,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="decay-temps",
                             description="Trigger bounty activity temperature decay for one or all divisions, in one or all guilds")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_decay_temps(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command decaying the activity temperatures of the calling guild
         """
@@ -554,6 +574,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="next-bounty-time",
                             description="fetch the current activity temperatures of a guild's bounty division(s)")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_next_bounty_time(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command DMing the calling user with the current delays on new bounty TTs for the calling guild
         """
@@ -592,6 +613,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="max-bounties",
                             description="fetch the current max bounties of a guild's bounty division(s)")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_current_max_bounties(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command DMing the calling user with the current max bounties for the given guild(s)/division(s)
         """
@@ -635,6 +657,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="force-expire-bounty",
                             description="Force the named bounty to expire immediately")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_force_expire_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here", include_escaped: BoolYesNo = BoolYesNo.Yes):
         """Force the named bounty to expire immediately.
         """
@@ -664,6 +687,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="force-escape-bounty",
                             description="Force the named bounty to escape immediately")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_force_escape_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """Force the named bounty to escape immediately.
         """
@@ -691,6 +715,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="force-respawn-bounty",
                             description="Force the named bounty to respawn immediately")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_force_respawn_bounty(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """Force the named bounty to respawn immediately.
         """
@@ -714,6 +739,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="restart-bounty-task",
                             description="Restart the bounty spawner task for one or all divisions in one or all guilds")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @divisionVerify()
     async def dev_cmd_restart_new_bounty_task(self, interaction: Interaction, guild_id: str = "here", division: str = "all"):
         """developer command that restarts a 'new bounties' timedtask for one or all divisions in one or all guilds
         """
@@ -806,6 +832,7 @@ class DevBountiesCog(basedApp.BasedCog):
     @app_commands.command(name="crim-value",
                             description="Get the total value of a criminal's loadout.")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify()
     async def dev_cmd_crim_value(self, interaction: Interaction, name: str, guild_id: str = "here"):
         """⚠ WARNING: MARKED FOR CHANGE ⚠
         The following function is provisional and marked as planned for overhaul.

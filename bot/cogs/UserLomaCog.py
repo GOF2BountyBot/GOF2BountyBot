@@ -10,7 +10,7 @@ from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..gameObjects.guildShop import StoredItemType
+from ..gameObjects.guildShop import StoredItemTypesTuple
 
 
 class UserLomaCog(BasedCog):
@@ -45,7 +45,7 @@ class UserLomaCog(BasedCog):
 
         itemListing = shopItemStock[item_number - 1]
         requestedItem = itemListing.item
-        if not isinstance(requestedItem, StoredItemType):
+        if not isinstance(requestedItem, StoredItemTypesTuple):
             raise TypeError(f"Unexpected item type: {type(requestedItem)} {requestedItem}")
 
         if not requestedBUser.loma.userCanAffordItemObj(requestedBUser, requestedItem):

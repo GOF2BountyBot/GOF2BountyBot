@@ -27,7 +27,7 @@ from ..commands import commandsDB as textCommandsDB
 from ..interactions.accessLevels import _accessLevels
 from ..reactionMenus import reactionMenu
 from ..databases.bountyDB import nameForDivision, BountyDB
-from .util.CommonAutocomplete import criminalAutoComplete
+from .util.CommonAutocomplete import criminalAutoComplete, criminalVerify
 from .util.parameterVerifiers import verifyCriminalName
 from ..logging import LogCategory
 from ..baseClasses.basedEnum import BasedEnum
@@ -922,6 +922,7 @@ class DevMiscCog(BasedCog):
     @app_commands.command(name="bounty-status",
                             description="Send a DM with various debug info about the status of an active bounty")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_bounty_status(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """developer command sending a DM containing info about the specified bounty
         """
@@ -999,6 +1000,7 @@ class DevMiscCog(BasedCog):
     @app_commands.command(name="edit-bounty",
                             description="Edit an active bounty")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_edit_bounty(self, interaction: Interaction, criminal: str, field: BountyEditField, new_value: str, guild_id: str = "here", update_bountyboards: bool = True):
         """developer command editing some data on a bounty
         """
@@ -1300,6 +1302,7 @@ class DevMiscCog(BasedCog):
     @app_commands.command(name="force-update-listing",
                             description="Force a bounty board channel listing to refresh")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @criminalVerify("criminal")
     async def dev_cmd_force_update_listing(self, interaction: Interaction, criminal: str, guild_id: str = "here"):
         """developer command forcing a BBC listing update on a bounty
         """

@@ -1,19 +1,26 @@
 
-from typing import Callable, Iterable, List, TYPE_CHECKING, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple, TypeVar, cast, Coroutine
 from discord import Interaction
 from discord import app_commands
+from discord.app_commands.commands import CommandCallback, P as TParams, GroupT as TCommandGroup, T as TReturn
 import heapq
+from functools import wraps
 
 from ...cfg import cfg, bbData
 from ...baseClasses.aliasable import AliasableMixin
-from ... import client
+from ... import client, lib
+from ...lib import gameMaths
 from ...users import basedUser
 from ...gameObjects.items import gameItem
 from ...lib.stringTyping import stringDifference
 from ...gameObjects.inventories import inventoryListing
 
 if TYPE_CHECKING:
-    from ...databases import bountyDB
+    from ...databases import bountyDB, bountyDivision
+    from ...gameObjects.bounties import bounty
+from typing_extensions import Concatenate
+# else:
+#     Concatenate = Generic
 
 MAX_CHOICES = 25
 
@@ -21,22 +28,37 @@ lowerSystems = {}
 lowerSystemKeys = []
 first25 = []
 
+TCommandCallback = TypeVar("TCommandCallback", bound=CommandCallback)
+TCommand = TypeVar("TCommand", bound=app_commands.Command)
 
-def _stringAutoComplete(getPossibleChoices: Callable[[], Sequence[str]]):
-    async def inner(interaction: Interaction, current: str):
-        possibleChoices = getPossibleChoices()
-        if current == "":
-            bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
-        elif len(possibleChoices) <= MAX_CHOICES:
-            bestChoices = possibleChoices
-        else:
-            bestChoices = heapq.nsmallest(MAX_CHOICES, possibleChoices, lambda x: stringDifference(x, current))
-        return [app_commands.Choice(name=i, value=i) for i in bestChoices]
-    return inner
+#region aliasable utils
 
+TAliasable = TypeVar("TAliasable", bound=AliasableMixin)
+def aliasableLookup(items: Dict[str, TAliasable], name: str) -> Optional[str]:
+    """Try to find a object in `items` that is called `name`. If one can be found, return that object's key in `items`.
+    If none can be found, return `None`.
+    This function is very expensive; linear in the number of keys in `items`.
+
+    :param items: The aliasables in which to look for a match
+    :type items: Dict[str, TAliasable]
+    :param name: The candidate name to look up
+    :type name: str
+    :return: The dictionary key of the matching item in `items` if one exists, otherwise `None`
+    :rtype: Optional[str]
+    """
+    for k, i in items.items():
+        if i.isCalled(name):
+            return k
+    return None
 
 
 def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMixin]]):
+    """Construct an autocomplete callback that finds the `MAX_CHOICES` most similar matches to the input string from a list of candidate aliasables.
+    Matches are made based on *aliases*.
+
+    :param getPossibleChoices: A callback to get the list of candidate aliasable objects
+    :type getPossibleChoices: Callable[[], Sequence[str]]
+    """
     async def inner(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
         possibleChoices = getPossibleChoices()
         if current == "":
@@ -51,38 +73,156 @@ def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMi
     return inner
 
 
-"""
-def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMixin]]):
-    async def inner(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
-        global lowerSystems
-        global first25
-        global lowerSystemKeys
-        if lowerSystems == {}:
-            lowerSystems.update({s.name.lower(): s for s in bbData.builtInSystemObjs.values()})
-            lowerSystemKeys += list(lowerSystems.keys())
-            first25 += lowerSystemKeys[:min(MAX_CHOICES, len(lowerSystemKeys) - 1)]
-        if current == "":
-            bestChoices = first25
+def _aliasableVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Dict[str, TAliasable], objectTypeName: str) -> TCommandCallback:
+    """Construct a command callback wrapper to verify that the value of a given parameter matches the name of an aliasable in `possibleChoices`.
+
+    The use case for this function is for application to a Command that takes an Aliasable reference as a parameter.
+    Aliasable databases are typically too large for use as command *choices*, so instead we use *autocomplete*.
+    But autocomplete can be skipped, and any value submitted at all.
+
+    In the case where the user disregards autocomplete, this verifier can be used as a fallback, to look up the unknown string
+    as an alias for an item of `possibleChoices`. If a match is found, the parameter value is replaced with the appropriate name.
+    If no match can be found, an error is displayed containing `objectTypeName`, and the command is not executed.
+
+    :param func: The command callback. Must have a `string` parameter called `paramName`
+    :type func: TCommandCallback
+    :param paramName: The name of the parameter to verify
+    :type paramName: str
+    :param possibleChoices: The dictionary of possible choices
+    :type possibleChoices: Dict[str, TAliasable]
+    :param objectTypeName: A user-friendly name for the types of objects in `possibleChoices`, for use in error messages
+    :type objectTypeName: str
+    :return: `func`, but wrapped in a verifier for parameter `paramName`
+    :rtype: TCommandCallback
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
         else:
-            firstLower = current[0].lower()
-            matchStartChoices = [i for i in lowerSystemKeys if i[0] == firstLower]
-            if matchStartChoices:
-                possibleChoices = matchStartChoices
-            else: possibleChoices = lowerSystemKeys
-            if len(possibleChoices) <= MAX_CHOICES:
-                bestChoices = possibleChoices
-            else:
-                bestChoices = heapq.nsmallest(min(MAX_CHOICES, len(possibleChoices)), possibleChoices, lambda x: x.mostSimilarAlias(current)[0])
-        return [app_commands.Choice(name=lowerSystems[i].name, value=lowerSystems[i].name) for i in bestChoices]
+            interaction = args[1]
+        
+        matchedCandidate = None
+        candidate: str = kwargs[paramName]
+
+        if candidate in possibleChoices:
+            matchedCandidate =  candidate
+        elif candidate.lower() in possibleChoices:
+            matchedCandidate =  candidate.lower()
+        elif candidate.title() in possibleChoices:
+            matchedCandidate =  candidate.title()
+        else:
+            matchedCandidate = aliasableLookup(possibleChoices, candidate)
+
+        if matchedCandidate is None:
+            await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
+            return
+        
+        kwargs[paramName] = matchedCandidate
+        return await func(*args, **kwargs)
+    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
+    # functions with reflection though
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+#endregion
+#region string utils
+
+def _stringAutoComplete(getPossibleChoices: Callable[[], Sequence[str]]):
+    """Construct an autocomplete callback that finds the `MAX_CHOICES` most similar matches to the input string from a list of candidate strings.
+
+    :param getPossibleChoices: A callback to get the list of candidate strings
+    :type getPossibleChoices: Callable[[], Sequence[str]]
+    """
+    async def inner(interaction: Interaction, current: str):
+        possibleChoices = getPossibleChoices()
+        if current == "":
+            bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
+        elif len(possibleChoices) <= MAX_CHOICES:
+            bestChoices = possibleChoices
+        else:
+            bestChoices = heapq.nsmallest(MAX_CHOICES, possibleChoices, lambda x: stringDifference(x, current))
+        return [app_commands.Choice(name=i, value=i) for i in bestChoices]
     return inner
-"""
+
+
+def _stringVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Sequence[str], objectTypeName: str) -> TCommandCallback:
+    """Construct a command callback wrapper to verify that the value of a given parameter matches a value in `possibleChoices`.
+
+    The use case for this function is for application to a Command that takes a string as a parameter, from a predetermined
+    but list of accepted values that is too large for use as command *choices*, so instead we use *autocomplete*.
+    But autocomplete can be skipped, and any value submitted at all.
+
+    In the case where the user disregards autocomplete, this verifier can be used as a fallback, to look up the given value
+    in `possibleChoices`. If a match is found, ignoring case, the parameter value is replaced with the appropriate value, with the expected case.
+    If no match can be found, an error is displayed containing `objectTypeName`, and the command is not executed.
+
+    :param func: The command callback. Must have a `string` parameter called `paramName`
+    :type func: TCommandCallback
+    :param paramName: The name of the parameter to verify
+    :type paramName: str
+    :param possibleChoices: The possible choices
+    :type possibleChoices: Sequence[str]
+    :param objectTypeName: A user-friendly name for the types of objects in `possibleChoices`, for use in error messages
+    :type objectTypeName: str
+    :return: `func`, but wrapped in a verifier for parameter `paramName`
+    :rtype: TCommandCallback
+    """
+    lowerChoices = {i.lower(): i for i in possibleChoices}
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
+        else:
+            interaction = args[1]
+        
+        candidate: str = kwargs[paramName].lower()
+        if candidate in lowerChoices:
+            kwargs[paramName] = lowerChoices[candidate]
+            return await func(*args, **kwargs)
+
+        await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
+        return
+        
+    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
+    # functions with reflection though
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+
+def _roughDictStringVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Dict[str, Any], objectTypeName: str) -> TCommandCallback:
+    """`_stringVerifyWrapper`, but using a dictionary instead.
+    This function was made just for ship skins, since they have a dict in bbData, but are not aliasable.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
+        else:
+            interaction = args[1]
+        
+        matchedCandidate = None
+        candidate: str = kwargs[paramName]
+
+        if candidate in possibleChoices:
+            matchedCandidate = candidate
+        elif candidate.lower() in possibleChoices:
+            matchedCandidate = candidate.lower()
+        elif candidate.title() in possibleChoices:
+            matchedCandidate = candidate.title()
+
+        if matchedCandidate is None:
+            await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
+            return
+
+        kwargs[paramName] = matchedCandidate
+        return await func(*args, **kwargs)
+        
+    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
+    # functions with reflection though
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+#endregion
 
 #region division
-
-DIVISION_CHOICES = cfg.bountyDivisionNames
-
-DIVISION_CHOICES_WITH_ALL = DIVISION_CHOICES + ["all"]
-
 
 def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = True):
     """A decorator to add autocomplete for a single-value bounty division parameter, by name.
@@ -92,12 +232,53 @@ def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = 
     :param allowAllDivisions: Whether or not "all" is allowed
     :type allowAllDivisions: bool
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         if allowAllDivisions:
-            func.autocomplete(paramName)(_stringAutoComplete(lambda: DIVISION_CHOICES))
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: cfg.bountyDivisionNames))
         else:
-            func.autocomplete(paramName)(_stringAutoComplete(lambda: DIVISION_CHOICES_WITH_ALL))
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: cfg.bountyDivisionNames + ["all"]))
         return func
+    return decorator
+
+
+def divisionVerify(paramName: str = "division", allowAllDivisions: bool = True):
+    """Verify the given division. If it is invalid due to casing, call `func` with the correct casing.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the division parameter
+    :param str allowAllDivisions: Whether or not to allow `all` as a division value
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            if isinstance(args[0], Interaction):
+                interaction = args[0]
+            else:
+                interaction = args[1]
+            
+            division = kwargs[paramName].lower()
+            if division not in cfg.bountyDivisionNames:
+                if not allowAllDivisions and division == "all":
+                    await interaction.response.send_message(f":x: This command can only target a single division!", ephemeral=True)
+                    return
+                elif division != "all":
+                    if len(cfg.bountyDivisionNames) > 1:
+                        if allowAllDivisions:
+                            divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames) + f" or `all`"
+                        else:
+                            divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames[:-1]) + f" or `{cfg.bountyDivisionNames[-1]}`"
+                    else:
+                        if allowAllDivisions:
+                            divNames = f"`{cfg.bountyDivisionNames[0]}` or `all`" if cfg.bountyDivisionNames else f"`<no divisions>`"
+                        else:
+                            divNames = f"`{cfg.bountyDivisionNames[0]}`" if cfg.bountyDivisionNames else f"`<no divisions>`"
+                    await interaction.response.send_message(f":x: Unknown division: {division}. Please choose from: {divNames}.", ephemeral=True)
+                    return
+            
+            kwargs[paramName] = division
+            return await func(*args, **kwargs) # type: ignore[reportGeneralTypeIssues]
+
+        return wrapper # type: ignore[reportGeneralTypeIssues]
     return decorator
 
 #endregion division
@@ -109,9 +290,21 @@ def systemAutoComplete(paramName: str = "system"):
     :param paramName: The name of the solar system name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInSystemObjs.values())))
         return func
+    return decorator
+
+
+def systemVerify(paramName: str = "system"):
+    """Verify the given system, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the system in bbData.builtInSystemObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the system parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInSystemObjs, "system")
     return decorator
 
 #endregion system
@@ -123,50 +316,95 @@ def criminalAutoComplete(paramName: str = "name"):
     :param paramName: The name of the criminal name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInCriminalObjs.values())))
         return func
     return decorator
 
 
-async def _activeCriminalAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice]:
-    if not isinstance(interaction.client, client.BasedClient):
-        raise TypeError(f"{activeCriminalAutoComplete.__name__} can only be applied to commands which are handled by a {client.BasedClient.__name__}")
+def criminalVerify(paramName: str = "name"):
+    """Verify the given criminal, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the criminal in bbData.builtInCriminalObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
 
-    if not interaction.guild: return []
-    if not interaction.client.guildsDB.idExists(interaction.guild.id): return []
+    :param str paramName: The name of the criminal parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInCriminalObjs, "criminal")
+    return decorator
 
-    guild = interaction.client.guildsDB.getGuild(interaction.guild.id)
-    if guild.bountiesDisabled: return []
 
-    # casting here due to the bountiesDisabled check above
-    bountiesDB = cast("bountyDB.BountyDB", guild.bountiesDB)
-    
-    criminals = set()
-    choices = []
-    
-    for div in bountiesDB.divisions.values():
-        for bounty in div.allBounties():
-            if bounty.criminal in criminals: continue
-            criminals.add(bounty.criminal)
+def _make_activeCriminalAutoComplete(useActive: bool, useEscaped: bool, userDivisionOnly: bool):
+    """Construct an autocomplete callback for the active criminals in the calling guild.
 
-            if bounty.criminal.isPlayer:
-                userId = int(bounty.criminal.name.lstrip("<@!").rstrip(">"))
-                dcUser = interaction.client.get_user(userId) or await interaction.client.tryFetchUser(userId)
-                bountyName = f"<Player {userId}>" if dcUser is None else str(dcUser)
+    :param bool useActive: Show criminals that are active.
+    :param bool useEscaped: Show criminals that are escaped.
+    :param bool userDivisionOnly: Only show criminals in the calling user's division.
+    """
+    if not useActive and not useEscaped:
+        raise ValueError("At least one of useActive or useEscaped must be True")
 
+    async def _activeCriminalAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice]:
+        if not isinstance(interaction.client, client.BasedClient):
+            raise TypeError(f"{activeCriminalAutoComplete.__name__} can only be applied to commands which are handled by a {client.BasedClient.__name__}")
+
+        if not interaction.guild: return []
+        if not interaction.client.guildsDB.idExists(interaction.guild.id): return []
+
+        guild = interaction.client.guildsDB.getGuild(interaction.guild.id)
+        if guild.bountiesDisabled: return []
+
+        # casting here due to the bountiesDisabled check above
+        bountiesDB = cast("bountyDB.BountyDB", guild.bountiesDB)
+        
+        criminals = set()
+        choices = []
+
+        async def checkBounties(bounties: List[bounty.Bounty]):
+            for bounty in bounties:
+                if bounty.criminal in criminals: continue
+                criminals.add(bounty.criminal)
+
+                if bounty.criminal.isPlayer:
+                    userId = int(bounty.criminal.name.lstrip("<@!").rstrip(">"))
+                    dcUser = interaction.client.get_user(userId) or await cast(client.BasedClient, interaction.client).tryFetchUser(userId)
+                    bountyName = f"<Player {userId}>" if dcUser is None else str(dcUser)
+
+                else:
+                    bountyName = bounty.criminal.name
+                
+                if current in bountyName:
+                    choices.append(app_commands.Choice(name=bountyName, value=bountyName))
+                    if len(choices) == MAX_CHOICES:
+                        break
+
+        async def checkDivision(div: bountyDivision.BountyDivision):
+            if useActive:
+                await checkBounties(div.allActiveBounties())
+            if useEscaped:
+                await checkBounties(div.allEscapedBounties())
+        
+        if userDivisionOnly:
+            if interaction.client.usersDB.idExists(interaction.user.id):
+                bUser = interaction.client.usersDB.getUser(interaction.user.id)
+                userLevel = cfg.minTechLevel if bUser.classicModeEnabled else gameMaths.calculateUserBountyHuntingLevel(cast(int, bUser.bountyHuntingXP))
             else:
-                bountyName = bounty.criminal.name
-            
-            if current in bountyName:
-                choices.append(app_commands.Choice(name=bountyName, value=bountyName))
-                if len(choices) == MAX_CHOICES:
-                    break
+                userLevel = cfg.minTechLevel
 
-    return choices
+            div = bountiesDB.divisionForLevel(userLevel)
+            await checkDivision(div)
+        else:
+            scheduler = lib.discordUtil.BasicScheduler()
+            for div in bountiesDB.divisions.values():
+                scheduler.add(checkDivision(div))
+            await scheduler.wait()
+            scheduler.raiseExceptions()
+
+        return choices
+    return _activeCriminalAutoComplete
     
 
-def activeCriminalAutoComplete(paramName: str = "name"):
+def activeCriminalAutoComplete(paramName: str = "name", active: bool = True, escaped: bool = False, userDivisionOnly: bool = False):
     """A decorator to add autocomplete for a single-value criminal parameter, by name.
     This decorator is different to `criminalAutoComplete` because it inspects the active criminals in the guild.
     This is useful for limiting the potential options, but also for allowing selection of players and non-builtIn criminals.
@@ -174,34 +412,17 @@ def activeCriminalAutoComplete(paramName: str = "name"):
     
     :param paramName: The name of the criminal name parameter
     :type paramName: str
+    :param bool active: Show criminals that are active.
+    :param bool escaped: Show criminals that are escaped.
+    :param bool userDivisionOnly: Only show criminals in the calling user's division.
     """
-    def decorator(func: app_commands.Command):
-        func.autocomplete(paramName)(_activeCriminalAutoComplete)
+    def decorator(func: TCommand) -> TCommand:
+        func.autocomplete(paramName)(_make_activeCriminalAutoComplete(active, escaped, userDivisionOnly))
         return func
     return decorator
 
 #endregion criminal
 #region faction
-
-async def _factionAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for faction in bbData.factions:
-        if current in faction:
-            choices.append(app_commands.Choice(name=faction, value=faction))
-            if len(choices) == MAX_CHOICES:
-                break
-    return choices
-
-
-async def _factionAutoCompleteBountyFactionsOnly(interaction: Interaction, current: str):
-    choices = []
-    for faction in bbData.bountyFactions:
-        if current in faction:
-            choices.append(app_commands.Choice(name=faction, value=faction))
-            if len(choices) == MAX_CHOICES:
-                break
-    return choices
-
 
 def factionAutoComplete(paramName: str = "faction", bountyFactionsOnly: bool = True):
     """A decorator to add autocomplete for a single-value faction parameter, by name.
@@ -209,36 +430,37 @@ def factionAutoComplete(paramName: str = "faction", bountyFactionsOnly: bool = T
     :param paramName: The name of the faction name parameter
     :type paramName: str
     :param bountyFactionsOnly: Whether to use bbData.bountyFactions instead of bbData.factions
-    :type allowAllDivisions: bool
+    :type bountyFactionsOnly: bool
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         if bountyFactionsOnly:
-            func.autocomplete(paramName)(_factionAutoCompleteBountyFactionsOnly)
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: bbData.bountyFactions))
         else:
-            func.autocomplete(paramName)(_factionAutoComplete)
+            func.autocomplete(paramName)(_stringAutoComplete(lambda: bbData.factions))
         return func
+    return decorator
+
+
+def factionVerify(paramName: str = "faction", bountyFactionsOnly: bool = True):
+    """Verify the given faction. If incorrect casing is given, call `func` with the correct casing.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the faction parameter
+    :param bountyFactionsOnly bountyFactionsOnly: Whether to use bbData.bountyFactions instead of bbData.factions
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _stringVerifyWrapper(func, paramName, bbData.bountyFactions if bountyFactionsOnly else bbData.factions, "faction")
     return decorator
 
 #endregion faction
 #region item-ship
 
-ITEM_CHOICES_SHIP: Iterable[app_commands.Choice[str]] = sorted(set(
-    [
-        app_commands.Choice(name=shipName, value=shipName)
-        for shipName in bbData.builtInShipData
-    ]),
-    key=lambda c: c.name)
-
-# async def _shipAutoComplete(interaction: Interaction, current: str):
-#     choices = []
-#     for d in ITEM_CHOICES_SHIP:
-#         if current in d.name:
-#             choices.append(d)
-#             if len(choices) == MAX_CHOICES:
-#                 break
-#     return choices
-
 async def _shipAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+    """An autocomplete callback for choosing a builtIn ship.
+    TODO: This callback could do with refactoring, to use the logic in _stringAutocomplete or _aliasableAutocomplete,
+    Perhaps by passing an autocomplete callback constructor a callback to get an item's aliases?
+
+    """
     possibleChoices = list(bbData.builtInShipData.values())
     if current == "":
         bestChoices = possibleChoices[:min(MAX_CHOICES, len(possibleChoices) - 1)]
@@ -257,30 +479,55 @@ def shipAutoComplete(paramName: str = "ship"):
     :param paramName: The name of the ship name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_shipAutoComplete)
         return func
     return decorator
 
+
+def _shipVerifyWrapper(func: Callable[Concatenate[TCommandGroup, 'Interaction', TParams], Coroutine[Any, Any, TReturn]], paramName: str) -> Callable[Concatenate[TCommandGroup, 'Interaction', TParams], Coroutine[Any, Any, TReturn]]:
+    """Construct a command callback wrapper to verify that the value of a given parameter matches the name of a ship.
+    # TODO: This is a copy of _aliasableVerifyWrapper.
+    """
+    async def wrapper(*args: TParams.args, **kwargs: TParams.kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
+        else:
+            interaction = args[1]
+        
+        candidate: str = kwargs[paramName].lower()
+        if candidate in bbData.builtInShipData:
+            return candidate
+        if candidate.title() in bbData.builtInShipData:
+            return candidate.title()
+
+        matchedCandidate = None
+        for shipKey, ship in bbData.builtInShipData.items():
+            if candidate in ship.get("aliases", []):
+                matchedCandidate = shipKey
+
+        if matchedCandidate is None:
+            await interaction.response.send_message(f":x: Unknown ship: {candidate}", ephemeral=True)
+            return
+        
+        kwargs[paramName] = matchedCandidate
+        return await func(*args, **kwargs)
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+
+def shipVerify(paramName: str = "name"):
+    """Verify the given ship, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the ship in bbData.builtInShipData.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the ship parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _shipVerifyWrapper(func, paramName)
+    return decorator
+
 #endregion item-ship
 #region item-ship-skin
-
-ITEM_CHOICES_SHIP_SKIN: Iterable[app_commands.Choice[str]] = sorted(set(
-    [
-        app_commands.Choice(name=skinName, value=skinName)
-        for skinName in bbData.builtInShipSkins
-    ]),
-    key=lambda c: c.name)
-
-async def _shipSkinAutoComplete(interaction: Interaction, current: str):
-    choices = []
-    for d in ITEM_CHOICES_SHIP_SKIN:
-        if current in d.name:
-            choices.append(d)
-            if len(choices) == MAX_CHOICES:
-                break
-    return choices
-
 
 def shipSkinAutoComplete(paramName: str = "skin"):
     """A decorator to add autocomplete for a single-value ship skin parameter, by name.
@@ -288,10 +535,22 @@ def shipSkinAutoComplete(paramName: str = "skin"):
     :param paramName: The name of the ship skin name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_stringAutoComplete(lambda: list(bbData.builtInShipSkins.keys())))
         # func.autocomplete(paramName)(_shipSkinAutoComplete)
         return func
+    return decorator
+
+
+def shipSkinVerify(paramName: str = "name"):
+    """Verify the given ship skin. If incorrect casing is given, call `func` with the
+    correct key for the skin in bbData.builtInShipSkins.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the ship skin parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _roughDictStringVerifyWrapper(func, paramName, bbData.builtInShipSkins, "ship skin")
     return decorator
 
 #endregion item-ship-skin
@@ -303,9 +562,21 @@ def moduleAutoComplete(paramName: str = "module"):
     :param paramName: The name of the module name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInModuleObjs.values())))
         return func
+    return decorator
+
+
+def moduleVerify(paramName: str = "name"):
+    """Verify the given module, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the module in bbData.builtInModuleObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the module parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInModuleObjs, "module")
     return decorator
 
 #endregion item-module
@@ -317,9 +588,21 @@ def weaponAutoComplete(paramName: str = "weapon"):
     :param paramName: The name of the weapon name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInWeaponObjs.values())))
         return func
+    return decorator
+
+
+def weaponVerify(paramName: str = "name"):
+    """Verify the given weapon, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the weapon in bbData.builtInWeaponObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the weapon parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInWeaponObjs, "weapon")
     return decorator
 
 #endregion item-weapon
@@ -331,9 +614,21 @@ def turretAutoComplete(paramName: str = "turret"):
     :param paramName: The name of the turret name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInTurretObjs.values())))
         return func
+    return decorator
+
+
+def turretVerify(paramName: str = "name"):
+    """Verify the given turret, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the turret in bbData.builtInTurretObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the turret parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInTurretObjs, "turret")
     return decorator
 
 #endregion item-turret
@@ -345,9 +640,21 @@ def toolAutoComplete(paramName: str = "tool"):
     :param paramName: The name of the tool name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_aliasableAutoComplete(lambda: list(bbData.builtInToolObjs.values())))
         return func
+    return decorator
+
+
+def toolVerify(paramName: str = "name"):
+    """Verify the given tool, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
+    correct key for the tool in bbData.builtInToolObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the tool parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _aliasableVerifyWrapper(func, paramName, bbData.builtInToolObjs, "tool")
     return decorator
 
 #endregion item-tool
@@ -359,9 +666,21 @@ def medalAutoComplete(paramName: str = "medal"):
     :param paramName: The name of the medal name parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         func.autocomplete(paramName)(_stringAutoComplete(lambda: list(bbData.medalObjs.keys())))
         return func
+    return decorator
+
+
+def medalVerify(paramName: str = "name"):
+    """Verify the given medal. If incorrect casing is given, call `func` with the
+    correct key for the skin in bbData.medalObjs.
+    If it cannot be valid, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the medal parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _roughDictStringVerifyWrapper(func, paramName, bbData.medalObjs, "medal")
     return decorator
 
 #endregion item-medal
@@ -407,11 +726,45 @@ def inventoryItemNumberAutoComplete(paramName: str, itemCategory: bbData.ItemCat
     :param itemCategory: The inventory to select items from
     :type itemCategory: ItemCategory
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         autocomplete = _make_inventoryCategoryItemNumberAutoComplete(itemCategory, True)
         # TODO: Apparently my autocomplete is of the wrong type?
         func.autocomplete(paramName)(autocomplete)
         return func
+    return decorator
+
+
+def _inventoryItemNumberVerify(func: TCommandCallback, paramName: str) -> TCommandCallback:
+    """`Verify that the given item number is a number, and display an error if it is not.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
+        else:
+            interaction = args[1]
+        
+        candidate: str = kwargs[paramName]
+
+        if not lib.stringTyping.isInt(candidate):
+            await interaction.response.send_message(":x: Unknown item, please select an item from the list, or given an item number.", ephemeral=True)
+            return
+
+        return await func(*args, **kwargs)
+        
+    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
+    # functions with reflection though
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+
+def inventoryItemNumberVerify(paramName: str = "name"):
+    """Verify the given inventory item number.
+    If it is not a number, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the item parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _inventoryItemNumberVerify(func, paramName)
     return decorator
 
 
@@ -427,6 +780,9 @@ ID_ITEM_TYPES = {v: k for k, v in ITEM_TYPE_IDS.items()}
 
 def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCategory, int]:
     return ID_ITEM_TYPES[v[0]], int(v[1:])
+
+def anyUserHangerItemAutoComplete_verify(v: str) -> bool:
+    return v[0] in ID_ITEM_TYPES and lib.stringTyping.isInt(v[1:])
 
 def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
     async def _anyUserHangerItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
@@ -466,10 +822,44 @@ def anyUserHangerItemAutoComplete(paramName: str = "item"):
     :param paramName: The name of the item number parameter
     :type paramName: str
     """
-    def decorator(func: app_commands.Command):
+    def decorator(func: TCommand) -> TCommand:
         autocomplete = _make_anyUserHangerItemAutoComplete(True)
         func.autocomplete(paramName)(autocomplete)
         return func
+    return decorator
+
+
+def _anyUserHangerItemVerify(func: TCommandCallback, paramName: str) -> TCommandCallback:
+    """`Verify that the given value is an item reference, and display an error if it is not.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        if isinstance(args[0], Interaction):
+            interaction = args[0]
+        else:
+            interaction = args[1]
+        
+        candidate: str = kwargs[paramName]
+
+        if not anyUserHangerItemAutoComplete_verify(candidate):
+            await interaction.response.send_message(":x: Unknown item, please select an item from the list.", ephemeral=True)
+            return
+
+        return await func(*args, **kwargs)
+        
+    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
+    # functions with reflection though
+    return wrapper # type: ignore[reportGeneralTypeIssues]
+
+
+def anyUserHangerItemVerify(paramName: str = "name"):
+    """Verify the given item reference.
+    If it is not an item reference, display an error to the user, and do not call `func`.
+
+    :param str paramName: The name of the item parameter
+    """
+    def decorator(func: TCommandCallback) -> TCommandCallback:
+        return _anyUserHangerItemVerify(func, paramName)
     return decorator
 
 #endregion inventory

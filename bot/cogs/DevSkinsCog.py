@@ -8,7 +8,8 @@ from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import shipAutoComplete, shipSkinAutoComplete
+from .util.CommonAutocomplete import shipAutoComplete, shipVerify, \
+                                    shipSkinAutoComplete, shipSkinVerify
 from ..shipRenderer import shipRenderer
 
 PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
@@ -20,6 +21,8 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="add-skin",
                             description="Make the specified ship compatible with the specified skin")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipVerify()
+    @shipSkinVerify()
     async def dev_cmd_addSkin(self, interaction: Interaction, ship: str, skin: str):
         """Make the specified ship compatible with the specified skin.
         """
@@ -40,6 +43,8 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="del-skin",
                             description="Remove the specified ship's compatibility with the specified skin")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipVerify()
+    @shipSkinVerify()
     async def dev_cmd_delSkin(self, interaction: Interaction, ship: str, skin: str):
         """Remove the specified ship's compatibility with the specified skin.
         """
@@ -59,6 +64,7 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="apply-skin",
                             description="Apply the specified ship skin to the equipped ship")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipSkinVerify()
     async def dev_cmd_applySkin(self, interaction: Interaction, skin: str):
         """Remove the specified ship's compatibility with the specified skin.
         """
@@ -106,6 +112,7 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="add-skin-to-all-ships",
                             description="Make all builtIn ships in the game compatible with the specified skin")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipSkinVerify()
     async def dev_cmd_add_skin_to_all_ships(self, interaction: Interaction, skin: str):
         """Make all builtIn ships in the game compatible with the specified skin.
         """
@@ -132,6 +139,7 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="del-skin-from-all-ships",
                             description="Make all builtIn ships in the game incompatible with the specified skin")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipSkinVerify()
     async def dev_cmd_del_skin_from_all_ships(self, interaction: Interaction, skin: str):
         """Make all builtIn ships in the game incompatible with the specified skin.
         """
@@ -150,6 +158,8 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="show-incompatible-skin",
                             description="Render any ship with any skin, ignoring compatibility")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipVerify()
+    @shipSkinVerify()
     async def dev_cmd_show_incompatible_skin(self, interaction: Interaction, ship: str, skin: str):
         """Render any ship with any skin, ignoring compatibility
         """
@@ -180,6 +190,7 @@ class DevSkinsCog(BasedCog):
     @app_commands.command(name="try-all-skins",
                             description="Render all skins onto the specified ship")
     @app_commands.guilds(*cfg.developmentGuilds)
+    @shipVerify()
     async def dev_cmd_try_all_skins(self, interaction: Interaction, ship: str):
         """Render all skins onto the specified ship
         """

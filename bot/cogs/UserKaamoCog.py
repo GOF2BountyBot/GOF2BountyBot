@@ -9,7 +9,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import anyUserHangerItemAutoComplete, anyUserHangerItemAutoComplete_decodeValue
+from .util.CommonAutocomplete import anyUserHangerItemAutoComplete, anyUserHangerItemVerify, anyUserHangerItemAutoComplete_decodeValue
 from .util.transformers import BoolYesNo
 from ..gameObjects.kaamoShop import KaamoShop
 from ..gameObjects.items.ships.shipItem import Ship
@@ -88,6 +88,7 @@ class UserKaamoCog(BasedCog):
     @app_commands.command(name="kaamo-store",
                             description="Store an item in the Kaamo Club. This command can only be used by " \
                                     + f"level {cfg.maxTechLevel} bounty hunters.")
+    @anyUserHangerItemVerify()
     async def cmd_kaamo_store(self, interaction: Interaction, item: str, unequip_items: BoolYesNo = BoolYesNo.No):
         """Transfer the item of the given item type, at the given index, from the user's inactive items, to their kaamo club shop.
         """

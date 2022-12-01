@@ -12,7 +12,15 @@ from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import criminalAutoComplete, shipAutoComplete, shipSkinAutoComplete, systemAutoComplete, weaponAutoComplete, moduleAutoComplete, turretAutoComplete, toolAutoComplete, medalAutoComplete
+from .util.CommonAutocomplete import criminalAutoComplete, criminalVerify, \
+                                    shipAutoComplete, shipVerify, \
+                                    shipSkinAutoComplete, shipSkinVerify, \
+                                    systemAutoComplete, systemVerify, \
+                                    weaponAutoComplete, weaponVerify, \
+                                    moduleAutoComplete, moduleVerify, \
+                                    turretAutoComplete, turretVerify, \
+                                    toolAutoComplete, toolVerify, \
+                                    medalAutoComplete, medalVerify
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
 from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
 from ..baseClasses.embedFillable import EmbedFillableMixin
@@ -93,6 +101,8 @@ class UserGof2InfoCog(BasedCog):
                                             + "gates. To find out if a system has a jump gate, use `info`.")
     @app_commands.command(name="make-route",
                             description="Find the shortest route between two systems.")
+    @systemVerify("start")
+    @systemVerify("end")
     async def cmd_make_route(self, interaction: Interaction, start: str, end: str):
         """display the shortest route between two systems
         """
@@ -138,6 +148,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-system",
                             description="Look up information about a system in the galaxy.")
+    @systemVerify()
     async def cmd_info_system(self, interaction: Interaction, system: str):
         """return statistics about a specified system
         """
@@ -148,6 +159,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-criminal",
                             description="Look up information about a criminal.")
+    @criminalVerify()
     async def cmd_info_criminal(self, interaction: Interaction, name: str):
         """return statistics about a specified criminal
         """
@@ -158,6 +170,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-ship",
                             description="Look up information about a ship.")
+    @shipVerify()
     async def cmd_info_ship(self, interaction: Interaction, ship: str):
         """return statistics about a specified ship
         """
@@ -168,6 +181,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-weapon",
                             description="Look up information about a weapon.")
+    @weaponVerify()
     async def cmd_info_weapon(self, interaction: Interaction, weapon: str):
         """return statistics about a specified weapon
         """
@@ -178,6 +192,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-module",
                             description="Look up information about a module.")
+    @moduleVerify()
     async def cmd_info_module(self, interaction: Interaction, module: str):
         """return statistics about a specified module
         """
@@ -188,6 +203,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-turret",
                             description="Look up information about a turret.")
+    @turretVerify()
     async def cmd_info_turret(self, interaction: Interaction, turret: str):
         """return statistics about a specified turret
         """
@@ -198,6 +214,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-skin",
                             description="Look up information about a skin.")
+    @shipSkinVerify()
     async def cmd_info_skin(self, interaction: Interaction, skin: str):
         """return statistics about a specified skin
         """
@@ -208,6 +225,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-medal",
                             description="Look up information about a medal.")
+    @medalVerify()
     async def cmd_info_medal(self, interaction: Interaction, medal: str):
         """return statistics about a specified medal
         """
@@ -218,6 +236,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-tool",
                             description="Look up information about a tool.")
+    @toolVerify()
     async def cmd_info_tool(self, interaction: Interaction, tool: str):
         """return statistics about a specified tool
         """
@@ -230,6 +249,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-criminal",
                             description="Look up the image for a criminal.")
+    @criminalVerify()
     async def cmd_showme_criminal(self, interaction: Interaction, name: str):
         """Get the icon for the specified criminal
         """
@@ -245,6 +265,8 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-ship",
                             description="Look up the image for a ship.")
+    @shipVerify()
+    @shipSkinVerify()
     async def cmd_showme_ship(self, interaction: Interaction, ship: str, skin: Optional[str] = None):
         """Get the icon for the specified ship
         """
@@ -278,6 +300,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-weapon",
                             description="Look up the image for a weapon.")
+    @weaponVerify()
     async def cmd_showme_weapon(self, interaction: Interaction, weapon: str):
         """Get the icon for the specified weapon
         """
@@ -295,6 +318,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-module",
                             description="Look up the image for a module.")
+    @moduleVerify()
     async def cmd_showme_module(self, interaction: Interaction, module: str):
         """Get the icon for the specified module
         """
@@ -312,6 +336,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-turret",
                             description="Look up the image for a turret.")
+    @turretVerify()
     async def cmd_showme_turret(self, interaction: Interaction, turret: str):
         """Get the icon for the specified turret
         """
@@ -329,6 +354,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-tool",
                             description="Look up the image for a tool.")
+    @toolVerify()
     async def cmd_showme_tool(self, interaction: Interaction, tool: str):
         """Get the icon for the specified tool
         """

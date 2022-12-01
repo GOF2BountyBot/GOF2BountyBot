@@ -1,6 +1,6 @@
-from typing import List, cast
+from typing import cast
 from discord import Forbidden, HTTPException, TextChannel, app_commands, Interaction, Guild
-from discord.abc import GuildChannel, Snowflake
+from discord.abc import GuildChannel
 
 from .. import client, lib
 from ..cfg import cfg
@@ -27,7 +27,7 @@ class AdminChannelsCog(basedApp.BasedCog):
             await interaction.response.send_message(f":ballot_box_with_check: {friendlyName} channel removed!", ephemeral=True)
         else:
             await interaction.response.send_message(f":x: This server has no {friendlyName} channel set!", ephemeral=True)
-
+            
 
     @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin, helpSection="channels")
