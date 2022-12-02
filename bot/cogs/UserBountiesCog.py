@@ -16,10 +16,10 @@ from ..interactions.basedComponent import StaticComponents
 from ..interactions.commandChecks import homeGuildOnly, guildOnly
 from ..users import basedUser
 from ..users.basedUser import BasedUser
-from .util.CommonAutocomplete import systemAutoComplete, systemVerify, \
-                                    divisionAutoComplete, divisionVerify, \
-                                    activeCriminalAutoComplete, criminalVerify, \
-                                    inventoryItemNumberAutoComplete, inventoryItemNumberVerify
+from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
+                                    divisionAutoComplete, DivisionName, \
+                                    activeCriminalAutoComplete, CriminalKey, \
+                                    inventoryItemNumberAutoComplete, InventoryItemNumber
 from ..lib.timeUtil import td_format_noYM
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
@@ -244,8 +244,7 @@ class UserBountiesCog(BasedCog):
                                             + "\n🌎 This command must be used in your **home server**.")
     @app_commands.command(name="check",
                             description="🌎 Check if any criminals are in the given system, and fight them! (home server only)")
-    @systemVerify()
-    async def cmd_check(self, interaction: Interaction, system: str):
+    async def cmd_check(self, interaction: Interaction, system: SystemKey):
         """Check a system for bounties and handle rewards
         """
         requestedBBUser = self.bot.usersDB.getUser(interaction.user.id)
@@ -421,8 +420,7 @@ class UserBountiesCog(BasedCog):
                                             + "If a division is given, show all bountis in that division.\n")
     @app_commands.command(name="bounties",
                             description="List all active bounties in your division, or the one specified")
-    @divisionVerify(allowAllDivisions=False)
-    async def cmd_bounties(self, interaction: Interaction, division: Optional[str] = None):
+    async def cmd_bounties(self, interaction: Interaction, division: Optional[DivisionName] = None):
         """List a summary of all currently active bounties in one division.
         If no division is specified, the calling user's division is used.
         """
@@ -478,8 +476,7 @@ class UserBountiesCog(BasedCog):
     @activeCriminalAutoComplete(paramName="criminal")
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting")
     @app_commands.command(name="route", description="Get the named criminal's current route.")
-    @criminalVerify("criminal")
-    async def cmd_route(self, interaction: Interaction, criminal: str):
+    async def cmd_route(self, interaction: Interaction, criminal: CriminalKey):
         """Display the current route of the requested criminal
         """
         # Casting here because this command is decorated with guildOnly
@@ -497,8 +494,7 @@ class UserBountiesCog(BasedCog):
     @inventoryItemNumberAutoComplete("tool", ItemCategory.tool)
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting")
     @app_commands.command(name="use", description="Use a tool from your tools inventory.")
-    @inventoryItemNumberVerify("tool")
-    async def cmd_use(self, interaction: Interaction, tool: int):
+    async def cmd_use(self, interaction: Interaction, tool: InventoryItemNumber):
         """Use the specified tool from the user's inventory.
         """
         if self.bot.usersDB.idExists(interaction.user.id):

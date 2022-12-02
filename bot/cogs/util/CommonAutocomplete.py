@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence,
 from discord import Interaction
 from discord import app_commands
 from discord.app_commands.commands import CommandCallback, P as TParams, GroupT as TCommandGroup, T as TReturn
+from discord.app_commands import Transformer, Transform
 import heapq
 from functools import wraps
 
@@ -18,9 +19,7 @@ from ...gameObjects.inventories import inventoryListing
 if TYPE_CHECKING:
     from ...databases import bountyDB, bountyDivision
     from ...gameObjects.bounties import bounty
-from typing_extensions import Concatenate
-# else:
-#     Concatenate = Generic
+
 
 MAX_CHOICES = 25
 
@@ -73,56 +72,39 @@ def _aliasableAutoComplete(getPossibleChoices: Callable[[], Sequence[AliasableMi
     return inner
 
 
-def _aliasableVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Dict[str, TAliasable], objectTypeName: str) -> TCommandCallback:
-    """Construct a command callback wrapper to verify that the value of a given parameter matches the name of an aliasable in `possibleChoices`.
+async def _aliasableVerify(interaction: Interaction, value: str, possibleChoices: Dict[str, TAliasable], objectTypeName: str) -> str:
+    """Verify that the given value matches the name of an aliasable in `possibleChoices`.
 
     The use case for this function is for application to a Command that takes an Aliasable reference as a parameter.
     Aliasable databases are typically too large for use as command *choices*, so instead we use *autocomplete*.
     But autocomplete can be skipped, and any value submitted at all.
 
     In the case where the user disregards autocomplete, this verifier can be used as a fallback, to look up the unknown string
-    as an alias for an item of `possibleChoices`. If a match is found, the parameter value is replaced with the appropriate name.
-    If no match can be found, an error is displayed containing `objectTypeName`, and the command is not executed.
+    as an alias for an item of `possibleChoices`. If a match is found, the correct name is reurned.
+    If no match can be found, an error is displayed containing `objectTypeName`, and a `ValueError` is thrown.
 
-    :param func: The command callback. Must have a `string` parameter called `paramName`
-    :type func: TCommandCallback
-    :param paramName: The name of the parameter to verify
-    :type paramName: str
+    :param Intraction interaction: The interaction that triggered this verification, used to send errors
+    :param str value: The value that the user submitted
     :param possibleChoices: The dictionary of possible choices
     :type possibleChoices: Dict[str, TAliasable]
-    :param objectTypeName: A user-friendly name for the types of objects in `possibleChoices`, for use in error messages
-    :type objectTypeName: str
-    :return: `func`, but wrapped in a verifier for parameter `paramName`
-    :rtype: TCommandCallback
+    :param str objectTypeName: A user-friendly name for the types of objects in `possibleChoices`, for use in error messages
+    :return: `value` as it appears in `possibleChoices`, with respect to aliases, casing etc.
+    :rtype: str
     """
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        matchedCandidate = None
-        candidate: str = kwargs[paramName]
+    if value in possibleChoices:
+        return value
+    if value.lower() in possibleChoices:
+        return value.lower()
+    if value.title() in possibleChoices:
+        return value.title()
+    
+    matchedCandidate = aliasableLookup(possibleChoices, value)
 
-        if candidate in possibleChoices:
-            matchedCandidate =  candidate
-        elif candidate.lower() in possibleChoices:
-            matchedCandidate =  candidate.lower()
-        elif candidate.title() in possibleChoices:
-            matchedCandidate =  candidate.title()
-        else:
-            matchedCandidate = aliasableLookup(possibleChoices, candidate)
-
-        if matchedCandidate is None:
-            await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
-            return
-        
-        kwargs[paramName] = matchedCandidate
-        return await func(*args, **kwargs)
-    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
-    # functions with reflection though
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+    if matchedCandidate is None:
+        await interaction.response.send_message(f":x: Unknown {objectTypeName}: {value}", ephemeral=True)
+        raise ValueError(f":x: Unknown {objectTypeName}: {value}")
+    
+    return matchedCandidate
 
 #endregion
 #region string utils
@@ -145,80 +127,49 @@ def _stringAutoComplete(getPossibleChoices: Callable[[], Sequence[str]]):
     return inner
 
 
-def _stringVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Sequence[str], objectTypeName: str) -> TCommandCallback:
-    """Construct a command callback wrapper to verify that the value of a given parameter matches a value in `possibleChoices`.
+async def _stringVerify(interaction: Interaction, value: str, possibleChoices: Sequence[str], objectTypeName: str) -> str:
+    """Verify that the given value matches a value in `possibleChoices`.
 
     The use case for this function is for application to a Command that takes a string as a parameter, from a predetermined
     but list of accepted values that is too large for use as command *choices*, so instead we use *autocomplete*.
     But autocomplete can be skipped, and any value submitted at all.
 
     In the case where the user disregards autocomplete, this verifier can be used as a fallback, to look up the given value
-    in `possibleChoices`. If a match is found, ignoring case, the parameter value is replaced with the appropriate value, with the expected case.
-    If no match can be found, an error is displayed containing `objectTypeName`, and the command is not executed.
+    in `possibleChoices`. If a match is found, ignoring case, the appropriate value is returned, with the expected casing.
+    If no match can be found, an error is displayed containing `objectTypeName`, and a `ValueError` is thrown.
 
-    :param func: The command callback. Must have a `string` parameter called `paramName`
-    :type func: TCommandCallback
-    :param paramName: The name of the parameter to verify
-    :type paramName: str
+    :param Intraction interaction: The interaction that triggered this verification, used to send errors
+    :param str value: The value that the user submitted
     :param possibleChoices: The possible choices
     :type possibleChoices: Sequence[str]
     :param objectTypeName: A user-friendly name for the types of objects in `possibleChoices`, for use in error messages
     :type objectTypeName: str
-    :return: `func`, but wrapped in a verifier for parameter `paramName`
+    :return: `value` as it appears in `possibleChoices`, with respect to casing
     :rtype: TCommandCallback
     """
     lowerChoices = {i.lower(): i for i in possibleChoices}
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        candidate: str = kwargs[paramName].lower()
-        if candidate in lowerChoices:
-            kwargs[paramName] = lowerChoices[candidate]
-            return await func(*args, **kwargs)
 
-        await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
-        return
-        
-    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
-    # functions with reflection though
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+    candidate = value.lower()
+    if candidate in lowerChoices:
+        return lowerChoices[candidate]
+
+    await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
+    raise ValueError(f":x: Unknown {objectTypeName}: {candidate}")
 
 
-def _roughDictStringVerifyWrapper(func: TCommandCallback, paramName: str, possibleChoices: Dict[str, Any], objectTypeName: str) -> TCommandCallback:
-    """`_stringVerifyWrapper`, but using a dictionary instead.
+async def _roughDictStringVerify(interaction: Interaction, value: str, possibleChoices: Dict[str, Any], objectTypeName: str) -> str:
+    """`_stringVerify`, but using a dictionary instead.
     This function was made just for ship skins, since they have a dict in bbData, but are not aliasable.
     """
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        matchedCandidate = None
-        candidate: str = kwargs[paramName]
+    if value in possibleChoices:
+        return value
+    if value.lower() in possibleChoices:
+        return value.lower()
+    if value.title() in possibleChoices:
+        return value.title()
 
-        if candidate in possibleChoices:
-            matchedCandidate = candidate
-        elif candidate.lower() in possibleChoices:
-            matchedCandidate = candidate.lower()
-        elif candidate.title() in possibleChoices:
-            matchedCandidate = candidate.title()
-
-        if matchedCandidate is None:
-            await interaction.response.send_message(f":x: Unknown {objectTypeName}: {candidate}", ephemeral=True)
-            return
-
-        kwargs[paramName] = matchedCandidate
-        return await func(*args, **kwargs)
-        
-    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
-    # functions with reflection though
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+    await interaction.response.send_message(f":x: Unknown {objectTypeName}: {value}", ephemeral=True)
+    raise ValueError(f":x: Unknown {objectTypeName}: {value}")
 
 #endregion
 
@@ -241,45 +192,39 @@ def divisionAutoComplete(paramName: str = "division", allowAllDivisions: bool = 
     return decorator
 
 
-def divisionVerify(paramName: str = "division", allowAllDivisions: bool = True):
-    """Verify the given division. If it is invalid due to casing, call `func` with the correct casing.
-    If it cannot be valid, display an error to the user, and do not call `func`.
-
-    :param str paramName: The name of the division parameter
-    :param str allowAllDivisions: Whether or not to allow `all` as a division value
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            if isinstance(args[0], Interaction):
-                interaction = args[0]
+class DivisionVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        division = value.lower()
+        if division not in cfg.bountyDivisionNames:
+            if division == "all":
+                await interaction.response.send_message(f":x: This command can only target a single division!", ephemeral=True)
+                raise ValueError("'all divisions' specified for command parameter that does not allow it")
+            if len(cfg.bountyDivisionNames) > 1:
+                divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames[:-1]) + f" or `{cfg.bountyDivisionNames[-1]}`"
             else:
-                interaction = args[1]
-            
-            division = kwargs[paramName].lower()
-            if division not in cfg.bountyDivisionNames:
-                if not allowAllDivisions and division == "all":
-                    await interaction.response.send_message(f":x: This command can only target a single division!", ephemeral=True)
-                    return
-                elif division != "all":
-                    if len(cfg.bountyDivisionNames) > 1:
-                        if allowAllDivisions:
-                            divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames) + f" or `all`"
-                        else:
-                            divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames[:-1]) + f" or `{cfg.bountyDivisionNames[-1]}`"
-                    else:
-                        if allowAllDivisions:
-                            divNames = f"`{cfg.bountyDivisionNames[0]}` or `all`" if cfg.bountyDivisionNames else f"`<no divisions>`"
-                        else:
-                            divNames = f"`{cfg.bountyDivisionNames[0]}`" if cfg.bountyDivisionNames else f"`<no divisions>`"
-                    await interaction.response.send_message(f":x: Unknown division: {division}. Please choose from: {divNames}.", ephemeral=True)
-                    return
-            
-            kwargs[paramName] = division
-            return await func(*args, **kwargs) # type: ignore[reportGeneralTypeIssues]
+                divNames = f"`{cfg.bountyDivisionNames[0]}`" if cfg.bountyDivisionNames else f"`<no divisions>`"
+            await interaction.response.send_message(f":x: Unknown division: {division}. Please choose from: {divNames}.", ephemeral=True)
+            raise ValueError(f"Unknown division: {division}")
+        
+        return division
 
-        return wrapper # type: ignore[reportGeneralTypeIssues]
-    return decorator
+
+class DivisionVerifyAllowAllTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        division = value.lower()
+        if division not in cfg.bountyDivisionNames and division != "all":
+            if len(cfg.bountyDivisionNames) > 1:
+                divNames = ', '.join(f"`{i}`" for i in cfg.bountyDivisionNames) + f" or `all`"
+            else:
+                divNames = f"`{cfg.bountyDivisionNames[0]}` or `all`" if cfg.bountyDivisionNames else f"`<no divisions>`"
+            await interaction.response.send_message(f":x: Unknown division: {division}. Please choose from: {divNames}.", ephemeral=True)
+            raise ValueError(f"Unknown division: {division}")
+        
+        return division
+
+
+DivisionName = Transform[str, DivisionVerifyTransformer]
+DivisionNameOrAll = Transform[str, DivisionVerifyAllowAllTransformer]
 
 #endregion division
 #region system
@@ -296,16 +241,23 @@ def systemAutoComplete(paramName: str = "system"):
     return decorator
 
 
-def systemVerify(paramName: str = "system"):
-    """Verify the given system, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the system in bbData.builtInSystemObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class SystemVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInSystemObjs, "system")
 
-    :param str paramName: The name of the system parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInSystemObjs, "system")
-    return decorator
+
+SystemKey = Transform[str, SystemVerifyTransformer]
+
+class SystemListVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> List[str]:
+        values = []
+        for syst in value.split(","):
+            resolved = await _aliasableVerify(interaction, syst.strip(), bbData.builtInSystemObjs, "system")
+            values.append(resolved)
+        return values
+
+
+SystemKeyList = Transform[List[str], SystemListVerifyTransformer]
 
 #endregion system
 #region criminal
@@ -322,16 +274,12 @@ def criminalAutoComplete(paramName: str = "name"):
     return decorator
 
 
-def criminalVerify(paramName: str = "name"):
-    """Verify the given criminal, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the criminal in bbData.builtInCriminalObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class CriminalVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInCriminalObjs, "criminal")
 
-    :param str paramName: The name of the criminal parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInCriminalObjs, "criminal")
-    return decorator
+
+CriminalKey = Transform[str, CriminalVerifyTransformer]
 
 
 def _make_activeCriminalAutoComplete(useActive: bool, useEscaped: bool, userDivisionOnly: bool):
@@ -441,16 +389,20 @@ def factionAutoComplete(paramName: str = "faction", bountyFactionsOnly: bool = T
     return decorator
 
 
-def factionVerify(paramName: str = "faction", bountyFactionsOnly: bool = True):
-    """Verify the given faction. If incorrect casing is given, call `func` with the correct casing.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class FactionVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _stringVerify(interaction, value, bbData.factions, "faction")
 
-    :param str paramName: The name of the faction parameter
-    :param bountyFactionsOnly bountyFactionsOnly: Whether to use bbData.bountyFactions instead of bbData.factions
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _stringVerifyWrapper(func, paramName, bbData.bountyFactions if bountyFactionsOnly else bbData.factions, "faction")
-    return decorator
+
+FactionName = Transform[str, FactionVerifyTransformer]
+
+
+class BountyFactionVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _stringVerify(interaction, value, bbData.bountyFactions, "bounty faction")
+
+
+BountyFactionName = Transform[str, BountyFactionVerifyTransformer]
 
 #endregion faction
 #region item-ship
@@ -485,46 +437,29 @@ def shipAutoComplete(paramName: str = "ship"):
     return decorator
 
 
-def _shipVerifyWrapper(func: Callable[Concatenate[TCommandGroup, 'Interaction', TParams], Coroutine[Any, Any, TReturn]], paramName: str) -> Callable[Concatenate[TCommandGroup, 'Interaction', TParams], Coroutine[Any, Any, TReturn]]:
-    """Construct a command callback wrapper to verify that the value of a given parameter matches the name of a ship.
-    # TODO: This is a copy of _aliasableVerifyWrapper.
-    """
-    async def wrapper(*args: TParams.args, **kwargs: TParams.kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        candidate: str = kwargs[paramName].lower()
-        if candidate in bbData.builtInShipData:
-            return candidate
-        if candidate.title() in bbData.builtInShipData:
-            return candidate.title()
+class ShipVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        if value in bbData.builtInShipData:
+            return value
+        if value.lower() in bbData.builtInShipData:
+            return value.lower()
+        if value.title() in bbData.builtInShipData:
+            return value.title()
 
         matchedCandidate = None
         for shipKey, ship in bbData.builtInShipData.items():
-            if candidate in ship.get("aliases", []):
+            if value.lower() in ship.get("aliases", []):
                 matchedCandidate = shipKey
+                break
 
         if matchedCandidate is None:
-            await interaction.response.send_message(f":x: Unknown ship: {candidate}", ephemeral=True)
-            return
+            await interaction.response.send_message(f":x: Unknown ship: {value}", ephemeral=True)
+            raise ValueError("f:x: Unknown ship: {value}")
         
-        kwargs[paramName] = matchedCandidate
-        return await func(*args, **kwargs)
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+        return matchedCandidate
 
+ShipKey = Transform[str, ShipVerifyTransformer]
 
-def shipVerify(paramName: str = "name"):
-    """Verify the given ship, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the ship in bbData.builtInShipData.
-    If it cannot be valid, display an error to the user, and do not call `func`.
-
-    :param str paramName: The name of the ship parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _shipVerifyWrapper(func, paramName)
-    return decorator
 
 #endregion item-ship
 #region item-ship-skin
@@ -542,16 +477,12 @@ def shipSkinAutoComplete(paramName: str = "skin"):
     return decorator
 
 
-def shipSkinVerify(paramName: str = "name"):
-    """Verify the given ship skin. If incorrect casing is given, call `func` with the
-    correct key for the skin in bbData.builtInShipSkins.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class ShipSkinVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _roughDictStringVerify(interaction, value, bbData.builtInShipSkins, "ship skin")
 
-    :param str paramName: The name of the ship skin parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _roughDictStringVerifyWrapper(func, paramName, bbData.builtInShipSkins, "ship skin")
-    return decorator
+
+ShipSkinKey = Transform[str, ShipSkinVerifyTransformer]
 
 #endregion item-ship-skin
 #region item-module
@@ -568,16 +499,12 @@ def moduleAutoComplete(paramName: str = "module"):
     return decorator
 
 
-def moduleVerify(paramName: str = "name"):
-    """Verify the given module, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the module in bbData.builtInModuleObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class ModuleVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInModuleObjs, "module")
 
-    :param str paramName: The name of the module parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInModuleObjs, "module")
-    return decorator
+
+ModuleKey = Transform[str, ModuleVerifyTransformer]
 
 #endregion item-module
 #region item-weapon
@@ -594,16 +521,12 @@ def weaponAutoComplete(paramName: str = "weapon"):
     return decorator
 
 
-def weaponVerify(paramName: str = "name"):
-    """Verify the given weapon, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the weapon in bbData.builtInWeaponObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class PrimaryWeaponVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInWeaponObjs, "primary weapon")
 
-    :param str paramName: The name of the weapon parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInWeaponObjs, "weapon")
-    return decorator
+
+PrimaryWeaponKey = Transform[str, PrimaryWeaponVerifyTransformer]
 
 #endregion item-weapon
 #region item-turret
@@ -620,16 +543,12 @@ def turretAutoComplete(paramName: str = "turret"):
     return decorator
 
 
-def turretVerify(paramName: str = "name"):
-    """Verify the given turret, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the turret in bbData.builtInTurretObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class TurretVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInTurretObjs, "turret")
 
-    :param str paramName: The name of the turret parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInTurretObjs, "turret")
-    return decorator
+
+TurretKey = Transform[str, TurretVerifyTransformer]
 
 #endregion item-turret
 #region item-tool
@@ -646,16 +565,12 @@ def toolAutoComplete(paramName: str = "tool"):
     return decorator
 
 
-def toolVerify(paramName: str = "name"):
-    """Verify the given tool, with consideration for aliases. If an alias or incorrect casing is given, call `func` with the
-    correct key for the tool in bbData.builtInToolObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class ToolVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _aliasableVerify(interaction, value, bbData.builtInToolObjs, "tool")
 
-    :param str paramName: The name of the tool parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _aliasableVerifyWrapper(func, paramName, bbData.builtInToolObjs, "tool")
-    return decorator
+
+ToolKey = Transform[str, ToolVerifyTransformer]
 
 #endregion item-tool
 #region item-medal
@@ -672,16 +587,12 @@ def medalAutoComplete(paramName: str = "medal"):
     return decorator
 
 
-def medalVerify(paramName: str = "name"):
-    """Verify the given medal. If incorrect casing is given, call `func` with the
-    correct key for the skin in bbData.medalObjs.
-    If it cannot be valid, display an error to the user, and do not call `func`.
+class MedalVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> str:
+        return await _roughDictStringVerify(interaction, value, bbData.medalObjs, "medal")
 
-    :param str paramName: The name of the medal parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _roughDictStringVerifyWrapper(func, paramName, bbData.medalObjs, "medal")
-    return decorator
+
+MedalKey = Transform[str, MedalVerifyTransformer]
 
 #endregion item-medal
 #region inventory
@@ -734,38 +645,18 @@ def inventoryItemNumberAutoComplete(paramName: str, itemCategory: bbData.ItemCat
     return decorator
 
 
-def _inventoryItemNumberVerify(func: TCommandCallback, paramName: str) -> TCommandCallback:
-    """`Verify that the given item number is a number, and display an error if it is not.
-    """
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        candidate: str = kwargs[paramName]
+class InventoryItemVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> int:
+        """`Verify that the given item number is an integer. If it is not, then display an error and raise `ValueError`.
+        """
+        if not lib.stringTyping.isInt(value):
+            await interaction.response.send_message(":x: Unknown item, please select an item from the list, or give an item number.", ephemeral=True)
+            raise ValueError(f"Unknown item or item number: {value}")
 
-        if not lib.stringTyping.isInt(candidate):
-            await interaction.response.send_message(":x: Unknown item, please select an item from the list, or given an item number.", ephemeral=True)
-            return
-
-        return await func(*args, **kwargs)
-        
-    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
-    # functions with reflection though
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+        return int(value)
 
 
-def inventoryItemNumberVerify(paramName: str = "name"):
-    """Verify the given inventory item number.
-    If it is not a number, display an error to the user, and do not call `func`.
-
-    :param str paramName: The name of the item parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _inventoryItemNumberVerify(func, paramName)
-    return decorator
+InventoryItemNumber = Transform[int, InventoryItemVerifyTransformer]
 
 
 ITEM_TYPE_IDS = {
@@ -829,37 +720,17 @@ def anyUserHangerItemAutoComplete(paramName: str = "item"):
     return decorator
 
 
-def _anyUserHangerItemVerify(func: TCommandCallback, paramName: str) -> TCommandCallback:
-    """`Verify that the given value is an item reference, and display an error if it is not.
-    """
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        if isinstance(args[0], Interaction):
-            interaction = args[0]
-        else:
-            interaction = args[1]
-        
-        candidate: str = kwargs[paramName]
-
-        if not anyUserHangerItemAutoComplete_verify(candidate):
+class AnyUserHangarItemVerifyTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> Tuple[bbData.ItemCategory, int]:
+        """`Verify that the given value is an item reference. If it is not, then display an error and raise `ValueError`.
+        """
+        if not anyUserHangerItemAutoComplete_verify(value):
             await interaction.response.send_message(":x: Unknown item, please select an item from the list.", ephemeral=True)
-            return
+            raise ValueError(f"Invalid inventory hangar reference: {value}")
 
-        return await func(*args, **kwargs)
-        
-    # TODO: It'd be cool to find a way to statically type the wrapper signature properly - would probably involve dynamically newing up
-    # functions with reflection though
-    return wrapper # type: ignore[reportGeneralTypeIssues]
+        return anyUserHangerItemAutoComplete_decodeValue(value)
 
 
-def anyUserHangerItemVerify(paramName: str = "name"):
-    """Verify the given item reference.
-    If it is not an item reference, display an error to the user, and do not call `func`.
-
-    :param str paramName: The name of the item parameter
-    """
-    def decorator(func: TCommandCallback) -> TCommandCallback:
-        return _anyUserHangerItemVerify(func, paramName)
-    return decorator
+AnyUserHangarItem = Transform[Tuple[bbData.ItemCategory, int], AnyUserHangarItemVerifyTransformer]
 
 #endregion inventory

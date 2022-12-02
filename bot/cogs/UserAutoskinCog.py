@@ -19,7 +19,7 @@ from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import shipAutoComplete, shipVerify
+from .util.CommonAutocomplete import shipAutoComplete, ShipKey
 from ..shipRenderer import shipRenderer
 from ..views.confirmView import ConfirmView
 from ..interactions.basedComponent import StaticComponents
@@ -660,8 +660,7 @@ class UserAutoskinCog(BasedCog):
     )
     @app_commands.command(name="render-skin",
                             description="Generate a ship skin, and render it.")
-    @shipVerify()
-    async def usr_cmd_render(self, interaction: Interaction, ship: str, autoskin: BoolYesNo = BoolYesNo.Yes):
+    async def usr_cmd_render(self, interaction: Interaction, ship: ShipKey, autoskin: BoolYesNo = BoolYesNo.Yes):
         """user command rendering an autoskin-generated texture onto a ship model.
         """
         _autoskin = bool(autoskin)
@@ -695,8 +694,7 @@ class UserAutoskinCog(BasedCog):
     )
     @app_commands.command(name="make-skin-texture",
                             description="Generate a ship skin, and get the generated texture.")
-    @shipVerify()
-    async def usr_cmd_make_texture(self, interaction: Interaction, ship: str, autoskin: BoolYesNo = BoolYesNo.Yes):
+    async def usr_cmd_make_texture(self, interaction: Interaction, ship: ShipKey, autoskin: BoolYesNo = BoolYesNo.Yes):
         """user command generating a texture and returning it.
         """
         _autoskin = bool(autoskin)

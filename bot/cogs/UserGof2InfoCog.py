@@ -12,15 +12,15 @@ from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import criminalAutoComplete, criminalVerify, \
-                                    shipAutoComplete, shipVerify, \
-                                    shipSkinAutoComplete, shipSkinVerify, \
-                                    systemAutoComplete, systemVerify, \
-                                    weaponAutoComplete, weaponVerify, \
-                                    moduleAutoComplete, moduleVerify, \
-                                    turretAutoComplete, turretVerify, \
-                                    toolAutoComplete, toolVerify, \
-                                    medalAutoComplete, medalVerify
+from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
+                                    shipAutoComplete, ShipKey, \
+                                    shipSkinAutoComplete, ShipSkinKey, \
+                                    systemAutoComplete, SystemKey, \
+                                    weaponAutoComplete, PrimaryWeaponKey, \
+                                    moduleAutoComplete, ModuleKey, \
+                                    turretAutoComplete, TurretKey, \
+                                    toolAutoComplete, ToolKey, \
+                                    medalAutoComplete, MedalKey
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
 from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
 from ..baseClasses.embedFillable import EmbedFillableMixin
@@ -101,9 +101,7 @@ class UserGof2InfoCog(BasedCog):
                                             + "gates. To find out if a system has a jump gate, use `info`.")
     @app_commands.command(name="make-route",
                             description="Find the shortest route between two systems.")
-    @systemVerify("start")
-    @systemVerify("end")
-    async def cmd_make_route(self, interaction: Interaction, start: str, end: str):
+    async def cmd_make_route(self, interaction: Interaction, start: SystemKey, end: SystemKey):
         """display the shortest route between two systems
         """
         if start == end:
@@ -148,8 +146,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-system",
                             description="Look up information about a system in the galaxy.")
-    @systemVerify()
-    async def cmd_info_system(self, interaction: Interaction, system: str):
+    async def cmd_info_system(self, interaction: Interaction, system: SystemKey):
         """return statistics about a specified system
         """
         await self.objectInfo(interaction, bbData.builtInSystemObjs[system], "System")
@@ -159,8 +156,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-criminal",
                             description="Look up information about a criminal.")
-    @criminalVerify()
-    async def cmd_info_criminal(self, interaction: Interaction, name: str):
+    async def cmd_info_criminal(self, interaction: Interaction, name: CriminalKey):
         """return statistics about a specified criminal
         """
         await self.objectInfo(interaction, bbData.builtInCriminalObjs[name], "Criminal")
@@ -170,8 +166,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-ship",
                             description="Look up information about a ship.")
-    @shipVerify()
-    async def cmd_info_ship(self, interaction: Interaction, ship: str):
+    async def cmd_info_ship(self, interaction: Interaction, ship: ShipKey):
         """return statistics about a specified ship
         """
         await self.objectInfo(interaction, ShipBlueprint.deserialize(bbData.builtInShipData[ship]), "Ship")
@@ -181,8 +176,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-weapon",
                             description="Look up information about a weapon.")
-    @weaponVerify()
-    async def cmd_info_weapon(self, interaction: Interaction, weapon: str):
+    async def cmd_info_weapon(self, interaction: Interaction, weapon: PrimaryWeaponKey):
         """return statistics about a specified weapon
         """
         await self.objectInfo(interaction, bbData.builtInWeaponObjs[weapon], "Weapon")
@@ -192,8 +186,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-module",
                             description="Look up information about a module.")
-    @moduleVerify()
-    async def cmd_info_module(self, interaction: Interaction, module: str):
+    async def cmd_info_module(self, interaction: Interaction, module: ModuleKey):
         """return statistics about a specified module
         """
         await self.objectInfo(interaction, bbData.builtInModuleObjs[module], "Module")
@@ -203,8 +196,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-turret",
                             description="Look up information about a turret.")
-    @turretVerify()
-    async def cmd_info_turret(self, interaction: Interaction, turret: str):
+    async def cmd_info_turret(self, interaction: Interaction, turret: TurretKey):
         """return statistics about a specified turret
         """
         await self.objectInfo(interaction, bbData.builtInTurretObjs[turret], "Turret")
@@ -214,8 +206,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-skin",
                             description="Look up information about a skin.")
-    @shipSkinVerify()
-    async def cmd_info_skin(self, interaction: Interaction, skin: str):
+    async def cmd_info_skin(self, interaction: Interaction, skin: ShipSkinKey):
         """return statistics about a specified skin
         """
         await self.objectInfo(interaction, bbData.builtInShipSkins[skin], "Skin")
@@ -225,8 +216,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-medal",
                             description="Look up information about a medal.")
-    @medalVerify()
-    async def cmd_info_medal(self, interaction: Interaction, medal: str):
+    async def cmd_info_medal(self, interaction: Interaction, medal: MedalKey):
         """return statistics about a specified medal
         """
         await self.objectInfo(interaction, bbData.medalObjs[medal], "Medal")
@@ -236,8 +226,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="info-tool",
                             description="Look up information about a tool.")
-    @toolVerify()
-    async def cmd_info_tool(self, interaction: Interaction, tool: str):
+    async def cmd_info_tool(self, interaction: Interaction, tool: ToolKey):
         """return statistics about a specified tool
         """
         await self.objectInfo(interaction, bbData.builtInToolObjs[tool], "Tool")
@@ -249,8 +238,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-criminal",
                             description="Look up the image for a criminal.")
-    @criminalVerify()
-    async def cmd_showme_criminal(self, interaction: Interaction, name: str):
+    async def cmd_showme_criminal(self, interaction: Interaction, name: CriminalKey):
         """Get the icon for the specified criminal
         """
         obj = bbData.builtInCriminalObjs[name]
@@ -265,9 +253,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-ship",
                             description="Look up the image for a ship.")
-    @shipVerify()
-    @shipSkinVerify()
-    async def cmd_showme_ship(self, interaction: Interaction, ship: str, skin: Optional[str] = None):
+    async def cmd_showme_ship(self, interaction: Interaction, ship: ShipKey, skin: Optional[ShipSkinKey] = None):
         """Get the icon for the specified ship
         """
         shipData = bbData.builtInShipData[ship]
@@ -300,8 +286,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-weapon",
                             description="Look up the image for a weapon.")
-    @weaponVerify()
-    async def cmd_showme_weapon(self, interaction: Interaction, weapon: str):
+    async def cmd_showme_weapon(self, interaction: Interaction, weapon: PrimaryWeaponKey):
         """Get the icon for the specified weapon
         """
         obj = bbData.builtInWeaponObjs[weapon]
@@ -318,8 +303,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-module",
                             description="Look up the image for a module.")
-    @moduleVerify()
-    async def cmd_showme_module(self, interaction: Interaction, module: str):
+    async def cmd_showme_module(self, interaction: Interaction, module: ModuleKey):
         """Get the icon for the specified module
         """
         obj = bbData.builtInModuleObjs[module]
@@ -336,8 +320,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-turret",
                             description="Look up the image for a turret.")
-    @turretVerify()
-    async def cmd_showme_turret(self, interaction: Interaction, turret: str):
+    async def cmd_showme_turret(self, interaction: Interaction, turret: TurretKey):
         """Get the icon for the specified turret
         """
         obj = bbData.builtInTurretObjs[turret]
@@ -354,8 +337,7 @@ class UserGof2InfoCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="GOF2 Info")
     @app_commands.command(name="showme-tool",
                             description="Look up the image for a tool.")
-    @toolVerify()
-    async def cmd_showme_tool(self, interaction: Interaction, tool: str):
+    async def cmd_showme_tool(self, interaction: Interaction, tool: ToolKey):
         """Get the icon for the specified tool
         """
         obj = bbData.builtInToolObjs[tool]

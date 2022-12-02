@@ -15,7 +15,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..gameObjects.items import gameItem
-from .util.CommonAutocomplete import divisionAutoComplete, divisionVerify
+from .util.CommonAutocomplete import divisionAutoComplete, DivisionNameOrAll
 from .util.parameterVerifiers import verifyDivName
 from ..users.basedGuild import BasedGuild
 from ..gameObjects.guildShop import TechLeveledShop
@@ -153,16 +153,11 @@ class DevItemsCog(BasedCog):
     @app_commands.command(name="refresh-shop",
                             description="Developer command refreshing division shop(s) for given guild(s). Does not reset the refresh timer.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    @divisionVerify()
-    async def dev_cmd_refreshshop(self, interaction: Interaction, guild_id: str = "here", division: str = "all", new_level: str = "random"):
+    async def dev_cmd_refreshshop(self, interaction: Interaction, guild_id: str = "here", division: DivisionNameOrAll = "all", new_level: str = "random"):
         """Refresh the shop stock of the current guild. Does not reset the shop stock cooldown.
         """
         valid, guild = await self.GuildsUtilCog.guildWithShopsByIdOrAllOrContext(interaction, guild_id)
         if not valid:
-            return
-
-        allDivs = await verifyDivName(interaction, division)
-        if allDivs is None:
             return
 
         if new_level == "random":
@@ -186,14 +181,14 @@ class DevItemsCog(BasedCog):
                     await guild.announceNewShopStock(level)
             else:
                 shop.refreshStock()
-                if not allDivs:
+                if division != "all":
                     await guild.announceNewShopStock(level)
 
-        await self.GuildsUtilCog.operateOverShopsAsync("dev_cmd_refreshshop", refreshShop, f"shop(s) refreshed{f' to level {level}' if level == -1 else ''}", interaction, guild, division, allDivs, logCategory=LogCategory.shop, className="DevItemsCog")
+        await self.GuildsUtilCog.operateOverShopsAsync("dev_cmd_refreshshop", refreshShop, f"shop(s) refreshed{f' to level {level}' if level == -1 else ''}", interaction, guild, division, division == "all", logCategory=LogCategory.shop, className="DevItemsCog")
         
         # shop stock announcements are deferred until the end if all divisions are to be operated over
         # This is so that we don't send an announcement (a ping!) for every shop in the server
-        if level == -1 and allDivs:
+        if level == -1 and division == "all":
             async def announceStock(guild: BasedGuild):
                 if not guild.shopsDisabled:
                     await guild.announceNewShopStock()

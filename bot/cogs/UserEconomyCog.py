@@ -15,8 +15,8 @@ from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..users import basedUser
-from .util.CommonAutocomplete import divisionAutoComplete, divisionVerify, \
-                                    anyUserHangerItemAutoComplete, anyUserHangerItemVerify, anyUserHangerItemAutoComplete_decodeValue
+from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, \
+                                    anyUserHangerItemAutoComplete, AnyUserHangarItem
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
 from ..gameObjects.guildShop import TechLeveledShop
@@ -96,8 +96,7 @@ class UserEconomyCog(BasedCog):
                             division="The shop to view. Default: Your division's shop")
     @app_commands.command(name="shop",
                             description="View the current stock of this server's shop. Give no arguments to view all items in your division.")
-    @divisionVerify(allowAllDivisions=False)
-    async def cmd_shop(self, interaction: Interaction, item_type: ItemCategoryOrAll = ItemCategoryOrAll.all, division: Optional[str] = None):
+    async def cmd_shop(self, interaction: Interaction, item_type: ItemCategoryOrAll = ItemCategoryOrAll.all, division: Optional[DivisionName] = None):
         """list the current stock of the guildShop owned by the guild containing the sent message.
         Can specify an item type to list.
         """
@@ -190,8 +189,7 @@ class UserEconomyCog(BasedCog):
                             division="The shop to buy from. You can only buy from your division or lower. Default: Your division's shop")
     @app_commands.command(name="buy",
                             description="🌎 Buy the requested item from the shop. Item numbers can be seen in the `/shop`")
-    @divisionVerify(allowAllDivisions=False)
-    async def cmd_shop_buy(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], sell_old_ship: BoolYesNo = BoolYesNo.No, move_equipped_items: BoolYesNo = BoolYesNo.No, division: Optional[str] = None):
+    async def cmd_shop_buy(self, interaction: Interaction, item_type: ItemCategory, item_number: Range[int, 1], sell_old_ship: BoolYesNo = BoolYesNo.No, move_equipped_items: BoolYesNo = BoolYesNo.No, division: Optional[DivisionName] = None):
         """Buy the item of the given item type, at the given index, from the guild's shop.
         if "transfer" is specified, the new ship's items are unequipped, and the old ship's items attempt to fill the new ship.
         any items left unequipped are added to the user's inactive items lists.
@@ -221,9 +219,15 @@ class UserEconomyCog(BasedCog):
         shop = divShops[division]
 
         # verify this is the calling user's home guild. If no home guild is set, transfer here.
-        if bUser is not None and bUser.hasHomeGuild() and bUser.homeGuildID != guild.id:
-            await interaction.response.send_message(":x: This command can only be used from your home server!", ephemeral=True)
-            return
+        create = False
+        homeServerInfo = ""
+        if bUser is not None:
+            if not bUser.hasHomeGuild():
+                await bUser.transferGuild(guild)
+                homeServerInfo = ":airplane_arriving: Your home server has been set.\n"
+            elif bUser.homeGuildID != guild.id:
+                await interaction.response.send_message(":x: This command can only be used from your home server!", ephemeral=True)
+                return
 
         shopItemStock = shop.getStock(item_type)
         if item_number > shopItemStock.numKeys:
@@ -253,7 +257,6 @@ class UserEconomyCog(BasedCog):
 
             if bUser is None:
                 bUser = self.bot.usersDB.addID(interaction.user.id)
-
             bUser.inactiveShips.addItem(requestedItem)
 
             if moveEquippedItems:
@@ -278,7 +281,7 @@ class UserEconomyCog(BasedCog):
             outStr = ""
             if not bUser.hasHomeGuild():
                 await bUser.transferGuild(guild)
-                outStr += ":airplane_arriving: Your home server has been set.\n\n"
+                outStr = ":airplane_arriving: Your home server has been set.\n\n"
             
             outStr += f":moneybag: Congratulations on your new **{requestedItem.name}**!"
             if sellOldShip:
@@ -330,13 +333,12 @@ class UserEconomyCog(BasedCog):
                             unequip_items="When selling a ship, automatically unequip all items on the ship, and keep them. Default: Yes")
     @app_commands.command(name="sell",
                             description="🌎 Sell the requested item from your hangar, to your division's shop.")
-    @anyUserHangerItemVerify()
-    async def cmd_shop_sell(self, interaction: Interaction, item: str, unequip_items: BoolYesNo = BoolYesNo.Yes):
+    async def cmd_shop_sell(self, interaction: Interaction, item: AnyUserHangarItem, unequip_items: BoolYesNo = BoolYesNo.Yes):
         """Sell the item of the given item type, at the given index, from the user's inactive items, to the guild's shop.
         if "clear" is specified, the ship's items are unequipped before selling.
         "clear" is only valid when selling a ship.
         """
-        itemType, itemNum = anyUserHangerItemAutoComplete_decodeValue(item)
+        itemType, itemNum = item
         
         # Casting because this command has @guildOnly(shopsEnabled=True), so it can only be called from a guild with shops enabled.
         guild = cast(Guild, interaction.guild)
@@ -347,10 +349,11 @@ class UserEconomyCog(BasedCog):
         userLevel = cfg.minTechLevel if bUser.classicModeEnabled else calculateUserBountyHuntingLevel(bUser.bountyHuntingXP)
         userDivisionName = cfg.divisionNameForPlayerLevel(userLevel)
 
+        homeServerInfo = ""
         # verify this is the calling user's home guild. If no home guild is set, transfer here.
         if not bUser.hasHomeGuild():
             await bUser.transferGuild(guild)
-            await interaction.response.send_message(":airplane_arriving: Your home server has been set.", ephemeral=True)
+            homeServerInfo = ":airplane_arriving: Your home server has been set.\n"
         elif bUser.homeGuildID != guild.id:
             await interaction.response.send_message(":x: This command can only be used from your home server!", ephemeral=True)
             return
@@ -373,16 +376,16 @@ class UserEconomyCog(BasedCog):
             userItemInactives.removeItem(requestedItem) # type: ignore[reportGeneralTypeIssues]
             shopItemStock.addItem(requestedItem)
 
-            outStr = f":moneybag: You sold your **{requestedItem.getNameOrNick()}** for **" \
+            outStr = homeServerInfo + f":moneybag: You sold your **{requestedItem.getNameOrNick()}** for **" \
                         + f"{requestedItem.getValue()} credits**!"
             if clearItems:
                 outStr += f"\n{unequippedItems} items were removed from the ship, and can be found in your hangar."
-
+            
             await interaction.response.send_message(outStr)
 
         else:
             shop.userSellItem(bUser, requestedItem)
-            await interaction.response.send_message(f":moneybag: You sold your **{requestedItem.name}** for **{requestedItem.getValue()} credits**!")
+            await interaction.response.send_message(homeServerInfo + f":moneybag: You sold your **{requestedItem.name}** for **{requestedItem.getValue()} credits**!")
     
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="economy",
