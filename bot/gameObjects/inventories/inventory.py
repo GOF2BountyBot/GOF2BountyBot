@@ -205,8 +205,8 @@ class _InventoryBase(SerializesToSchema[TSerializedInventory], Generic[TSerializ
     def clear(self):
         """Remove all items from the inventory.
         """
-        self.items = {}
-        self.keys = []
+        self.items.clear()
+        self.keys.clear()
         self.totalItems = 0
         self.numKeys = 0
 

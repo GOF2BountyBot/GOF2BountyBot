@@ -195,7 +195,7 @@ class UserLoadoutCog(BasedCog):
     )
     @app_commands.command(name="loadout",
                             description="Display your current ship and the items equipped onto it, or those equipped by someone else.")
-    async def cmd_loadout(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: str = ""):
+    async def cmd_loadout(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
         """list the requested user or criminal's currently equipped items.
         """
         if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
@@ -404,24 +404,21 @@ class UserLoadoutCog(BasedCog):
                 await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
                 return
         
-        # Remove duplicates
-        item_numbers = list(set(item_numbers))
+        items = [userItemInactives.itemAtIndex(itemNum - 1) for itemNum in item_numbers]
         equipped: List[GameItem] = []
         leftover: List[GameItem] = []
 
         #Equip the items one by one
-        iterations = 1
-        for itemNum in item_numbers:
-            requestedSlot = userItemInactives[itemNum - iterations]
-            lastItemInSlot = requestedSlot.count == 1
-            requestedItem = requestedSlot.item
-
+        for requestedItem in items:
+            if not userItemInactives.stores(requestedItem): continue
             if isinstance(requestedItem, PrimaryWeapon):
                 if not requestedBBUser.activeShip.canEquipMoreWeapons():
                     leftover.append(requestedItem)
                 else:
                     equipped.append(requestedItem)
                     requestedBBUser.activeShip.equipWeapon(requestedItem)
+                    # Ignoring here because I can't convince pyright that the types will match
+                    userItemInactives.removeItem(requestedItem) # type: ignore[reportGeneralTypeIssues]
                 
             elif isinstance(requestedItem, ModuleItem):
                 if not requestedBBUser.activeShip.canEquipMoreModules() or not requestedBBUser.activeShip.canEquipModuleType(type(requestedItem)):
@@ -429,6 +426,8 @@ class UserLoadoutCog(BasedCog):
                 else:
                     equipped.append(requestedItem)
                     requestedBBUser.activeShip.equipModule(requestedItem)
+                    # Ignoring here because I can't convince pyright that the types will match
+                    userItemInactives.removeItem(requestedItem) # type: ignore[reportGeneralTypeIssues]
 
             elif isinstance(requestedItem, TurretWeapon):
                 if not requestedBBUser.activeShip.canEquipMoreTurrets():
@@ -436,16 +435,11 @@ class UserLoadoutCog(BasedCog):
                 else:
                     equipped.append(requestedItem)
                     requestedBBUser.activeShip.equipTurret(requestedItem)
+                    # Ignoring here because I can't convince pyright that the types will match
+                    userItemInactives.removeItem(requestedItem) # type: ignore[reportGeneralTypeIssues]
             
             else:
                 raise NotImplementedError(f"Unexpected item type for category {itemType.value}: {type(requestedItem)}")
-
-            if lastItemInSlot:
-                iterations += 1
-
-        for item in equipped:
-            # Ignoring here because I can't convince pyright that the types will match
-            userItemInactives.removeItem(item) # type: ignore[reportGeneralTypeIssues]
         
         if len(equipped) == 1:
             equippedStr = f":wrench: You equipped the **{equipped[0].name}**."
@@ -456,9 +450,9 @@ class UserLoadoutCog(BasedCog):
             equippedStr = ""
 
         if len(leftover) == 1:
-            leftoverStr = f":x: Your active ship does not have any free {itemType.value} slots!"
-        elif equipped:
-            leftoverStr = ":x: The following items could not be equipped, because there is not enough free slots on your ship:\n" \
+            leftoverStr = f":x: The {leftover[0].name} could not be equipped, because your active ship does not have any free {itemType.value} slots!"
+        elif leftover:
+            leftoverStr = ":x: The following items could not be equipped, because there are not enough free slots on your ship:\n" \
                         + "\n".join(f"• {i.name}" for i in leftover)
         else:
             leftoverStr = ""
@@ -540,6 +534,7 @@ class UserLoadoutCog(BasedCog):
         itemType = cast(bbData.ShipEquippableItemCategoryType, bbData.ItemCategory(item_type))
         requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
         shipActives = requestedBBUser.activeShip.getActives(itemType)
+        userInactives = requestedBBUser.getInventory(itemType)
 
         for itemNum in item_numbers:
             if itemNum > len(shipActives):
@@ -554,7 +549,10 @@ class UserLoadoutCog(BasedCog):
         unequipped = []
         
         for itemNum in item_numbers:
-            unequipped.append(shipActives.pop(itemNum-1))
+            item = shipActives.pop(itemNum - 1)
+            unequipped.append(item)
+            # TODO
+            userInactives.addItem(item) # type: ignore[reportGeneralTypeIssues]
         
         if len(unequipped) == 1:
             unequippedStr = f":wrench: You unequipped the **{unequipped[0].name}**."

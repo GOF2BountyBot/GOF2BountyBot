@@ -184,7 +184,7 @@ class IntListTransformer(Transformer):
             if not lib.stringTyping.isInt(val):
                 await interaction.response.send_message(f":x: {val} is not a valid number.")
                 raise ValueError(f"Invalid number: {val}")
-            values.append(val)
+            values.append(int(val))
         return values
 
 
