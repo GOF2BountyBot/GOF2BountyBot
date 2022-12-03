@@ -1,18 +1,14 @@
 from typing import Optional
 from .shipBase import ShipBase
-from ....baseClasses.embedFillable import embedField, EmbedFillableMixin
+from ....baseClasses.embedFillable import EmbedFillableMixin
 from ..gameItem import spawnableItem
-from ....cfg import bbData
-from ....lib import gameMaths
 from ... import shipUpgrade
 
 from ..weapons.primaryWeapon import PrimaryWeapon
 from ..weapons.turretWeapon import TurretWeapon
 from ..modules import moduleItem
 from ... import shipSkin, shipUpgrade
-from ....cfg import bbData
-from ....lib import gameMaths
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from ....baseClasses.embedFillable import EmbedFillableMixin
 
 @spawnableItem
 class Ship(ShipBase, EmbedFillableMixin):

@@ -376,21 +376,29 @@ class UserLoadoutCog(BasedCog):
     @app_commands.describe(
         item_numbers="A comma-separated list of the item numbers to equip, from /hangar"
     )
+    @app_commands.choices(
+        item_type=[
+            app_commands.Choice(name=i.name, value=i.value)
+            for i in bbData.shipEquippableItemCategories
+        ]
+    )
     @app_commands.command(
         name="multi-equip",
         description="Equip multiple items from your hangar into your loadout."
     )
-    async def cmd_multi_equip(self, interaction: Interaction, item_type: bbData.ShipEquippableItemCategoryType, item_numbers: IntList):
+    async def cmd_multi_equip(self, interaction: Interaction, item_type: str, item_numbers: IntList):
         """Equip the item of the given item type, at the given index, from the user's inactive items.
         if "transfer" is specified, the new ship's items are cleared, and the old ship's items attempt to fill new ship.
         "transfer" is only valid when equipping a ship.
         """
+        # TODO: Casting here as a quick fix because dpy doesn't accept enum literals as param hints
+        itemType = cast(bbData.ShipEquippableItemCategoryType, bbData.ItemCategory(item_type))
         requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
-        userItemInactives = requestedBBUser.getInventory(item_type)
+        userItemInactives = requestedBBUser.getInventory(itemType)
 
         for itemNum in item_numbers:
             if itemNum > userItemInactives.numKeys:
-                await interaction.response.send_message(f":x: Invalid item number! You have {userItemInactives.numKeys} {item_type.value}s.", ephemeral=True)
+                await interaction.response.send_message(f":x: Invalid item number! You have {userItemInactives.numKeys} {itemType.value}s.", ephemeral=True)
                 return
             if itemNum < 1:
                 await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
@@ -430,7 +438,7 @@ class UserLoadoutCog(BasedCog):
                     requestedBBUser.activeShip.equipTurret(requestedItem)
             
             else:
-                raise NotImplementedError(f"Unexpected item type for category {item_type.value}: {type(requestedItem)}")
+                raise NotImplementedError(f"Unexpected item type for category {itemType.value}: {type(requestedItem)}")
 
             if lastItemInSlot:
                 iterations += 1
@@ -448,7 +456,7 @@ class UserLoadoutCog(BasedCog):
             equippedStr = ""
 
         if len(leftover) == 1:
-            leftoverStr = f":x: Your active ship does not have any free {item_type.value} slots!"
+            leftoverStr = f":x: Your active ship does not have any free {itemType.value} slots!"
         elif equipped:
             leftoverStr = ":x: The following items could not be equipped, because there is not enough free slots on your ship:\n" \
                         + "\n".join(f"• {i.name}" for i in leftover)
@@ -514,19 +522,28 @@ class UserLoadoutCog(BasedCog):
     @app_commands.describe(
         item_numbers="A comma-separated list of the item numbers to unequip, from /loadout"
     )
+    
+    @app_commands.choices(
+        item_type=[
+            app_commands.Choice(name=i.name, value=i.value)
+            for i in bbData.shipEquippableItemCategories
+        ]
+    )
     @app_commands.command(
         name="multi-unequip",
         description="Unequip multiple items from your loadout into your hangar."
     )
-    async def cmd_multi_unequip(self, interaction: Interaction, item_type: bbData.ShipEquippableItemCategoryType, item_numbers: IntList):
+    async def cmd_multi_unequip(self, interaction: Interaction, item_type: str, item_numbers: IntList):
         """Unequip the items of the given item type, at the given indexes, from the user's active ship.
         """
+        # TODO: Casting here as a quick fix because dpy doesn't accept enum literals as param hints
+        itemType = cast(bbData.ShipEquippableItemCategoryType, bbData.ItemCategory(item_type))
         requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
-        shipActives = requestedBBUser.activeShip.getActives(item_type)
+        shipActives = requestedBBUser.activeShip.getActives(itemType)
 
         for itemNum in item_numbers:
             if itemNum > len(shipActives):
-                await interaction.response.send_message(f":x: Invalid item number! You have {len(shipActives)} {item_type.value}s equipped.", ephemeral=True)
+                await interaction.response.send_message(f":x: Invalid item number! You have {len(shipActives)} {itemType.value}s equipped.", ephemeral=True)
                 return
             if itemNum < 1:
                 await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
@@ -552,7 +569,7 @@ class UserLoadoutCog(BasedCog):
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="loadout")
     @app_commands.describe(
-        item_numbers=f"A custom nickname for this ship. Must be {cfg.maxShipNickLength} characters or less."
+        nickname=f"A custom nickname for this ship. Must be {cfg.maxShipNickLength} characters or less."
     )
     @app_commands.command(
         name="name-ship",
@@ -568,7 +585,7 @@ class UserLoadoutCog(BasedCog):
         
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="loadout")
     @app_commands.command(
-        name="name-ship",
+        name="unname-ship",
         description="Reset your active ship's nickname."
     )
     async def cmd_unnameship(self, interaction: Interaction):

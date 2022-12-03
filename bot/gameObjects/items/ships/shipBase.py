@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING, cast, TypeVar
 from typing_extensions import NotRequired
-if TYPE_CHECKING:
-    from ..modules import moduleItem
+# if TYPE_CHECKING:
+from ..modules import moduleItem
 
 from discord import Embed
 
