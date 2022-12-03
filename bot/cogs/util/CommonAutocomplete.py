@@ -1,5 +1,6 @@
 
-from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple, TypeVar, cast
+from enum import Enum
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple, TypeVar, Union, cast
 from discord import Interaction
 from discord import app_commands
 from discord.app_commands import Transformer, Transform
@@ -676,6 +677,8 @@ class InventoryItemVerifyTransformer(Transformer):
 
 InventoryItemNumber = Transform[int, InventoryItemVerifyTransformer]
 
+class AutocompleteResult(Enum):
+    AllSelected = 0
 
 ITEM_TYPE_IDS = {
     bbData.ItemCategory.module: "0",
@@ -688,6 +691,11 @@ ITEM_TYPE_IDS = {
 ID_ITEM_TYPES = {v: k for k, v in ITEM_TYPE_IDS.items()}
 
 def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCategory, int]:
+    return ID_ITEM_TYPES[v[0]], int(v[1:])
+
+def anyUserHangerItem_orAll_autoComplete_decodeValue(v: str) -> Union[Tuple[bbData.ItemCategory, int], AutocompleteResult]:
+    if int(v[1:]) == -1:
+        return AutocompleteResult.AllSelected
     return ID_ITEM_TYPES[v[0]], int(v[1:])
 
 def anyUserHangerItemAutoComplete_verify(v: str) -> bool:
@@ -727,16 +735,13 @@ def anyUserHangerItemAutoComplete(paramName: str = "item", itemTypes: Optional[L
     The items will appear as names in discord, but returned to code as an encoded (item type (ItemCategory), item index (int)) tuple.
     Retrieve this tuple with the anyUserHangerItemAutoComplete_decodeValue function.
 
-    Limit the 
-    Will always show all items of all categories on the user (or default user) at this time.
-
     :param str paramName: The name of the item number parameter
     :param itemTypes: The types of item to display (Defaults to all item types)
     :type itemTypes: Optional[List[bbData.ItemCategory]]
     :param bool fallbackOnDefaultUser: If the user does not exist in the client's usersDB, fall back on basedUser.defaultUserDict (Defaults to True)
     """
     def decorator(func: TCommand) -> TCommand:
-        autocomplete = _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser)
+        autocomplete = _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser, itemTypes=itemTypes)
         func.autocomplete(paramName)(autocomplete)
         return func
     return decorator
@@ -765,7 +770,7 @@ AnyEquippableUserHangarItem = AnyUserHangarItem
 #endregion inventory
 #region loadout
 
-def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ShipEquippableItemCategoryType]] = None):
+def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ShipEquippableItemCategoryType]] = None, allowAll: bool = False):
     # TODO: Casting here because an enum literal is a different type to the enum itself
     itemTypes = cast(List[bbData.ShipEquippableItemCategoryType], itemTypes or [k for k in bbData.shipEquippableItemCategories])
     async def _anyShipEquippedItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
@@ -773,6 +778,9 @@ def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes
             raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
 
         choices: List[app_commands.Choice[str]] = []
+        if allowAll:
+            choices.append(app_commands.Choice(name=f"All Items", value=f"{ITEM_TYPE_IDS[bbData.ItemCategory.module]}-1"))
+        
         if interaction.client.usersDB.idExists(interaction.user.id):
             bUser = interaction.client.usersDB.getUser(interaction.user.id)
             ship = bUser.activeShip
@@ -782,7 +790,7 @@ def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes
             return choices
 
         for category in itemTypes:
-            for itemNum, item in enumerate(ship.getEquips(category)):
+            for itemNum, item in enumerate(ship.getActives(category)):
                 if current in item.name:
                     choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
                     if len(choices) == MAX_CHOICES:
@@ -792,28 +800,41 @@ def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes
     return _anyShipEquippedItemAutoComplete
 
 
-def anyShipEquippedItemAutoComplete(paramName: str = "item", itemTypes: Optional[List[bbData.ItemCategory]] = None, fallbackOnDefaultUser: bool = True):
+def anyShipEquippedItemAutoComplete(paramName: str = "item", itemTypes: Optional[List[bbData.ShipEquippableItemCategoryType]] = None, fallbackOnDefaultUser: bool = True, allowAll: bool = False):
     """A decorator to add autocomplete for a single-value item reference parameter.
     The item must be equipped onto the calling user's ship. The ship itself is excluded.
     The items will appear as names in discord, but returned to code as an encoded (item type (ItemCategory), item index (int)) tuple.
     Retrieve this tuple with the anyUserHangerItemAutoComplete_decodeValue function.
 
-    Limit the 
-    Will always show all items of all categories on the user (or default user) at this time.
-
-    :param str paramName: The name of the item number parameter
-    :param itemTypes: The types of item to display (Defaults to all item types)
+    :param str paramName: The name of the item reference parameter
+    :param itemTypes: The types of item to display (Defaults to all ship-equippable item types)
     :type itemTypes: Optional[List[bbData.ItemCategory]]
     :param bool fallbackOnDefaultUser: If the user does not exist in the client's usersDB, fall back on basedUser.defaultUserDict (Defaults to True)
+    :param bool allowAll: Allow 'all' to be a selectable option. In this case, the decoded item reference will be AutocompleteResult.AllSelected (Default False)
     """
     def decorator(func: TCommand) -> TCommand:
-        autocomplete = _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser)
+        autocomplete = _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser, itemTypes=itemTypes, allowAll=allowAll)
         func.autocomplete(paramName)(autocomplete)
         return func
     return decorator
-    
+
 
 # Placing this here because I might want to change it in the future to add more validation
-AnynyShipEquippedItem = AnyUserHangarItem
+AnyShipEquippedItem = Transform[Tuple[bbData.ShipEquippableItemCategoryType, int], AnyUserHangarItemVerifyTransformer]
+
+
+class AnyShipEquippedItemOrAllTransformer(Transformer):
+    async def transform(self, interaction: Interaction, value: str) -> Union[Tuple[bbData.ItemCategory, int], AutocompleteResult]:
+        """`Verify that the given value is an item reference. If it is not, then display an error and raise `ValueError`.
+        """
+        if not anyUserHangerItemAutoComplete_verify(value):
+            await interaction.response.send_message(":x: Unknown item, please select an item from the list.", ephemeral=True)
+            raise ValueError(f"Invalid inventory hangar reference: {value}")
+
+        return anyUserHangerItem_orAll_autoComplete_decodeValue(value)
+
+
+AnyShipEquippedItemOrAll = Transform[Union[Tuple[bbData.ShipEquippableItemCategoryType, int], AutocompleteResult], AnyShipEquippedItemOrAllTransformer]
+
 
 #endregion

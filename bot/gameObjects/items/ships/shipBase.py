@@ -273,24 +273,6 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
 
 #endregion
 
-    def getEquips(self, itemType: bbData.ShipEquippableItemCategoryType) -> List[ShipEquippableItemType]:
-        """Get the all of the ship's equipped items of the given type.
-        The given list is mutable, and can alter the ship's equipped items.
-
-        :param ItemCategory itemType: The item type whose equips to get
-        :return: A list containing all of the ships's equipped items of the named type.
-        :rtype: List[GameItem]
-        :raise NotImplementedError: When requesting a valid item type but one that is not yet implemented (e.g commodity)
-        """
-        #TODO: Casting here because I can't convince pyright that the types match
-        if itemType == ItemCategory.weapon:
-            return cast(List[ShipEquippableItemType], self.weapons)
-        if itemType == ItemCategory.module:
-            return cast(List[ShipEquippableItemType], self.modules)
-        if itemType == ItemCategory.turret:
-            return cast(List[ShipEquippableItemType], self.turrets)
-        raise NotImplementedError("Unrecognised item type: " + itemType.value)
-
     def armourIsUpgraded(self) -> bool:
         return any(upgrade.armour or (upgrade.armourMultiplier != 1) for upgrade in self.upgradesApplied)
 
@@ -695,22 +677,23 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
         return self.name if not self.hasNickname else (self.nickname + " (" + self.name + ")")
 
 
-    def getActives(self, item: ItemCategory) -> Union[List[PrimaryWeapon], List[moduleItem.ModuleItem], List[TurretWeapon]]:
-        """Return a requested array of equipped items, specified by string name.
+    def getActives(self, itemType: bbData.ShipEquippableItemCategoryType) -> List[ShipEquippableItemType]:
+        """Get the all of the ship's equipped items of the given type.
+        The given list is mutable, and can alter the ship's equipped items.
 
-        :param str item: one of weapon, module or turret.
-        :return: An array of equipped items of the named typed.
-        :rtype: list[PrimaryWeapon or moduleItem or TurretWeapon]
-        :raise ValueError: If the requested item type is invalid
+        :param ItemCategory itemType: The item type whose equips to get
+        :return: A list containing all of the ships's equipped items of the named type.
+        :rtype: List[GameItem]
+        :raise NotImplementedError: When requesting a valid item type but one that is not yet implemented (e.g commodity)
         """
-        if item is ItemCategory.weapon:
-            return self.weapons
-        elif item is ItemCategory.module:
-            return self.modules
-        elif item is ItemCategory.turret:
-            return self.turrets
-        else:
-            raise ValueError("unrecognised item type: " + item.value)
+        #TODO: Casting here because I can't convince pyright that the types match
+        if itemType == ItemCategory.weapon:
+            return cast(List[ShipEquippableItemType], self.weapons)
+        if itemType == ItemCategory.module:
+            return cast(List[ShipEquippableItemType], self.modules)
+        if itemType == ItemCategory.turret:
+            return cast(List[ShipEquippableItemType], self.turrets)
+        raise NotImplementedError("Unrecognised item type: " + itemType.value)
 
 
     def statsStringShort(self) -> str:

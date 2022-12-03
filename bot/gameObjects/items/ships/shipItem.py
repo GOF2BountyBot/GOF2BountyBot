@@ -166,19 +166,19 @@ class Ship(ShipBase, EmbedFillableMixin):
     def clearWeapons(self):
         """Delete all weapons equipped on the ship, without saving them.
         """
-        self.weapons = []
+        self.weapons.clear()
 
 
     def clearModules(self):
         """Delete all modules equipped on the ship, without saving them.
         """
-        self.modules = []
+        self.modules.clear()
 
 
     def clearTurrets(self):
         """Delete all turrets equipped on the ship, without saving them.
         """
-        self.turrets = []
+        self.turrets.clear()
 
 
     def applySkin(self, skin: shipSkin.ShipSkin):

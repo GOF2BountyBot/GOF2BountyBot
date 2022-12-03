@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union, cast
+from typing import List, Optional, Union, cast
 from discord import Guild, Member, User, app_commands, Interaction
 from discord.app_commands import Range
 
@@ -17,16 +17,10 @@ from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
 from ..gameObjects.items.weapons.turretWeapon import TurretWeapon
 from ..gameObjects.items.modules.moduleItem import ModuleItem
-from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList
+from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList, anyShipEquippedItemAutoComplete, AnyShipEquippedItemOrAll, AutocompleteResult
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
 from ..databases.bountyDB import BountyDB
-
-EQUIPPABLE_BUT_NOT_SHIP = Literal[
-    ItemCategory.weapon,
-    ItemCategory.module,
-    ItemCategory.turret
-]
 
 
 class UserLoadoutCog(BasedCog):
@@ -386,7 +380,7 @@ class UserLoadoutCog(BasedCog):
         name="multi-equip",
         description="Equip multiple items from your hangar into your loadout."
     )
-    async def cmd_multi_equip(self, interaction: Interaction, item_type: EQUIPPABLE_BUT_NOT_SHIP, item_numbers: IntList):
+    async def cmd_multi_equip(self, interaction: Interaction, item_type: bbData.ShipEquippableItemCategoryType, item_numbers: IntList):
         """Equip the item of the given item type, at the given index, from the user's inactive items.
         if "transfer" is specified, the new ship's items are cleared, and the old ship's items attempt to fill new ship.
         "transfer" is only valid when equipping a ship.
@@ -464,130 +458,130 @@ class UserLoadoutCog(BasedCog):
         await interaction.response.send_message("\n".join((equippedStr, leftoverStr)))
 
 
+    @anyShipEquippedItemAutoComplete(allowAll=True)
     @app_commands.describe(
-        item="The item to equip",
-        move_equipped_items="When equipping a ship, move your currently equipped items to the new one. Default: No",
+        item="The item to unequip"
     )
     @app_commands.command(
-        name="equip",
-        description="Equip an item from your hangar into your loadout."
+        name="unequip",
+        description="Unequip one or all of the items from your active ship, to your hangar."
     )
-    async def cmd_unequip(self, interaction: Interaction, item: Union[Literal["all"], EQUIPPABLE_BUT_NOT_SHIP]):
+    async def cmd_unequip(self, interaction: Interaction, item: AnyShipEquippedItemOrAll):
         """Unequip the item of the given item type, at the given index, from the user's active ship.
         """
-        argsSplit = args.split(" ")
-        unequipAllItems = len(argsSplit) > 0 and argsSplit[0] == "all"
-
-        if isDM:
-            prefix = cfg.defaultCommandPrefix
-        else:
-            prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
-
-        if not unequipAllItems and len(argsSplit) < 2:
-            await message.reply(mention_author=False, content=":x: Not enough arguments! Please provide both an item type (all/weapon/module/turret) " \
-                                        + "and an item number from `" + prefix + "hangar` or `all`.")
-            return
-        if len(argsSplit) > 2:
-            await message.reply(mention_author=False, content=":x: Too many arguments! Please only give an item type (all/weapon/module/turret), " \
-                                        + "an item number or `all`.")
-            return
-
-        requestedBBUser = botState.client.usersDB.getOrAddID(message.author.id)
-
-        if unequipAllItems:
+        if isinstance(item, AutocompleteResult):
+            if item != AutocompleteResult.AllSelected:
+                raise NotImplementedError(f"Unsupported AutocompleteResult: {item}")
+            
+            requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
             requestedBBUser.unequipAll(requestedBBUser.activeShip)
 
-            await message.reply(mention_author=False, content=":wrench: You unequipped **all items** from your ship.")
+            await interaction.response.send_message(":wrench: You unequipped **all items** from your ship.")
             return
+        
+        requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
 
-        _item = argsSplit[0].rstrip("s")
-        if not ItemCategory.hasValue(_item):
-            await message.reply(":x: Invalid item name! Please choose from: ship, weapon, module or turret.",
-                                mention_author=False)
-            return
-        item = ItemCategory(_item)
+        itemType, itemNum = item
 
-        if item is ItemCategory.ship:
-            await message.reply(mention_author=False, content=":x: You can't go without a ship! Instead, switch to another one.")
-            return
+        if itemType is ItemCategory.weapon:
+            requestedItem = requestedBBUser.activeShip.weapons[itemNum - 1]
+            requestedBBUser.inactiveWeapons.addItem(requestedItem)
+            requestedBBUser.activeShip.unequipWeaponIndex(itemNum - 1)
 
-        unequipAll = argsSplit[1] == "all"
-        if not unequipAll:
-            itemNum = argsSplit[1]
-            if not lib.stringTyping.isInt(itemNum):
-                await message.reply(mention_author=False, content=":x: Invalid item number!")
-                return
-            itemNum = int(itemNum)
-            if itemNum > len(requestedBBUser.activeShip.getActives(item)):
-                await message.reply(mention_author=False, content=":x: Invalid item number! Your ship has " \
-                                            + str(len(requestedBBUser.activeShip.getActives(item))) + " " + item.value + "s.")
+            await interaction.response.send_message(":wrench: You unequipped the **" + requestedItem.name + "**.")
+
+        elif itemType is ItemCategory.module:
+            requestedItem = requestedBBUser.activeShip.modules[itemNum - 1]
+            requestedBBUser.inactiveModules.addItem(requestedItem)
+            requestedBBUser.activeShip.unequipModuleIndex(itemNum - 1)
+
+            await interaction.response.send_message(":wrench: You unequipped the **" + requestedItem.name + "**.")
+
+        elif itemType is ItemCategory.turret:
+            requestedItem = requestedBBUser.activeShip.turrets[itemNum - 1]
+            requestedBBUser.inactiveTurrets.addItem(requestedItem)
+            requestedBBUser.activeShip.unequipTurretIndex(itemNum - 1)
+
+            await interaction.response.send_message(":wrench: You unequipped the **" + requestedItem.name + "**.")
+
+        else:
+            raise NotImplementedError("Valid but unsupported item name: " + itemType.value)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="loadout",
+                                formattedDesc="Unequip multiple items from your active ship into your hangar. Item numbers are shown next " \
+                                            + "to items in your `/loadout`.")
+    @app_commands.describe(
+        item_numbers="A comma-separated list of the item numbers to unequip, from /loadout"
+    )
+    @app_commands.command(
+        name="multi-unequip",
+        description="Unequip multiple items from your loadout into your hangar."
+    )
+    async def cmd_multi_unequip(self, interaction: Interaction, item_type: bbData.ShipEquippableItemCategoryType, item_numbers: IntList):
+        """Unequip the items of the given item type, at the given indexes, from the user's active ship.
+        """
+        requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
+        shipActives = requestedBBUser.activeShip.getActives(item_type)
+
+        for itemNum in item_numbers:
+            if itemNum > len(shipActives):
+                await interaction.response.send_message(f":x: Invalid item number! You have {len(shipActives)} {item_type.value}s equipped.", ephemeral=True)
                 return
             if itemNum < 1:
-                await message.reply(mention_author=False, content=":x: Invalid item number! Must be at least 1.")
+                await interaction.response.send_message(":x: Invalid item number! Must be at least 1.", ephemeral=True)
                 return
+        
+        # Remove duplicates
+        item_numbers = sorted(list(set(item_numbers)), reverse=True)
+        unequipped = []
+        
+        for itemNum in item_numbers:
+            unequipped.append(shipActives.pop(itemNum-1))
+        
+        if len(unequipped) == 1:
+            unequippedStr = f":wrench: You unequipped the **{unequipped[0].name}**."
+        elif unequipped:
+            unequippedStr = ":wrench: You unequipped the following items:\n" \
+                        + "\n".join(f"• {i.name}" for i in unequipped)
         else:
-            itemNum = None
+            raise RuntimeError("No items unequipped")
+        
+        await interaction.response.send_message(unequippedStr)
 
-        if item is ItemCategory.weapon:
-            if not requestedBBUser.activeShip.hasWeaponsEquipped():
-                await message.reply(mention_author=False, content=":x: Your active ship does not have any weapons equipped!")
-                return
-            if unequipAll:
-                for weapon in requestedBBUser.activeShip.weapons:
-                    requestedBBUser.inactiveWeapons.addItem(weapon)
-                    requestedBBUser.activeShip.unequipWeaponObj(weapon)
 
-                await message.reply(mention_author=False, content=":wrench: You unequipped all **weapons**.")
-            else:
-                requestedItem = requestedBBUser.activeShip.weapons[itemNum - 1]
-                requestedBBUser.inactiveWeapons.addItem(requestedItem)
-                requestedBBUser.activeShip.unequipWeaponIndex(itemNum - 1)
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="loadout")
+    @app_commands.describe(
+        item_numbers=f"A custom nickname for this ship. Must be {cfg.maxShipNickLength} characters or less."
+    )
+    @app_commands.command(
+        name="name-ship",
+        description="Give your active ship a nickname!"
+    )
+    async def cmd_nameship(self, interaction: Interaction, nickname: Range[str, 1, cfg.maxShipNickLength]):
+        """Set the nickname of the active ship.
+        """
+        requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
+        requestedBBUser.activeShip.changeNickname(nickname)
+        await interaction.response.send_message(f":pencil: You named your {requestedBBUser.activeShip.name}: **{nickname}**.")
+        
+        
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="loadout")
+    @app_commands.command(
+        name="name-ship",
+        description="Reset your active ship's nickname."
+    )
+    async def cmd_unnameship(self, interaction: Interaction):
+        """Remove the nickname of the active ship.
+        """
+        requestedBBUser = self.bot.usersDB.getOrAddID(interaction.user.id)
 
-                await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
+        if not requestedBBUser.activeShip.hasNickname:
+            await interaction.response.send_message(":x: Your active ship does not have a nickname!")
+            return
 
-        elif item is ItemCategory.module:
-            if not requestedBBUser.activeShip.hasModulesEquipped():
-                await message.reply(mention_author=False, content=":x: Your active ship does not have any modules equipped!")
-                return
-            if unequipAll:
-                for module in requestedBBUser.activeShip.modules:
-                    requestedBBUser.inactiveModules.addItem(module)
-                    requestedBBUser.activeShip.unequipModuleObj(module)
-
-                await message.reply(mention_author=False, content=":wrench: You unequipped all **modules**.")
-            else:
-                requestedItem = requestedBBUser.activeShip.modules[itemNum - 1]
-                requestedBBUser.inactiveModules.addItem(requestedItem)
-                requestedBBUser.activeShip.unequipModuleIndex(itemNum - 1)
-
-                await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
-
-        elif item is ItemCategory.turret:
-            if not requestedBBUser.activeShip.hasTurretsEquipped():
-                await message.reply(mention_author=False, content=":x: Your active ship does not have any turrets equipped!")
-                return
-            if unequipAll:
-                for turret in requestedBBUser.activeShip.turrets:
-                    requestedBBUser.inactiveTurrets.addItem(turret)
-                    requestedBBUser.activeShip.unequipTurretObj(turret)
-
-                await message.reply(mention_author=False, content=":wrench: You unequipped all **turrets**.")
-            else:
-                requestedItem = requestedBBUser.activeShip.turrets[itemNum - 1]
-                requestedBBUser.inactiveTurrets.addItem(requestedItem)
-                requestedBBUser.activeShip.unequipTurretIndex(itemNum - 1)
-
-                await message.reply(mention_author=False, content=":wrench: You unequipped the **" + requestedItem.name + "**.")
-
-        else:
-            raise NotImplementedError("Valid but unsupported item name: " + item.value)
-
-    textCommandsDB.register("unequip", cmd_unequip, 0, allowDM=True, helpSection="loadout",
-                        signatureStr="**unequip <item-type> <item-num>**",
-                        shortHelp="Move an item from your active ship to your hangar. Item numbers can be gotten from `loadout`.",
-                        longHelp="Unequip the requested item from your active ship, into your hangar. Item numbers are shown " \
-                                    + "next to items in your `loadout`.")
-
+        requestedBBUser.activeShip.removeNickname()
+        await interaction.response.send_message(f":pencil: You reset your **{requestedBBUser.activeShip.name}**'s nickname.")
 
 
 async def setup(bot: client.BasedClient):
