@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, TYPE_CHECKING
+from typing import Dict, List, Literal, Union, TYPE_CHECKING
 from typing_extensions import Never
 from discord import Colour
 from datetime import timedelta
@@ -37,6 +37,33 @@ class ItemCategory(_ItemCategoryBase):
     module = "module"
     turret = "turret"
     tool = "tool"
+
+
+equippableItemCategories = [
+    ItemCategory.ship,
+    ItemCategory.weapon,
+    ItemCategory.module,
+    ItemCategory.turret
+]
+
+EquippableItemCategoryType = Literal[
+    ItemCategory.ship,
+    ItemCategory.weapon,
+    ItemCategory.module,
+    ItemCategory.turret
+]
+
+shipEquippableItemCategories = [
+    ItemCategory.weapon,
+    ItemCategory.module,
+    ItemCategory.turret
+]
+
+ShipEquippableItemCategoryType = Literal[
+    ItemCategory.weapon,
+    ItemCategory.module,
+    ItemCategory.turret
+]
 
 
 class ItemCategoryOrAll(_ItemCategoryOrAllBase):

@@ -1,17 +1,15 @@
-from typing import Optional, Tuple, cast, List
+from typing import Optional, Tuple, Union
 
-from discord import Interaction
-from discord.abc import Snowflake
+from discord import Interaction, Member, User
 from discord.app_commands import Range
 
 from ...interactions.basedApp import BasedCog
 from ... import client, lib
+from ...lib.stringTyping import isInt
 from ...users import basedUser
-from ...cfg import cfg
 from ...cfg.bbData import ItemCategory
 from ...gameObjects.inventories.inventory import Inventory
 from ...gameObjects.items.gameItem import GameItem
-from ...baseClasses.serializable import JsonType
 
 
 class UsersUtilCog(BasedCog):
@@ -123,6 +121,71 @@ class UsersUtilCog(BasedCog):
         
         itemDict = userItemInactives[list(userItemInactives.keys())[item_number - 1]]
         return basedUser.itemCategoryStoredTypes[item_type].deserialize(itemDict)
+
+
+    async def targetUser(self, interaction: Interaction, user: Optional[Union[User, Member]], user_id: Optional[str]) -> Optional[Union[User, Member]]:
+        """Get the discord user targetted either directly (`user`) or by id (`user_id`)
+        At least one of `user` or `user_id` must be given, and the referenced user must exist, or an error is thrown
+        If both are given, then `user_id` is prioritized
+
+        :param interaction: The interaction that triggered this, used for sending errors
+        :type interaction: Interaction
+        :param user: The user to target
+        :type user: Optional[Union[User, Member]]
+        :param user_id: The id of the user to target
+        :type user_id: Optional[str]
+        :return: The targetted discord user, or `None` if an error occurred
+        :rtype: Optional[Union[User, Member]]
+        """
+        if (user_id is not None and user is not None) or (user is None and user_id is None):
+            await interaction.response.send_message(":x: Please give exactly one of `user` or `user_id`!", ephemeral=True)
+            return None
+
+        if user_id is not None:    
+            if not isInt(user_id):
+                await interaction.response.send_message(":x: Invalid `user_id` - must be a number.", ephemeral=True)
+                return None
+
+            user = self.bot.get_user(int(user_id))
+            
+        if user is None:
+            await interaction.response.send_message(":x: Unknown user!", ephemeral=True)
+            return None
+
+        return user
+
+
+    async def targetUserOrAuthor(self, interaction: Interaction, user: Optional[Union[User, Member]], user_id: Optional[str]) -> Optional[Union[User, Member]]:
+        """Get the discord user targetted either directly (`user`) or by id (`user_id`), or fall back on `interaction.user` if none was specified.
+        If one of `user` or `user_id` is given, the referenced user must exist, or an error is thrown
+        If both are given, then `user_id` is prioritized
+
+        :param interaction: The interaction that triggered this, used for sending errors
+        :type interaction: Interaction
+        :param user: The user to target
+        :type user: Optional[Union[User, Member]]
+        :param user_id: The id of the user to target
+        :type user_id: Optional[str]
+        :return: The targetted discord user, or `None` if an error occurred
+        :rtype: Optional[Union[User, Member]]
+        """
+        if user_id is not None:
+            if user is not None:
+                await interaction.response.send_message(":x: Please only give at most one of `user` or `user_id`!", ephemeral=True)
+                return None
+            if not isInt(user_id):
+                await interaction.response.send_message(":x: Invalid `user_id` - must be a number.", ephemeral=True)
+                return None
+
+            user = self.bot.get_user(int(user_id))
+            if user is None:
+                await interaction.response.send_message(":x: Unknown user!", ephemeral=True)
+                return None
+
+        if user is None:
+            user = interaction.user
+
+        return user
 
 #endregion util
 

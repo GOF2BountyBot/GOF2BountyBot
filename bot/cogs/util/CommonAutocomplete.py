@@ -1,11 +1,9 @@
 
-from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple, TypeVar, cast, Coroutine
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Optional, Sequence, Tuple, TypeVar, cast
 from discord import Interaction
 from discord import app_commands
-from discord.app_commands.commands import CommandCallback, P as TParams, GroupT as TCommandGroup, T as TReturn
 from discord.app_commands import Transformer, Transform
 import heapq
-from functools import wraps
 
 from ...cfg import cfg, bbData
 from ...baseClasses.aliasable import AliasableMixin
@@ -15,6 +13,7 @@ from ...users import basedUser
 from ...gameObjects.items import gameItem
 from ...lib.stringTyping import stringDifference
 from ...gameObjects.inventories import inventoryListing
+from ...gameObjects.items.ships.shipItem import Ship
 
 if TYPE_CHECKING:
     from ...databases import bountyDB, bountyDivision
@@ -27,7 +26,6 @@ lowerSystems = {}
 lowerSystemKeys = []
 first25 = []
 
-TCommandCallback = TypeVar("TCommandCallback", bound=CommandCallback)
 TCommand = TypeVar("TCommand", bound=app_commands.Command)
 
 #region aliasable utils
@@ -170,6 +168,26 @@ async def _roughDictStringVerify(interaction: Interaction, value: str, possibleC
 
     await interaction.response.send_message(f":x: Unknown {objectTypeName}: {value}", ephemeral=True)
     raise ValueError(f":x: Unknown {objectTypeName}: {value}")
+
+#endregion
+
+#region int
+
+class IntListTransformer(Transformer):
+    """Transform a comma-separated list of integers into a List[int].
+    """
+    async def transform(self, interaction: Interaction, value: str) -> List[int]:
+        values = []
+        for val in value.split(","):
+            val = val.strip()
+            if not lib.stringTyping.isInt(val):
+                await interaction.response.send_message(f":x: {val} is not a valid number.")
+                raise ValueError(f"Invalid number: {val}")
+            values.append(val)
+        return values
+
+
+IntList = Transform[List[int], IntListTransformer]
 
 #endregion
 
@@ -675,7 +693,8 @@ def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCatego
 def anyUserHangerItemAutoComplete_verify(v: str) -> bool:
     return v[0] in ID_ITEM_TYPES and lib.stringTyping.isInt(v[1:])
 
-def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
+def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ItemCategory]] = None):
+    itemTypes = itemTypes or [k for k in bbData.ItemCategory]
     async def _anyUserHangerItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
         if not isinstance(interaction.client, client.BasedClient):
             raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
@@ -683,7 +702,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
         choices: List[app_commands.Choice[str]] = []
         if interaction.client.usersDB.idExists(interaction.user.id):
             bUser = interaction.client.usersDB.getUser(interaction.user.id)
-            for category in ITEM_TYPE_IDS.keys():
+            for category in itemTypes:
                 for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
                     if current in item.name:
                         choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
@@ -691,7 +710,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
                             break
         
         elif fallbackOnDefaultUser:
-            for category in ITEM_TYPE_IDS.keys():
+            for category in itemTypes:
                 defaultItems = cast(List[inventoryListing.SerializedInventoryListing[gameItem.SerializedGameItemUnion]], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
                 for itemNum, listing in enumerate(defaultItems):
                     if current in listing["item"]["name"]:
@@ -703,21 +722,28 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool):
     return _anyUserHangerItemAutoComplete
 
 
-def anyUserHangerItemAutoComplete(paramName: str = "item"):
+def anyUserHangerItemAutoComplete(paramName: str = "item", itemTypes: Optional[List[bbData.ItemCategory]] = None, fallbackOnDefaultUser: bool = True):
     """A decorator to add autocomplete for a single-value item reference parameter.
     The items will appear as names in discord, but returned to code as an encoded (item type (ItemCategory), item index (int)) tuple.
     Retrieve this tuple with the anyUserHangerItemAutoComplete_decodeValue function.
 
+    Limit the 
     Will always show all items of all categories on the user (or default user) at this time.
 
-    :param paramName: The name of the item number parameter
-    :type paramName: str
+    :param str paramName: The name of the item number parameter
+    :param itemTypes: The types of item to display (Defaults to all item types)
+    :type itemTypes: Optional[List[bbData.ItemCategory]]
+    :param bool fallbackOnDefaultUser: If the user does not exist in the client's usersDB, fall back on basedUser.defaultUserDict (Defaults to True)
     """
     def decorator(func: TCommand) -> TCommand:
-        autocomplete = _make_anyUserHangerItemAutoComplete(True)
+        autocomplete = _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser)
         func.autocomplete(paramName)(autocomplete)
         return func
     return decorator
+
+
+def anyEquippableUserHangerItemAutoComplete(paramName: str = "item", fallbackOnDefaultUser: bool = True):
+    return anyUserHangerItemAutoComplete(paramName, bbData.equippableItemCategories, fallbackOnDefaultUser)
 
 
 class AnyUserHangarItemVerifyTransformer(Transformer):
@@ -733,4 +759,61 @@ class AnyUserHangarItemVerifyTransformer(Transformer):
 
 AnyUserHangarItem = Transform[Tuple[bbData.ItemCategory, int], AnyUserHangarItemVerifyTransformer]
 
+# Placing this here because I might want to change it in the future to add more validation
+AnyEquippableUserHangarItem = AnyUserHangarItem
+
 #endregion inventory
+#region loadout
+
+def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ShipEquippableItemCategoryType]] = None):
+    # TODO: Casting here because an enum literal is a different type to the enum itself
+    itemTypes = cast(List[bbData.ShipEquippableItemCategoryType], itemTypes or [k for k in bbData.shipEquippableItemCategories])
+    async def _anyShipEquippedItemAutoComplete(interaction: Interaction, current: str) -> List[app_commands.Choice[str]]:
+        if not isinstance(interaction.client, client.BasedClient):
+            raise TypeError(f"This decorator can only be applied to commands which are managed by a BasedClient")
+
+        choices: List[app_commands.Choice[str]] = []
+        if interaction.client.usersDB.idExists(interaction.user.id):
+            bUser = interaction.client.usersDB.getUser(interaction.user.id)
+            ship = bUser.activeShip
+        elif fallbackOnDefaultUser:
+            ship = Ship.deserialize(basedUser.defaultShipLoadoutDict)
+        else:
+            return choices
+
+        for category in itemTypes:
+            for itemNum, item in enumerate(ship.getEquips(category)):
+                if current in item.name:
+                    choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                    if len(choices) == MAX_CHOICES:
+                        break
+        
+        return choices
+    return _anyShipEquippedItemAutoComplete
+
+
+def anyShipEquippedItemAutoComplete(paramName: str = "item", itemTypes: Optional[List[bbData.ItemCategory]] = None, fallbackOnDefaultUser: bool = True):
+    """A decorator to add autocomplete for a single-value item reference parameter.
+    The item must be equipped onto the calling user's ship. The ship itself is excluded.
+    The items will appear as names in discord, but returned to code as an encoded (item type (ItemCategory), item index (int)) tuple.
+    Retrieve this tuple with the anyUserHangerItemAutoComplete_decodeValue function.
+
+    Limit the 
+    Will always show all items of all categories on the user (or default user) at this time.
+
+    :param str paramName: The name of the item number parameter
+    :param itemTypes: The types of item to display (Defaults to all item types)
+    :type itemTypes: Optional[List[bbData.ItemCategory]]
+    :param bool fallbackOnDefaultUser: If the user does not exist in the client's usersDB, fall back on basedUser.defaultUserDict (Defaults to True)
+    """
+    def decorator(func: TCommand) -> TCommand:
+        autocomplete = _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser)
+        func.autocomplete(paramName)(autocomplete)
+        return func
+    return decorator
+    
+
+# Placing this here because I might want to change it in the future to add more validation
+AnynyShipEquippedItem = AnyUserHangarItem
+
+#endregion

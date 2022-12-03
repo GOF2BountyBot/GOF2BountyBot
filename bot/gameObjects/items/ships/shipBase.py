@@ -16,7 +16,6 @@ from ... import shipSkin, shipUpgrade
 from ....cfg import cfg, bbData
 from ....cfg.bbData import ItemCategory
 from ....lib.emojis import BasedEmoji, SerializedBasedEmoji
-from ....lib import gameMaths
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
@@ -78,6 +77,18 @@ SerializedShipUnion = Union[BuiltInSerializedShipUnion, CustomSerializedShipUnio
 SkinnedSerializedShipUnion = Union[SkinnedBuiltInSerializedShip, TypedSkinnedBuiltInSerializedShip, SkinnedCustomSerializedShip, TypedSkinnedCustomSerializedShip]
 
 TShip = TypeVar("TShip", bound="ShipBase")
+
+ShipEquippableItemType = Union[
+    moduleItem.ModuleItem,
+    PrimaryWeapon,
+    TurretWeapon
+]
+
+shipEquippableItemTypes = {
+    ItemCategory.module: moduleItem.ModuleItem,
+    ItemCategory.weapon: PrimaryWeapon,
+    ItemCategory.turret: TurretWeapon
+}
 
 class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUnion]):
     """Base class for Ships.
@@ -251,6 +262,7 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
 
     @embedField("Max Modules", hideWhenNone=True)
     def formattedMaxModules(self): return None if self.maxModulesIsUpgraded() else self.getMaxModules()
+
 #endregion
     
     @embedField("Upgrades Applied", hideWhenNone=True)
@@ -260,6 +272,24 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
     def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.shipKeysByTL)
 
 #endregion
+
+    def getEquips(self, itemType: bbData.ShipEquippableItemCategoryType) -> List[ShipEquippableItemType]:
+        """Get the all of the ship's equipped items of the given type.
+        The given list is mutable, and can alter the ship's equipped items.
+
+        :param ItemCategory itemType: The item type whose equips to get
+        :return: A list containing all of the ships's equipped items of the named type.
+        :rtype: List[GameItem]
+        :raise NotImplementedError: When requesting a valid item type but one that is not yet implemented (e.g commodity)
+        """
+        #TODO: Casting here because I can't convince pyright that the types match
+        if itemType == ItemCategory.weapon:
+            return cast(List[ShipEquippableItemType], self.weapons)
+        if itemType == ItemCategory.module:
+            return cast(List[ShipEquippableItemType], self.modules)
+        if itemType == ItemCategory.turret:
+            return cast(List[ShipEquippableItemType], self.turrets)
+        raise NotImplementedError("Unrecognised item type: " + itemType.value)
 
     def armourIsUpgraded(self) -> bool:
         return any(upgrade.armour or (upgrade.armourMultiplier != 1) for upgrade in self.upgradesApplied)

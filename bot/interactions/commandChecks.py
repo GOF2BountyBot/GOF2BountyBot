@@ -137,7 +137,7 @@ def guildOnly(
     bountiesEnabled: Optional[bool] = None,
     shopsEnabled: Optional[bool] = None
 ):
-    """Wrapper around `discord.app_commands.guild_only` that is also able require the guild to have certain BountyBot features.
+    """Wrapper around `discord.app_commands.guild_only` that is also able to require the guild to have certain BountyBot features.
 
     :param bountiesEnabled: Require the server to have bounties enabled/disabled (Default None)
     :type bountiesEnabled: Optional[bool]

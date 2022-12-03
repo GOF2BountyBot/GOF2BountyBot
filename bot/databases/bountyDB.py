@@ -312,15 +312,20 @@ class BountyDB(SerializesToSchema[SerializedBountyDB]):
         return self.divisionForLevel(bounty.techLevel).bountyObjExists(bounty)
 
 
-    def criminalObjExists(self, crim: Criminal) -> bool:
+    def criminalObjExists(self, crim: Criminal, noEscapedCrim=True) -> bool:
         """Check whether a given criminal object exists in the DB.
         Existence is checked across all divisions and levels.
 
         :param Criminal crim: The criminal object to check for existence in the DB
+        :param bool noEscapedCriminal: Give `False` to also search escaped criminals (Defaults to True)
         :return: True if the given criminal is found within the DB, False otherwise
         :rtype: bool
         """
-        return any(div.criminalObjExists(crim) for div in self.divisions.values())
+        activeExists = any(div.criminalObjExists(crim) for div in self.divisions.values())
+        if noEscapedCrim:
+            return activeExists
+        escapedExists = any(div.escapedCriminalExists(crim) for div in self.divisions.values())
+        return activeExists or escapedExists
 
 
     def addBounty(self, bounty: bounty.Bounty, dbReload=False, isRespawn=False):

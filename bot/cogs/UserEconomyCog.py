@@ -25,48 +25,6 @@ from ..views.confirmView import ConfirmView
 
 
 class UserEconomyCog(BasedCog):
-#region util
-
-    async def targetUser(self, interaction: Interaction, user: Optional[Union[User, Member]], user_id: Optional[str]) -> Optional[Union[User, Member]]:
-        if (user_id is not None and user is not None) or (user is None and user_id is None):
-            await interaction.response.send_message(":x: Please give exactly one of `user` or `user_id`!", ephemeral=True)
-            return None
-
-        if user_id is not None:    
-            if not isInt(user_id):
-                await interaction.response.send_message(":x: Invalid `user_id` - must be a number.", ephemeral=True)
-                return None
-
-            user = self.bot.get_user(int(user_id))
-            
-        if user is None:
-            await interaction.response.send_message(":x: Unknown user!", ephemeral=True)
-            return None
-
-        return user
-
-
-    async def targetUserOrAuthor(self, interaction: Interaction, user: Optional[Union[User, Member]], user_id: Optional[str]) -> Optional[Union[User, Member]]:
-        if user_id is not None:
-            if user is not None:
-                await interaction.response.send_message(":x: Please only give at most one of `user` or `user_id`!", ephemeral=True)
-                return None
-            if not isInt(user_id):
-                await interaction.response.send_message(":x: Invalid `user_id` - must be a number.", ephemeral=True)
-                return None
-
-            user = self.bot.get_user(int(user_id))
-            if user is None:
-                await interaction.response.send_message(":x: Unknown user!", ephemeral=True)
-                return None
-
-        if user is None:
-            user = interaction.user
-
-        return user
-
-#endregion
-
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="economy")
     @app_commands.describe(user="The user whose balance to check.",
                             user_id="The ID of the user whose balance to check. Useful if they are in another server.")
@@ -75,7 +33,7 @@ class UserEconomyCog(BasedCog):
     async def cmd_balance(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: str = ""):
         """print the balance of the specified user, using the calling user if no user is specified.
         """
-        if not (user := await self.targetUserOrAuthor(interaction, user, user_id)): return
+        if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
 
         if self.bot.usersDB.idExists(user.id):
             bal = self.bot.usersDB.getUser(user.id).credits
@@ -219,13 +177,7 @@ class UserEconomyCog(BasedCog):
         shop = divShops[division]
 
         # verify this is the calling user's home guild. If no home guild is set, transfer here.
-        create = False
-        homeServerInfo = ""
-        if bUser is not None:
-            if not bUser.hasHomeGuild():
-                await bUser.transferGuild(guild)
-                homeServerInfo = ":airplane_arriving: Your home server has been set.\n"
-            elif bUser.homeGuildID != guild.id:
+        if bUser is not None and bUser.homeGuildID != guild.id:
                 await interaction.response.send_message(":x: This command can only be used from your home server!", ephemeral=True)
                 return
 
@@ -398,7 +350,7 @@ class UserEconomyCog(BasedCog):
     async def cmd_pay(self, interaction: Interaction, amount: Range[int, 0], user: Optional[Union[User, Member]] = None, user_id: str = ""):
         """Pay a given user the given number of credits from your balance.
         """
-        if not (user := await self.targetUser(interaction, user, user_id)): return
+        if not (user := await self.UsersUtilCog.targetUser(interaction, user, user_id)): return
         bUser = self.bot.usersDB.getUser(interaction.user.id) if self.bot.usersDB.idExists(interaction.user.id) else None
 
         if bUser is None or bUser.credits < amount:
@@ -453,7 +405,7 @@ class UserEconomyCog(BasedCog):
 
         print the total value of the specified user, use the calling user if no user is specified.
         """
-        if not (user := await self.targetUserOrAuthor(interaction, user, user_id)): return
+        if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
 
         bUser = self.bot.usersDB.getUser(interaction.user.id) if self.bot.usersDB.idExists(interaction.user.id) else None
         userValue = basedUser.defaultUserValue if bUser is None else bUser.getTotalValue()

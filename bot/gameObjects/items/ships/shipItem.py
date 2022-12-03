@@ -132,11 +132,13 @@ class Ship(ShipBase, EmbedFillableMixin):
             self.hasNickname = False
 
 
-    def transferItemsTo(self, other: "Ship"):
+    def transferItemsTo(self, other: "Ship") -> int:
         """Attempt to transfer as many equipped items as possible from this ship to another one.
         If there is not enough space to transfer any items, they will remain on this ship.
 
         :param shipItem other: The ship to transfer items to
+        :return: The number items that could not fit on the new ship, if any
+        :rtype: int
         :raise TypeError: When given any type other than shipItem
         """
         if not isinstance(other, Ship):
@@ -157,6 +159,8 @@ class Ship(ShipBase, EmbedFillableMixin):
 
         while self.hasTurretsEquipped() and other.canEquipMoreTurrets():
             other.equipTurret(self.turrets.pop(0))
+
+        return len(self.weapons) + len(self.modules) + len(self.turrets)
 
 
     def clearWeapons(self):
