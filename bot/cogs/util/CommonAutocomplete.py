@@ -680,26 +680,23 @@ InventoryItemNumber = Transform[int, InventoryItemVerifyTransformer]
 class AutocompleteResult(Enum):
     AllSelected = 0
 
-ITEM_TYPE_IDS = {
-    bbData.ItemCategory.module: "0",
-    bbData.ItemCategory.ship: "1",
-    bbData.ItemCategory.tool: "2",
-    bbData.ItemCategory.turret: "3",
-    bbData.ItemCategory.weapon: "4"
-}
-
-ID_ITEM_TYPES = {v: k for k, v in ITEM_TYPE_IDS.items()}
 
 def anyUserHangerItemAutoComplete_decodeValue(v: str) -> Tuple[bbData.ItemCategory, int]:
-    return ID_ITEM_TYPES[v[0]], int(v[1:])
+    category = next(i for i in bbData.ItemCategory if v.startswith(i.value))
+    return category, int(v[len(category.value):])
 
 def anyUserHangerItem_orAll_autoComplete_decodeValue(v: str) -> Union[Tuple[bbData.ItemCategory, int], AutocompleteResult]:
-    if int(v[1:]) == -1:
+    category, i = anyUserHangerItemAutoComplete_decodeValue(v)
+    if i == -1:
         return AutocompleteResult.AllSelected
-    return ID_ITEM_TYPES[v[0]], int(v[1:])
+    return category, i
 
 def anyUserHangerItemAutoComplete_verify(v: str) -> bool:
-    return v[0] in ID_ITEM_TYPES and lib.stringTyping.isInt(v[1:])
+    try:
+        category = next(i for i in bbData.ItemCategory if v.startswith(i.value))
+    except StopIteration:
+        return False
+    return lib.stringTyping.isInt(v[len(category.value):])
 
 def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ItemCategory]] = None):
     itemTypes = itemTypes or [k for k in bbData.ItemCategory]
@@ -713,7 +710,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: 
             for category in itemTypes:
                 for itemNum, item in enumerate(bUser.getInventory(category).items.keys()):
                     if current in item.name:
-                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{category.value}{itemNum+1}"))
                         if len(choices) == MAX_CHOICES:
                             break
         
@@ -722,7 +719,7 @@ def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: 
                 defaultItems = cast(List[inventoryListing.SerializedInventoryListing[gameItem.SerializedGameItemUnion]], basedUser.defaultUserDict.get(basedUser.itemCategoryUserKeys[category], []))
                 for itemNum, listing in enumerate(defaultItems):
                     if current in listing["item"]["name"]:
-                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {listing['item']['name']}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                        choices.append(app_commands.Choice(name=f"{category.value.title()}: {listing['item']['name']}", value=f"{category.value}{itemNum+1}"))
                         if len(choices) == MAX_CHOICES:
                             break
         
@@ -779,7 +776,7 @@ def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes
 
         choices: List[app_commands.Choice[str]] = []
         if allowAll:
-            choices.append(app_commands.Choice(name=f"All Items", value=f"{ITEM_TYPE_IDS[bbData.ItemCategory.module]}-1"))
+            choices.append(app_commands.Choice(name=f"All Items", value=f"{bbData.ItemCategory.module.value}-1"))
         
         if interaction.client.usersDB.idExists(interaction.user.id):
             bUser = interaction.client.usersDB.getUser(interaction.user.id)
@@ -792,7 +789,7 @@ def _make_anyShipEquippedItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes
         for category in itemTypes:
             for itemNum, item in enumerate(ship.getActives(category)):
                 if current in item.name:
-                    choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{ITEM_TYPE_IDS[category]}{itemNum+1}"))
+                    choices.append(app_commands.Choice(name=f"{category.value.title()}: {item.name}", value=f"{category.value}{itemNum+1}"))
                     if len(choices) == MAX_CHOICES:
                         break
         
