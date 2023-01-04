@@ -1,4 +1,5 @@
 from __future__ import annotations
+from enum import Enum
 
 from typing import Callable, Optional, Sequence, Tuple, Type, Union, TYPE_CHECKING, Dict, List, MutableSet, cast, TypeVar
 from typing_extensions import NotRequired, TypedDict
@@ -92,6 +93,16 @@ TItem = TypeVar("TItem", bound=gameItem.GameItem)
 
 class OwnedMenuType(BasedEnum):
     poll = "poll"
+
+
+class LeaderBoardStat(Enum):
+    credits = "current balance"
+    lifetimeBountyCreditsWon = "lifetime credits won from bounties"
+    lifetimeBountyHuntingXP = "lifetime bounty hunter xp gained"
+    systemsChecked = "systems checked"
+    bountyWins = "bounties won"
+    prestiges = "prestiges"
+    totalValue = "current total value"
 
 
 def guildHasMemberAndPlayChannel(dcClient: "client.BasedClient", guild: Optional[Guild], otherUserId: int) -> bool:
@@ -683,6 +694,33 @@ class BasedUser(SerializesToSchema[SerializedBasedUser]):
             return self.getTotalValue()
         else:
             raise ValueError("Unknown stat name: " + str(stat))
+
+
+    def getStat(self, stat: LeaderBoardStat) -> Union[int, float]:
+        """Get a user attribute. This method is primarily used in leaderboard generation.
+
+        :param str stat: The stat
+        :return: The requested user attribute
+        :rtype: int or float
+        """
+        if stat is LeaderBoardStat.credits:
+            return self.credits
+        elif stat is LeaderBoardStat.lifetimeBountyCreditsWon:
+            return self.lifetimeBountyCreditsWon
+        elif stat is LeaderBoardStat.lifetimeBountyHuntingXP:
+            # Casting here because bountyHuntingXP is guaranteed if classic mode is disabled
+            return (0 if self.classicModeEnabled else cast(int, self.bountyHuntingXP)) \
+                    + self.prestiges * gameMaths.bountyHuntingXPForLevel(cfg.maxTechLevel)
+        elif stat is LeaderBoardStat.systemsChecked:
+            return self.systemsChecked
+        elif stat is LeaderBoardStat.bountyWins:
+            return self.bountyWins
+        elif stat is LeaderBoardStat.prestiges:
+            return self.prestiges
+        elif stat is LeaderBoardStat.totalValue:
+            return self.getTotalValue()
+        else:
+            raise ValueError("Unsupported stat: " + str(stat))
 
 
     def getInventory(self, itemType: ItemCategory):

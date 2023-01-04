@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
 from typing_extensions import ParamSpec
+from enum import Enum
 
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild
@@ -974,3 +975,7 @@ async def interactionSend(interaction: Interaction, respond: bool, followup: boo
     else:
         sendKwargs.pop("ephemeral", None)
         return await textChannel(interaction).send(*sendArgs, **sendKwargs)
+
+
+class ApiError(Enum):
+    unknown_emoji = 10014

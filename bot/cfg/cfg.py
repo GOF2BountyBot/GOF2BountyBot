@@ -15,6 +15,7 @@ defaultEmojis = EmojisConfig(
     dmSent = cast(BasedEmoji, UninitializedBasedEmoji("📬")),
     cancel = cast(BasedEmoji, UninitializedBasedEmoji("🇽")),
     submit = cast(BasedEmoji, UninitializedBasedEmoji("✅")),
+    delete = cast(BasedEmoji, UninitializedBasedEmoji("🗑")),
     spiral = cast(BasedEmoji, UninitializedBasedEmoji("🌀")),
     error = cast(BasedEmoji, UninitializedBasedEmoji("❓")),
     accept = cast(BasedEmoji, UninitializedBasedEmoji("👍")),
@@ -275,14 +276,17 @@ accessLevelTitles = ["pilot", "captain", "commander", "officer"]
 
 ##### USERS #####
 
-userAlertsIDsDefaults = {   "shop_refresh": False,
+userAlertsIDsDefaults = {
+    "bounties_new": False,
+    "shop_refresh": False,
 
-                            "duels_challenge_incoming_new": True,
-                            "duels_challenge_incoming_cancel": False,
+    "duels_challenge_incoming_new": True,
+    "duels_challenge_incoming_cancel": False,
 
-                            "system_updates_major": False,
-                            "system_updates_minor": False,
-                            "system_misc": False}
+    "system_updates_major": False,
+    "system_updates_minor": False,
+    "system_misc": False
+}
 
 
 
@@ -663,28 +667,6 @@ moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 
 # The number of snowball icons that can be picked from for ThrowSnowballTool
 numSnowballs = 6
-
-leaderboardNames: Tuple[Tuple[str, ...], ...] = (
-    ('balance', 'bal', 'credits', 'b'),
-    ('checks', 'c'),
-    ('wins', 'w'),
-    ('xp',)
-)
-
-leaderboardTypeSettings: Tuple[Tuple[str, str, str, str, str], ...] = (
-    ("credits", "Current Balance", "Credit", "Credits", "*Current player credits balance"),
-    ("systemsChecked", "Systems Checked", "System", "Systems", f"*Total number of systems checked"),
-    ("bountyWins", "Bounties Won", "Bounty", "Bounties", "*Total number of bounties won"),
-    ("lifetimeBountyHuntingXP", "Lifetime Bounty Hunter XP", "xp", "xp",
-        "*Total amount of bounty hunting xp earned")
-)
-
-leaderboardHelpDescriptions: Tuple[str, ...] = (
-    "current credits balance",
-    "systems checked",
-    "bounties won",
-    "lifetime bounty hunter XP"
-)
 
 def validateConfig():
     for _, basicAccessLevel in basicAccessLevels._fieldItems():

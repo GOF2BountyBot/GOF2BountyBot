@@ -99,17 +99,16 @@ class StaticComponentEnumMeta(EnumMeta):
             classdict[name] = lib.ids.indexToID(value, pad=STATIC_COMPONENT_CALLBACK_ID_MAX_LENGTH, exclusions=[STATIC_COMPONENT_CUSTOM_ID_SEPARATOR])
             idsSoFar[value] = name
             validateParam(f"component ID for component named '{name}'", classdict[name])
-        
         return super().__new__(cls, clsName, bases, classdict, **kwds)
 
 
-class StaticComponentIDsEnum(Enum, metaclass=StaticComponentEnumMeta):
+class StaticComponentIDsEnum(Enum):
     # Ignoring warning on 'self' typing. __get__ for an enum member is a special case, it returns the enum member class rather than the enum class
     def __call__(self: "StaticComponents", component: TComponent, args: Optional[str] = None) -> TComponent: # type: ignore[reportGeneralTypeIssues]
         return setCallbackToStaticComponent(component, self, args=args or "")
 
 
-class StaticComponents(StaticComponentIDsEnum):
+class StaticComponents(StaticComponentIDsEnum, metaclass=StaticComponentEnumMeta):
     # Special
     Help = 1
 
@@ -167,6 +166,18 @@ class StaticComponents(StaticComponentIDsEnum):
     # UserAutoskinCog
     User_ConvertTexture_RenderLookup = 41
     User_ConvertTexture_EmbedImage = 42
+
+    # UserMiscCog
+    User_HowToPlay_ShowPage = 43
+    User_PollCreator_Submit_New = 44
+    User_PollCreator_Cancel_New = 45
+    User_PollCreator_Add_Option = 46
+    User_PollCreator_Remove_Option = 47
+    User_PollCreator_Remove_Option_Select = 48
+    User_PollCreator_Change_Emoji_Select = 49
+    User_PollCreator_Change_Emoji = 50
+    User_PollCreator_SetTopic = 51
+    User_PollCreator_SetDuration = 52
 
 
 class StaticComponentMeta:

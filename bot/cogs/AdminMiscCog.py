@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, Union, cast
 from enum import Enum
 from time import perf_counter
 
-from discord import Colour, Embed, Guild, HTTPException, Member, Reaction, SelectOption, Role, User, app_commands, Interaction, ButtonStyle
+from discord import ClientUser, Colour, Embed, Guild, HTTPException, Member, Message, Reaction, SelectOption, Role, User, app_commands, Interaction, ButtonStyle
 from discord.abc import Snowflake
 from discord.ui import View, Button, Select
 
@@ -38,7 +38,7 @@ def roleMenuForInteraction(interaction: Interaction) -> Optional[ReactionRolePic
 
 
 # roleMenuCreatorView: "EmbedEditorCog.ViewFactoryType"
-def roleMenuCreatorView(interaction: Interaction, userId: Optional[Union[int, str]], embed: Optional[Embed] = None) -> Optional[View]:
+def roleMenuCreatorView(interaction: Interaction, userId: Optional[Union[int, str]], embed: Optional[Embed] = None, disableAll: bool = False) -> Optional[View]:
     """This will only work for new role menus, as the submit button creates a new message
     A copy will have to be made for updating role menus
     """
@@ -46,39 +46,39 @@ def roleMenuCreatorView(interaction: Interaction, userId: Optional[Union[int, st
     view = View()
     _userId = "" if userId is None else str(userId)
 
-    confirmButton = Button(style=ButtonStyle.green, label="done", row=0 if embed is None else 2)
+    confirmButton = Button(style=ButtonStyle.green, label="done", row=0 if embed is None else 2, disabled=disableAll)
     confirmButton = StaticComponents.Admin_MakeRoleMenu_Submit_New_Menu(confirmButton, args=_userId)
-    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2)
-    cancelButton = StaticComponents.Delete_Message(cancelButton, args=_userId)
+    cancelButton = Button(style=ButtonStyle.red, label="cancel", row=0 if embed is None else 2, disabled=disableAll)
+    cancelButton = StaticComponents.Admin_MakeRoleMenu_Cancel_New_Menu(cancelButton, args=_userId)
     view.add_item(cancelButton).add_item(confirmButton)
     if embed is not None:
-        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0)
+        editEmbedTextButton = Button(style=ButtonStyle.blurple, label="edit embed text", row=0, disabled=disableAll)
         editEmbedTextButton = StaticComponents.User_Embed_Edit_Text(editEmbedTextButton, args=f"1{EMBED_EDIT_TEXT_ARGS_SEPARATOR}{_userId}")
         view.add_item(editEmbedTextButton)
 
-        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0)
+        editEmbedImagesButton = Button(style=ButtonStyle.blurple, label="edit embed images", row=0, disabled=disableAll)
         editEmbedImagesButton = StaticComponents.User_Embed_Edit_Images(editEmbedImagesButton, args=_userId)
         view.add_item(editEmbedImagesButton)
 
         # Replacing this with a 'manage roles' selector
-        # removeRoleButton = Button(style=ButtonStyle.blurple, label="remove role", row=1)
+        # removeRoleButton = Button(style=ButtonStyle.blurple, label="remove role", row=1, disabled=disableAll)
         # removeRoleButton = StaticComponents.Admin_MakeRoleMenu_Remove_Role_Select(removeRoleButton, args=_userId)
         # view.add_item(removeRoleButton)
 
         # TODO: This is currently broken
-        reorderRolesButton = Button(style=ButtonStyle.blurple, label="reorder roles", row=1)
+        reorderRolesButton = Button(style=ButtonStyle.blurple, label="reorder roles", row=1, disabled=disableAll)
         reorderRolesButton = StaticComponents.Admin_MakeRoleMenu_Reorder_Roles_Select(reorderRolesButton, args=_userId)
         view.add_item(reorderRolesButton)
 
-        changeEmojiButton = Button(style=ButtonStyle.blurple, label="change emoji", row=1)
+        changeEmojiButton = Button(style=ButtonStyle.blurple, label="change emoji", row=1, disabled=disableAll)
         changeEmojiButton = StaticComponents.Admin_MakeRoleMenu_Change_Emoji_Select(changeEmojiButton, args=_userId)
         view.add_item(changeEmojiButton)
         
-        refreshManageRolesButton = Button(style=ButtonStyle.blurple, label="refresh roles selector", row=1)
+        refreshManageRolesButton = Button(style=ButtonStyle.blurple, label="refresh roles selector", row=1, disabled=disableAll)
         refreshManageRolesButton = StaticComponents.Admin_MakeRoleMenu_Manage_Roles_Refresh(refreshManageRolesButton, args=_userId)
         view.add_item(refreshManageRolesButton)
 
-        manageRolesSelector = Select(min_values=0, row=3)
+        manageRolesSelector = Select(min_values=0, row=3, disabled=disableAll)
         if interaction.guild.roles:
             menu = roleMenuForInteraction(interaction)
 
@@ -292,7 +292,9 @@ class AdminMiscCog(basedApp.BasedCog):
 
         selectedRoles: List[Role] = []
         failed: List[str] = []
-
+        addedEmojis: List[lib.emojis.BasedEmoji] = []
+        removedEmojis: List[lib.emojis.BasedEmoji] = []
+        
         if selectedRaw is None:
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
             self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
@@ -317,28 +319,77 @@ class AdminMiscCog(basedApp.BasedCog):
                 
                 selectedRoles.append(role)
                 
-                if not any(True for o in menu.options.values() if o.role == role):
+                if not any(o.role == role for o in menu.options.values()):
                     while (optionEmoji := randomEmoji()) in menu.options: pass
                     menu.options[optionEmoji] = ReactionRolePickerOption(emoji=optionEmoji, role=role, menu=menu)
+                    addedEmojis.append(optionEmoji)
             
-            toRemove = [o for o in menu.options.values() if o.role not in selectedRoles]
-            for option in toRemove:
-                del menu.options[option.emoji]
+            removedEmojis = [e for e, o in menu.options.items() if o.role not in selectedRoles]
+            for option in removedEmojis:
+                del menu.options[option]
 
 
         if lib.discordUtil.embedEmpty(embed):
             embed.description = lib.discordUtil.ZWSP
         
-        view = roleMenuCreatorView(interaction, userId, embed=embed)
+        view = roleMenuCreatorView(interaction, userId, embed=embed, disableAll=True)
         # TODO: Why does this think the interaction has already been acknowledged?
         try:
-            await interaction.response.edit_message(view=view, embed=menu.getMenuEmbed())
+            await interaction.response.edit_message(content=f"{cfg.defaultEmojis.longProcess} Role menu loading..", view=view, embed=None)
         except HTTPException:
             pass
-        await menu.refreshReactions()
+
+        async def addEmoji(e: lib.emojis.BasedEmoji):
+            """This function guarantees that only discord-compatible emojis will be added to the menu, by randomly adding reactions until an emoji is accepted.
+            """
+            try:
+                await cast(Message, interaction.message).add_reaction(e.sendable)
+            except HTTPException as ex:
+                if ex.code != lib.discordUtil.ApiError.unknown_emoji.value:
+                    raise ex
+            else:
+                return
+            
+            original = e
+
+            while True:
+                while (e := randomEmoji()) in menu.options: pass
+                try:
+                    await cast(Message, interaction.message).add_reaction(e.sendable)
+                except HTTPException as ex:
+                    if ex.code != lib.discordUtil.ApiError.unknown_emoji.value:
+                        raise ex
+                else:
+                    break
+
+            menu.options[e] = menu.options[original]
+            menu.options[e].emoji = e
+            del menu.options[original]
+
+        async def removeEmoji(e: lib.emojis.BasedEmoji):
+            try:
+                await cast(Message, interaction.message).remove_reaction(e.sendable, cast(ClientUser, self.bot.user))
+            except HTTPException:
+                pass
+
+        tasks = lib.discordUtil.BasicScheduler()
+        for e in addedEmojis:
+            tasks.add(addEmoji(e))
+        for e in removedEmojis:
+            tasks.add(removeEmoji(e))
+
+        await tasks.wait()
+        tasks.raiseExceptions()
+        
+        if view:
+            for c in view.children:
+                if isinstance(c, (Button, Select)):
+                    c.disabled = False
+
+        await interaction.edit_original_response(content=None, view=view, embed=menu.getMenuEmbed())
 
         if failed:
-            await interaction.followup.send("The following roles could not be added. Please try again:",
+            await interaction.message.reply("The following roles could not be added. Please try again:",
                                             embed=Embed(description="\n".join(f"<@&{i}>" for i in failed)), ephemeral=True)
 
     
@@ -417,7 +468,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                 disabledNoSelects.remove_item(c)
 
                     await interaction.response.edit_message(view=disabledNoSelects)
-                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}", wait=True, ephemeral=True)
+                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}", wait=True)
 
                     def check(reaction: Reaction, user: Union[Member, User]) -> bool:
                         return reaction.message.id == reactMsg.id and user.id == int(userId)
@@ -439,6 +490,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                 del menu.options[option.emoji]
                                 option.emoji = newEmoji
                                 await menu.updateMessage(view=view)
+                                await reactMsg.delete()
                                 return
 
                     await menu.msg.edit(view=view)
@@ -451,7 +503,7 @@ class AdminMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Submit_New_Menu)
     async def endCreateMenu(self, interaction: Interaction, userId: str):
-        if interaction.message and (commonStaticComponentsCog := self.getCommonStaticComponentsCog("endCreatemenu")):
+        if interaction.message and (commonStaticComponentsCog := self.getCommonStaticComponentsCog(callingFuncName="endCreatemenu")):
             if await commonStaticComponentsCog.clearViewFromMessage(interaction, userId):
                 menu = self.bot.reactionMenusDB[interaction.message.id]
                 menuEmbed = interaction.message.embeds[0]
@@ -552,31 +604,45 @@ class AdminMiscCog(basedApp.BasedCog):
 
     @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
+    @app_commands.choices(
+        alert_type=[
+            app_commands.Choice(name=alertType.userFriendlyName, value=alertId)
+            for alertId, alertType in userAlerts.userAlertsIDsTypes.items() \
+                if issubclass(alertType, userAlerts.GuildRoleUserAlert)
+        ]
+    )
     @app_commands.command(name="set-notify-role",
                             description="Set a role to ping when various events occur.")
-    async def admin_cmd_set_notify_role(self, interaction: Interaction, alert_type: userAlerts.GuildRoleAlertNames, role: Role):
+    async def admin_cmd_set_notify_role(self, interaction: Interaction, alert_type: str, role: Role):
         """For the current guild, set a role to mention when certain events occur.
         """
         requestedBBGuild = self.bot.guildsDB.fromInteraction(interaction)
+        alertCls = userAlerts.userAlertsIDsTypes[alert_type]
 
-        alertId = userAlerts.guildRoleAlertNamesAlertIDs[alert_type]
-        requestedBBGuild.setUserAlertRoleID(alertId, role.id)
-        await interaction.response.send_message(":white_check_mark: Role set for " + alert_type.value \
+        requestedBBGuild.setUserAlertRoleID(alert_type, role.id)
+        await interaction.response.send_message(":white_check_mark: Role set for " + alertCls.userFriendlyName \
                                                 + " notifications!", ephemeral=True)
 
 
     @app_commands.guild_only
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.serverAdmin)
+    @app_commands.choices(
+        alert_type=[
+            app_commands.Choice(name=alertType.userFriendlyName, value=alertId)
+            for alertId, alertType in userAlerts.userAlertsIDsTypes.items() \
+                if issubclass(alertType, userAlerts.GuildRoleUserAlert)
+        ]
+    )
     @app_commands.command(name="remove-notify-role",
                             description="Disable role pings for various events.")
-    async def admin_cmd_remove_notify_role(self, interaction: Interaction, alert_type: userAlerts.GuildRoleAlertNames):
+    async def admin_cmd_remove_notify_role(self, interaction: Interaction, alert_type: str):
         """For the current guild, remove role mentioning when certain events occur.
         """
         requestedBBGuild = self.bot.guildsDB.fromInteraction(interaction)
+        alertCls = userAlerts.userAlertsIDsTypes[alert_type]
 
-        alertId = userAlerts.guildRoleAlertNamesAlertIDs[alert_type]
-        requestedBBGuild.removeUserAlertRoleID(alertId)
-        await interaction.response.send_message(":white_check_mark: Role pings disabled for " + alert_type.value \
+        requestedBBGuild.removeUserAlertRoleID(alert_type)
+        await interaction.response.send_message(":white_check_mark: Role pings disabled for " + alertCls.userFriendlyName \
                                                 + " notifications.", ephemeral=True)
 
     
@@ -636,7 +702,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                                 f"\nEach server may have a maximum of {cfg.maxRoleMenusPerGuild} role menus active at any one time.")
     @app_commands.command(name="make-role-menu",
                             description="Create a reaction role menu, allowing users to self-assign roles by adding and removing reactions.")
-    async def admin_cmd_make_role_menu(self, interaction: Interaction,):
+    async def admin_cmd_make_role_menu(self, interaction: Interaction):
         """Create a reaction role menu, allowing users to self-assign or remove roles by adding and removing reactions.
         Each guild may have a maximum of cfg.maxRoleMenusPerGuild role menus active at any one time.
 
@@ -646,10 +712,11 @@ class AdminMiscCog(basedApp.BasedCog):
         TODO: Implement single choice/grouped roles
         TODO: Change non-expiring menu specification from all kwargs 'off' to a special kwarg 'on'
         """
-        # Casting here because message.guild can be none, but this command has AllowDM set to False, so it will never be None
+        # Casting here because this command is decorated with @guild_only
         dcGuild = cast(Guild, interaction.guild)
         if not dcGuild.roles:
             await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This server has no roles!", ephemeral=True)
+            return
 
         requestedBBGuild = self.bot.guildsDB.fromInteraction(interaction)
         if requestedBBGuild.ownedRoleMenus >= cfg.maxRoleMenusPerGuild:

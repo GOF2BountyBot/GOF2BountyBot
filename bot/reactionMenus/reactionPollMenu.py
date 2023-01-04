@@ -112,7 +112,7 @@ async def printAndExpirePollResults(msgID: int):
     else:
         pollEmbed.add_field(name="Results", value="No votes received!", inline=False)
 
-    await menuMsg.edit(embed=pollEmbed)
+    await menuMsg.edit(embed=pollEmbed, view=None)
     if msgID in botState.client.reactionMenusDB:
         del botState.client.reactionMenusDB[msgID]
 

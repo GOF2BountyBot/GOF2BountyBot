@@ -327,7 +327,7 @@ def _make_activeCriminalAutoComplete(useActive: bool, useEscaped: bool, userDivi
         criminals = set()
         choices = []
 
-        async def checkBounties(bounties: List[bounty.Bounty]):
+        async def checkBounties(bounties: List["bounty.Bounty"]):
             for bounty in bounties:
                 if bounty.criminal in criminals: continue
                 criminals.add(bounty.criminal)
@@ -345,7 +345,7 @@ def _make_activeCriminalAutoComplete(useActive: bool, useEscaped: bool, userDivi
                     if len(choices) == MAX_CHOICES:
                         break
 
-        async def checkDivision(div: bountyDivision.BountyDivision):
+        async def checkDivision(div: "bountyDivision.BountyDivision"):
             if useActive:
                 await checkBounties(div.allActiveBounties())
             if useEscaped:

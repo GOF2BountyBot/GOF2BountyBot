@@ -5,7 +5,6 @@ if TYPE_CHECKING:
 
 from discord import utils, Guild, Member
 from abc import ABC, abstractmethod
-from enum import Enum
 
 
 class UABase(ABC):
@@ -17,6 +16,8 @@ class UABase(ABC):
     The state is not necessarily stored in an object attribute.
     A UserAlert may not necessarily depend on the guild in which it was set.
     """
+    userFriendlyName = "!UNKNOWN!"
+
     def __init__(self, state: bool = False) -> None:
         super().__init__()
 
@@ -68,6 +69,40 @@ class UABase(ABC):
         :rtype: bool
         """
         pass
+
+
+class BountyDivisionUserAlert(UABase):
+    """A GuildRoleUserAlert where the role is managed by the bot. In order to determine which role should be targetted,
+    the UA needs to know the user's bounty hunter level. UAs do not currently have BasedUser access, so this is not possible.
+    TODO
+    """
+
+    def __init__(self, state: bool = False):
+        super().__init__()
+
+
+    async def toggle(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
+        raise NotImplementedError(f"Cannot get or set {type(self).__name__} alert state from the UA object, as knowledge of the BasedUser is required")
+
+
+    def getState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member) -> bool:
+        raise NotImplementedError(f"Cannot get or set {type(self).__name__} alert state from the UA object, as knowledge of the BasedUser is required")
+
+
+    async def setState(self, dcGuild: Guild, bGuild: 'basedGuild.BasedGuild', dcMember: Member, newState: bool) -> bool:
+        raise NotImplementedError(f"Cannot get or set {type(self).__name__} alert state from the UA object, as knowledge of the BasedUser is required")
+
+
+class UA_New_Bounty(BountyDivisionUserAlert):
+    """Alert users when a new bounty becomes available using a role.
+    """
+    userFriendlyName = "New bounty available"
+
+    def __init__(self, state):
+        """
+        :param state: Ignored
+        """
+        super().__init__()
 
 
 class StateUserAlert(UABase):
@@ -152,11 +187,11 @@ class GuildRoleUserAlert(UABase):
             raise ValueError("Requested guild does not have a role set for the requested alert: " \
                                 + userAlertsTypesIDs[type(self)])
         if alertRole in dcMember.roles:
-            await dcMember.remove_roles(alertRole, reason="User unsubscribed from " + userAlertsTypesNames[type(self)] \
+            await dcMember.remove_roles(alertRole, reason="User unsubscribed from " + self.userFriendlyName \
                                         + " notifications via BB command")
             return False
         else:
-            await dcMember.add_roles(alertRole, reason="User subscribed to " + userAlertsTypesNames[type(self)] \
+            await dcMember.add_roles(alertRole, reason="User subscribed to " + self.userFriendlyName \
                                         + " notifications via BB command")
             return True
 
@@ -194,11 +229,11 @@ class GuildRoleUserAlert(UABase):
             raise ValueError(f"Unable to find role {roleId} in guild {dcGuild.name}#{dcGuild.id}")
 
         if alertRole in dcMember.roles and not newState:
-            await dcMember.remove_roles(alertRole, reason="User unsubscribed from " + userAlertsTypesNames[type(self)] \
+            await dcMember.remove_roles(alertRole, reason="User unsubscribed from " + self.userFriendlyName \
                                         + " notifications via BB command")
             return False
         elif alertRole not in dcMember.roles and newState:
-            await dcMember.add_roles(alertRole, reason="User subscribed to " + userAlertsTypesNames[type(self)] \
+            await dcMember.add_roles(alertRole, reason="User subscribed to " + self.userFriendlyName \
                                         + " notifications via BB command")
             return True
         return newState
@@ -208,6 +243,7 @@ class GuildRoleUserAlert(UABase):
 class UA_Shop_Refresh(GuildRoleUserAlert):
     """Alert users when the guild's shop refreshes using a role.
     """
+    userFriendlyName = "New shop stock"
 
     def __init__(self, state):
         """
@@ -219,6 +255,7 @@ class UA_Shop_Refresh(GuildRoleUserAlert):
 class UA_Duels_Challenge_Incoming_New(StateUserAlert):
     """Alert a user, independant of guild, when a user challenges them to a duel.
     """
+    userFriendlyName = "New duel request received"
 
     def __init__(self, state):
         """
@@ -230,6 +267,7 @@ class UA_Duels_Challenge_Incoming_New(StateUserAlert):
 class UA_Duels_Challenge_Incoming_Cancel(StateUserAlert):
     """Alert a user, independant of guild, when a user cancels a duel they issued to the user.
     """
+    userFriendlyName = "Duel request for you was cancelled"
 
     def __init__(self, state):
         """
@@ -241,6 +279,7 @@ class UA_Duels_Challenge_Incoming_Cancel(StateUserAlert):
 class UA_System_Updates_Major(GuildRoleUserAlert):
     """Alert a guild's members when a new major bot update is released, using a role mention.
     """
+    userFriendlyName = "Major BountyBot update released"
 
     def __init__(self, state):
         """
@@ -252,6 +291,7 @@ class UA_System_Updates_Major(GuildRoleUserAlert):
 class UA_System_Updates_Minor(GuildRoleUserAlert):
     """Alert a guild's members when a new minor bot update is released, using a role mention.
     """
+    userFriendlyName = "Minor BountyBot update released"
 
     def __init__(self, state):
         """
@@ -263,6 +303,7 @@ class UA_System_Updates_Minor(GuildRoleUserAlert):
 class UA_System_Misc(GuildRoleUserAlert):
     """Alert a guild's members for bot global announcements/broadcasts, using a role mention.
     """
+    userFriendlyName = "Miscellaneous BountyBot announcements"
 
     def __init__(self, state):
         """
@@ -271,23 +312,9 @@ class UA_System_Misc(GuildRoleUserAlert):
         super(UA_System_Misc, self).__init__()
 
 
-class GuildRoleAlertNames(Enum):
-    ShopRefresh = "new shop stock"
-    SystemUpdates_Major = "BountyBot major updates"
-    SystemUpdates_Minor = "BountyBot minor updates"
-    SystemAnnouncements_Misc = "BountyBot misc. announcements"
-
-
-guildRoleAlertNamesAlertIDs = {
-    GuildRoleAlertNames.ShopRefresh: "shop_refresh",
-    GuildRoleAlertNames.SystemUpdates_Major: "system_updates_major",
-    GuildRoleAlertNames.SystemUpdates_Minor: "system_updates_minor",
-    GuildRoleAlertNames.SystemAnnouncements_Misc: "system_misc"
-}
-
-
 # Translate UA ID strings into types
 userAlertsIDsTypes: Dict[str, Type[UABase]] = {
+                        "bounties_new": UA_New_Bounty,
                         "shop_refresh": UA_Shop_Refresh,
 
                         "duels_challenge_incoming_new": UA_Duels_Challenge_Incoming_New,
@@ -299,7 +326,8 @@ userAlertsIDsTypes: Dict[str, Type[UABase]] = {
                     }
 
 # Translate UA types into ID strings
-userAlertsTypesIDs: Dict[Type[UABase], str] = { 
+userAlertsTypesIDs: Dict[Type[UABase], str] = {
+                        UA_New_Bounty: "bounties_new",
                         UA_Shop_Refresh: "shop_refresh",
 
                         UA_Duels_Challenge_Incoming_New: "duels_challenge_incoming_new",
@@ -308,18 +336,6 @@ userAlertsTypesIDs: Dict[Type[UABase], str] = {
                         UA_System_Updates_Major: "system_updates_major",
                         UA_System_Updates_Minor: "system_updates_minor",
                         UA_System_Misc: "system_misc"
-                    }
-
-# Translate UA types into user-friendly alert name strings
-userAlertsTypesNames: Dict[Type[UABase], str] = {
-                        UA_Shop_Refresh: "new shop stock",
-
-                        UA_Duels_Challenge_Incoming_New: "new duel challenges",
-                        UA_Duels_Challenge_Incoming_Cancel: "cancelled duel challenges",
-
-                        UA_System_Updates_Major: "BountyBot major updates",
-                        UA_System_Updates_Minor: "BountyBot minor updates",
-                        UA_System_Misc: "BountyBot misc. announcements"
                     }
 
 

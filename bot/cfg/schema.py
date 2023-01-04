@@ -70,6 +70,7 @@ class EmojisConfig(SerializableDataClass):
     dmSent: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     cancel: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     submit: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
+    delete: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     spiral: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     error: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
     accept: BasedEmoji = TypeOverride(UninitializedBasedEmoji, BasedEmoji.EMPTY)
