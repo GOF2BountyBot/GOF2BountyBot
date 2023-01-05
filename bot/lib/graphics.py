@@ -4,7 +4,10 @@ from typing import Dict, Optional, Union, Tuple, List
 from ..cfg import cfg
 import atexit
 import random
+import os
 
+MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+EMPTY_DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 
 XP_BAR_SILHOUETTE: Optional[Image.Image] = None
 USR_PROF_BACKGROUND: Optional[Image.Image] = None
@@ -256,7 +259,10 @@ def copyXPBarFill(divName: str) -> Image.Image:
             if fillPath in pathsDone:
                 XP_BAR_FILLS[div] = pathsDone[fillPath]
             else:
-                XP_BAR_FILLS[div] = Image.open(fillPath)
+                if not os.path.isfile(fillPath):
+                    XP_BAR_FILLS[div] = MISSING_TEXTURE
+                else:
+                    XP_BAR_FILLS[div] = Image.open(fillPath)
                 XP_BAR_FILLS[div] = XP_BAR_FILLS[div].resize((cfg.xpBarWidth, cfg.xpBarHeight))
                 pathsDone[div] = XP_BAR_FILLS[div]
 
@@ -272,11 +278,11 @@ def copyUserProfileBackground() -> Image.Image:
     """
     global USR_PROF_BACKGROUND
     if USR_PROF_BACKGROUND is None:
-        if cfg.paths.userProfileBackground:
-            USR_PROF_BACKGROUND = Image.open(cfg.paths.userProfileBackground)
-            USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
+        if not os.path.isfile(cfg.paths.userProfileBackground):
+            USR_PROF_BACKGROUND = MISSING_TEXTURE
         else:
-            raise ValueError("No userProfileBackground given in cfg")
+            USR_PROF_BACKGROUND = Image.open(cfg.paths.userProfileBackground)
+        USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
 
     return USR_PROF_BACKGROUND.copy()
 
@@ -292,9 +298,9 @@ def copyRandomDuelResultsBackground() -> Image.Image:
     global DUEL_RESULTS_BACKGROUNDS
     if DUEL_RESULTS_BACKGROUNDS == []:
         if not cfg.paths.duelResultsBackgrounds:
-            raise ValueError("No duelResultsBackgrounds given in cfg")
+            return MISSING_TEXTURE.resize(cfg.duelResultsImageDims)
 
-        if cfg.paths.duelResultsUnderlay:
+        if os.path.isfile(cfg.paths.duelResultsUnderlay):
             underlayImg = cropAndScale(Image.open(cfg.paths.duelResultsUnderlay), cfg.duelResultsImageDims[0],
                                         cfg.duelResultsImageDims[1]).convert("RGBA")
         else:
@@ -305,8 +311,11 @@ def copyRandomDuelResultsBackground() -> Image.Image:
             if imgPath in pathsDone:
                 DUEL_RESULTS_BACKGROUNDS.append(pathsDone[imgPath])
             else:
-                DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
-                                                                cfg.duelResultsImageDims[1]).convert("RGBA"))
+                if not os.path.isfile(imgPath):
+                    DUEL_RESULTS_BACKGROUNDS.append(MISSING_TEXTURE.resize(cfg.duelResultsImageDims))
+                else:
+                    DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
+                                                                    cfg.duelResultsImageDims[1]).convert("RGBA"))
                 if underlayImg is not None:
                     DUEL_RESULTS_BACKGROUNDS[-1] = Image.composite(underlayImg, DUEL_RESULTS_BACKGROUNDS[-1],
                                                                     underlayImg)
@@ -323,13 +332,16 @@ def copyDuelResultsOverlay() -> Image.Image:
     :rtype: Image.Image
     """
     global DUEL_RESULTS_OVERLAY
+    global EMPTY_DUEL_RESULTS_OVERLAY
     if DUEL_RESULTS_OVERLAY is None:
-        if cfg.paths.duelResultsOverlay:
-            DUEL_RESULTS_OVERLAY = Image.open(cfg.paths.duelResultsOverlay)
-            DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
-                                                cfg.duelResultsImageDims[1])
+        if not os.path.isfile(cfg.paths.duelResultsOverlay):
+            if EMPTY_DUEL_RESULTS_OVERLAY is None:
+                EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+            DUEL_RESULTS_OVERLAY = EMPTY_DUEL_RESULTS_OVERLAY
         else:
-            raise ValueError("No duelResultsOverlay given in cfg")
+            DUEL_RESULTS_OVERLAY = Image.open(cfg.paths.duelResultsOverlay)
+        DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
+                                            cfg.duelResultsImageDims[1])
 
     return DUEL_RESULTS_OVERLAY.copy()
 
@@ -343,13 +355,19 @@ def copyDuelWinnerOverlay(winner: str) -> Image.Image:
     :rtype: Image.Image
     """
     global DUEL_WINNER_OVERLAYS
+    global EMPTY_DUEL_RESULTS_OVERLAY
     if DUEL_WINNER_OVERLAYS == {}:
         pathsDone: Dict[str, Image.Image] = {}
         for side, imgPath in (("left", cfg.paths.duelResultsLeftWinner), ("right", cfg.paths.duelResultsRightWinner), ("draw", cfg.paths.duelResultsDraw)):
             if imgPath in pathsDone:
                 DUEL_WINNER_OVERLAYS[side] = pathsDone[imgPath]
             else:
-                DUEL_WINNER_OVERLAYS[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
+                if not os.path.isfile(imgPath):
+                    if EMPTY_DUEL_RESULTS_OVERLAY is None:
+                        EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+                    DUEL_WINNER_OVERLAYS[side] = EMPTY_DUEL_RESULTS_OVERLAY
+                else:
+                    DUEL_WINNER_OVERLAYS[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
                 pathsDone[side] = DUEL_WINNER_OVERLAYS[side]
 
     return DUEL_WINNER_OVERLAYS[winner].copy()
@@ -384,12 +402,12 @@ def copyStarMap() -> Image.Image:
     """
     global MAP_IMAGE
     if MAP_IMAGE is None:
-        if cfg.paths.mapImage:
+        if os.path.isfile(cfg.paths.mapImage):
             MAP_IMAGE = Image.open(cfg.paths.mapImage)
-            if MAP_IMAGE.mode != "RGBA":
-                MAP_IMAGE = MAP_IMAGE.convert("RGBA")
         else:
-            raise ValueError("No map image given in cfg")
+            MAP_IMAGE = MISSING_TEXTURE
+        if MAP_IMAGE.mode != "RGBA":
+            MAP_IMAGE = MAP_IMAGE.convert("RGBA")
 
     return MAP_IMAGE.copy()
 

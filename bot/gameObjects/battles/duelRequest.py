@@ -209,6 +209,8 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
                 botState.client.logger.log("duelRequest", "buildDuelResultsImage",
                                     f"Failed to fetch profile image for user {player}: {e}", exception=e)
                 raise RuntimeError(f"Failed to fetch profile image for user {player}")
+            except Exception as e:
+                raise e
 
             name = str(dcUser)
         else:
