@@ -279,61 +279,6 @@ async def on_message(message: discord.Message):
     except discord.HTTPException:
         pass
 
-    # Check whether the command was requested in DMs
-    try:
-        isDM = not isinstance(message.channel, GuildChannel)
-    except AttributeError:
-        isDM = True
-    # Get the context-relevant command prefix
-    if isDM:
-        commandPrefix = cfg.defaultCommandPrefix
-    else:
-        # ignoring a warning on guild.id access. isDM guarantees that this is a guild channel, so the guild cannot be None.
-        commandPrefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix # type: ignore[reportOptionalMemberAccess]
-
-    # For any messages beginning with commandPrefix
-    if message.content.startswith(commandPrefix) and len(message.content) > len(commandPrefix):
-        # replace special apostraphe characters with the universal '
-        msgContent = message.content.replace("‘", "'").replace("’", "'")
-
-        # split the message into command and arguments
-        if len(msgContent[len(commandPrefix):]) > 0:
-            command = msgContent[len(commandPrefix):].split(" ")[0]
-            args = msgContent[len(commandPrefix) + len(command) + 1:]
-        # if no command is given, ignore the message
-        else:
-            return
-
-        # infer the message author's permissions
-        accessLevel = inferUserPermissions(message)
-        try:
-            # Call the requested command
-            commandFound = await botCommands.call(command, message, args, accessLevel, isDM=isDM)
-        # If a non-DMable command was called from DMs, send an error message
-        except lib.exceptions.IncorrectCommandCallContext:
-            await err_nodm(message, "", isDM)
-            return
-
-        # If the command threw an exception
-        except Exception as e:
-            # print a user friendly error
-            await message.reply(":woozy_face: Uh oh, something went wrong! The error has been logged.\n" \
-                                        + "This command probably won't work until we've looked into it.",
-                                mention_author=False)
-            # log the exception as misc
-            botState.client.logger.log("Main", "on_message",
-                                f"An unexpected error occured when calling command '{command}' with args '{args}'",
-                                exception=e)
-            print(traceback.format_exc())
-            commandFound = True
-
-        # Command not found, send an error message.
-        if not commandFound:
-            userTitle = cfg.accessLevelTitles[accessLevel]
-            await message.reply(f":question: Unknown command, {userTitle}. " \
-                                + f"Type `{commandPrefix}help` for a list of commands! **o7**",
-                                mention_author=False)
-
 
 @botState.client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
