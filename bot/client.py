@@ -64,7 +64,7 @@ def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     return userDB.UserDB()
 
 
-def loadGuildsDB(filePath: Union[Path, str], dbReload: bool = False) -> guildDB.GuildDB:
+def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
     """Build a GuildDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
@@ -73,7 +73,7 @@ def loadGuildsDB(filePath: Union[Path, str], dbReload: bool = False) -> guildDB.
     if os.path.isfile(filePath):
         content = lib.jsonHandler.readJSON(filePath)
         # Ignoring here because I cannot statically validate the structure of a file
-        return guildDB.GuildDB.deserialize(content) # type: ignore[reportGeneralTypeIssues]
+        return guildDB.GuildDB.deserialize(content, dbReload=True) # type: ignore[reportGeneralTypeIssues]
     return guildDB.GuildDB()
 
 
@@ -532,8 +532,10 @@ class BasedClient(ClientBaseClass):
 
 
     async def reloadDBs(self):
-        """Save all savedata to file, and start the db saving task if it is not running.
+        """Load all savedata from file, and start the db saving task if it is not running.
         """
+        self._dbsLoaded = True
+
         self._usersDB = loadUsersDB(cfg.paths.usersDB)
         print(f"{len(self._usersDB.users)} users loaded")
     
@@ -548,8 +550,6 @@ class BasedClient(ClientBaseClass):
         self._reactionMenusDB = await loadReactionMenusDB(cfg.paths.reactionMenusDB)
 
         print(f"{len(self._reactionMenusDB)} reaction menus loaded")
-        
-        self._dbsLoaded = True
 
         if not self.dbSaveTask.is_running():
             self.dbSaveTask.start()
@@ -655,6 +655,9 @@ class BasedClient(ClientBaseClass):
             self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)
             self._githubLoaded = True
 
+        # Create missing directories
+        cfg.paths.createMissingDirectories()
+
         gameConfigurator.loadAllGameObjectData()
         gameConfigurator.loadAllGameObjects()
 
@@ -665,6 +668,9 @@ class BasedClient(ClientBaseClass):
 
         if not self.shutdownCheckTask.is_running():
             self.shutdownCheckTask.start()
+
+        # Convert all UninitializedBasedEmojis in config to BasedEmoji
+        cfg.defaultEmojis.initializeEmojis()
 
         await self.reloadDBs()
 

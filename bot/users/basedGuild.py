@@ -1076,7 +1076,7 @@ class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
                                     for divName, levels in bountyDivision.divisionNameLevels().items()}
 
-        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled"),
+        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled","announceChannel","playChannel","rendersChannel"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,
                                                     guildChannels=guildChannels,
                                                     divisionShops=divisionShops, shopsDisabled=shopsDisabled))

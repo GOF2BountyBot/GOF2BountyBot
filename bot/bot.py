@@ -247,11 +247,6 @@ async def on_ready():
     # Set custom bot status
     await botState.client.change_presence(activity=discord.Game("BASED APP"))
 
-    # Convert all UninitializedBasedEmojis in config to BasedEmoji
-    cfg.defaultEmojis.initializeEmojis()
-    # Create missing directories
-    cfg.paths.createMissingDirectories()
-
 
 @botState.client.event
 async def on_message(message: discord.Message):
