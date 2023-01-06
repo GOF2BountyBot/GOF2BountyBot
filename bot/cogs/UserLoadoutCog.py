@@ -195,7 +195,7 @@ class UserLoadoutCog(BasedCog):
     )
     @app_commands.command(name="loadout",
                             description="Display your current ship and the items equipped onto it, or those equipped by someone else.")
-    async def cmd_loadout(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: str = ""):
+    async def cmd_loadout(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
         """list the requested user or criminal's currently equipped items.
         """
         if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return

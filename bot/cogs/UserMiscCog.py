@@ -1,19 +1,22 @@
 from dataclasses import dataclass
+from io import BytesIO
 import operator
+import os
 import random
 from typing import List, Optional, Union, cast
 import discord
 from discord import ButtonStyle, Embed, Guild, Member, Reaction, User, app_commands, Interaction, Colour
-from discord.utils import utcnow
+from discord.utils import utcnow, MISSING
 from discord.ui import View, Button
 from aiohttp import client_exceptions
 import traceback
+from PIL import Image, ImageDraw, ImageFont
 
 from .. import client, lib, botState
 from ..lib.BASED_version import getBASEDVersion, BASED_REPO_URL
 from ..lib.discordUtil import ZWSP
 from ..lib.stringTyping import isInt, commaSplitNum
-from ..lib.gameMaths import calculateUserBountyHuntingLevel
+from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..interactions import basedCommand, basedApp
 from ..interactions.basedComponent import StaticComponents
 from ..interactions.commandChecks import guildOnly
@@ -25,6 +28,7 @@ from ..databases import bountyDB
 from ..logging import LogCategory
 from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
 from ..reactionMenus import reactionPollMenu
+from ..databases.bountyDB import divisionNameForLevel
 
 #region how to play util
 
@@ -604,6 +608,236 @@ class UserMiscCog(basedApp.BasedCog):
             return
 
         await interaction.response.send_message("✅ Info sent to your DMs!", ephemeral=True)
+
+
+    @basedCommand.basedCommand()
+    @app_commands.describe(user="The user whose profile to get. Defaults to you.",
+                            user_id="The ID of the user whose profile to get. Useful if they are in another server.")
+    @app_commands.command(name="stats",
+                            description="Show the bounty hunter profile and statistics for yourself or someone else")
+    async def cmd_stats(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
+        """print the stats of the specified user, use the calling user if no user is specified.
+        :param discord.Message message: the discord message calling the command
+        :param str args: string, can be empty or contain a user mention
+        :param bool isDM: Whether or not the command is being called from a DM channel
+        """
+        if not (requestedUser := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
+
+        # create the stats embed
+        statsEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours["neutral"],
+                                                titleTxt=lib.discordUtil.userOrMemberName(requestedUser, interaction.guild),
+                                                footerTxt="Pilot number #" + requestedUser.discriminator,
+                                                thumb=requestedUser.display_avatar.with_size(64).url)
+        statsEmbed.description = "__Pilot Statistics__"
+
+        isClassic = False
+
+        # If the requested user is not in the database, don't bother adding them just print zeroes
+        if not self.bot.usersDB.idExists(requestedUser.id):
+            hunterLvl = 1
+            bountyXP = effectiveBountyXP = bountyHuntingXPForLevel(1)
+            nextXP = bountyHuntingXPForLevel(2)
+            levelProgress = 0
+            statsEmbed.add_field(name="Credits balance:", value=0, inline=True)
+            statsEmbed.add_field(name="Total value:", value=commaSplitNum(basedUser.defaultUserValue), inline=True)
+            statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
+            statsEmbed.add_field(name="Bounty Hunter Level:", value="1")
+            statsEmbed.add_field(name="XP until next level:", value=commaSplitNum(nextXP - bountyXP))
+            statsEmbed.add_field(name="Prestiges:", value="0")
+            statsEmbed.add_field(name="Total systems checked:", value=0, inline=True)
+            statsEmbed.add_field(name="Total bounties won:", value=0, inline=True)
+            statsEmbed.add_field(name="Total earned from bounties:", value=0, inline=True)
+            statsEmbed.add_field(name="‎", value="__Dueling__", inline=False)
+            statsEmbed.add_field(name="Duels won:", value="0", inline=True)
+            statsEmbed.add_field(name="Duels lost:", value="0", inline=True)
+            statsEmbed.add_field(name="Total credits won:", value="0", inline=True)
+            statsEmbed.add_field(name="Total credits lost:", value="0", inline=True)
+
+        # Otherwise, print the stats stored in the user's database entry
+        else:
+            userObj: basedUser.BasedUser = self.bot.usersDB.getUser(requestedUser.id)
+            isClassic = userObj.classicModeEnabled
+
+            if isClassic:
+                hunterLvl = cfg.minTechLevel
+                nextXP = -1
+                levelProgress = 0
+                effectiveBountyXP = 0
+                classicEmoji: lib.emojis.BasedEmoji = cfg.defaultEmojis.classicMode
+                if classicEmoji.isUnicode:
+                    statsEmbed.description += f"\n`{classicEmoji.sendable} classic mode enabled (see /help classic)`"
+                else:
+                    statsEmbed.description += f"\n{classicEmoji.sendable} Classic mode enabled *(see `/help classic`)*"
+            else:
+                # Casting because xp is guaranteed for non-classic mode users
+                bountyXP = cast(int, userObj.bountyHuntingXP)
+                effectiveBountyXP = bountyXP + max(userObj.bountyHuntingXpSurplus, 0)
+                hunterLvl = calculateUserBountyHuntingLevel(userObj.bountyHuntingXP)
+                xpForLevel = bountyHuntingXPForLevel(hunterLvl)
+                if hunterLvl == cfg.maxTechLevel:
+                    nextXP = bountyHuntingXPForLevel(hunterLvl)
+                    levelProgress = 1
+                else:
+                    nextXP = bountyHuntingXPForLevel(hunterLvl + 1)
+                    levelProgress = (bountyXP - xpForLevel) / (nextXP - xpForLevel)
+
+            if userObj.medals:
+                for m in [i for i in userObj.medals if i.name.lower() not in bbData.medalObjs]:
+                    userObj.medals.remove(m)
+                statsEmbed.description = f"{''.join(m.emoji.sendable for m in userObj.medals)}\n\n{statsEmbed.description}"
+
+            statsEmbed.add_field(name="Credits balance:", value=commaSplitNum(userObj.credits), inline=True)
+            statsEmbed.add_field(name="Total value:", value=commaSplitNum(userObj.getStatByName("value")), inline=True)
+            statsEmbed.add_field(name="‎", value="__Bounty Hunting__", inline=False)
+            if not isClassic:
+                statsEmbed.add_field(name="Bounty Hunter Level:", value=str(hunterLvl))
+                canDivUp = userObj.canDivUp()
+                if hunterLvl == cfg.maxTechLevel:
+                    prestigeEmoji = f"{cfg.defaultEmojis.prestigeUnlocked.sendable} " if canDivUp else ""
+                    statsEmbed.add_field(name="XP until next level:", value=prestigeEmoji + "*[Max Level]*")
+                else:
+                    if canDivUp:
+                        divUpEmoji = cfg.defaultEmojis.divUpUnlocked.sendable
+                        statsEmbed.add_field(name="XP until next level:",
+                                        value=f"0\n{divUpEmoji} Ready to `/div-up`!")
+                    else:
+                        # Casting because xp is guaranteed for non-classic mode users
+                        statsEmbed.add_field(name="XP until next level:",
+                                        value=commaSplitNum(nextXP - cast(int, userObj.bountyHuntingXP)))
+                    
+            statsEmbed.add_field(name="Prestiges:", value=str(userObj.prestiges))
+            statsEmbed.add_field(name="Total systems checked:", value=commaSplitNum(userObj.systemsChecked), inline=True)
+            statsEmbed.add_field(name="Total bounties won:", value=commaSplitNum(userObj.bountyWins), inline=True)
+            statsEmbed.add_field(name="Total credits earned from bounties:",
+                                    value=commaSplitNum(userObj.lifetimeBountyCreditsWon),
+                                    inline=True)
+            statsEmbed.add_field(name="‎", value="__Dueling__", inline=False)
+            statsEmbed.add_field(name="Duels won:", value=str(userObj.duelWins), inline=True)
+            statsEmbed.add_field(name="Duels lost:", value=str(userObj.duelLosses), inline=True)
+            statsEmbed.add_field(name="Total credits won:", value=commaSplitNum(userObj.duelCreditsWins), inline=True)
+            statsEmbed.add_field(name="Total credits lost:", value=commaSplitNum(userObj.duelCreditsLosses), inline=True)
+
+        if isClassic:
+            # send the stats embed
+            await interaction.response.send_message(embed=statsEmbed)
+            return
+
+        if hunterLvl == cfg.maxTechLevel:
+            levelProgress = 1
+
+        # Colour behind unfilled area of the xp bar
+        xpBarSil = lib.graphics.copyXPBarSilhouette()
+        # Mask describing which parts of the bar should be filled
+        xpBarMask = lib.graphics.progressBar(cfg.xpBarWidth, cfg.xpBarHeight, levelProgress)
+        # Image to mask with xpBarMask, filling the bar
+        xpBarFill = lib.graphics.copyXPBarFill(divisionNameForLevel(hunterLvl))
+        # User profile background image
+        if os.path.isfile(cfg.paths.userProfileBackground):
+            profileBackground = lib.graphics.copyUserProfileBackground()
+        else:
+            profileBackground = Image.new("RGBA", (cfg.userProfileImgWidth, cfg.userProfileImgHeight), (0, 0, 0, 0))
+
+        # Reader for the final image, to be given to discord
+        userProfileFile = None
+        # The final image, in binary mode, to be read by userProfileFile
+        userProfileBytes = None
+        # Tracker so that we don't accidentally closeAll twice
+        filesOpen = True
+
+        xPad = int(profileBackground.size[0] * cfg.userProfileEdgePaddingX)
+        yPad = int(profileBackground.size[1] * cfg.userProfileEdgePaddingY)
+
+        def closeAll():
+            """Close all active images and readers in use for constructing the profile image
+            """
+            if filesOpen:
+                xpBarSil.close()
+                xpBarMask.close()
+                xpBarFill.close()
+                profileBackground.close()
+                if userProfileBytes is not None:
+                    userProfileBytes.close()
+                if userProfileFile is not None:
+                    userProfileFile.close()
+
+        # Before attempting to build XP bar, verify image sizes
+        # No need to check bar sizes, these are guaranteed by lib.graphics
+        # if xpBarSil.size != xpBarMask or xpBarSil.size != xpBarFill.size
+        # Ensure the XP bar fits within the profile background. Could fix this later with scaling if needed.
+        if xpBarSil.size[0] > profileBackground.size[0] or xpBarSil.size[1] > profileBackground.size[1]:
+            self.bot.logger.log("usr_misc", "cmd_stats", "XP Bar does not fit within user profile image. Image" \
+                                + f"sizes: xpBarSil {xpBarSil.size}, profileBackground {profileBackground.size}",
+                                eventType="XPBAR_DIM")
+            statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
+                                        + "The error has been logged.")
+            closeAll()
+            filesOpen = False
+        else:
+            try:
+                # Create the XP bar, by masking the fill image and placing it on top of the silhouette
+                xpBarFill = Image.composite(xpBarFill, xpBarSil, xpBarMask)
+            except ValueError as e:
+                self.bot.logger.log("usr_misc", "cmd_stats",
+                                    "Received images of differing sizes when masking xp bar fill. Image" \
+                                    + f"sizes: xpBarFill {xpBarFill.size}, xpBarSil {xpBarSil.size}, " \
+                                    + f"xpBarMask {xpBarMask.size}",
+                                    exception=e)
+                statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
+                                            + "The error has been logged.")
+                closeAll()
+                filesOpen = False
+            else:
+                # Apply progress bar outlines
+                xpBarFill = lib.graphics.applyProgressBarOutline(xpBarFill, 1, (0, 0, 0, 0),
+                                                                    lineColour=cfg.xpBarOutlineColour,
+                                                                    lineWidth=cfg.xpBarOutlineWidth)
+                # Calculate the coordinates to paste the bar onto the background at. This is currently bottom middle.
+                barPasteLocX = int(profileBackground.size[0] / 2) - int(xpBarFill.size[0] / 2)
+                barPasteLocY = profileBackground.size[1] - xpBarFill.size[1] - yPad
+                try:
+                    profileBackground.paste(xpBarFill, (barPasteLocX, barPasteLocY), xpBarFill)
+                except ValueError as e:
+                    self.bot.logger.log("usr_misc", "cmd_stats",
+                                        "Received images of differing sizes when combining xp bar " \
+                                        + f"layers. Image sizes: xpBarFill {xpBarFill.size}, profileBackground " \
+                                        + str(profileBackground.size), exception=e)
+                    statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
+                                                + "The error has been logged.")
+                    closeAll()
+                    filesOpen = False
+                else:
+                    textDraw: ImageDraw.ImageDraw = ImageDraw.Draw(profileBackground)
+                    # Load font
+                    font = ImageFont.truetype(str(cfg.paths.userProfileFont), cfg.userProfileFontSize)
+                    # Add level and division
+                    textDraw.text((xPad, yPad), f"Level {hunterLvl} {divisionNameForLevel(hunterLvl).title()}",
+                                    cfg.userProfileLevelColour, font=font)
+                    # Build current XP string
+                    currentXPStr = commaSplitNum(effectiveBountyXP) + "/"
+                    # Calculate size of current XP string
+                    currentXPStrSize = font.getsize(currentXPStr)
+                    # Build next XP string
+                    nextXPStr = commaSplitNum(nextXP) + "xp"
+                    # Calculate size of next XP string
+                    nextXPStrSize = font.getsize(nextXPStr)
+                    # Draw next XP string to image
+                    textDraw.text((cfg.userProfileImgWidth - nextXPStrSize[0] - xPad, yPad), nextXPStr,
+                                    cfg.userProfileNextXPColour, font=font)
+                    # Draw current XP string to image
+                    textDraw.text((cfg.userProfileImgWidth - currentXPStrSize[0] - nextXPStrSize[0] - xPad, yPad),
+                                    currentXPStr,
+                                    cfg.userProfileXPColour, font=font)
+                    userProfileBytes = BytesIO()
+                    profileBackground.save(userProfileBytes, "PNG")
+                    userProfileBytes.seek(0)
+
+                    userProfileFile = discord.File(userProfileBytes, filename="userProfile.png")
+                    statsEmbed.set_image(url="attachment://userProfile.png")
+
+        # send the stats embed
+        await interaction.response.send_message(file=userProfileFile or MISSING, embed=statsEmbed)
+        closeAll()
+        filesOpen = False
 
 
     @basedCommand.basedCommand()

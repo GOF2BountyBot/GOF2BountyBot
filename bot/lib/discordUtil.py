@@ -63,7 +63,7 @@ def findBUserDCGuild(user: basedUser.BasedUser, client = None) -> Union[Guild, N
     return None
 
 
-def userOrMemberName(dcUser: User, dcGuild: Guild) -> str:
+def userOrMemberName(dcUser: Union[User, Member], dcGuild: Optional[Guild]) -> str:
     """If dcUser is a member of dcGuild, return dcUser's display name in dcGuild
     (their nickname if they have one, or their user name otherwise), Otherwise, returm dcUser's discord user name.
 

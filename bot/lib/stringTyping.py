@@ -72,7 +72,7 @@ def isRoleMention(m: str) -> bool:
     return all((m.endswith(">"), m.startswith("<@&"), isInt(m[3:-1])))
 
 
-def commaSplitNum(num: int) -> str:
+def commaSplitNum(num: Union[int, float]) -> str:
     """Convert an number to a string with commas in every third position. Also accepts floats.
     For example: 3 -> "3", 30000 -> "30,000", and 561928301 -> "561,928,301"
     https://stackoverflow.com/a/10742904

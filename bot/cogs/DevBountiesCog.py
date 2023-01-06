@@ -709,7 +709,7 @@ class DevBountiesCog(basedApp.BasedCog):
         """
         u, _, _ = await self.UsersUtilCog.getBasedUserOrAuthor(interaction, user_id)
         if u is not None:
-            await interaction.response.send_message(f"{u.canDivUp()} ({u.bountyHuntingXpSurplus}xp surplus)")
+            await interaction.response.send_message(f"{u.canDivUp()} ({u.bountyHuntingXpSurplus}xp surplus)", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties",

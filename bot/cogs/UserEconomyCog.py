@@ -30,7 +30,7 @@ class UserEconomyCog(BasedCog):
                             user_id="The ID of the user whose balance to check. Useful if they are in another server.")
     @app_commands.command(name="balance",
                             description="Give no arguments to check your credits balance, give a user to check their balance.")
-    async def cmd_balance(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: str = ""):
+    async def cmd_balance(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
         """print the balance of the specified user, using the calling user if no user is specified.
         """
         if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
@@ -347,7 +347,7 @@ class UserEconomyCog(BasedCog):
                             user_id="The ID of the user to pay. Useful if they are in another server.")
     @app_commands.command(name="pay",
                             description="Pay the given user an amount of credits from your balance.")
-    async def cmd_pay(self, interaction: Interaction, amount: Range[int, 0], user: Optional[Union[User, Member]] = None, user_id: str = ""):
+    async def cmd_pay(self, interaction: Interaction, amount: Range[int, 0], user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
         """Pay a given user the given number of credits from your balance.
         """
         if not (user := await self.UsersUtilCog.targetUser(interaction, user, user_id)): return
@@ -396,7 +396,7 @@ class UserEconomyCog(BasedCog):
                             user_id="The ID of the user to pay. Useful if they are in another server.")
     @app_commands.command(name="total_value",
                             description="Get the total value of all of your items, including your credits balance, or that of another user.")
-    async def cmd_total_value(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: str = ""):
+    async def cmd_total_value(self, interaction: Interaction, user: Optional[Union[User, Member]] = None, user_id: Optional[str] = None):
         """⚠ WARNING: MARKED FOR CHANGE ⚠
         The following function is provisional and marked as planned for overhaul.
         Details: The command output is finalised. However, the inner workings of the command are to be replaced with attribute
