@@ -730,7 +730,7 @@ class BasedClient(ClientBaseClass):
 
     async def multiWaitFor(self, eventTypes: Union[List[str], Tuple[str]], timeout: float, check: Optional[Callable[..., bool]] = None):
         done, pending = await asyncio.wait(
-            [self.wait_for(eventType, check=check) for eventType in eventTypes],
+            [asyncio.create_task(self.wait_for(eventType, check=check)) for eventType in eventTypes],
             return_when=asyncio.FIRST_COMPLETED,
             timeout=timeout
         )
