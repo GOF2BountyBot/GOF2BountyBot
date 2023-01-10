@@ -672,9 +672,10 @@ class BasedClient(ClientBaseClass):
         # Convert all UninitializedBasedEmojis in config to BasedEmoji
         cfg.defaultEmojis.initializeEmojis()
 
+        self.loggedIn = True
+
         await self.reloadDBs()
 
-        self.loggedIn = True
         if dispatchReady:
             self.dispatch("ready", *args, **kwargs)
 
