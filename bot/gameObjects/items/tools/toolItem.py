@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Coroutine, Protocol, TypeVar, Union, cast, Any
 if TYPE_CHECKING:
     from ....users import basedUser
-    from .... import client
+
 from .. import gameItem
 from abc import abstractmethod
 from .... import lib
@@ -142,8 +142,11 @@ def userFriendlySingleUse(func: TUserFriendlyUse) -> TUserFriendlyUse:
 
     The tool is only removed if userFriendlyUse succeeds - returns `True`.
     """
+    # TODO: placed here to avoid a circular import
+    from .... import client
+
     async def inner(self: ToolItem, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs):
-        if not isinstance(interaction.client, "client.BasedClient"):
+        if not isinstance(interaction.client, client.BasedClient):
             raise TypeError(f"{userFriendlySingleUse.__name__} can only be applied interactions that are handled by a BasedClient")
             
         userExists = interaction.client.usersDB.idExists(interaction.user.id)

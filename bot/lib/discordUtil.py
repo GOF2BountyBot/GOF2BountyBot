@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Awaitable, Callable, Coroutine, Optional, Protocol, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
 from typing_extensions import ParamSpec
+from enum import Enum
 
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild
@@ -62,7 +63,7 @@ def findBUserDCGuild(user: basedUser.BasedUser, client = None) -> Union[Guild, N
     return None
 
 
-def userOrMemberName(dcUser: User, dcGuild: Guild) -> str:
+def userOrMemberName(dcUser: Union[User, Member], dcGuild: Optional[Guild]) -> str:
     """If dcUser is a member of dcGuild, return dcUser's display name in dcGuild
     (their nickname if they have one, or their user name otherwise), Otherwise, returm dcUser's discord user name.
 
@@ -974,3 +975,7 @@ async def interactionSend(interaction: Interaction, respond: bool, followup: boo
     else:
         sendKwargs.pop("ephemeral", None)
         return await textChannel(interaction).send(*sendArgs, **sendKwargs)
+
+
+class ApiError(Enum):
+    unknown_emoji = 10014

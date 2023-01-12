@@ -135,7 +135,7 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
     
     @property
     def channel(self):
-        if not self.initialized:
+        if self._channel is None:
             raise lib.exceptions.NotReady("Attempted to access BountyBoardChannel.channel before the BBC was initialized")
         return cast(TextChannel, self._channel)
 
@@ -243,7 +243,7 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
         :return: A jump URL to the identified message
         :rtype: str
         """
-        if not self.initialized:
+        if self.channel is not None:
             channelID = self.channelIDToBeLoaded
             guildID = None
         else:
@@ -268,7 +268,7 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
         return f"[{self.jumpUrl(id) if logUrls else id}]{f' {content}' if content else ''}"
 
 
-    async def loadMessageWithRetry(self, id: int, meta: str, logUrls: bool = True) -> Optional[Message]:
+    async def loadMessageWithRetry(self, id: int, meta: str, logUrls: bool = True, initializing: bool = False) -> Optional[Message]:
         """Load a message from self.channel by id
 
         :param id: The id of the message to load
@@ -280,7 +280,7 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
         :return: A message if one is found, None if an error occurred
         :rtype: Optional[Message]
         """
-        if self.initialized:
+        if not self.initialized and not initializing:
             raise ValueError(f"Attempted loadMessageWithRetry before initializing self.channel")
 
         meta = self.prependJumpUrl(id, logUrls, meta)
@@ -377,18 +377,18 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
             await self.rebuild()
 
 
-    async def _loadEscapedBountiesMessage(self, logUrls: bool):
+    async def _loadEscapedBountiesMessage(self, logUrls: bool, initializing: bool = False):
         if self.escapedBountiesMsgToBeLoaded is None:
             raise ValueError("escapedBountiesMsgToBeLoaded not supplied")
         self.escapedBountiesMessage = await self.loadMessageWithRetry(self.escapedBountiesMsgToBeLoaded,
-                                                                        "escaped bounties", logUrls)
+                                                                        "escaped bounties", logUrls, initializing=initializing)
 
 
-    async def _loadNoBountiesMessage(self, logUrls: bool):
+    async def _loadNoBountiesMessage(self, logUrls: bool, initializing: bool = False):
         if self.noBountiesMsgToBeLoaded is None:
             raise ValueError("noBountiesMsgToBeLoaded not supplied")
         self.noBountiesMessage = await self.loadMessageWithRetry(self.noBountiesMsgToBeLoaded,
-                                                                    "no bounties", logUrls)
+                                                                    "no bounties", logUrls, initializing=initializing)
 
 
     async def _sendNoBountiesMessage(self):
@@ -396,11 +396,10 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
                                                                     embed=noBountiesEmbed)
 
 
-    async def _loadCriminalMsg(self, crimDict: criminal.SerializedCriminalUnion, msgId: int, logUrls: bool = True):
+    async def _loadCriminalMsg(self, crimDict: criminal.SerializedCriminalUnion, msgId: int, logUrls: bool = True, initializing: bool = False):
         crim = criminal.Criminal.deserialize(crimDict)
         if self.division.criminalObjExists(crim):
-            msg = await self.loadMessageWithRetry(msgId,
-                                                    f"criminal: {crim.name}", logUrls)
+            msg = await self.loadMessageWithRetry(msgId, f"criminal: {crim.name}", logUrls, initializing=initializing)
             if msg is not None:
                 self.bountyMessages[crim] = msg
 
@@ -480,17 +479,17 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
         if self.escapedBountiesMsgToBeLoaded == -1:
             doReload = True
         else:
-            await self._loadEscapedBountiesMessage(logUrls)
+            await self._loadEscapedBountiesMessage(logUrls, initializing=True)
             doReload = self.escapedBountiesMessage is None
 
         if not self.messagesToBeLoaded:
             if self.noBountiesMsgToBeLoaded != -1:
-                tasks.add(self._loadNoBountiesMessage(logUrls))
+                tasks.add(self._loadNoBountiesMessage(logUrls, initializing=True))
             else:
                 tasks.add(self._sendNoBountiesMessage())
         else:
             for id, crimDict in self.messagesToBeLoaded.items():
-                tasks.add(self._loadCriminalMsg(crimDict, id, logUrls))
+                tasks.add(self._loadCriminalMsg(crimDict, id, logUrls, initializing=True))
             
         # del self.messagesToBeLoaded
         # del self.channelIDToBeLoaded
@@ -513,7 +512,7 @@ class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
 
         self.initialized = True
         
-        if self.postInitTasks is not None:
+        if self.postInitTasks:
             t = lib.discordUtil.BasicScheduler()
             for task in self.postInitTasks:
                 t.add(task)

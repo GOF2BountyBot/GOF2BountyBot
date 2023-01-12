@@ -112,7 +112,7 @@ async def printAndExpirePollResults(msgID: int):
     else:
         pollEmbed.add_field(name="Results", value="No votes received!", inline=False)
 
-    await menuMsg.edit(embed=pollEmbed)
+    await menuMsg.edit(embed=pollEmbed, view=None)
     if msgID in botState.client.reactionMenusDB:
         del botState.client.reactionMenusDB[msgID]
 
@@ -264,7 +264,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuO
         menuColour = Colour.from_rgb(rmDict["col"][0], rmDict["col"][1], rmDict["col"][2]) \
                         if "col" in rmDict else Colour.blue()
 
-        return ReactionPollMenu(**cls._makeDefaults(args=rmDict, ignores=("type", "guild", "channel", "options", "timeout", "owningBBUser"),
+        return ReactionPollMenu(**cls._makeDefaults(args=rmDict, ignores=("type", "guild", "channel", "options", "timeout", "owningBBUser", "footerTxt"),
                                                     msg=msg, pollOptions=options, timeout=timeoutTT,
                                                     col=menuColour, owningBBUser=owner,
                                                     targetRole=msg.guild.get_role(rmDict["targetRole"]) \

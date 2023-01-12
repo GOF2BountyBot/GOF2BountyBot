@@ -250,7 +250,7 @@ class UserBountiesCog(BasedCog):
         requestedBBUser = self.bot.usersDB.getUser(interaction.user.id)
 
         # If the calling user is on checking cooldown
-        if utcfromtimestamp(requestedBBUser.bountyCooldownEnd) < utcnow():
+        if utcnow() < utcfromtimestamp(requestedBBUser.bountyCooldownEnd):
             diff = utcfromtimestamp(requestedBBUser.bountyCooldownEnd) - utcnow()
             await interaction.response.send_message(":stopwatch: Your *Khador Drive* is still charging!" \
                                                     + f" please wait **{td_format_noYM(diff)}.**")

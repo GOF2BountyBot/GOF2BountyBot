@@ -32,7 +32,7 @@ class GithubUtilCog(BasedCog):
                 self.bot.logger.log(GithubUtilCog.__name__, "cog_load", "", exception=e)
             else:
                 try:
-                    self._githubRepo = self.githubClient.get_repo(cfg.githubIssuesRepo)
+                    self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)
                 except Exception as e:
                     self.bot.logger.log(GithubUtilCog.__name__, "cog_load", "", exception=e)
                 else:

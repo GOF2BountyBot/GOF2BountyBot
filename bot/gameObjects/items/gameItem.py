@@ -8,7 +8,7 @@ from abc import abstractmethod
 from ... import lib
 from ...lib import gameMaths
 from ...lib.stringTyping import commaSplitNum
-from ...cfg import bbData, cfg
+from ...cfg import bbData, cfg, schema
 from..gameObject import LoadedObject, SerializedLoadedObject
 
 
@@ -97,7 +97,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, seria
         self.icon = icon
         self.hasIcon = icon != ""
 
-        self.emoji = emoji
+        self._emoji = emoji
         self.hasEmoji = emoji is not None and emoji != lib.emojis.BasedEmoji.EMPTY
 
         self.value = value
@@ -105,6 +105,13 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, seria
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
+
+    @property
+    def emoji(self):
+        if self._emoji is None: return None
+        if isinstance(self._emoji, lib.emojis.UninitializedBasedEmoji):
+            self._emoji = schema.convertEmoji(self._emoji)
+        return self._emoji
 
 #region embed attributes
 
