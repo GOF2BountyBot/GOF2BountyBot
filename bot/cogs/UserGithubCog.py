@@ -17,7 +17,7 @@ from .util.transformers import BoolYesNo
 class UserGithubCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Github")
     @app_commands.describe(
-        private_results="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
+        send_private="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
     )
     @app_commands.command(name="github-search",
                             description="Search for GitHub issues with the given name, getting the " \
@@ -54,7 +54,7 @@ class UserGithubCog(BasedCog):
     
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Github")
     @app_commands.describe(
-        private_results="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
+        send_private="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
     )
     @app_commands.command(name="github-get",
                             description="Get the GitHub issue with the given number.")
