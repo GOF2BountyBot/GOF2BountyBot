@@ -11,18 +11,22 @@ from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..lib.discordUtil import ZWSP
+from .util.transformers import BoolYesNo
 
 
 class UserGithubCog(BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Github")
+    @app_commands.describe(
+        private_results="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
+    )
     @app_commands.command(name="github-search",
                             description="Search for GitHub issues with the given name, getting the " \
                                         + f"{cfg.githubIssueSearchNumResults} most similar issues.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_issue_search(self, interaction: Interaction, search: str):
+    async def cmd_issue_search(self, interaction: Interaction, search: str, send_private: BoolYesNo = BoolYesNo.Yes):
         """Search for github issues with the given title.
         """
-        await interaction.response.defer(thinking=True, ephemeral=True)
+        await interaction.response.defer(thinking=True, ephemeral=bool(send_private))
         
         totalResults, issues = await self.bot.githubClient.searchIssues(self.bot.githubRepo, search, cfg.githubIssueSearchNumResults)
         numIssues = len(issues)
@@ -49,13 +53,16 @@ class UserGithubCog(BasedCog):
 
     
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="Github")
+    @app_commands.describe(
+        private_results="If Yes, the results will be sent in a message that only you can see. (Defaults to Yes)"
+    )
     @app_commands.command(name="github-get",
                             description="Get the GitHub issue with the given number.")
     @app_commands.guilds(*cfg.developmentGuilds)
-    async def cmd_issue_get(self, interaction: Interaction, issue_number: Range[int, 1]):
+    async def cmd_issue_get(self, interaction: Interaction, issue_number: Range[int, 1], send_private: BoolYesNo = BoolYesNo.Yes):
         """Get the GitHub issue with the given number.
         """
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=bool(send_private), thinking=True)
         issue = await self.bot.githubClient.getIssueByNumber(self.bot.githubRepo, issue_number)
 
         if issue is None:
