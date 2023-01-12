@@ -36,8 +36,8 @@ class BasedGithub(Github):
         return allIssues.totalCount, results
 
 
-    @asyncWrap
     @classmethod
+    @asyncWrap
     def getIssueByNumber(cls, repo: Repository, issueNumber: int) -> Union[Issue, None]:
         """Get an issue by its number.
 
