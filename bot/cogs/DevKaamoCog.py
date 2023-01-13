@@ -112,7 +112,7 @@ class DevKaamoCog(basedApp.BasedCog):
                 shopEmbed.description = f"Expected {currentStock.numKeys} keys, found {expectedNumKeys}"
                 self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
                                     f"Unexpected number of keys in {itemType.value}sStock. Expected {currentStock.numKeys}, found {expectedNumKeys}.",
-                                    category=LogCategory.shop, eventType="INVTY_KEY_COUNT")
+                                    category=LogCategory.shop, eventType="INVTY_KEY_COUNT", interaction=interaction)
 
             for itemNum, currentKey in enumerate(currentStock.keys):
                 if not isinstance(currentKey, gameItem.GameItem):
@@ -121,7 +121,7 @@ class DevKaamoCog(basedApp.BasedCog):
                                             + f"Got {type(currentKey).__name__}.\n" \
                                             + "Inventory keys: " \
                                             + ", ".join(str(i) for i in currentStock.items),
-                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE", interaction=interaction)
 
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentKey}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
@@ -133,7 +133,7 @@ class DevKaamoCog(basedApp.BasedCog):
                     self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_kaamo.callback.__name__,
                                         f"Requested {itemType.value} '{currentKey.name}' (index {itemNum}), "
                                         + "which was not found in the shop stock",
-                                        category=LogCategory.shop, eventType="UNKWN_KEY")
+                                        category=LogCategory.shop, eventType="UNKWN_KEY", interaction=interaction)
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentKey.name}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
                     continue
@@ -144,7 +144,7 @@ class DevKaamoCog(basedApp.BasedCog):
                                             + f"Got {type(currentItem).__name__}.\n" \
                                             + "Inventory keys: " \
                                             + ", ".join(str(i) for i in currentStock.items),
-                                        category=LogCategory.shop, eventType="INVTY_LSTNG_ITEM_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_LSTNG_ITEM_TYPE", interaction=interaction)
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentItem}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
                     continue

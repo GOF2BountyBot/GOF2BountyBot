@@ -176,7 +176,7 @@ class AdminMiscCog(basedApp.BasedCog):
                 self.bot.logger.log(type(self).__name__, "endRemoveField",
                                     "select-based static component triggered for non-select interaction: " \
                                         + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Remove_Role),
-                                    category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                    category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             else:
                 changed = True
                 for roleId in [int(i) for i in selected]:
@@ -188,7 +188,7 @@ class AdminMiscCog(basedApp.BasedCog):
                         self.bot.logger.log(type(self).__name__, "endRemoveField",
                                             f"Could not find menu option for selected value '{roleId}': " \
                                                 + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Remove_Role),
-                                            category=LogCategory.staticComponents, eventType="UNKWN_MENU_OPTION")
+                                            category=LogCategory.staticComponents, eventType="UNKWN_MENU_OPTION", interaction=interaction)
                         return
                     
                     del menu.options[option.emoji]
@@ -258,7 +258,7 @@ class AdminMiscCog(basedApp.BasedCog):
                 self.bot.logger.log(type(self).__name__, self.endReorderRoles.__name__,
                                     "select-based static component triggered for non-select interaction: " \
                                         + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Reorder_Roles),
-                                    category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                    category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
                 swappedFields = None
             else:
                 if len(selected) != 2:
@@ -300,7 +300,7 @@ class AdminMiscCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             return
         else:
             for rawId in selectedRaw:
@@ -308,7 +308,7 @@ class AdminMiscCog(basedApp.BasedCog):
                     self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
                                 f"Non-int role ID received '{rawId}': " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
-                                category=LogCategory.staticComponents, eventType="ID_NOT_INT")
+                                category=LogCategory.staticComponents, eventType="ID_NOT_INT", interaction=interaction)
                     failed.append(rawId)
                     continue
 
@@ -443,14 +443,14 @@ class AdminMiscCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
         else:
             rawId = selected[0]
             if not lib.stringTyping.isInt(rawId):
                 self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                             f"Non-int role ID received '{rawId}': " \
                                 + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
-                            category=LogCategory.staticComponents, eventType="ID_NOT_INT")
+                            category=LogCategory.staticComponents, eventType="ID_NOT_INT", interaction=interaction)
                 errorMsg = "That menu option doesn't represent a role!"
             else:
                 roleId = int(rawId)

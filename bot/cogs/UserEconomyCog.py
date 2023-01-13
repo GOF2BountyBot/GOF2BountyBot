@@ -101,7 +101,7 @@ class UserEconomyCog(BasedCog):
                             self.bot.logger.log("Main", "cmd_shop",
                                                 f"Requested {currentItemType.value} '{currentStock.keys[itemNum-1].name}' " \
                                                     + f"(index {itemNum-1}), which was not found in the shop stock",
-                                                category=LogCategory.shop, eventType="UNKWN_KEY")
+                                                category=LogCategory.shop, eventType="UNKWN_KEY", interaction=interaction)
                         except IndexError:
                             break
                         except AttributeError:
@@ -110,7 +110,7 @@ class UserEconomyCog(BasedCog):
                                                 f"Unexpected type in {currentItemType.value}sStock KEYS, index " \
                                                     + f"{itemNum-1}. Got {type(currentStock.keys[itemNum-1]).__name__}" \
                                                     + f".\nInventory keys: {keysStr}",
-                                                category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
+                                                category=LogCategory.shop, eventType="INVTY_KEY_TYPE", interaction=interaction)
                             shopEmbed.add_field(name=f"{itemNum}. **⚠ #INVALID-ITEM# '{currentStock.keys[itemNum-1]}'",
                                                 value="Do not attempt to buy. Could cause issues.", inline=True)
                             continue

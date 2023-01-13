@@ -968,7 +968,7 @@ class DevMiscCog(BasedCog):
         botState.client.logger.log("dev_misc", "dev_cmd_bounty_status",
                             f"Bounty answer revealed to user {interaction.user} ({interaction.user.id}). " \
                             + f"Bounty: {b.criminal.name} in {bGuild.dcGuild} ({bGuild.id})",
-                            category=LogCategory.bountiesDB, eventType="CHEAT")
+                            category=LogCategory.bountiesDB, eventType="CHEAT", interaction=interaction)
 
         if b.activeShip is None:
             shipStr = "None"
@@ -1031,7 +1031,7 @@ class DevMiscCog(BasedCog):
                     newShip = shipItem.Ship.deserialize(shipDict)
                 except Exception as e:
                     await interaction.followup.send(f"{type(e).__name__} when deserializing new ship: {e}", ephemeral=True)
-                    botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+                    botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="", interaction=interaction)
                     return
 
                 if b.hasShip:
@@ -1053,7 +1053,7 @@ class DevMiscCog(BasedCog):
                 newTime = datetime.utcfromtimestamp(float(new_value))
             except Exception as e:
                 await interaction.followup.send(f"{type(e).__name__} error converting timestamp str to datetime: {e}", ephemeral=True)
-                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="", interaction=interaction)
                 return
 
             if newTime == b.issueTime:
@@ -1065,7 +1065,7 @@ class DevMiscCog(BasedCog):
                 newTime = utcfromtimestamp(float(new_value))
             except Exception as e:
                 await interaction.followup.send(f"{type(e).__name__} error converting timestamp str to datetime: {e}", ephemeral=True)
-                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="", interaction=interaction)
                 return
 
             if newTime == b.endTime:
@@ -1206,7 +1206,7 @@ class DevMiscCog(BasedCog):
             botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty",
                             f"Bounty answer revealed to user {interaction.user} ({interaction.user.id}). " \
                             + f"Bounty: {b.criminal.name} in {locationStr}",
-                            category=LogCategory.bountiesDB, eventType="CHEAT")
+                            category=LogCategory.bountiesDB, eventType="CHEAT", interaction=interaction)
 
         elif field is BountyEditField.techLevel:
             if not lib.stringTyping.isInt(new_value) or int(new_value) < 0 or int(new_value) > cfg.maxTechLevel:
@@ -1254,7 +1254,7 @@ class DevMiscCog(BasedCog):
                 newTime = utcfromtimestamp(float(new_value))
             except Exception as e:
                 await interaction.followup.send(f"{type(e).__name__} error converting timestamp str to datetime: {e}", ephemeral=True)
-                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="")
+                botState.client.logger.log("dev_misc", "dev_cmd_edit_bounty", exception=e, event="", interaction=interaction)
                 return
 
             if b.respawnTT is not None and newTime == b.respawnTT.expiryTime:

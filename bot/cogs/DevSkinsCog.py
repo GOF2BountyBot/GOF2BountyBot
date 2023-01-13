@@ -120,7 +120,7 @@ class DevSkinsCog(BasedCog):
                     await bbData.builtInShipSkins[skin].addShip(shipName, self.bot.skinStorageChannel)
                 except shipRenderer.RenderFailed as e:
                     self.bot.logger.log(DevSkinsCog.__name__, DevSkinsCog.dev_cmd_add_skin_to_all_ships.callback.__name__,
-                                        f"Failed to render ship '{shipName}' with skin '{skin}'", exception=e)
+                                        f"Failed to render ship '{shipName}' with skin '{skin}'", exception=e, interaction=interaction)
                     failedShips += 1
                 else:
                     succeededShips += 1

@@ -6,11 +6,12 @@ from .cfg import cfg
 # Discord Imports
 
 import discord
-from discord import Member, app_commands, Interaction
+from discord import Embed, InteractionResponded, Member, app_commands, Interaction
 from discord.ext.commands import ExtensionNotLoaded
 from discord.abc import GuildChannel
 from discord.app_commands import AppCommandError
-from discord.utils import utcnow
+from discord.utils import utcnow, MISSING
+from discord.ui import View
 
 # Util imports
 
@@ -100,6 +101,24 @@ botCommands = commands.loadCommands()
 
 ###### ERROR HANDLING ######
 
+async def _errorResponse(interaction: Interaction, content: Optional[str] = "", embed: Embed = MISSING, view: View = MISSING):
+    if content == "":
+        content = "🥴 An unexpected error occured when processing this action.\n" \
+                    + "The error has been logged, this probably won't work until we've looked into it.\n" \
+                    + f"When reporting this issue, please quote interaction ID: `{interaction.id}`"
+    if interaction.response.is_done():
+        try:
+            await interaction.followup.send(content=content or MISSING, embed=embed, view=view)
+        except InteractionResponded:
+            pass
+        except Exception as e:
+            botState.client.logger.log("MAIN", _errorResponse.__name__, f"Failed to inform user of failed interaction: {e}", exception=e, interaction=interaction)
+    else:
+        try:
+            await interaction.response.send_message(content=content, embed=embed, view=view)
+        except Exception as e:
+            botState.client.logger.log("MAIN", _errorResponse.__name__, f"Failed to inform user of failed interaction: {e}", exception=e, interaction=interaction)
+
 @botState.client.tree.error
 async def on_app_command_error(interaction: Interaction, error: AppCommandError):
     # Casting here because this code is only reached for app command errors
@@ -116,22 +135,26 @@ async def on_app_command_error(interaction: Interaction, error: AppCommandError)
     elif isinstance(error, app_commands.CommandNotFound):
         parentsStr = ":".join(error.parents)
         qualified = (f"{parentsStr}:" if parentsStr else "") + error.name
-        botState.client.logger.log("MAIN", qualified, "Unknown command called. Please re-sync commands to fix this error.", exception=error)
+        botState.client.logger.log("MAIN", qualified, "Unknown command called. Please re-sync commands to fix this error.", exception=error, interaction=interaction)
         await interaction.response.send_message("🥴 This command could not be found, the error has been logged. Please refresh your window to retrive the latest set of commands.", ephemeral=True)
     elif isinstance(error, app_commands.CommandAlreadyRegistered):
-        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading app command '{error}': already registered.", exception=error)
+        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading app command '{error}': already registered.", exception=error, interaction=interaction)
+        await _errorResponse(interaction, content=f"Error loading app command '{error}': already registered.")
         raise error
     elif isinstance(error, app_commands.CommandLimitReached):
-        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading app command '{error}': maximum number of commands reached.", exception=error)
+        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading app command '{error}': maximum number of commands reached.", exception=error, interaction=interaction)
+        await _errorResponse(interaction, content=f"Error loading app command '{error}': maximum number of commands reached.")
         raise error
     elif isinstance(error, app_commands.CommandSignatureMismatch):
-        botState.client.logger.log(command.module or "MAIN", command.callback.__name__, "Command signature mismatch on call. Please re-sync commands to fix this error.", exception=error)
+        botState.client.logger.log(command.module or "MAIN", command.callback.__name__, "Command signature mismatch on call. Please re-sync commands to fix this error.", exception=error, interaction=interaction)
         await interaction.response.send_message("🥴 Unexpected arguments were supplied, the error has been logged. Please refresh your window to retrive the latest set of commands.", ephemeral=True)
     elif isinstance(error, app_commands.CommandSyncFailure):
-        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading synchronizing commands: {error.code}{error.text}", exception=error)
+        botState.client.logger.log("MAIN", on_app_command_error.__name__, f"Error loading synchronizing commands: {error.code}{error.text}", exception=error, interaction=interaction)
+        await _errorResponse(interaction, content=f"Error loading synchronizing commands: {error.code}{error.text}")
         raise error
     else:
-        botState.client.logger.log(command.module or "MAIN", command.callback.__name__, "", exception=error)
+        await _errorResponse(interaction)
+        botState.client.logger.log(command.module or "MAIN", command.callback.__name__, "", exception=error, interaction=interaction)
 
 
 ####### UTIL FUNCTIONS #######

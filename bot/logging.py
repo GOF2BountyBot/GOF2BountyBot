@@ -166,7 +166,7 @@ class Logger:
 
 
     def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: Optional[str] = None,
-                trace: str = "", exception: Optional[BaseException] = None, noPrintEvent: bool = False, noPrint: bool = False):
+                trace: str = "", exception: Optional[BaseException] = None, noPrintEvent: bool = False, noPrint: bool = False, interaction: Optional[discord.Interaction] = None):
         """Log an event, queueing the log to be saved to a file.
 
         :param str classStr: The class in which the event occurred
@@ -183,6 +183,7 @@ class Logger:
                             the event string is very long. (Default False)
         :param bool noPrint: Skip printing this log to console entirely. Useful in cases where the log occurrs frequently
                             and helps little with debugging or similar. (Default False)
+        :param Optional[discord.Interaction] interaction: The interaction that triggered this log (Default None)
         """
         if category not in self.logs:
             self.log("Log", "log",
@@ -201,15 +202,17 @@ class Logger:
         if eventType is None:
             eventType = "MISC_ERR"
 
+        interactionStr = f"[interaction#{interaction.id}]" if interaction else ""
+
         now = discord.utils.utcnow()
         if noPrintEvent:
-            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + f"-{interactionStr}[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
             self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
-            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + f"-{interactionStr}[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)

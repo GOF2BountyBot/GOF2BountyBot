@@ -110,7 +110,7 @@ class DevLomaCog(basedApp.BasedCog):
                 shopEmbed.description = f"Expected {currentStock.numKeys} keys, found {expectedNumKeys}"
                 self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                     f"Unexpected number of keys in {itemType.value}sStock. Expected {currentStock.numKeys}, found {expectedNumKeys}.",
-                                    category=LogCategory.shop, eventType="INVTY_KEY_COUNT")
+                                    category=LogCategory.shop, eventType="INVTY_KEY_COUNT", interaction=interaction)
 
             for itemNum, currentKey in enumerate(currentStock.keys):
                 if not isinstance(currentKey, gameItem.GameItem):
@@ -119,7 +119,7 @@ class DevLomaCog(basedApp.BasedCog):
                                             + f"Got {type(currentKey).__name__}.\n" \
                                             + "Inventory keys: " \
                                             + ", ".join(str(i) for i in currentStock.items),
-                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE", interaction=interaction)
 
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentKey}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
@@ -131,7 +131,7 @@ class DevLomaCog(basedApp.BasedCog):
                     self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Requested {itemType.value} '{currentKey.name}' (index {itemNum}), "
                                         + "which was not found in the shop stock",
-                                        category=LogCategory.shop, eventType="UNKWN_KEY")
+                                        category=LogCategory.shop, eventType="UNKWN_KEY", interaction=interaction)
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentKey.name}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
                     continue
@@ -142,7 +142,7 @@ class DevLomaCog(basedApp.BasedCog):
                                             + f"Got {type(currentItem).__name__}.\n" \
                                             + "Inventory keys: " \
                                             + ", ".join(str(i) for i in currentStock.items),
-                                        category=LogCategory.shop, eventType="INVTY_LSTNG_ITEM_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_LSTNG_ITEM_TYPE", interaction=interaction)
                     shopEmbed.add_field(name=f"{itemNum+1}. **⚠ #INVALID-ITEM# '{currentItem}'",
                                         value="Do not attempt to buy. Could cause issues.", inline=True)
                     continue
@@ -152,7 +152,7 @@ class DevLomaCog(basedApp.BasedCog):
                     self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                         f"Unexpected listing type in {itemType.value}sStock, index {itemNum}. " \
                                             + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
-                                        category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+                                        category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE", interaction=interaction)
 
                     valueStr = f"{commaSplitNum(currentItem.value)} Credits\n*⚠ Non-discountable listing type*\n"
                 else:
@@ -360,7 +360,7 @@ class DevLomaCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                 f"Unexpected listing type in {item_type.value}sStock, index {item_number - 1}. " \
                                     + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
-                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE", interaction=interaction)
             return
 
         try:
@@ -412,7 +412,7 @@ class DevLomaCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.dev_cmd_debug_loma.callback.__name__,
                                 f"Unexpected listing type in {item_type.value}sStock, index {item_number - 1}. " \
                                     + f"Expected {DiscountableItemListing.__name__}, got {type(itemListing).__name__}.",
-                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE")
+                                category=LogCategory.shop, eventType="INVTY_LSTNG_TYPE", interaction=interaction)
             return
 
         if len(itemListing.discounts) < discount_index:

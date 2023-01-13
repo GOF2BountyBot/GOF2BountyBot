@@ -79,7 +79,7 @@ class EmbedEditorCog(BasedCog):
             self.bot.logger.log(type(self).__name__, funcName,
                                 "on-message static component triggered for non-message-based interaction: " \
                                     + interactionErrorString(interaction, staticComponentId),
-                                category=LogCategory.staticComponents, eventType="MESSAGE_FETCH_FAIL", exception=e)
+                                category=LogCategory.staticComponents, eventType="MESSAGE_FETCH_FAIL", exception=e, interaction=interaction)
             await interaction.response.send_message(cfg.defaultEmojis.cancel + " This type of interaction is not valid here.", ephemeral=True)
             return None
 
@@ -167,7 +167,7 @@ class EmbedEditorCog(BasedCog):
             self.bot.logger.log(type(self).__name__, "endRemoveField",
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, staticComponentId),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             removedFields = None
         else:
             selectedFieldIndices = sorted([int(i) for i in selected])
@@ -231,7 +231,7 @@ class EmbedEditorCog(BasedCog):
             self.bot.logger.log(type(self).__name__, "endEditField",
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, staticComponentId),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             result = None
         else:
             selectedFieldIndex = int(selected[0])
@@ -408,7 +408,7 @@ class EmbedEditorCog(BasedCog):
             self.bot.logger.log(type(self).__name__, "endReorderFields",
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, staticComponentId),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             swappedFields = None
         else:
             if len(selected) != 2:

@@ -319,7 +319,7 @@ class UserMiscCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.poll_addOption.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
             return
         else:
             for rawId in selectedRaw:
@@ -327,7 +327,7 @@ class UserMiscCog(basedApp.BasedCog):
                     self.bot.logger.log(type(self).__name__, self.poll_addOption.__name__,
                                 f"Non-int role ID received '{rawId}': " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
-                                category=LogCategory.staticComponents, eventType="ID_NOT_INT")
+                                category=LogCategory.staticComponents, eventType="ID_NOT_INT", interaction=interaction)
                     failed.append(rawId)
                     continue
 
@@ -457,14 +457,14 @@ class UserMiscCog(basedApp.BasedCog):
             self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                                 "select-based static component triggered for non-select interaction: " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
-                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT")
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
         else:
             rawId = selected[0]
             if not lib.stringTyping.isInt(rawId):
                 self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                             f"Non-int role ID received '{rawId}': " \
                                 + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
-                            category=LogCategory.staticComponents, eventType="ID_NOT_INT")
+                            category=LogCategory.staticComponents, eventType="ID_NOT_INT", interaction=interaction)
                 errorMsg = "That menu option doesn't represent a role!"
             else:
                 roleId = int(rawId)
@@ -767,7 +767,7 @@ class UserMiscCog(basedApp.BasedCog):
         if xpBarSil.size[0] > profileBackground.size[0] or xpBarSil.size[1] > profileBackground.size[1]:
             self.bot.logger.log("usr_misc", "cmd_stats", "XP Bar does not fit within user profile image. Image" \
                                 + f"sizes: xpBarSil {xpBarSil.size}, profileBackground {profileBackground.size}",
-                                eventType="XPBAR_DIM")
+                                eventType="XPBAR_DIM", interaction=interaction)
             statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
                                         + "The error has been logged.")
             closeAll()
@@ -781,7 +781,7 @@ class UserMiscCog(basedApp.BasedCog):
                                     "Received images of differing sizes when masking xp bar fill. Image" \
                                     + f"sizes: xpBarFill {xpBarFill.size}, xpBarSil {xpBarSil.size}, " \
                                     + f"xpBarMask {xpBarMask.size}",
-                                    exception=e)
+                                    exception=e, interaction=interaction)
                 statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
                                             + "The error has been logged.")
                 closeAll()
@@ -800,7 +800,7 @@ class UserMiscCog(basedApp.BasedCog):
                     self.bot.logger.log("usr_misc", "cmd_stats",
                                         "Received images of differing sizes when combining xp bar " \
                                         + f"layers. Image sizes: xpBarFill {xpBarFill.size}, profileBackground " \
-                                        + str(profileBackground.size), exception=e)
+                                        + str(profileBackground.size), exception=e, interaction=interaction)
                     statsEmbed.set_footer(text="An unexpected error occurred when generating your XP progress bar. "\
                                                 + "The error has been logged.")
                     closeAll()
@@ -1007,7 +1007,7 @@ class UserMiscCog(basedApp.BasedCog):
                                             + f", TL {tl}, from {classicStr}user {interaction.user.name}#{interaction.user.id}" \
                                             + f" in guild {guild.name}#{guild.id}.",
                                         category=LogCategory.userAlerts,
-                                        eventType="ClientOSError", trace=traceback.format_exc())
+                                        eventType="ClientOSError", trace=traceback.format_exc(), interaction=interaction)
                 else:
                     await interaction.response.send_message(":white_check_mark: You have unsubscribed from **new bounties** notifications.", ephemeral=True)
             else:
@@ -1033,7 +1033,7 @@ class UserMiscCog(basedApp.BasedCog):
                                             + f", TL {tl}, from {classicStr}user {interaction.user.name}#{interaction.user.id}" \
                                             + f" in guild {guild.name}#{guild.id}.",
                                         category=LogCategory.userAlerts,
-                                        eventType="ClientOSError", trace=traceback.format_exc())
+                                        eventType="ClientOSError", trace=traceback.format_exc(), interaction=interaction)
                 else:
                     await interaction.response.send_message(":white_check_mark: You have subscribed to **new bounties** notifications!")
             
@@ -1058,7 +1058,7 @@ class UserMiscCog(basedApp.BasedCog):
                                                             + f"{interaction.user.name}#{interaction.user.id}" \
                                                             + f" alert {notification} in guild {guild.name}#{guild.id}.",
                                                         category=LogCategory.userAlerts,
-                                                        exception=e)
+                                                        exception=e, interaction=interaction)
             else:
                 await interaction.response.send_message(f":white_check_mark: You have {'subscribed to' if alertNewState else 'unsubscribed from'} **{alertType.userFriendlyName}** notifications.")
 

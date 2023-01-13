@@ -106,7 +106,7 @@ class UserLomaCog(BasedCog):
                                                 "Requested " + currentItemType.value + " '" + currentStock.keys[itemNum-1].name \
                                                     + "' (index " + str(itemNum-1) \
                                                     + "), which was not found in the shop stock",
-                                                category=LogCategory.shop, eventType="UNKWN_KEY")
+                                                category=LogCategory.shop, eventType="UNKWN_KEY", interaction=interaction)
                         except IndexError:
                             break
                         except AttributeError as e:
@@ -118,7 +118,7 @@ class UserLomaCog(BasedCog):
                                                     + str(itemNum-1) + ". Got " \
                                                     + type(currentStock.keys[itemNum-1]).__name__ + ".\nInventory keys: " \
                                                     + keysStr[:-2],
-                                                category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
+                                                category=LogCategory.shop, eventType="INVTY_KEY_TYPE", interaction=interaction)
                             shopEmbed.add_field(name=f"{itemNum}. **⚠ #INVALID-ITEM# '{currentStock.keys[itemNum-1]}'",
                                                 value="Do not attempt to buy. Could cause issues.", inline=True)
                             continue

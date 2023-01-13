@@ -359,7 +359,7 @@ class UserBountiesCog(BasedCog):
             try:
                 btyDivision.removeBountyObj(bounty)
             except (OverflowError, KeyError) as e:
-                self.bot.logger.log("usr_bounties", "cmd_check", str(e), exception=e)
+                self.bot.logger.log("usr_bounties", "cmd_check", str(e), exception=e, interaction=interaction)
 
         # remove all escaped bounties
         for bounty in toEscape:

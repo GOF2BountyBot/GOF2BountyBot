@@ -220,13 +220,13 @@ class UserAutoskinCog(BasedCog):
             format = TextureFormat(args)
         except ValueError:
             self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTextureFromEmbed.__name__,
-                                f"static component args '{args}' specifies unknown texture format '{args[0]}'")
+                                f"static component args '{args}' specifies unknown texture format '{args[0]}'", interaction=interaction)
             return
 
         if interaction.message is None or interaction.message.embeds is None or len(interaction.message.embeds) == 0 or interaction.message.embeds[0].image is None or interaction.message.embeds[0].image.url is None:
             await interaction.followup.send("🥴 Sorry, this texture menu is no longer valid.", ephemeral=True)
             self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__,
-                                f"Unable to get message for interaction")
+                                f"Unable to get message for interaction", interaction=interaction)
             return
 
         async with self.bot.httpClient.get(interaction.message.embeds[0].image.url) as resp:
@@ -234,7 +234,7 @@ class UserAutoskinCog(BasedCog):
                 resp.raise_for_status()
             except aiohttp.ClientResponseError as e:
                 await interaction.followup.send("🥴 Sorry, an error occurred while downloading this texture.", ephemeral=True)
-                self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Failed to download texture from embed: {args}", exception=e)
+                self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Failed to download texture from embed: {args}", exception=e, interaction=interaction)
                 return
 
             with BytesIO(await resp.read()) as tex:
@@ -251,14 +251,14 @@ class UserAutoskinCog(BasedCog):
         except ValueError:
             await interaction.followup.send("🥴 Sorry, this texture menu is no longer valid.", ephemeral=True)
             self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__,
-                                f"static component args '{args}' specifies unknown texture format '{args[0]}'")
+                                f"static component args '{args}' specifies unknown texture format '{args[0]}'", interaction=interaction)
             return
 
         try:
             msg = await self.bot.showmeRendersChannel.fetch_message(int(args[1:]))
         except HTTPException as e:
             await interaction.followup.send("🥴 Sorry, this texture was not found.", ephemeral=True)
-            self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Message not found in renders channel: {args}", exception=e)
+            self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Message not found in renders channel: {args}", exception=e, interaction=interaction)
             return
             
         with BytesIO() as texBytes:
@@ -266,7 +266,7 @@ class UserAutoskinCog(BasedCog):
                 await msg.attachments[0].save(texBytes)
             except discord.HTTPException as e:
                 await interaction.followup.send("🥴 Sorry, an error occurred while downloading this texture.", ephemeral=True)
-                self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Failed to download texture: {args}", exception=e)
+                self.bot.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.getRenderedTexture.__name__, f"Failed to download texture: {args}", exception=e, interaction=interaction)
                 return
             
             texBytes.seek(0)
@@ -619,7 +619,7 @@ class UserAutoskinCog(BasedCog):
         except shipRenderer.RenderFailed:
             await waitMsg.reply(f"{interaction.user.mention} 🥺 Render failed! The error has been logged, please try a different ship.")
             argsStr = ", ".join(f'{k}={rendererArgs[k]}' for k in rendererArgs.keys())
-            botState.client.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.doAutoSkin.__name__, f"Ship render failed. Identifer: {renderIdentifier} Args: {argsStr}")
+            botState.client.logger.log(UserAutoskinCog.__name__, UserAutoskinCog.doAutoSkin.__name__, f"Ship render failed. Identifer: {renderIdentifier} Args: {argsStr}", interaction=interaction)
         else:
             with open(rendererArgs.textures[0] if rendererArgs.full else outSkinPath, "rb") as textureFile:
                 textureMsg = await self.bot.showmeRendersChannel.send(renderIdentifier, file=discord.File(textureFile, filename=f"{interaction.id}.png"))

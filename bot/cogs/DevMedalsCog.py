@@ -51,7 +51,7 @@ class DevMedalsCog(basedApp.BasedCog):
             emojiServer = self.bot.get_guild(cfg.emojisServer) or await self.bot.fetch_guild(cfg.emojisServer)
             if emojiServer is None:
                 self.bot.logger.log(type(self).__name__, self.dev_cmd_create_medal.callback.__name__,
-                                    "Failed to find cfg.emojisServer", eventType="UKWN_GLD")
+                                    "Failed to find cfg.emojisServer", eventType="UKWN_GLD", interaction=interaction)
                 await interaction.response.send_message(":x: Failed to connect to the emojisServer", ephemeral=True)
                 return
                 
@@ -75,7 +75,7 @@ class DevMedalsCog(basedApp.BasedCog):
                                                                             reason=self.dev_cmd_create_medal.callback.__name__)
                         except HTTPException as e:
                             await interaction.response.send_message(f":x: Failed to create medal emoji: {e}", ephemeral=True)
-                            self.bot.logger.log(type(self).__name__, self.dev_cmd_create_medal.callback.__name__, str(e), exception=e)
+                            self.bot.logger.log(type(self).__name__, self.dev_cmd_create_medal.callback.__name__, str(e), exception=e, interaction=interaction)
                             return
                         parsedEmoji = lib.emojis.BasedEmoji(id=newEmoji.id)
             if not success:
@@ -86,7 +86,7 @@ class DevMedalsCog(basedApp.BasedCog):
             if dcEmoji is None:
                 await interaction.response.send_message(":x: Failed to get your requested emoji.", ephemeral=True)
                 self.bot.logger.log(type(self).__name__, self.dev_cmd_create_medal.callback.__name__, f"Failed to get given emoji: {parsedEmoji.sendable}",
-                                    eventType="EMOJI_ERR")
+                                    eventType="EMOJI_ERR", interaction=interaction)
                 return
             icon = dcEmoji.url
         

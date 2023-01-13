@@ -200,7 +200,7 @@ class UserKaamoCog(BasedCog):
                                                         f"Requested {currentItemType.value} '{currentStock.keys[itemNum-1].name}" \
                                                             + f"' (index {itemNum-1}" \
                                                             + "), which was not found in the shop stock",
-                                                        category=LogCategory.shop, eventType="UNKWN_KEY")
+                                                        category=LogCategory.shop, eventType="UNKWN_KEY", interaction=interaction)
                                 except IndexError:
                                     break
                                 except AttributeError as e:
@@ -210,7 +210,7 @@ class UserKaamoCog(BasedCog):
                                                             + type(currentStock.keys[itemNum-1]).__name__ \
                                                             + ".\nInventory keys: " \
                                                             + ", ".join(str(item) for item in currentStock.items),
-                                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE")
+                                                        category=LogCategory.shop, eventType="INVTY_KEY_TYPE", interaction=interaction)
                                     shopEmbed.add_field(name=f"{itemNum}. **⚠ #INVALID-ITEM# '{currentStock.keys[itemNum-1]}'",
                                                         value="Do not attempt to get. Could cause issues.", inline=True)
                                     continue
