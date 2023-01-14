@@ -33,17 +33,9 @@ from ..databases.bountyDB import divisionNameForLevel
 #region how to play util
 
 FIELD_SPACER = f"\n{ZWSP}"
-HOWTOPLAY_MAX_PAGE = "6"
-HOWTOPLAY_PAGES = (
-    "intro",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "outro"
-)
+HOWTOPLAY_PAGES = ("1", "2", "3", "4", "5", "6", "7", "8")
+HOWTOPLAY_FIRSTPAGE = HOWTOPLAY_PAGES[0]
+HOWTOPLAY_LASTPAGE = HOWTOPLAY_PAGES[-1]
 
 # endregion
 #region leaderboard util
@@ -125,21 +117,17 @@ def pollCreatorView(interaction: Interaction, userId: Optional[Union[int, str]],
 class UserMiscCog(basedApp.BasedCog):
 #region util
     def getHowToPlayEmbed(self, page: str):
-        e = lib.discordUtil.makeEmbed(
+        return lib.discordUtil.makeEmbed(
             titleTxt='**BountyBot: How To Play**',
-            thumb=self.bot.user.display_avatar.with_size(64).url if self.bot.user else ""
+            thumb=self.bot.user.display_avatar.with_size(64).url if self.bot.user else "",
+            footerTxt=f"Page {page}/{HOWTOPLAY_LASTPAGE}"
         )
-
-        if isInt(page):
-            e.set_footer(text=f"Page {page}/{HOWTOPLAY_MAX_PAGE}")
-
-        return e
 
 
     def getHowToPlayPage(self, interaction: Interaction, page: str):
         howToPlayEmbed = self.getHowToPlayEmbed(page)
 
-        if page == "intro":
+        if page == "1":
             howToPlayEmbed.add_field(
                 name="Introduction",
                 value="This game is based on the *'Most Wanted'* system from Galaxy on Fire 2. If you have played the Supernova addon, " \
@@ -148,7 +136,7 @@ class UserMiscCog(basedApp.BasedCog):
                 inline=False
             )
             
-        elif page == "1":
+        elif page == "2":
             newBountiesChannelStr = ""
             if interaction.guild is not None:
                 requestedBBGuild = self.bot.guildsDB.getGuild(interaction.guild.id)
@@ -160,27 +148,27 @@ class UserMiscCog(basedApp.BasedCog):
                     newBountiesChannelStr = " in <#" + str(requestedBBGuild.getAnnounceChannel().id) + ">"
                     
             howToPlayEmbed.add_field(
-                name="1. New Bounties",
+                name="New Bounties",
                 value=f"At random times, new bounties are announced{newBountiesChannelStr}.\n• Use `/bounties` to see the currently active bounties.\n" \
                     + "• Criminals spawn in a system somewhere on the `/map`.\n" \
                     + "• To view a criminal's current route *(possible systems)*, use `/route [criminal]`.",
                 inline=False)
 
-        elif page == "2":
+        elif page == "3":
             howToPlayEmbed.add_field(
-                name="2. System Checking",
+                name="System Checking",
                 value="Now that we know where our criminal could be, we can check a system with `/check [system]`.\n" \
                     + "This system will now be crossed out in the criminal's `/route`, so we know not to check there again.\n" \
                     + "If a criminal has visited the system recently, then the station's security force will let you know. " \
                     + "They can't have gotten much further along their route!",
                 inline=False)
 
-        elif page == "3":
+        elif page == "4":
             howToPlayEmbed.add_field(
-                name="3. Dueling",
+                name="Dueling",
                 value="Locating the bounty will immediately engage them in a **duel**. Duels are won by having more powerful gear " \
                     + "than your opponent, by a direct comparison of stats. Finding and defeating a bounty will win you credits and XP.\n\n"
-                    + "> Didn't win the bounty? No worries!\nYou will get a share of the rewards for helping narrow down the search.\n\n"
+                    + "Didn't win the bounty? No worries!\nYou will get a share of the rewards for helping narrow down the search.\n\n"
 
                     + "Many items do not currently have any effect on dueling, such as repair bots, EMPs, or triggerable modules.\n" \
                     + "To get a quick idea of whether you might be able to defeat a bounty, compare their **difficulty level** " \
@@ -188,18 +176,18 @@ class UserMiscCog(basedApp.BasedCog):
                     + "which you can find with `/criminal-loadout`.",
                 inline=False)
 
-        elif page == "4":
+        elif page == "5":
             howToPlayEmbed.add_field(
-                name="4. Items",
+                name="Items",
                 value="Now that you've got some credits, try customising your `/loadout`!" \
                     + "\n• You can see your inventory of inactive items in the `/hangar`." \
                     + "\n• You can `/buy` more items from the `/shop`, as well as `/sell` your old ones." ,
                 inline=False)
 
 
-        elif page == "5":
+        elif page == "6":
             howToPlayEmbed.add_field(
-                name="5. Divisions",
+                name="Divisions",
                 value="A division is a group of relatively similar bounty difficulties. Every player begins in the easiest division.\n" \
                     + "Once you have completed the final level in your division, you will be able to ascend to the next division and " \
                     + "gain rewards with `/div-up`.\n" \
@@ -207,9 +195,9 @@ class UserMiscCog(basedApp.BasedCog):
                     + "Each division also has its own shop, stocking items with the higher tech levels that you will need.",
                 inline=False)
 
-        elif page == "6":
+        elif page == "7":
             howToPlayEmbed.add_field(
-                name="6. Prestiging",
+                name="Prestiging",
                 value="If you are able to defeat the final division, you will unlock `/prestige`.\n"
                     + "Prestiging will reset your playthrough in exchange for some special rewards, and a bump to the **prestiges** stat on your " \
                     + "profile for bragging rights.\n\n" \
@@ -218,7 +206,7 @@ class UserMiscCog(basedApp.BasedCog):
                     + "retrieve these items again once you return to the maximum bounty hunter level, with `/kaamo-get`.",
                 inline=False)
 
-        elif page == "outro":
+        elif page == "8":
             howToPlayEmbed.add_field(
                 name="Extra Notes/Tips",
                 value="• 🌍 **Home Servers**: To keep BountyBot balanced, you can only use certain commands (e.g `/check`, `/buy`...) in one server of your choice, " \
@@ -237,10 +225,10 @@ class UserMiscCog(basedApp.BasedCog):
         v = View(timeout=None)
         pageIndex = HOWTOPLAY_PAGES.index(page)
         
-        nextPage = Button(disabled=page == HOWTOPLAY_PAGES[-1], emoji=cfg.defaultEmojis.next.sendable)
+        nextPage = Button(disabled=page == HOWTOPLAY_LASTPAGE, emoji=cfg.defaultEmojis.next.sendable)
         nextPage = StaticComponents.User_HowToPlay_ShowPage(nextPage, HOWTOPLAY_PAGES[min(len(HOWTOPLAY_PAGES) - 1, pageIndex + 1)])
 
-        previousPage = Button(disabled=page == HOWTOPLAY_PAGES[0], emoji=cfg.defaultEmojis.previous.sendable)
+        previousPage = Button(disabled=page == HOWTOPLAY_FIRSTPAGE, emoji=cfg.defaultEmojis.previous.sendable)
         previousPage = StaticComponents.User_HowToPlay_ShowPage(previousPage, HOWTOPLAY_PAGES[pageIndex - 1])
 
         deleteMessage = Button(emoji=cfg.defaultEmojis.delete.sendable, style=ButtonStyle.red)
