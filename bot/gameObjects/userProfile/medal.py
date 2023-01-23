@@ -3,6 +3,7 @@ from ...baseClasses.serializable import SerializesToSchema
 from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
 from ...baseClasses.embedFillable import EmbedFillableMixin, embedColour, embedDescription, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
 from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...cfg import bbData
 
 class SerializedMedal(SerializedLoadedObject):
     desc: str
@@ -85,4 +86,7 @@ class Medal(LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedMedal
         :return: A new Medal instance with the attributes described in data
         :rtype: Medal
         """
-        return Medal(**cls._makeDefaults(data, emoji=BasedEmoji.deserialize(data["emoji"])))
+        builtIn = data.get("builtIn", False)
+        if builtIn:
+            return bbData.medalObjs[data["name"]]
+        return Medal(**cls._makeDefaults(data, emoji=BasedEmoji.deserialize(data["emoji"]), ignores=("builtIn",)))
