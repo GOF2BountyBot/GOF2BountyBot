@@ -513,6 +513,8 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
             self.userSellTurretObj(user, item)
         elif isinstance(item, toolItem.ToolItem):
             self.userSellToolObj(user, item)
+        elif isinstance(item, Ship):
+            self.userSellShipObj(user, item)
         else:
             raise NotImplementedError(f"Unsupported item type: {type(item).__name__}")
 
@@ -526,6 +528,8 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
             self.userBuyTurretObj(user, item)
         elif isinstance(item, toolItem.ToolItem):
             self.userBuyToolObj(user, item)
+        elif isinstance(item, Ship):
+            self.userBuyShipObj(user, item)
         else:
             raise NotImplementedError(f"Unsupported item type: {type(item).__name__}")
 
