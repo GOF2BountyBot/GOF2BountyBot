@@ -17,6 +17,7 @@ class CancelView(ViewBase):
         :type respond: bool, defaults to False
         """
         super().__init__(timeout=timeout, cleanup=cleanup, respondOnCleanup=respondOnCleanup)
+        self._cancelled = None
         self.cancel.label = cancelLabel
         self.cancel.row = cancelRow
 

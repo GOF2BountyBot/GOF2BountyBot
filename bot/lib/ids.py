@@ -1,9 +1,16 @@
 from typing import List, Optional, Union
-import string
 
-_idToIndex = {c: i for i, c in enumerate(string.printable)}
+"""This alphabet was obtained from:
+>>> import string
+>>> string.printable
+"""
+# This alphabet has 100 characters. "IDs" will then just be base-100 numbers, giving 100**n possible ids representable by n characters, assuming no exclusions.
+_alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c'
+
+_idToIndex = {c: i for i, c in enumerate(_alphabet)}
 _indexToID = {i: c for c, i in _idToIndex.items()}
 _numChars = len(_idToIndex)
+
 
 def _idCharToIndex(c: str, exclusions: Optional[Union[str, List[str]]] = None) -> int:
     v = _idToIndex[c]
@@ -97,8 +104,8 @@ def maxIndex(idLength: int, exclusions: Optional[Union[str, List[str]]] = None) 
     :return: The largest ID representable, given `exclusions`
     :rtype: int
     """
-    if exclusions:
-        maxI = max(i for i, c in reversed(_indexToID.items()) if c not in exclusions)
-    else:
-        maxI = max(_indexToID.keys())
-    return idToIndex(_indexToID[maxI] * idLength, exclusions=exclusions)
+    # "IDs" are just base-_numChars numbers.
+    # The maximum representable number of numbers within a base b number of d digits is b ** n.
+    # The largest number within n digits then is (b ** n) - 1.
+    # Excluding a character from the alphabet simply lowers the base of the number by one.
+    return ((_numChars - len(exclusions or "")) ** idLength) - 1 # subtract 1 to allow for the 0 character

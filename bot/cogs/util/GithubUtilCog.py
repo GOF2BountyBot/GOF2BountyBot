@@ -1,7 +1,9 @@
 from typing import Optional, Union, cast, List
 
-from discord.abc import Snowflake
 from github import Github, UnknownObjectException
+from github.NamedUser import NamedUser
+from github.Milestone import Milestone
+from github.Label import Label
 from github.Repository import Repository
 from github.Issue import Issue
 
@@ -108,6 +110,36 @@ class GithubUtilCog(BasedCog):
             return self.githubRepo.get_issue(issueNumber)
         except UnknownObjectException:
             return None
+
+
+    @asyncWrap
+    def createIssue(self,
+        title: str,
+        body: Optional[str] = None,
+        assignee: Optional[Union[str, NamedUser]] = None,
+        milestone: Optional[Milestone] = None,
+        labels: Optional[Union[List[str], List[Label]]] = None,
+        assignees: Optional[Union[List[str], List[NamedUser]]] = None
+    ) -> Issue:
+        """
+        Create a new issue.
+
+        :param str title: The title of the issue
+        :param str body: The issue description
+        :param assignee: The user to assign to the issue
+        :type assignee: Union[str, NamedUser]
+        :param assignees: The users to assign to the issue
+        :type assignees: Union[List[str], List[NamedUser]]
+        :param Milestone milestone: The milestone to which the issue contributes
+        :param labels: The labels for the issue
+        :type labels: Union[List[str], List[Label]]
+        :rtype: Issue
+        """
+        kwargs = {k: v for k, v in
+            (("body", body), ("assignee", assignee), ("milestone", milestone), ("labels", labels), ("assignees", assignees))
+            if v is not None}
+
+        return self.githubRepo.create_issue(title, **kwargs)
 
 #endregion
 

@@ -179,6 +179,13 @@ class StaticComponents(StaticComponentIDsEnum, metaclass=StaticComponentEnumMeta
     User_PollCreator_SetTopic = 51
     User_PollCreator_SetDuration = 52
 
+    # UserGithubCog
+    User_IssueCreator_Submit = 53
+    User_IssueCreator_Edit = 54
+    User_IssueCreator_Add_Attachments = 55
+    User_IssueCreator_Remove_Attachments_Select = 56
+    User_IssueCreator_Remove_Attachments = 57
+
 
 class StaticComponentMeta:
     """Data class carrying metadata about a static component.

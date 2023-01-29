@@ -1,6 +1,6 @@
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
-from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict
 from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -662,6 +662,12 @@ githubIssueTemplates = ["bug_report", "feature_request", "new-item-alias"]
 
 # Top n results will be showed in github search
 githubIssueSearchNumResults = 9
+
+# Label names to assign to new issues
+githubIssueTypeLabels = gitHubIssueTypeLabelsDict()
+githubIssueTypeLabels["Bug report"] = ["i showed u my issue pls respond", "bug"]
+githubIssueTypeLabels["Feature request"] = ["i showed u my issue pls respond", "enhancement"]
+githubIssueTypeLabels["New item alias"] = ["i showed u my issue pls respond", "enhancement"]
 
 moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/money-bag_1f4b0.png"
 

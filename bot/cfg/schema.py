@@ -2,7 +2,7 @@ from carica.models import SerializableDataClass, SerializableTimedelta, Serializ
 from carica.typeChecking import TypeOverride
 from dataclasses import dataclass, field
 import os
-from typing import Dict, List, Set, Tuple, TypeVar, Union, Any, cast
+from typing import Dict, List, Literal, Set, Tuple, TypeVar, Union, Any, cast
 from pathlib import PosixPath, WindowsPath, Path
 
 from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
@@ -260,3 +260,15 @@ class BasicAccessLevelNames(SerializableDataClass):
     user: str
     serverAdmin: str
     developer: str
+
+GitHubIssueType = Literal["Bug report", "Feature request", "New item alias"]
+# Pass these into lib.ids.indexToId for the encoded ID.
+gitHubIssueIdTypes: Dict[int, GitHubIssueType] = {
+    0: "Bug report",
+    1: "Feature request",
+    2: "New item alias"
+}
+gitHubIssueTypeIds: Dict[GitHubIssueType, int] = {v: k for k, v in gitHubIssueIdTypes.items()}
+
+def gitHubIssueTypeLabelsDict() -> Dict[GitHubIssueType, List[str]]:
+    return {"Bug report": [], "Feature request": [], "New item alias": []}
