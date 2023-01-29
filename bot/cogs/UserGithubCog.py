@@ -128,17 +128,26 @@ class UserGithubCog(BasedCog):
             await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This type of interaction is not valid here.", ephemeral=True)
             raise ValueError("Embed has no title")
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        disabledView = makeIssueSubmitView(issueType, userId, disableAll=True)
+        await interaction.response.edit_message(view=disabledView)
+        resultsMessage = await message.channel.send(f"{cfg.defaultEmojis.longProcess} {interaction.user.mention} Sending issue...")
 
         header = gitHubIssueHeader(interaction.user, issueType)
         body = "\n\n".join(f"**{f.name}**\n{f.value}" for f in embed.fields if f.value and f.value != ZWSP)
 
+        deleteMeView = View()
+        deleteMeButton = Button(emoji=cfg.defaultEmojis.delete.sendable)
+        deleteMeButton = StaticComponents.Delete_Message(deleteMeButton, str(userId))
+        deleteMeView.add_item(deleteMeButton)
+
         try:
             issue = await self.GithubUtilCog.createIssue(embed.title, body=header + body, labels=cfg.githubIssueTypeLabels.get(issueType, []))
         except GithubException as e:
-            await interaction.followup.send(f"{cfg.defaultEmojis.cancel} The new issue was rejected by GitHub: {e.status} {e.data}\n\n" \
-                                            + f"Please check your issue contet and try again later, or report this as a bug on the project's github page, quoting interaction ID: `{interaction.id}`",
-                                            ephemeral=True)
+            await resultsMessage.edit(content=f"{cfg.defaultEmojis.cancel} {interaction.user.mention} The new issue was rejected by GitHub: {e.status} {e.data}\n\n" \
+                                            + f"Please check your issue content and try again later, or report this as a bug on the project's github page, quoting interaction ID: `{interaction.id}`",
+                                            view=deleteMeView)
+            view = makeIssueSubmitView(issueType, userId)
+            await interaction.response.edit_message(view=view)
             return
         
         embed = Embed(colour=Colour.green())
@@ -148,9 +157,11 @@ class UserGithubCog(BasedCog):
             labelsStr = ', '.join(cfg.githubLabelNames.get(x.name, x.name) for x in issue.labels)
             embed.add_field(name="Labels", value=f"*{labelsStr}*")
 
-        await interaction.followup.send(f"{cfg.defaultEmojis.submit} Your new issue has been created! If more information is required before the issue can be worked on, comments will be posted on GitHub.\n\nTrack development progress here:", embed=embed)
-        await message.edit(view=None)
-
+        await resultsMessage.edit(content=f"{cfg.defaultEmojis.submit} Your new issue has been created! If more information is required before the issue can be worked on, comments will be posted on GitHub.\n\nTrack development progress here:",
+                                    embed=embed,
+                                    view=deleteMeView)
+        await interaction.edit_original_response(content=f"Issue created here: {issue.html_url}")
+        
     
     @BasedCog.staticComponentCallback(StaticComponents.User_IssueCreator_Edit)
     async def issueCreator_edit(self, interaction: Interaction, args: str):

@@ -9,12 +9,6 @@ from ..viewBase import ModalBase
 @runtime_checkable
 class TitleFactory(Protocol):
     # Ignoring here because I would like the callback to take the view instance as a parameter
-    def __call__(ProtocolSelf, self: "IssueReportModalBase") -> str: ... # type: ignore[reportGeneralTypeIssues]
-
-
-@runtime_checkable
-class TitleFactoryWithAuthor(Protocol):
-    # Ignoring here because I would like the callback to take the view instance as a parameter
     def __call__(ProtocolSelf, self: "IssueReportModalBase", author: Union[User, Member]) -> str: ... # type: ignore[reportGeneralTypeIssues]
 
 
@@ -22,13 +16,13 @@ TModal = TypeVar("TModal", bound="IssueReportModalBase")
 
 class IssueReportModalBase(ModalBase):
     FriendlyReportIssueAction = "Create an issue"
-    _title: Union[TextInput, TitleFactory, TitleFactoryWithAuthor] = MISSING
+    _title: Union[TextInput, TitleFactory] = MISSING
 
     def __init__(self, *,
         timeout: Optional[float] = None,
         custom_id: str = MISSING
     ) -> None:
-        if not isinstance(self._title, (TextInput, TitleFactory, TitleFactoryWithAuthor)):
+        if not isinstance(self._title, (TextInput, TitleFactory)):
             raise TypeError(f"{IssueReportModalBase.__name__} subclasses must include a _title, as either TextInput field or a callable.")
         self._attachments: List[str] =[]
 
@@ -38,10 +32,8 @@ class IssueReportModalBase(ModalBase):
     def getTitle(self, author: Union[User, Member]) -> str:
         if isinstance(self._title, TextInput):
             return self._title.value
-        if isinstance(self._title, TitleFactoryWithAuthor):
-            return self._title(self, author)
         else:
-            return self._title(self)
+            return self._title(author) # type: ignore[reportGeneralTypeIssues]
         
 
     def toEmbed(self, author: Union[User, Member]) -> Embed:

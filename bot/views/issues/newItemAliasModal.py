@@ -1,5 +1,6 @@
+from typing import Union
 from discord.ui import TextInput
-from discord import TextStyle
+from discord import Member, TextStyle, User
 
 from .issueReportModalBase import IssueReportModalBase
 
@@ -21,5 +22,5 @@ class NewItemAliasModal(IssueReportModalBase):
         placeholder="How would you like to be able to refer to the item?"
     )
 
-    def _title(self) -> str:
+    def _title(self, author: Union[User, Member]) -> str:
         return f"[Item Alias] {self._itemName.value or '<item name>'}: {self._newAlias.value or '<your alias>'}"
