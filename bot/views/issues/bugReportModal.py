@@ -32,16 +32,11 @@ class BugReportModal(IssueReportModalBase):
         label="Interaction ID",
         style=TextStyle.short,
         required=False,
-        placeholder="If an unexpected error occurs, BountyBot will usually provide you with an interaction ID. " \
-                    + "This will make resolving your issue much quicker!"
+        placeholder="BountyBot will usually give you an ID when errors occur. This will make debugging much quicker!"
     )
     _messageLink = TextInput(
         label="Message link",
         style=TextStyle.short,
         required=False,
-        placeholder="If you can (i.e the channel is accessible to at least one developer), providing a link " \
-                    + "to the message where you saw the bug is one of the most helpful things you can do, " \
-                    + "so we can see what led up to the bug.\n" \
-                    + "On discord mobile, tap and hold on the message, tap share, and copy the link.\n" \
-                    + "On discord desktop/web, right click on the message, and click copy message link."
+        placeholder="Linking to the message where the bug occurred lets us see what led up to the bug"
     )
