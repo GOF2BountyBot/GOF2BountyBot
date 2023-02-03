@@ -202,6 +202,10 @@ class UserLoadoutCog(BasedCog):
         """
         if not (user := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
 
+        view = View()
+        swapImagesButton = Button(emoji="🔎")
+        swapImagesButton = StaticComponents.Swap_Embed_Image_And_Thumbnail(swapImagesButton)
+
         if not self.bot.usersDB.idExists(user.id):
             activeShip = Ship.deserialize(basedUser.defaultShipLoadoutDict)
             loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout", desc=user.mention,
@@ -211,7 +215,7 @@ class UserLoadoutCog(BasedCog):
                                                         thumb=activeShip.icon if activeShip.hasIcon \
                                                             else user.display_avatar.with_size(64).url)
 
-            await interaction.response.send_message(embed=activeShip.fillLoadoutEmbed(loadoutEmbed))
+            await interaction.response.send_message(embed=activeShip.fillLoadoutEmbed(loadoutEmbed), view=view)
             return
 
         requestedBBUser = self.bot.usersDB.getUser(user.id)
@@ -227,10 +231,6 @@ class UserLoadoutCog(BasedCog):
             loadoutEmbed.add_field(name="Active Ship:", value="None", inline=False)
         else:
             loadoutEmbed = activeShip.fillLoadoutEmbed(loadoutEmbed)
-
-        view = View()
-        swapImagesButton = Button(emoji="🔎")
-        swapImagesButton = StaticComponents.Swap_Embed_Image_And_Thumbnail(swapImagesButton)
 
         await interaction.response.send_message(embed=loadoutEmbed, view=view)
 
