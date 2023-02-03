@@ -1,10 +1,11 @@
 import os
-from typing import Optional, Set, cast
+from typing import Callable, List, Optional, Set, Tuple, Union, cast
 from enum import Enum
 
-from discord import Colour, Embed, app_commands, Interaction
+from discord import Colour, Embed, app_commands, Interaction, SelectOption
 from discord.utils import MISSING
 from discord.app_commands import Range
+from discord.ui import View, Button, Select
 
 from .. import client, lib
 from ..lib.discordUtil import ImageFile
@@ -12,6 +13,7 @@ from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
+from ..interactions.basedComponent import StaticComponents
 from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     shipAutoComplete, ShipKey, \
                                     shipSkinAutoComplete, ShipSkinKey, \
@@ -21,10 +23,12 @@ from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     turretAutoComplete, TurretKey, \
                                     toolAutoComplete, ToolKey, \
                                     medalAutoComplete, MedalKey
+from .util.EmbedEditorUtil import interactionErrorString
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
 from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
 from ..baseClasses.embedFillable import EmbedFillableMixin
 from ..gameObjects.gameObject import SerializedLoadedObject
+from ..logging import LogCategory
 
 class ListSearchableItemTypes(Enum):
     """Extended from bbData.ItemCategory"""
@@ -41,6 +45,89 @@ class ListSearchableItemTypes(Enum):
 CWD = os.getcwd()
 robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 SCROLL_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/scroll_1f4dc.png"
+
+SHOW_SKIN_ARGS_SEPARATOR = "%"
+
+def packShowSkinNumArgs(shipName: str, skinNum: int, userId: Union[str, int, None] = None) -> str:
+    if SHOW_SKIN_ARGS_SEPARATOR in shipName:
+        raise ValueError("shipName cannot contain reserved character " + SHOW_SKIN_ARGS_SEPARATOR)
+    return f"{userId if userId else ''}{SHOW_SKIN_ARGS_SEPARATOR}{shipName}{SHOW_SKIN_ARGS_SEPARATOR}{skinNum}"
+
+
+def unpackShowSkinNumArgs(args: str) -> Tuple[Optional[int], str, int]:
+    userId, shipName, skinNum = args.split(SHOW_SKIN_ARGS_SEPARATOR)
+    return int(userId) if userId else None, shipName, int(skinNum)
+
+
+def packShowSkinNameArgs(shipName: str, userId: Union[str, int, None] = None) -> str:
+    if SHOW_SKIN_ARGS_SEPARATOR in shipName:
+        raise ValueError("shipName cannot contain reserved character " + SHOW_SKIN_ARGS_SEPARATOR)
+    return f"{userId if userId else ''}{SHOW_SKIN_ARGS_SEPARATOR}{shipName}"
+
+
+def unpackShowSkinNameArgs(args: str) -> Tuple[Optional[int], str]:
+    userId, shipName = args.split(SHOW_SKIN_ARGS_SEPARATOR)
+    return int(userId) if userId else None, shipName
+
+
+def makeShowSkinView(shipName: str, currentSkin: int, userId: Union[str, int, None] = None) -> Optional[View]:
+    shipData = bbData.builtInShipData[shipName]
+    compatibleSkins = shipData.get("compatibleSkins", [])
+    skinnable = shipData.get("skinnable", False)
+    
+    if not (skinnable and compatibleSkins):
+        return None
+    
+    lastSkin = len(compatibleSkins)
+    currentSkin = max(0, min(currentSkin, lastSkin))
+    previousSkin = max(0, currentSkin - 1)
+    nextSkin = min(lastSkin, currentSkin + 1)
+    
+    currentSkinName = "No skin" if currentSkin == 0 else compatibleSkins[currentSkin - 1]
+    
+    view = View()
+    
+    prevButton = Button(emoji=cfg.defaultEmojis.previous.sendable, row=0, disabled=currentSkin == 0)
+    prevButton = StaticComponents.User_ShowShip_WithSkinNumber(prevButton, packShowSkinNumArgs(shipName, previousSkin, userId))
+    view.add_item(prevButton)
+    
+    nextButton = Button(emoji=cfg.defaultEmojis.next.sendable, row=0, disabled=currentSkin == lastSkin)
+    nextButton = StaticComponents.User_ShowShip_WithSkinNumber(nextButton, packShowSkinNumArgs(shipName, nextSkin, userId))
+    view.add_item(nextButton)
+    
+    options = [
+        SelectOption(label=name, value=str(i + 1), default=i == currentSkin - 1) for i, name in enumerate(compatibleSkins)
+    ]
+    options = [SelectOption(label="No skin", value="0", default=currentSkin == 0)] + options
+    
+    skinSelect = Select(placeholder=currentSkinName, row=1, options=options)
+    skinSelect = StaticComponents.User_ShowShip_WithSkinName(skinSelect, packShowSkinNameArgs(shipName, userId))
+    view.add_item(skinSelect)
+    
+    return view
+
+
+def makeShowSkinEmbed(shipName: str, currentSkin: int) -> Embed:
+    shipData = bbData.builtInShipData[shipName]
+    compatibleSkins = shipData.get("compatibleSkins", [])
+    
+    if currentSkin == 0:
+        skinName = "Default texture"
+        img = shipData.get("icon", None)
+    else:
+        skin = compatibleSkins[currentSkin - 1]
+        skinName = f"Custom skin: {skin.capitalize()}"
+        img = bbData.builtInShipSkins[skin].shipRenders[shipName][0]
+    
+    embed = lib.discordUtil.makeEmbed(
+        col=Colour.random(),
+        img=img,
+        titleTxt=shipName,
+        footerTxt=skinName
+    )
+    
+    return embed
+
 
 class UserGof2InfoCog(BasedCog):
     def __init__(self, bot: "client.BasedClient", *args, **kwargs):
@@ -82,6 +169,42 @@ class UserGof2InfoCog(BasedCog):
         for f in attachments or []:
             f.closeAll()
 
+#endregion
+#region static components
+
+    @BasedCog.staticComponentCallback(StaticComponents.User_ShowShip_WithSkinNumber)
+    async def showShipWithSkinNumber(self, interaction: Interaction, args: str):
+        userId, shipName, skinNum = unpackShowSkinNumArgs(args)
+        if userId and userId != interaction.user.id: return
+        
+        view = makeShowSkinView(shipName, skinNum, userId)
+        embed = makeShowSkinEmbed(shipName, skinNum)
+        
+        await interaction.response.edit_message(embed=embed, view=view)
+            
+            
+    @BasedCog.staticComponentCallback(StaticComponents.User_ShowShip_WithSkinName)
+    async def showShipWithSkinName(self, interaction: Interaction, args: str):
+        userId, shipName = unpackShowSkinNameArgs(args)
+        if userId and userId != interaction.user.id: return
+        
+        selected: Optional[List[str]] = None if interaction.data is None else interaction.data.get("values", None)
+
+        if not selected:
+            await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This type of interaction is not valid here.", ephemeral=True)
+            self.bot.logger.log(UserGof2InfoCog.__name__, UserGof2InfoCog.showShipWithSkinName.__name__,
+                                "select-based static component triggered for non-select interaction: " \
+                                    + interactionErrorString(interaction, StaticComponents.User_ShowShip_WithSkinName),
+                                category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
+            return
+        
+        skinNum = int(selected[0])
+        view = makeShowSkinView(shipName, skinNum, userId)
+        embed = makeShowSkinEmbed(shipName, skinNum)
+        
+        await interaction.response.edit_message(embed=embed, view=view)
+            
+        
 #endregion
 #region commands
 
@@ -262,24 +385,19 @@ class UserGof2InfoCog(BasedCog):
                 await interaction.response.send_message(":x: That ship is not skinnable!", ephemeral=True)
                 return
 
-            if skin not in shipData.get("compatibleSkins", []):
+            compatibleSkins = shipData.get("compatibleSkins", [])
+            if skin not in compatibleSkins:
                 await interaction.response.send_message(f":x: That skin is not compatible with the **{ship}**!", ephemeral=True)
                 return
-
-            itemEmbed = lib.discordUtil.makeEmbed(col=Colour.random(),
-                                                    img=bbData.builtInShipSkins[skin].shipRenders[ship][0],
-                                                    titleTxt=ship,
-                                                    footerTxt="Custom skin: " + skin.capitalize())
-            await interaction.response.send_message(embed=itemEmbed)
+            
+            skinNum = compatibleSkins.index(skin) + 1
         else:
-            obj = ShipBlueprint.deserialize(shipData)
-            if obj.hasIcon:
-                embed = Embed(title=obj.name)
-                embed.set_image(url=obj.icon)
-                embed.colour = Colour.random()
-                await interaction.response.send_message(embed=embed)
-            else:
-                await interaction.response.send_message(f"I don't have an image for the {obj.name}!", ephemeral=True)
+            skinNum = 0
+                
+        view = makeShowSkinView(ship, skinNum)
+        embed = makeShowSkinEmbed(ship, skinNum)
+        
+        await interaction.response.send_message(embed=embed, view=view or MISSING)
 
     
     @weaponAutoComplete()

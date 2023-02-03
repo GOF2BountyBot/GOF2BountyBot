@@ -186,6 +186,10 @@ class StaticComponents(StaticComponentIDsEnum, metaclass=StaticComponentEnumMeta
     User_IssueCreator_Add_Attachments = 55
     User_IssueCreator_Remove_Attachments_Select = 56
     User_IssueCreator_Remove_Attachments = 57
+    
+    # UserGof2InfoCog
+    User_ShowShip_WithSkinNumber = 59
+    User_ShowShip_WithSkinName = 60
 
 
 class StaticComponentMeta:
