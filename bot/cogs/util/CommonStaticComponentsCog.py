@@ -71,10 +71,8 @@ class CommonStaticComponentsCog(BasedCog):
         thumb = embed.thumbnail.url if embed.thumbnail is not None else None
         img = embed.image.url if embed.image is not None else None
         
-        if thumb is not None:
-            embed.set_image(url=thumb)
-        if img is not None:
-            embed.set_thumbnail(url=img)
+        embed.set_image(url=thumb)
+        embed.set_thumbnail(url=img)
             
         await interaction.response.edit_message(embed=embed)
 
