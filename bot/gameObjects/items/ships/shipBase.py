@@ -274,7 +274,7 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
     @embedField("Compatible Skins", showInline=False)
     def compatibleSkinsStr(self):
         shipData = bbData.builtInShipData.get(self.name, None)
-        if shipData is None or shipData.get("skinnable", False):
+        if shipData is None or not shipData.get("skinnable", False):
             return "This ship is not skinnable"
         
         # Include compatible ship skin names
