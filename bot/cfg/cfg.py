@@ -171,6 +171,7 @@ paths = PathsConfig(
     duelResultsFont = ConcatenatableSerializablePath("duel-results-font.ttf")
 )
 
+statusMessage = ""
 
 ##### COMMANDS #####
 

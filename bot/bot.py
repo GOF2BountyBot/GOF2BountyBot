@@ -307,7 +307,10 @@ async def on_ready():
     print(f"BASED {BASED_version.BASED_VERSION} loaded.\nClient logged in as {botState.client.user}")
 
     # Set custom bot status
-    await botState.client.change_presence(activity=discord.Game("BASED APP"))
+    if cfg.statusMessage:
+        await botState.client.change_presence(activity=discord.Game(cfg.statusMessage))
+    else:
+        await botState.client.change_presence(activity=discord.Game("Galaxy on Fire 2 HD™"))
 
 
 @botState.client.event
