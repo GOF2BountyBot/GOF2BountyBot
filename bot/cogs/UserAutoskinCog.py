@@ -315,14 +315,22 @@ class UserAutoskinCog(BasedCog):
         """
         if image.width is None or image.height is None:
             raise ValueError("The attachment has no dimensions")
-        if image.width != image.height:
-            if abs(1 - (image.width / image.height)) < cfg.aspectRatioTolerance:
-                with Image.open(filePath) as workingSF:
-                    side = max(image.width, image.height)
-                    with workingSF.resize((side, side)) as resizedSF:
-                        resizedSF.save(filePath)
-                return True
+        
+        # See if the image is square
+        aspectRatioDiff = 0 if image.width == image.height else abs(1 - (image.width / image.height))
+        
+        # if the dimensions are not "square enough" then we need to ask the user how to handle it
+        # otherwize, some light stretching won't be noticeable
+        if aspectRatioDiff > cfg.aspectRatioTolerance:
             return False
+        
+        # TODO: get image dimension requirements from ship texture
+        if image.width != 2048 or image.height != 2048:
+            # Stretch to the correct size
+            with Image.open(filePath) as workingSF:
+                with workingSF.resize((2048, 2048)) as resizedSF:
+                    resizedSF.save(filePath)
+                    
         return True
 
 
@@ -368,7 +376,7 @@ class UserAutoskinCog(BasedCog):
 
         await view.interaction.response.edit_message(view=view)
 
-        with Image.open(skinPath) as workingSF: 
+        with Image.open(skinPath) as workingSF:
             # TODO: get from ship texture
             # side = max(workingSF.width, workingSF.height)
             side = 2048

@@ -729,7 +729,7 @@ class BasedClient(ClientBaseClass):
             return lib.discordUtil.dummyCoroutine(None)
 
 
-    async def multiWaitFor(self, eventTypes: Union[List[str], Tuple[str]], timeout: float, check: Optional[Callable[..., bool]] = None):
+    async def multiWaitFor(self, eventTypes: Union[List[str], Tuple[str]], timeout: float, check: Optional[Callable[..., bool]] = None) -> Any:
         done, pending = await asyncio.wait(
             [asyncio.create_task(self.wait_for(eventType, check=check)) for eventType in eventTypes],
             return_when=asyncio.FIRST_COMPLETED,
@@ -737,9 +737,9 @@ class BasedClient(ClientBaseClass):
         )
 
         if timedout := not done:
-            stuff = done.pop().result()
-        else:
             stuff = None
+        else:
+            stuff = done.pop().result()
 
         for future in done:
             # If any exception happened in any other done tasks
