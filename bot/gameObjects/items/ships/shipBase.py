@@ -270,6 +270,18 @@ class ShipBase(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedShipUn
 
     @embedField("BB Shop Spawn Rate", hideWhenNone=True)
     def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.shipKeysByTL)
+    
+    @embedField("Compatible Skins", showInline=False)
+    def compatibleSkinsStr(self):
+        shipData = bbData.builtInShipData.get(self.name, None)
+        if shipData is None or shipData.get("skinnable", False):
+            return "This ship is not skinnable"
+        
+        # Include compatible ship skin names
+        if compatibleSkins := shipData.get("compatibleSkins", []):
+            return " • ".join(compatibleSkins)
+        
+        return "This ship is skinnable, but currently has no compatible skins"
 
 #endregion
 
