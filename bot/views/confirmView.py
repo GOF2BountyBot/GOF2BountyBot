@@ -7,7 +7,7 @@ from .viewBase import ViewCleanup
 class ConfirmView(CancelView):
     """`Accept` or `Cancel` buttons.
     """
-    def __init__(self, *, timeout: Optional[float] = 180, cleanup: Optional[ViewCleanup] = None, respondOnCleanup: bool = False, confirmLabel: str = "Confirm", cancelLabel: str = "Cancel", confirmRow: int = 1, cancelRow: int = 1):
+    def __init__(self, *, timeout: Optional[float] = 180, cleanup: Optional[ViewCleanup] = None, respondOnCleanup: bool = False, confirmLabel: str = "Confirm", cancelLabel: str = "Cancel", confirmRow: int = 1, cancelRow: int = 1, awaitCleanup: bool = True):
         """
         :param timeout: The menu timeout in seconds, defaults to 180
         :type timeout: Optional[float]
@@ -15,8 +15,10 @@ class ConfirmView(CancelView):
         :type clearView: bool, defaults to False
         :param respond: If clearView is True, clear the view as the interction response, defaults to False
         :type respond: bool, defaults to False
+        :param awaitCleanup: If cleanup is set, await the cleanup. Otherwise, schedule a task for it. defaults to True
+        type awaitCleanup: bool, defaults to True
         """
-        super().__init__(timeout=timeout, cleanup=cleanup, respondOnCleanup=respondOnCleanup, cancelLabel=cancelLabel, cancelRow=cancelRow)
+        super().__init__(timeout=timeout, cleanup=cleanup, respondOnCleanup=respondOnCleanup, cancelLabel=cancelLabel, cancelRow=cancelRow, awaitCleanup=awaitCleanup)
         self.confirm.label = confirmLabel
         self.confirm.row = confirmRow
 

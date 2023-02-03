@@ -41,7 +41,7 @@ class CreditsTool(toolItem.ToolItem):
 
 
     @toolItem.singleUse
-    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
+    async def use(self, *args, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Add money to the calling user's account.
         """
         if not isinstance(callingBUser, "basedUser.BasedUser"): raise ValueError("Missing required kwarg: callingBUser")

@@ -7,7 +7,7 @@ from .viewBase import ViewBase, ViewCleanup
 class CancelView(ViewBase):
     """Just a `Cancel` button.
     """
-    def __init__(self, *, timeout: Optional[float] = 180, cleanup: Optional[ViewCleanup] = None, respondOnCleanup: bool = False, cancelLabel: str = "Cancel", cancelRow: int = 1):
+    def __init__(self, *, timeout: Optional[float] = 180, cleanup: Optional[ViewCleanup] = None, respondOnCleanup: bool = False, cancelLabel: str = "Cancel", cancelRow: int = 1, awaitCleanup: bool = True):
         """
         :param timeout: The menu timeout in seconds, defaults to 180
         :type timeout: Optional[float]
@@ -15,8 +15,10 @@ class CancelView(ViewBase):
         :type clearView: bool, defaults to False
         :param respond: If clearView is True, clear the view as the interction response, defaults to False
         :type respond: bool, defaults to False
+        :param awaitCleanup: If cleanup is set, await the cleanup. Otherwise, schedule a task for it. defaults to True
+        type awaitCleanup: bool, defaults to True
         """
-        super().__init__(timeout=timeout, cleanup=cleanup, respondOnCleanup=respondOnCleanup)
+        super().__init__(timeout=timeout, cleanup=cleanup, respondOnCleanup=respondOnCleanup, awaitCleanup=awaitCleanup)
         self._cancelled = None
         self.cancel.label = cancelLabel
         self.cancel.row = cancelRow

@@ -163,7 +163,7 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
 
 
     @toolItem.singleUse
-    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
+    async def use(self, *args, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
         then removes the crate from their inventory. For use in a command, use userFriendlyUse
 
@@ -195,21 +195,22 @@ class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], Serializ
         """
         callingBUser = client.onboardInteractionBasedUser(interaction)
 
-        view = ConfirmView(timeout=60, cleanup=ViewCleanup.clearView, respondOnCleanup=False)
+        view = ConfirmView(timeout=60, cleanup=ViewCleanup.disableAll, respondOnCleanup=True)
 
+        confirmContent = f"Are you sure you want to open your '{self.name}' crate? Respond within 60s."
         await interactionSend(interaction, respond, followup,
                                 f"Are you sure you want to open your '{self.name}' crate? Respond within 60s.",
-                                ephemeral=True, view=view)
+                                view=view)
 
         if await view.wait():
-            await view.interaction.response.send_message("🛑 Crate open cancelled - out of time!", ephemeral=True)
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Crate open cancelled - out of time!")
         elif not view.confirmed:
-            await view.interaction.response.send_message("🛑 Crate open cancelled.", ephemeral=True)
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Crate open cancelled.")
         else:
             newItem = self.pickItem()
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
 
-            await view.interaction.response.send_message(f"🎉 Success! You got a {newItem.name}!")
+            await view.interaction.edit_original_response(content=f"🎉 Success! You got a {newItem.name}!")
             return True
 
         return False

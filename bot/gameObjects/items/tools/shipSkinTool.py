@@ -119,7 +119,7 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, EmbedFillableMixin, Serial
 #endregion
 
     @toolItem.singleUse
-    async def use(self, *, callingBUser: "basedUser.BasedUser", **_) -> bool:
+    async def use(self, *args, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Apply the skin to the given ship.
         After use, the tool will be removed from callingBUser's inventory. To disable this, pass callingBUser as None.
         """
@@ -160,21 +160,21 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, EmbedFillableMixin, Serial
                                     f":x: Your ship is not compatible with this skin! Use `/info skin {self.skin.name}` to see what ships are compatible with this skin.")
             return False
 
-        view = ConfirmView(timeout=60, cleanup=ViewCleanup.clearView, respondOnCleanup=False)
+        view = ConfirmView(timeout=60, cleanup=ViewCleanup.disableAll, respondOnCleanup=True)
 
-        await interactionSend(interaction, respond, followup,
-                                f"Are you sure you want to apply the {self.skin.name} skin to your {ship.getNameAndNick()}?")
+        confirmContent = f"Are you sure you want to apply the {self.skin.name} skin to your {ship.getNameAndNick()}?"
+        await interactionSend(interaction, respond, followup, confirmContent, view=view)
         
         if await view.wait():
-            await view.interaction.response.send_message("🛑 Skin application cancelled - out of time!", ephemeral=True)
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Skin application cancelled - out of time!")
         elif not view.confirmed:
-            await view.interaction.response.send_message("🛑 Skin application cancelled.", ephemeral=True)
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Skin application cancelled.")
         else:
             ship.applySkin(self.skin)
             if self in callingBUser.inactiveTools:
                 callingBUser.inactiveTools.removeItem(self)
 
-            await view.interaction.response.send_message("🎨 Success! Your skin has been applied.", ephemeral=True)
+            await view.interaction.edit_original_response(content="🎨 Success! Your skin has been applied.")
             return True
             
         return False

@@ -324,7 +324,7 @@ class UserLoadoutCog(BasedCog):
             outStr = f":rocket: You switched to the **{requestedItem.getNameOrNick()}**."
             if moveEquippedItems:
                 outStr += f"\n{leftoverItems} items that could not fit in your new ship can be found in the hangar."
-            await interaction.response.send_message(outStr, ephemeral=True)
+            await interaction.response.send_message(outStr)
 
         elif isinstance(requestedItem, PrimaryWeapon):
             if not activeShip.canEquipMoreWeapons():
@@ -336,7 +336,7 @@ class UserLoadoutCog(BasedCog):
             requestedBBUser.activeShip.equipWeapon(requestedItem)
             requestedBBUser.inactiveWeapons.removeItem(requestedItem)
 
-            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.", ephemeral=True)
+            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.")
 
         elif isinstance(requestedItem, ModuleItem):
             if not activeShip.canEquipMoreModules():
@@ -352,7 +352,7 @@ class UserLoadoutCog(BasedCog):
             requestedBBUser.activeShip.equipModule(requestedItem)
             requestedBBUser.inactiveModules.removeItem(requestedItem)
 
-            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.", ephemeral=True)
+            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.")
 
         elif isinstance(requestedItem, TurretWeapon):
             if not activeShip.canEquipMoreTurrets():
@@ -364,7 +364,7 @@ class UserLoadoutCog(BasedCog):
             requestedBBUser.activeShip.equipTurret(requestedItem)
             requestedBBUser.inactiveTurrets.removeItem(requestedItem)
 
-            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.", ephemeral=True)
+            await interaction.response.send_message(":wrench: You equipped the **" + requestedItem.name + "**.")
 
         else:
             raise NotImplementedError(f"Unexpected item type for category {itemType.value}: {type(requestedItem)}")

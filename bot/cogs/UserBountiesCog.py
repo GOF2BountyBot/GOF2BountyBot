@@ -37,6 +37,13 @@ from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
 from ..logging import LogCategory
 from ..views.confirmView import ConfirmView
 
+PRESTIGE_MESSAGE = "Are you sure you want to prestige now? Your bounty hunter level, loadout, " \
+                + "balance, hangar and loma will all be **reset**.\n" \
+                + "You will be awarded with a ship upgrade, and a special skins crate!\n" \
+                + "You can save items from being removed by storing them in `/" \
+                + "kaamo`, but you will not be able to retreive your " \
+                + "items until you reach level 10."
+
 
 class UserBountiesCog(BasedCog):
 #region util
@@ -531,23 +538,19 @@ class UserBountiesCog(BasedCog):
 
         view = ConfirmView(timeout=cfg.prestigeConfirmTimeoutSeconds)
 
-        await interaction.response.send_message("Are you sure you want to prestige now? Your bounty hunter level, loadout, " \
-                                                + "balance, hangar and loma will all be **reset**.\n" \
-                                                + "You will be awarded with a ship upgrade, and a special skins crate!\n" \
-                                                + "You can save items from being removed by storing them in `/" \
-                                                + "kaamo`, but you will not be able to retreive your " \
-                                                + "items until you reach level 10.",
-                                                view=view)
+        await interaction.response.send_message(PRESTIGE_MESSAGE, view=view, ephemeral=True)
+        view.disableAll()
 
         if await view.wait():
-            await view.interaction.response.send_message("🛑 Prestige cancelled - out of time!", ephemeral=True)
+            await view.interaction.response.edit_message(content=PRESTIGE_MESSAGE + "\n\n🛑 Prestige cancelled - out of time!", view=view)
             return
 
         if not view.confirmed:
-            await view.interaction.response.send_message("🛑 Prestige cancelled.", ephemeral=True)
+            await view.interaction.response.edit_message(content=PRESTIGE_MESSAGE + "\n\n🛑 Prestige cancelled.", view=view)
             return
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await view.interaction.response.defer()
+        await interaction.edit_original_response(view=view)
 
         callingBBUser.bountyHuntingXP = bountyHuntingXPForLevel(1)
         callingBBUser.activeShip = Ship.deserialize(basedUser.defaultShipLoadoutDict)
@@ -568,7 +571,7 @@ class UserBountiesCog(BasedCog):
             callingBBUser.loma.toolsStock.clear()
 
         callingBBUser.prestiges += 1
-        newCrate = CrateTool.deserialize({"type": "bbCrate", "crateType": "special", "typeNum": 0, "builtIn": True})
+        newCrate = CrateTool.deserialize({"type": "CrateTool", "crateType": "special", "typeNum": 0, "builtIn": True})
         callingBBUser.inactiveTools.addItem(newCrate)
 
         errors: List[str] = []
@@ -604,6 +607,7 @@ class UserBountiesCog(BasedCog):
         if errors:
             msg += f"\n\nThe following error(s) occurred when updating your bounty alert role:\n" \
                 + "\n".join(f"• {error}" for error in errors)
+                
         await interaction.followup.send(msg)
 
 

@@ -111,7 +111,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, seria
         if self._emoji is None: return None
         if isinstance(self._emoji, lib.emojis.UninitializedBasedEmoji):
             self._emoji = schema.convertEmoji(self._emoji)
-        return self._emoji
+        return cast(lib.emojis.BasedEmoji, self._emoji)
 
 #region embed attributes
 
@@ -170,7 +170,8 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, seria
             data["wiki"] = self.wiki
             data["manufacturer"] = self.manufacturer
             data["icon"] = self.icon
-            data["emoji"] = self.emoji.serialize(**kwargs)
+            if self.emoji is not None:
+                data["emoji"] = self.emoji.serialize(**kwargs)
             data["techLevel"] = self.techLevel
             data["builtIn"] = False
 

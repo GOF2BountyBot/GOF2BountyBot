@@ -276,7 +276,7 @@ class DevBountiesCog(basedApp.BasedCog):
         # Can't do this directly as the properties are write only, so just make a new timedelta
         newTdDict = cfg.timeouts.checkCooldown.serialize().update({"seconds": seconds, "minutes": minutes, "hours": hours})
         cfg.timeouts.checkCooldown = SerializableTimedelta.deserialize(newTdDict)
-        await interaction.response.send_message("Checking cooldown updated. **This will be reverted on bot restart unless the bot config is updated.**")
+        await interaction.response.send_message("Checking cooldown updated. **This will be reverted on bot restart unless the bot config is updated.**", ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
@@ -292,7 +292,7 @@ class DevBountiesCog(basedApp.BasedCog):
         newTdDict = cfg.timeouts.newBountyFixedDelta.serialize().update({"seconds": seconds, "minutes": minutes, "hours": hours})
         cfg.timeouts.newBountyFixedDelta = SerializableTimedelta.deserialize(newTdDict)
         botState.newBountyFixedDeltaChanged = True
-        await interaction.response.send_message("New bounty period updated. **This will be reverted on bot restart unless the bot config is updated.**")
+        await interaction.response.send_message("New bounty period updated. **This will be reverted on bot restart unless the bot config is updated.**", ephemeral=True)
 
 
     @divisionAutoComplete()
@@ -355,7 +355,7 @@ class DevBountiesCog(basedApp.BasedCog):
             msgEmbed.add_field(name=nameForDivision(div), value=str(not div.isFull() or not div.hasMinTLBounty()))
 
         await self.GuildsUtilCog.operateOverDivisions(callback, "", division, interaction, callingBBGuild, division == "all", sendSuccess=False)
-        await interaction.followup.send(embed=msgEmbed)
+        await interaction.followup.send(embed=msgEmbed, ephemeral=True)
 
 
     @systemAutoComplete("start")
@@ -477,7 +477,7 @@ class DevBountiesCog(basedApp.BasedCog):
             msgEmbed.add_field(name=f"{nameForDivision(div).title()} Division", value=div.temperature)
 
         await self.GuildsUtilCog.operateOverDivisions(callback, "", division, interaction, callingBBGuild, division == "all", sendSuccess=False)
-        await interaction.followup.send(embed=msgEmbed)
+        await interaction.followup.send(embed=msgEmbed, ephemeral=True)
 
 
     @divisionAutoComplete()
@@ -552,7 +552,7 @@ class DevBountiesCog(basedApp.BasedCog):
                                             + "\nExpiring " + cast(timedTask.TimedTask, div.newBountyTT).expiryTime.strftime("%B %d %H %M %S"))
 
         await self.GuildsUtilCog.operateOverDivisions(callback, "", division, interaction, callingBBGuild, division == "all", sendSuccess=False)
-        await interaction.followup.send(embed=msgEmbed)
+        await interaction.followup.send(embed=msgEmbed, ephemeral=True)
 
 
     @divisionAutoComplete()
@@ -580,7 +580,7 @@ class DevBountiesCog(basedApp.BasedCog):
                                     value=str(div.maxBounties()))
 
         await self.GuildsUtilCog.operateOverDivisions(callback, "", division, interaction, callingBBGuild, division == "all", sendSuccess=False)
-        await interaction.followup.send(embed=msgEmbed)
+        await interaction.followup.send(embed=msgEmbed, ephemeral=True)
         
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
@@ -591,7 +591,7 @@ class DevBountiesCog(basedApp.BasedCog):
         """Print the amount of bounty hunter xp required to reach a given level.
         TODO: Possibly make this available to users? I think it'd just be bulk, no one would ever use it. Possibly an optional command that admins can enable?
         """
-        await interaction.response.send_message(f"💎 **{gameMaths.bountyHuntingXPForLevel(level)}** total bounty hunter xp is required to reach level {level}.")
+        await interaction.response.send_message(f"💎 **{gameMaths.bountyHuntingXPForLevel(level)}** total bounty hunter xp is required to reach level {level}.", ephemeral=True)
 
     
     @criminalAutoComplete("criminal")
@@ -729,9 +729,9 @@ class DevBountiesCog(basedApp.BasedCog):
 
             u.bountyHuntingXpSurplus = xp_surplus
             if xp_surplus == -1:
-                await interaction.response.send_message("✅ set successfully!" + (f"User can no longer div-up ({oldSurplus} -> {xp_surplus})" if canDivup else "No change."))
+                await interaction.response.send_message("✅ set successfully! " + (f"User can no longer div-up ({oldSurplus} -> {xp_surplus})" if canDivup else "No change."), ephemeral=True)
             else:
-                await interaction.response.send_message("✅ set successfully!" + (f"User can now div-up ({oldSurplus} -> {xp_surplus})" if not canDivup else f"User was already able to div-up. ({oldSurplus} -> {xp_surplus})"))
+                await interaction.response.send_message("✅ set successfully! " + (f"User can now div-up ({oldSurplus} -> {xp_surplus})" if not canDivup else f"User was already able to div-up. ({oldSurplus} -> {xp_surplus})"), ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
@@ -747,7 +747,7 @@ class DevBountiesCog(basedApp.BasedCog):
             canDivup = u.canDivUp()
 
             u.bountyHuntingXpSurplus = -1
-            await interaction.response.send_message("✅ set successfully!" + (f"User can no longer div-up ({oldSurplus} -> -1)" if canDivup else "No change."))
+            await interaction.response.send_message("✅ set successfully! " + (f"User can no longer div-up ({oldSurplus} -> -1)" if canDivup else "No change."), ephemeral=True)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="bounties")
@@ -761,10 +761,10 @@ class DevBountiesCog(basedApp.BasedCog):
         if u is not None:
             canDivup = u.canDivUp()
             if canDivup:
-                await interaction.response.send_message("✅ User was already able to div-up. No change to xp surplus.")
+                await interaction.response.send_message("✅ User was already able to div-up. No change to xp surplus.", ephemeral=True)
             else:
                 u.bountyHuntingXpSurplus = -0
-                await interaction.response.send_message(f"✅ set successfully! User can now div-up (-1 -> 0)")
+                await interaction.response.send_message(f"✅ set successfully! User can now div-up (-1 -> 0)", ephemeral=True)
 
 
     @criminalAutoComplete()
