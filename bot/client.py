@@ -736,7 +736,7 @@ class BasedClient(ClientBaseClass):
             timeout=timeout
         )
 
-        if done:
+        if timedout := not done:
             stuff = done.pop().result()
         else:
             stuff = None
@@ -750,6 +750,9 @@ class BasedClient(ClientBaseClass):
         for future in pending:
             future.cancel()  # we don't need these anymore
 
+        if timedout:
+            raise asyncio.TimeoutError()
+        
         return stuff
 
 
