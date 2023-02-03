@@ -1,6 +1,7 @@
 from typing import List, Optional, Union, cast
 from discord import Guild, Member, User, app_commands, Interaction
 from discord.app_commands import Range
+from discord.ui import View, Button
 
 from .. import client, lib
 from ..lib.discordUtil import makeEmbed, ZWSP
@@ -9,6 +10,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
+from ..interactions.basedComponent import StaticComponents
 from ..users import basedUser
 from ..gameObjects.inventories.inventoryListing import SerializedInventoryListing
 from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
@@ -226,7 +228,11 @@ class UserLoadoutCog(BasedCog):
         else:
             loadoutEmbed = activeShip.fillLoadoutEmbed(loadoutEmbed)
 
-        await interaction.response.send_message(embed=loadoutEmbed)
+        view = View()
+        swapImagesButton = Button(emoji="🔎")
+        swapImagesButton = StaticComponents.Swap_Embed_Image_And_Thumbnail(swapImagesButton)
+
+        await interaction.response.send_message(embed=loadoutEmbed, view=view)
 
 
     @guildOnly(bountiesEnabled=True)

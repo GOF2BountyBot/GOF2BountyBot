@@ -1,8 +1,7 @@
 from typing import Optional
 from ... import client, lib
 from ...lib.discordUtil import ZWSP, textChannel
-from discord import Interaction, Message
-from ...cfg import cfg
+from discord import Interaction, Message, Embed
 from ...interactions.basedApp import BasedCog
 from ...interactions.basedComponent import StaticComponents
 
@@ -57,6 +56,27 @@ class CommonStaticComponentsCog(BasedCog):
             created = await textChannel(interaction).send(content=message.content)
 
         return created
+    
+    
+    @BasedCog.staticComponentCallback(StaticComponents.Swap_Embed_Image_And_Thumbnail)
+    async def swapEmbedImageAndThumbnail(self, interaction: Interaction, userId: str) -> Optional[Embed]:
+        if userId and interaction.user.id != int(userId):
+            return
+
+        message = interaction.message
+        if message is None: return
+        if not message.embeds: return
+        embed = message.embeds[0]
+        
+        thumb = embed.thumbnail.url if embed.thumbnail is not None else None
+        img = embed.image.url if embed.image is not None else None
+        
+        if thumb is not None:
+            embed.set_image(url=thumb)
+        if img is not None:
+            embed.set_thumbnail(url=img)
+            
+        await interaction.response.edit_message(embed=embed)
 
 
 async def setup(bot: client.BasedClient):

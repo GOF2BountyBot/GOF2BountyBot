@@ -116,6 +116,7 @@ class StaticComponents(StaticComponentIDsEnum, metaclass=StaticComponentEnumMeta
     Clear_View = 2
     Clone_Message = 3
     Delete_Message = 4
+    Swap_Embed_Image_And_Thumbnail = 58
 
     # EmbedEditorCog
     User_Embed_Add_Field = 5
