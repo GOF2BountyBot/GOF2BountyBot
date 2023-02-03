@@ -205,6 +205,7 @@ class UserLoadoutCog(BasedCog):
         view = View()
         swapImagesButton = Button(emoji="🔎")
         swapImagesButton = StaticComponents.Swap_Embed_Image_And_Thumbnail(swapImagesButton)
+        view.add_item(swapImagesButton)
 
         if not self.bot.usersDB.idExists(user.id):
             activeShip = Ship.deserialize(basedUser.defaultShipLoadoutDict)
