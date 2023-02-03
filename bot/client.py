@@ -736,7 +736,10 @@ class BasedClient(ClientBaseClass):
             timeout=timeout
         )
 
-        stuff = done.pop().result()
+        if done:
+            stuff = done.pop().result()
+        else:
+            stuff = None
 
         for future in done:
             # If any exception happened in any other done tasks
