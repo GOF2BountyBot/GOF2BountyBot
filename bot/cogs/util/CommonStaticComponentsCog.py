@@ -24,7 +24,7 @@ class CommonStaticComponentsCog(BasedCog):
         :rtype: bool
         """
         if userId and int(userId) != interaction.user.id:
-            asyncio.create_task(interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This menu is not owned by you.", ephemeral=True))
+            asyncio.create_task(interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This menu does not belong to you.", ephemeral=True))
             return False
         return True
 
