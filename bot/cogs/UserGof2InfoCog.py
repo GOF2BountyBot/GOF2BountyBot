@@ -2,7 +2,7 @@ import os
 from typing import Callable, List, Optional, Set, Tuple, Union, cast
 from enum import Enum
 
-from discord import Colour, Embed, app_commands, Interaction, SelectOption
+from discord import Colour, Embed, app_commands, Interaction, SelectOption, ButtonStyle
 from discord.utils import MISSING
 from discord.app_commands import Range
 from discord.ui import View, Button, Select
@@ -70,65 +70,6 @@ def unpackShowSkinNameArgs(args: str) -> Tuple[Optional[int], str]:
     return int(userId) if userId else None, shipName
 
 
-def makeShowSkinView(shipName: str, currentSkin: int, userId: Union[str, int, None] = None) -> Optional[View]:
-    shipData = bbData.builtInShipData[shipName]
-    compatibleSkins = shipData.get("compatibleSkins", [])
-    skinnable = shipData.get("skinnable", False)
-    
-    if not (skinnable and compatibleSkins):
-        return None
-    
-    lastSkin = len(compatibleSkins)
-    currentSkin = max(0, min(currentSkin, lastSkin))
-    previousSkin = max(0, currentSkin - 1)
-    nextSkin = min(lastSkin, currentSkin + 1)
-    
-    currentSkinName = "No skin" if currentSkin == 0 else compatibleSkins[currentSkin - 1]
-    
-    view = View()
-    
-    prevButton = Button(emoji=cfg.defaultEmojis.previous.sendable, row=0, disabled=currentSkin == 0)
-    prevButton = StaticComponents.User_ShowShip_WithSkinNumber(prevButton, packShowSkinNumArgs(shipName, previousSkin, userId))
-    view.add_item(prevButton)
-    
-    nextButton = Button(emoji=cfg.defaultEmojis.next.sendable, row=0, disabled=currentSkin == lastSkin)
-    nextButton = StaticComponents.User_ShowShip_WithSkinNumber(nextButton, packShowSkinNumArgs(shipName, nextSkin, userId))
-    view.add_item(nextButton)
-    
-    options = [
-        SelectOption(label=name, value=str(i + 1), default=i == currentSkin - 1) for i, name in enumerate(compatibleSkins)
-    ]
-    options = [SelectOption(label="No skin", value="0", default=currentSkin == 0)] + options
-    
-    skinSelect = Select(placeholder=currentSkinName, row=1, options=options)
-    skinSelect = StaticComponents.User_ShowShip_WithSkinName(skinSelect, packShowSkinNameArgs(shipName, userId))
-    view.add_item(skinSelect)
-    
-    return view
-
-
-def makeShowSkinEmbed(shipName: str, currentSkin: int) -> Embed:
-    shipData = bbData.builtInShipData[shipName]
-    compatibleSkins = shipData.get("compatibleSkins", [])
-    
-    if currentSkin == 0:
-        skinName = "Default texture"
-        img = shipData.get("icon", None)
-    else:
-        skin = compatibleSkins[currentSkin - 1]
-        skinName = f"Custom skin: {skin.capitalize()}"
-        img = bbData.builtInShipSkins[skin].shipRenders[shipName][0]
-    
-    embed = lib.discordUtil.makeEmbed(
-        col=Colour.random(),
-        img=img,
-        titleTxt=shipName,
-        footerTxt=skinName
-    )
-    
-    return embed
-
-
 class UserGof2InfoCog(BasedCog):
     def __init__(self, bot: "client.BasedClient", *args, **kwargs):
         super().__init__(bot, *args, **kwargs)
@@ -169,6 +110,75 @@ class UserGof2InfoCog(BasedCog):
         for f in attachments or []:
             f.closeAll()
 
+
+    def makeShowSkinView(self, shipName: str, currentSkin: int, userId: Union[str, int, None] = None) -> Optional[View]:
+        shipData = bbData.builtInShipData[shipName]
+        compatibleSkins = shipData.get("compatibleSkins", [])
+        skinnable = shipData.get("skinnable", False)
+        
+        if not (skinnable and compatibleSkins):
+            return None
+        
+        lastSkin = len(compatibleSkins)
+        currentSkin = max(0, min(currentSkin, lastSkin))
+        previousSkin = currentSkin - 1
+        previousSkin = lastSkin if previousSkin < 0 else previousSkin
+        nextSkin = currentSkin + 1
+        nextSkin = 0 if nextSkin > lastSkin else nextSkin
+        
+        currentSkinName = "No skin" if currentSkin == 0 else compatibleSkins[currentSkin - 1]
+        
+        view = View()
+        
+        prevButton = Button(emoji=cfg.defaultEmojis.previous.sendable, row=0, disabled=currentSkin == 0)
+        prevButton = StaticComponents.User_ShowShip_WithSkinNumber(prevButton, packShowSkinNumArgs(shipName, previousSkin, userId))
+        view.add_item(prevButton)
+        
+        nextButton = Button(emoji=cfg.defaultEmojis.next.sendable, row=0, disabled=currentSkin == lastSkin)
+        nextButton = StaticComponents.User_ShowShip_WithSkinNumber(nextButton, packShowSkinNumArgs(shipName, nextSkin, userId))
+        view.add_item(nextButton)
+
+        if userId:
+            deleteButton = Button(emoji=cfg.defaultEmojis.delete.sendable, row=0, style=ButtonStyle.red)
+            deleteButton = StaticComponents.Delete_Message(deleteButton, str(userId))
+            view.add_item(deleteButton)
+        
+        options = [
+            SelectOption(label=name.title(), value=str(i + 1), default=i == currentSkin - 1) for i, name in enumerate(compatibleSkins)
+        ]
+        options = [SelectOption(label="No skin", value="0", default=currentSkin == 0)] + options
+        
+        skinSelect = Select(placeholder=currentSkinName.title(), row=1, options=options)
+        skinSelect = StaticComponents.User_ShowShip_WithSkinName(skinSelect, packShowSkinNameArgs(shipName, userId))
+        view.add_item(skinSelect)
+        
+        return view
+
+
+    def makeShowSkinEmbed(self, shipName: str, currentSkin: int, userId: Union[str, int, None] = None) -> Embed:
+        shipData = bbData.builtInShipData[shipName]
+        compatibleSkins = shipData.get("compatibleSkins", [])
+        skinnable = shipData.get("skinnable", False)
+        owner = self.bot.get_user(int(userId)) if userId else None
+        
+        if currentSkin == 0:
+            skinName = "Default texture"
+            img = shipData.get("icon", None)
+        else:
+            skin = compatibleSkins[currentSkin - 1]
+            skinName = f"Skin: {skin.capitalize()}"
+            img = bbData.builtInShipSkins[skin].shipRenders[shipName][0]
+        
+        embed = lib.discordUtil.makeEmbed(
+            col=Colour.random(),
+            img=img,
+            titleTxt=shipName,
+            desc=skinName,
+            footerTxt=f"Menu owned by: {owner}" if skinnable and compatibleSkins else ""
+        )
+        
+        return embed
+
 #endregion
 #region static components
 
@@ -177,8 +187,8 @@ class UserGof2InfoCog(BasedCog):
         userId, shipName, skinNum = unpackShowSkinNumArgs(args)
         if userId and userId != interaction.user.id: return
         
-        view = makeShowSkinView(shipName, skinNum, userId)
-        embed = makeShowSkinEmbed(shipName, skinNum)
+        view = self.makeShowSkinView(shipName, skinNum, userId)
+        embed = self.makeShowSkinEmbed(shipName, skinNum, userId)
         
         await interaction.response.edit_message(embed=embed, view=view)
             
@@ -199,8 +209,8 @@ class UserGof2InfoCog(BasedCog):
             return
         
         skinNum = int(selected[0])
-        view = makeShowSkinView(shipName, skinNum, userId)
-        embed = makeShowSkinEmbed(shipName, skinNum)
+        view = self.makeShowSkinView(shipName, skinNum, userId)
+        embed = self.makeShowSkinEmbed(shipName, skinNum, userId)
         
         await interaction.response.edit_message(embed=embed, view=view)
             
@@ -394,8 +404,8 @@ class UserGof2InfoCog(BasedCog):
         else:
             skinNum = 0
                 
-        view = makeShowSkinView(ship, skinNum)
-        embed = makeShowSkinEmbed(ship, skinNum)
+        view = self.makeShowSkinView(ship, skinNum, interaction.user.id)
+        embed = self.makeShowSkinEmbed(ship, skinNum, interaction.user.id)
         
         await interaction.response.send_message(embed=embed, view=view or MISSING)
 
