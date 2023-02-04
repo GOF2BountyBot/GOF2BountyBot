@@ -130,11 +130,11 @@ class UserGof2InfoCog(BasedCog):
         
         view = View()
         
-        prevButton = Button(emoji=cfg.defaultEmojis.previous.sendable, row=0, disabled=currentSkin == 0)
+        prevButton = Button(emoji=cfg.defaultEmojis.previous.sendable, row=0)
         prevButton = StaticComponents.User_ShowShip_WithSkinNumber(prevButton, packShowSkinNumArgs(shipName, previousSkin, userId))
         view.add_item(prevButton)
         
-        nextButton = Button(emoji=cfg.defaultEmojis.next.sendable, row=0, disabled=currentSkin == lastSkin)
+        nextButton = Button(emoji=cfg.defaultEmojis.next.sendable, row=0)
         nextButton = StaticComponents.User_ShowShip_WithSkinNumber(nextButton, packShowSkinNumArgs(shipName, nextSkin, userId))
         view.add_item(nextButton)
 
