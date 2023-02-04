@@ -121,10 +121,8 @@ class AdminMiscCog(basedApp.BasedCog):
     """These are being replaced with the manage roles selector
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Remove_Role_Select)
     async def startRemoveRole(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if interaction.message:
-            if userId and interaction.user.id != int(userId):
-                return
-
             embed = interaction.message.embeds[0]
             menu = roleMenuForInteraction(interaction)
             if menu is None:
@@ -150,10 +148,8 @@ class AdminMiscCog(basedApp.BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Remove_Role)
     async def endRemoveRole(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog("endRemoveRole"):
-            if userId and interaction.user.id != int(userId):
-                return
-
             message = await embedEditorCog.messageForInteraction(interaction, "endRemoveField", StaticComponents.Admin_MakeRoleMenu_Remove_Role)
             if message is None: return
             embed = message.embeds[0]
@@ -209,11 +205,9 @@ class AdminMiscCog(basedApp.BasedCog):
     # endReorderRoles is currently broken
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Reorder_Roles_Select)
     async def startReorderRoles(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         raise NotImplementedError() # TODO
         if embedEditorCog := self.getEmbedEditorCog("startReorderRoles"):
-            if userId and interaction.user.id != int(userId):
-                return
-
             message = await embedEditorCog.messageForInteraction(interaction, "startReorderFields", StaticComponents.Admin_MakeRoleMenu_Reorder_Roles_Select)
             if message is None: return
             embed = message.embeds[0]
@@ -238,11 +232,9 @@ class AdminMiscCog(basedApp.BasedCog):
     # This is currently broken
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Reorder_Roles)
     async def endReorderRoles(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         raise NotImplementedError() # TODO
         if embedEditorCog := self.getEmbedEditorCog("startReorderRoles"):
-            if userId and interaction.user.id != int(userId):
-                return
-
             message = await embedEditorCog.messageForInteraction(interaction, self.endReorderRoles.__name__, StaticComponents.Admin_MakeRoleMenu_Reorder_Roles)
             if message is None: return
             embed = message.embeds[0]
@@ -277,8 +269,7 @@ class AdminMiscCog(basedApp.BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Manage_Roles)
     async def manageRoles(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = self.bot.reactionMenusDB.get(interaction.message.id, None)
@@ -395,13 +386,13 @@ class AdminMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Manage_Roles_Refresh)
     async def refreshManageRolesSelector(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         raise NotImplementedError() # TODO
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Change_Emoji_Select)
     async def startChangeEmoji(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
@@ -426,8 +417,7 @@ class AdminMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Change_Emoji)
     async def endChangeEmoji(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
@@ -503,6 +493,7 @@ class AdminMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Submit_New_Menu)
     async def endCreateMenu(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if interaction.message and (commonStaticComponentsCog := self.getCommonStaticComponentsCog(callingFuncName="endCreatemenu")):
             if await commonStaticComponentsCog.clearViewFromMessage(interaction, userId):
                 menu = self.bot.reactionMenusDB[interaction.message.id]
@@ -521,7 +512,8 @@ class AdminMiscCog(basedApp.BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Cancel_New_Menu)
     async def cancelMenu(self, interaction: Interaction, userId: str):
-        if interaction.message and interaction.user.id == int(userId):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
+        if interaction.message:
             await interaction.response.defer()
             menu = self.bot.reactionMenusDB[interaction.message.id]
             await menu.delete()

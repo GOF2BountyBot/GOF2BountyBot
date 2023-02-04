@@ -185,7 +185,7 @@ class UserGof2InfoCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_ShowShip_WithSkinNumber)
     async def showShipWithSkinNumber(self, interaction: Interaction, args: str):
         userId, shipName, skinNum = unpackShowSkinNumArgs(args)
-        if userId and userId != interaction.user.id: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         
         view = self.makeShowSkinView(shipName, skinNum, userId)
         embed = self.makeShowSkinEmbed(shipName, skinNum, userId)
@@ -196,7 +196,7 @@ class UserGof2InfoCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_ShowShip_WithSkinName)
     async def showShipWithSkinName(self, interaction: Interaction, args: str):
         userId, shipName = unpackShowSkinNameArgs(args)
-        if userId and userId != interaction.user.id: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         
         selected: Optional[List[str]] = None if interaction.data is None else interaction.data.get("values", None)
 

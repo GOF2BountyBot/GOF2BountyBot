@@ -177,6 +177,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Remove_Field_Select)
     async def send_startRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.startRemoveField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Say_Embed_Remove_Field_Select,
@@ -186,12 +187,14 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Remove_Field)
     async def send_endRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.endRemoveField(interaction, userId=userId, staticComponentId=StaticComponents.Dev_Say_Embed_Remove_Field, makeView=send_editorView)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Edit_Field_Select)
     async def send_startEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.startEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Say_Embed_Edit_Field_Select,
@@ -201,6 +204,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Edit_Field)
     async def send_endEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.endEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Say_Embed_Edit_Field,
@@ -209,6 +213,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Reorder_Fields_Select)
     async def send_startReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.startReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Say_Embed_Reorder_Fields_Select,
@@ -218,6 +223,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Reorder_Fields)
     async def send_endReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.endReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Say_Embed_Reorder_Fields,
@@ -229,6 +235,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Remove_Field_Select)
     async def broadcast_startRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startRemoveField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Broadcast_Embed_Remove_Field_Select,
                                                     makeView=broadcast_editorView,
@@ -237,11 +244,13 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Remove_Field)
     async def broadcast_endRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endRemoveField(interaction, userId=userId, staticComponentId=StaticComponents.Dev_Broadcast_Embed_Remove_Field, makeView=send_editorView)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Edit_Field_Select)
     async def broadcast_startEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Broadcast_Embed_Edit_Field_Select,
                                                     makeView=broadcast_editorView,
@@ -250,6 +259,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Edit_Field)
     async def broadcast_endEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Broadcast_Embed_Edit_Field,
                                                     makeView=broadcast_editorView)
@@ -257,6 +267,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Reorder_Fields_Select)
     async def broadcast_startReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Broadcast_Embed_Reorder_Fields_Select,
                                                     makeView=broadcast_editorView,
@@ -265,6 +276,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Broadcast_Embed_Reorder_Fields)
     async def broadcast_endReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Broadcast_Embed_Reorder_Fields,
                                                     makeView=broadcast_editorView)
@@ -275,8 +287,7 @@ class DevMiscCog(BasedCog):
         """Send a new copy of `interaction.message` in the play channel of every guild that has one,
         and clear the view from `interaction.message`.
         """
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         message = interaction.message
         if message is None: return
@@ -298,6 +309,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Remove_Field_Select)
     async def announce_broadcast_startRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startRemoveField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Remove_Field_Select,
                                                     makeView=announce_broadcast_editorView,
@@ -306,11 +318,13 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Remove_Field)
     async def announce_broadcast_endRemoveField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endRemoveField(interaction, userId=userId, staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Remove_Field, makeView=send_editorView)
 
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Edit_Field_Select)
     async def announce_broadcast_startEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Edit_Field_Select,
                                                     makeView=announce_broadcast_editorView,
@@ -319,6 +333,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Edit_Field)
     async def announce_broadcast_endEditField(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endEditField(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Edit_Field,
                                                     makeView=announce_broadcast_editorView)
@@ -326,6 +341,7 @@ class DevMiscCog(BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Reorder_Fields_Select)
     async def announce_broadcast_startReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.startReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Reorder_Fields_Select,
                                                     makeView=announce_broadcast_editorView,
@@ -334,6 +350,7 @@ class DevMiscCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Announce_Broadcast_Embed_Reorder_Fields)
     async def announce_broadcast_endReorderFields(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         await self.EmbedEditorCog.endReorderFields(interaction, userId=userId,
                                                     staticComponentId=StaticComponents.Dev_Announce_Broadcast_Embed_Reorder_Fields,
                                                     makeView=announce_broadcast_editorView)
@@ -344,8 +361,7 @@ class DevMiscCog(BasedCog):
         """Send a new copy of `interaction.message` in the play channel of every guild that has one,
         and clear the view from `interaction.message`.
         """
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         message = interaction.message
         if message is None: return

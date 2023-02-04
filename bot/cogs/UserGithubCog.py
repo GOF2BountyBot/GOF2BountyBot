@@ -118,7 +118,7 @@ class UserGithubCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_IssueCreator_Submit)
     async def issueCreator_submit(self, interaction: Interaction, args: str):
         issueType, userId = deconstructIssueSubmitComponentArgs(args)
-        if userId != interaction.user.id: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         message = await self.messageForInteraction(interaction, UserGithubCog.issueCreator_submit.__name__, StaticComponents.User_IssueCreator_Submit)
         if message is None: return
@@ -166,7 +166,7 @@ class UserGithubCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_IssueCreator_Edit)
     async def issueCreator_edit(self, interaction: Interaction, args: str):
         issueType, userId = deconstructIssueSubmitComponentArgs(args)
-        if userId != interaction.user.id: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         message = await self.messageForInteraction(interaction, UserGithubCog.issueCreator_submit.__name__, StaticComponents.User_IssueCreator_Submit)
         if message is None: return
@@ -185,7 +185,7 @@ class UserGithubCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_IssueCreator_Add_Attachments)
     async def issueCreator_add_attachments(self, interaction: Interaction, args: str):
         issueType, userId = deconstructIssueSubmitComponentArgs(args)
-        if userId != interaction.user.id: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         message = await self.messageForInteraction(interaction, UserGithubCog.issueCreator_add_attachments.__name__, StaticComponents.User_IssueCreator_Add_Attachments)
         if message is None: return

@@ -171,6 +171,8 @@ class UserBountiesCog(BasedCog):
 
     BasedCog.staticComponentCallback(StaticComponents.User_ToggleClassicMode_Confirm)
     async def toggleClassicMode(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
+        
         callingUser = self.bot.usersDB.getOrAddID(int(userId))
         if callingUser.classicModeEnabled:
             callingUser.disableClassicMode()

@@ -252,8 +252,7 @@ class UserMiscCog(basedApp.BasedCog):
     """
     @basedApp.BasedCog.staticComponentCallback(StaticComponents.User_PollCreator_Add_Option)
     async def poll_addOption(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = self.bot.reactionMenusDB.get(interaction.message.id, None)
@@ -402,8 +401,7 @@ class UserMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Change_Emoji_Select)
     async def startChangeEmoji(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
@@ -428,8 +426,7 @@ class UserMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Change_Emoji)
     async def endChangeEmoji(self, interaction: Interaction, userId: str):
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
 
         if interaction.message is None or interaction.guild is None: return
         menu = roleMenuForInteraction(interaction)
@@ -505,6 +502,7 @@ class UserMiscCog(basedApp.BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Submit_New_Menu)
     async def endCreateMenu(self, interaction: Interaction, userId: str):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if interaction.message and (commonStaticComponentsCog := self.getCommonStaticComponentsCog(callingFuncName="endCreatemenu")):
             if await commonStaticComponentsCog.clearViewFromMessage(interaction, userId):
                 menu = self.bot.reactionMenusDB[interaction.message.id]
@@ -523,7 +521,8 @@ class UserMiscCog(basedApp.BasedCog):
 
     @BasedCog.staticComponentCallback(StaticComponents.Admin_MakeRoleMenu_Cancel_New_Menu)
     async def cancelMenu(self, interaction: Interaction, userId: str):
-        if interaction.message and interaction.user.id == int(userId):
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
+        if interaction.message:
             await interaction.response.defer()
             menu = self.bot.reactionMenusDB[interaction.message.id]
             await menu.delete()

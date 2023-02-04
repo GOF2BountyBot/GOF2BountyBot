@@ -1,16 +1,38 @@
-from typing import Optional
+from typing import Optional, Union
+import asyncio
+
+from discord import Interaction, Message, Embed
+
 from ... import client, lib
 from ...lib.discordUtil import ZWSP, textChannel
-from discord import Interaction, Message, Embed
 from ...interactions.basedApp import BasedCog
 from ...interactions.basedComponent import StaticComponents
+from ...cfg import cfg
 
 class CommonStaticComponentsCog(BasedCog):
+#region util
+
+    def ensureOwnership(self, interaction: Interaction, userId: Union[int, str, None] = None) -> bool:
+        """Make sure that `userId`, if provided, matches the Id of the interacting user.
+        If not, send a user friendly error. This is not awaited.
+
+        :param interaction: The interaction to check
+        :type interaction: Interaction
+        :param userId: The id of the owning user, defaults to None
+        :type userId: Union[int, str, None], optional
+        :return: `True` if `userId` is not provided or matches `interaction.user`, False otherwise
+        :rtype: bool
+        """
+        if userId and int(userId) != interaction.user.id:
+            asyncio.create_task(interaction.response.send_message(f"{cfg.defaultEmojis.cancel} This menu is not owned by you.", ephemeral=True))
+            return False
+        return True
+
+#endregion
     @BasedCog.staticComponentCallback(StaticComponents.Clear_View)
     async def clearViewFromMessage(self, interaction: Interaction, userId: str) -> bool:
         "Returns True if the operation succeeded, or False if it didn't (e.g unmatched userId)"
-        if userId and interaction.user.id != int(userId):
-            return False
+        if not self.ensureOwnership(interaction, userId): return False
 
         if interaction.response.is_done():
             await interaction.edit_original_response(view=None)
@@ -23,8 +45,7 @@ class CommonStaticComponentsCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.Delete_Message)
     async def deleteMessage(self, interaction: Interaction, userId: str) -> bool:
         "Returns True if the operation succeeded, or False if it didn't (e.g unmatched userId)"
-        if userId and interaction.user.id != int(userId):
-            return False
+        if not self.ensureOwnership(interaction, userId): return False
 
         if not interaction.response.is_done():
             await interaction.response.defer(thinking=False)
@@ -39,8 +60,7 @@ class CommonStaticComponentsCog(BasedCog):
         `interaction` must have occurred in a text channel.
         Returns the created message, unless the operation was cancelled for some reason.
         """
-        if userId and interaction.user.id != int(userId):
-            return
+        if not self.ensureOwnership(interaction, userId): return
 
         message = interaction.message
         if message is None: return
@@ -60,8 +80,10 @@ class CommonStaticComponentsCog(BasedCog):
     
     @BasedCog.staticComponentCallback(StaticComponents.Swap_Embed_Image_And_Thumbnail)
     async def swapEmbedImageAndThumbnail(self, interaction: Interaction, userId: str) -> Optional[Embed]:
-        if userId and interaction.user.id != int(userId):
-            return
+        """Swap the images in the thumbnail and image slots of the embed.
+        Returns the new embed if the operation suceeded, or None if it did not, eg unmatched user id.
+        """
+        if not self.ensureOwnership(interaction, userId): return
 
         message = interaction.message
         if message is None: return
@@ -75,6 +97,7 @@ class CommonStaticComponentsCog(BasedCog):
         embed.set_thumbnail(url=img)
             
         await interaction.response.edit_message(embed=embed)
+        return embed
 
 
 async def setup(bot: client.BasedClient):

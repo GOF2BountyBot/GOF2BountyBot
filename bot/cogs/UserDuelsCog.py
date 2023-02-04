@@ -143,7 +143,7 @@ class UserDuelsCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_DuelChallenge_Reject)
     async def rejectDuelComponent(self, interaction: Interaction, args: str):
         sourceUserId, targetUserId = unpackDuelChallengeMenuArgs(args)
-        if interaction.user.id != targetUserId: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, targetUserId): return
 
         await self.handleRejectDuel(interaction, sourceUserId, True)
 
@@ -151,7 +151,7 @@ class UserDuelsCog(BasedCog):
     @BasedCog.staticComponentCallback(StaticComponents.User_DuelChallenge_Accept)
     async def acceptDuelComponent(self, interaction: Interaction, args: str):
         sourceUserId, targetUserId = unpackDuelChallengeMenuArgs(args)
-        if interaction.user.id != targetUserId: return
+        if not self.CommonStaticComponentsCog.ensureOwnership(interaction, targetUserId): return
 
         await self.handleAcceptDuel(interaction, sourceUserId, True)
 
