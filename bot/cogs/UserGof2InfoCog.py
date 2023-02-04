@@ -174,7 +174,7 @@ class UserGof2InfoCog(BasedCog):
             img=img,
             titleTxt=shipName,
             desc=skinName,
-            footerTxt=f"Menu owned by: {owner}" if skinnable and compatibleSkins else ""
+            footerTxt=f"Menu owned by: {owner}" if owner and skinnable and compatibleSkins else ""
         )
         
         return embed
