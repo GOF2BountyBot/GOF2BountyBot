@@ -1,5 +1,5 @@
 from carica.models import SerializableDataClass, SerializableTimedelta, SerializablePath
-from carica.typeChecking import TypeOverride
+from carica.typeChecking import TypeOverride, _DeserializedTypeOverrideProxy
 from dataclasses import dataclass, field
 import os
 from typing import Dict, List, Literal, Set, Tuple, TypeVar, Union, Any, cast
@@ -51,6 +51,8 @@ class ConcatenatableSerializablePosixPath(ConcatenatableSerializablePath, PosixP
 EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldType"], Tuple["EmojisFieldType"], Dict[Any, "EmojisFieldType"]] # type: ignore
 
 def convertEmoji(o) -> EmojisFieldType:
+    if isinstance(o, _DeserializedTypeOverrideProxy):
+        o = o.__wrapped__
     if isinstance(o, UninitializedBasedEmoji):
         return o.initialize()
     elif isinstance(o, (list, set, tuple)):
