@@ -186,6 +186,8 @@ class ShipSkinTool(HasRarityMixin, toolItem.ToolItem, EmbedFillableMixin, Serial
         :return: A string summarising the statistics and functionality of this item
         :rtype: str
         """
+        # The designer field has been hidden until the community workshop becomes available.
+        return f"*{self.rarityLevelName}*"
         if self.skin.designerId != -1 and (user := botState.client.get_user(self.skin.designerId)):
             return f"*Designer: {user.display_name}*"
         return "*Designer: user #" + str(self.manufacturer) + "*"
