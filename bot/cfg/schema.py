@@ -53,7 +53,10 @@ EmojisFieldType = Union[IBasedEmoji, List["EmojisFieldType"], Set["EmojisFieldTy
 def convertEmoji(o) -> EmojisFieldType:
     if isinstance(o, _DeserializedTypeOverrideProxy):
         o = o.__wrapped__
-    if isinstance(o, UninitializedBasedEmoji):
+
+    if isinstance(o, BasedEmoji):
+        return o
+    elif isinstance(o, UninitializedBasedEmoji):
         return o.initialize()
     elif isinstance(o, (list, set, tuple)):
         return cast(EmojisFieldType, type(o)(convertEmoji(x) for x in o))
