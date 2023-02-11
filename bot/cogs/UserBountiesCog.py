@@ -758,19 +758,26 @@ class UserBountiesCog(BasedCog):
         newXP = bountyHuntingXPForLevel(newDiv.maxLevel)
 
         view = ConfirmView(timeout=cfg.prestigeConfirmTimeoutSeconds)
+        menuTxt = f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
+                + f" division?\nAfter moving to level {newLevel}, you will need to earn " \
+                + f"{commaSplitNum(newDiv.xpToDivUp() - newXP)} xp to return to the " \
+                + f"{nameForDivision(oldDiv).title()} division."
+        
+        await interaction.response.send_message(menuTxt, ephemeral=True, view=view)
 
-        await interaction.response.send_message(f"Are you sure you want to descend to the {nameForDivision(newDiv).title()}" \
-                                                + f" division?\nAfter moving to level {newLevel}, you will need to earn " \
-                                                + f"{commaSplitNum(newDiv.xpToDivUp() - newXP)} xp to return to the " \
-                                                + f"{nameForDivision(oldDiv).title()} division.", ephemeral=True, view=view)
+        view.disableAll()
 
         if await view.wait():
-            await interaction.response.send_message("🛑 Div-down cancelled - out of time!", ephemeral=True)
+            await interaction.edit_original_response(content=f"~{menuTxt}~~\n🛑 Div-down cancelled - out of time!", view=view)
             return
 
         if not view.confirmed:
-            await interaction.response.send_message("🛑 Div-down cancelled.", ephemeral=True)
+            await view.interaction.response.send_message("🛑 Div-down cancelled.", ephemeral=True)
+            await interaction.edit_original_response(view=view)
             return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(view=view)
 
         oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
 
@@ -780,7 +787,6 @@ class UserBountiesCog(BasedCog):
         levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
         callingBBUser.inactiveTools.addItem(levelUpCrate)
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
         errors: List[str] = []
 
         if homeGuild.hasBountyAlertRoles and (member := homeGuild.dcGuild.get_member(interaction.user.id)):
@@ -805,7 +811,7 @@ class UserBountiesCog(BasedCog):
             msg += "\n\nThe following error(s) occurred when updating your bounty alert role:" \
                     + "\n".join(f"- {error}" for error in errors)
 
-        await interaction.followup.send(msg)
+        await view.interaction.followup.send(msg)
 
 
 async def setup(bot: client.BasedClient):
