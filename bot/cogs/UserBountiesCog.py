@@ -662,7 +662,7 @@ class UserBountiesCog(BasedCog):
         view = ConfirmView(timeout=cfg.prestigeConfirmTimeoutSeconds)
         menuText = f"Ascend to the {nameForDivision(newDiv).title()} division? Make sure you can defeat bounties there first!"
 
-        await interaction.response.send_message(menuText, ephemeral=False, view=view)
+        await interaction.response.send_message(menuText, ephemeral=True, view=view)
         view.disableAll()
 
         if await view.wait():
@@ -674,7 +674,7 @@ class UserBountiesCog(BasedCog):
             await interaction.edit_original_response(view=view)
             return
         
-        await view.interaction.response.defer(ephemeral=True, thinking=True)
+        await view.interaction.response.defer(ephemeral=False, thinking=True)
         await interaction.edit_original_response(view=view)
 
         oldDiv = bountiesDB.divisionForLevel(userLevel)
@@ -776,7 +776,7 @@ class UserBountiesCog(BasedCog):
             await interaction.edit_original_response(view=view)
             return
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(ephemeral=False, thinking=True)
         await interaction.edit_original_response(view=view)
 
         oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
