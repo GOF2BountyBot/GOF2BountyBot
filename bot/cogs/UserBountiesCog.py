@@ -660,18 +660,22 @@ class UserBountiesCog(BasedCog):
         newDiv = bountiesDB.divisionForLevel(newLevel)
 
         view = ConfirmView(timeout=cfg.prestigeConfirmTimeoutSeconds)
+        menuText = f"Ascend to the {nameForDivision(newDiv).title()} division? Make sure you can defeat bounties there first!"
 
-        await interaction.response.send_message(f"Ascend to the {nameForDivision(newDiv).title()} division? " \
-                                                + "Make sure you can defeat bounties there first!",
-                                                ephemeral=False, view=view)
+        await interaction.response.send_message(menuText, ephemeral=False, view=view)
+        view.disableAll()
 
         if await view.wait():
-            await interaction.response.send_message("🛑 Div-up cancelled - out of time!", ephemeral=True)
+            await interaction.edit_original_response(content=f"~~{menuText}~~\n🛑 Div-up cancelled - out of time!", view=view)
             return
 
         if not view.confirmed:
-            await interaction.response.send_message("🛑 Div-up cancelled.", ephemeral=True)
+            await view.interaction.response.send_message("🛑 Div-up cancelled.", ephemeral=True)
+            await interaction.edit_original_response(view=view)
             return
+        
+        await view.interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.edit_original_response(view=view)
 
         oldDiv = bountiesDB.divisionForLevel(userLevel)
         oldDivName, newDivName = nameForDivision(oldDiv), nameForDivision(newDiv)
@@ -683,7 +687,6 @@ class UserBountiesCog(BasedCog):
         levelUpCrate = bbData.builtInCrateObjs["levelUp"][newLevel]
         callingBBUser.inactiveTools.addItem(levelUpCrate)
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
         errors: List[str] = []
 
         if homeGuild.hasBountyAlertRoles and (member := homeGuild.dcGuild.get_member(interaction.user.id)):
@@ -709,7 +712,7 @@ class UserBountiesCog(BasedCog):
             msg += "\n\nThe following error(s) occurred when updating your bounty alert role:" \
                     + "\n".join(f"- {error}" for error in errors)
 
-        await interaction.followup.send(msg)
+        await view.interaction.followup.send(msg)
 
 
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.user, helpSection="bounty hunting",
