@@ -98,7 +98,7 @@ def tl_u(x: int, t: int) -> float:
     :return: A partial probability for use in probability generation
     :rtype: float
     """
-    return max(0, truncItemSpawnResolution(1 - math.pow((x - t) / 1.4, 2)))
+    return max(0, truncItemSpawnResolution(1 - math.pow((x - t) / 2.3, 2)))
 
 
 def pickRandomItemTL(shopTL: int) -> int:
