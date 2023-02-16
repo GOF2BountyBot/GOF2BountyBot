@@ -1567,6 +1567,7 @@ class DevMiscCog(BasedCog):
             return
         
         settings.setStrValue(setting, value)
+        settings.save()
         await interaction.response.send_message(f"{cfg.defaultEmojis.submit} Setting updated. This change will be lost if the bot restarts.", ephemeral=True)
 
 #endregion
