@@ -99,7 +99,7 @@ def intTwoTuple(val: str) -> Tuple[int, int]:
 
 class DuelResultsImageSettingsEmbed(EmbedFillableMixin):
     def __init__(self):
-        self.fieldMap = {}
+        self.fieldMap: Dict[DuelResultsImageSettings, str] = {}
         self.duelResultsImageDims = cfg.duelResultsImageDims
         self.duelResultsPlayerWidth = cfg.duelResultsPlayerWidth
         self.duelResultsP1Pos = cfg.duelResultsP1Pos
@@ -120,25 +120,25 @@ class DuelResultsImageSettingsEmbed(EmbedFillableMixin):
         self.duelResultsShadowOpacity = cfg.duelResultsShadowOpacity
         self.duelResultsBlurIterations = cfg.duelResultsBlurIterations
 
-        self.fieldMap["duelResultsImageDims"] = self.imageDimensions.__name__
-        self.fieldMap["duelResultsPlayerWidth"] = self.playerAvatars.__name__
-        self.fieldMap["duelResultsP1Pos"] = self.playerAvatars.__name__
-        self.fieldMap["duelResultsP2Pos"] = self.playerAvatars.__name__
-        self.fieldMap["duelResultsNameFontSize"] = self.fonts.__name__
-        self.fieldMap["duelResultsStatsFontSize"] = self.fonts.__name__
-        self.fieldMap["duelResultsNameFontColour"] = self.fonts.__name__
-        self.fieldMap["duelResultsStatsFontColour"] = self.fonts.__name__
-        self.fieldMap["duelResultsMaxNameWidth"] = self.textWrapping.__name__
-        self.fieldMap["duelResultsMaxStatsWidth"] = self.textWrapping.__name__
-        self.fieldMap["duelResultsTextLinePadding"] = self.textWrapping.__name__
-        self.fieldMap["duelResultsP1StatsPos"] = self.positions.__name__
-        self.fieldMap["duelResultsP2StatsPos"] = self.positions.__name__
-        self.fieldMap["duelResultsP1ShipPos"] = self.positions.__name__
-        self.fieldMap["duelResultsP2ShipPos"] = self.positions.__name__
-        self.fieldMap["duelResultsShipDims"] = self.ships.__name__
-        self.fieldMap["duelResultsShadowOffset"] = self.ships.__name__
-        self.fieldMap["duelResultsShadowOpacity"] = self.ships.__name__
-        self.fieldMap["duelResultsBlurIterations"] = self.backgroundBlur.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsImageDims] = self.imageDimensions.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsPlayerWidth] = self.playerAvatars.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP1Pos] = self.playerAvatars.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP2Pos] = self.playerAvatars.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsNameFontSize] = self.fonts.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsStatsFontSize] = self.fonts.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsNameFontColour] = self.fonts.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsStatsFontColour] = self.fonts.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsMaxNameWidth] = self.textWrapping.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsMaxStatsWidth] = self.textWrapping.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsTextLinePadding] = self.textWrapping.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP1StatsPos] = self.positions.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP2StatsPos] = self.positions.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP1ShipPos] = self.positions.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsP2ShipPos] = self.positions.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsShipDims] = self.ships.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsShadowOffset] = self.ships.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsShadowOpacity] = self.ships.__name__
+        self.fieldMap[DuelResultsImageSettings.duelResultsBlurIterations] = self.backgroundBlur.__name__
 
     def save(self):
         cfg.duelResultsImageDims = self.duelResultsImageDims
@@ -203,7 +203,7 @@ class DuelResultsImageSettingsEmbed(EmbedFillableMixin):
     def fillEmbedForField(self, f: DuelResultsImageSettings, embed: Embed) -> Optional[List[ImageFile]]:
         if f is DuelResultsImageSettings.all:
             return self.fillEmbed(embed)
-        for field in self._embedFields[self.fieldMap[f.value]]:
+        for field in self._embedFields[self.fieldMap[f].title()]:
             field.fillEmbed(self, embed)
         return None
     
