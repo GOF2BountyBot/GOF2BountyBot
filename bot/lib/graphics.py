@@ -44,8 +44,17 @@ def imageIsOpen(asset: Optional[Image.Image]) -> TypeGuard[Image.Image]:
 def _init():
     """graphics initialization. Loading critical assets that must be present, unlike optional/lazily loaded ones.
     """
-    global MISSING_TEXTURE
+    global MISSING_TEXTURE, EMPTY_DUEL_RESULTS_OVERLAY, XP_BAR_SILHOUETTE, USR_PROF_BACKGROUND, DUEL_RESULTS_OVERLAY
     MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+    EMPTY_DUEL_RESULTS_OVERLAY = None
+    XP_BAR_SILHOUETTE = None
+    USR_PROF_BACKGROUND = None
+    XP_BAR_FILLS.clear()
+    DUEL_RESULTS_BACKGROUNDS.clear()
+    DUEL_RESULTS_OVERLAY = None
+    DUEL_WINNER_OVERLAYS.clear()
+
+MAP_IMAGE: Optional[Image.Image] = None
 
 
 _init()
