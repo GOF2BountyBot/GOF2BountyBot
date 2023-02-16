@@ -371,7 +371,7 @@ class DevMiscCog(BasedCog):
 #region dev_cmd_say
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Remove_Field_Select)
-    async def send_startRemoveField(self, interaction: Interaction, userId: str, *_):
+    async def send_startRemoveField(self, interaction: Interaction, userId: str):
         if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.startRemoveField(interaction, userId=userId,
