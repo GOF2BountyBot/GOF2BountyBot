@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Dict, Optional, Type, Union, List, cast
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Type, Union, List, cast
 import traceback
 from datetime import datetime, timedelta
 
@@ -10,7 +10,7 @@ from discord.abc import Snowflake
 import random
 
 from .. import client, lib, botState
-from ..lib.discordUtil import ZWSP, textChannel
+from ..lib.discordUtil import ZWSP, textChannel, ImageFile
 from ..lib.timeUtil import utcfromtimestamp
 from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
 from ..cfg import cfg, bbData
@@ -34,6 +34,7 @@ from ..baseClasses.basedEnum import BasedEnum
 from ..gameObjects.items.ships import shipItem
 from ..gameObjects.bounties import solarSystem
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 if TYPE_CHECKING:
     from . import BASEDVersionCog
@@ -52,6 +53,200 @@ class BountyEditField(BasedEnum):
     answer = "answer"
     techLevel = "techLevel"
     respawnTime = "respawnTime"
+
+
+class DuelResultsImageSettings(BasedEnum):
+    # used to signify a 'get all' operation
+    all = "all"
+
+    # Dimensions of the duel results image
+    duelResultsImageDims = "duelResultsImageDims"
+
+    # Width (and height) of player profile images
+    duelResultsPlayerWidth = "duelResultsPlayerWidth"
+    # Coordinates of the top-left corner of the player 1 profile image
+    duelResultsP1Pos = "duelResultsP1Pos"
+    # Coordinates of the top-left corner of the player 2 profile image
+    duelResultsP2Pos = "duelResultsP2Pos"
+
+    duelResultsNameFontSize = "duelResultsNameFontSize"
+    duelResultsStatsFontSize = "duelResultsStatsFontSize"
+    duelResultsNameFontColour = "duelResultsNameFontColour"
+    duelResultsStatsFontColour = "duelResultsStatsFontColour"
+    duelResultsMaxNameWidth = "duelResultsMaxNameWidth"
+    duelResultsMaxStatsWidth = "duelResultsMaxStatsWidth"
+    duelResultsTextLinePadding = "duelResultsTextLinePadding"
+    # Where to place player 1's duel statistics
+    duelResultsP1StatsPos = "duelResultsP1StatsPos"
+    # Where to place player 2's duel statistics
+    duelResultsP2StatsPos = "duelResultsP2StatsPos"
+    # Where to place player 1's ship
+    duelResultsP1ShipPos = "duelResultsP1ShipPos"
+    # Where to place player 2's ship
+    duelResultsP2ShipPos = "duelResultsP2ShipPos"
+    duelResultsShipDims = "duelResultsShipDims"
+    duelResultsShadowOffset = "duelResultsShadowOffset"
+    duelResultsShadowOpacity = "duelResultsShadowOpacity"
+    duelResultsBlurIterations = "duelResultsBlurIterations"
+
+
+def intTwoTuple(val: str) -> Tuple[int, int]:
+    v = tuple(int(i.strip()) for i in val.split(","))
+    if len(v) == 2:
+        return v
+    raise ValueError(f"Invalid 2-tuple: {val} has 3 values")
+
+
+class DuelResultsImageSettingsEmbed(EmbedFillableMixin):
+    def __init__(self):
+        self.fieldMap = {}
+        self.duelResultsImageDims = cfg.duelResultsImageDims
+        self.duelResultsPlayerWidth = cfg.duelResultsPlayerWidth
+        self.duelResultsP1Pos = cfg.duelResultsP1Pos
+        self.duelResultsP2Pos = cfg.duelResultsP2Pos
+        self.duelResultsNameFontSize = cfg.duelResultsNameFontSize
+        self.duelResultsStatsFontSize = cfg.duelResultsStatsFontSize
+        self.duelResultsNameFontColour = cfg.duelResultsNameFontColour
+        self.duelResultsStatsFontColour = cfg.duelResultsStatsFontColour
+        self.duelResultsMaxNameWidth = cfg.duelResultsMaxNameWidth
+        self.duelResultsMaxStatsWidth = cfg.duelResultsMaxStatsWidth
+        self.duelResultsTextLinePadding = cfg.duelResultsTextLinePadding
+        self.duelResultsP1StatsPos = cfg.duelResultsP1StatsPos
+        self.duelResultsP2StatsPos = cfg.duelResultsP2StatsPos
+        self.duelResultsP1ShipPos = cfg.duelResultsP1ShipPos
+        self.duelResultsP2ShipPos = cfg.duelResultsP2ShipPos
+        self.duelResultsShipDims = cfg.duelResultsShipDims
+        self.duelResultsShadowOffset = cfg.duelResultsShadowOffset
+        self.duelResultsShadowOpacity = cfg.duelResultsShadowOpacity
+        self.duelResultsBlurIterations = cfg.duelResultsBlurIterations
+
+        self.fieldMap["duelResultsImageDims"] = self.imageDimensions.__name__
+        self.fieldMap["duelResultsPlayerWidth"] = self.playerAvatars.__name__
+        self.fieldMap["duelResultsP1Pos"] = self.playerAvatars.__name__
+        self.fieldMap["duelResultsP2Pos"] = self.playerAvatars.__name__
+        self.fieldMap["duelResultsNameFontSize"] = self.fonts.__name__
+        self.fieldMap["duelResultsStatsFontSize"] = self.fonts.__name__
+        self.fieldMap["duelResultsNameFontColour"] = self.fonts.__name__
+        self.fieldMap["duelResultsStatsFontColour"] = self.fonts.__name__
+        self.fieldMap["duelResultsMaxNameWidth"] = self.textWrapping.__name__
+        self.fieldMap["duelResultsMaxStatsWidth"] = self.textWrapping.__name__
+        self.fieldMap["duelResultsTextLinePadding"] = self.textWrapping.__name__
+        self.fieldMap["duelResultsP1StatsPos"] = self.positions.__name__
+        self.fieldMap["duelResultsP2StatsPos"] = self.positions.__name__
+        self.fieldMap["duelResultsP1ShipPos"] = self.positions.__name__
+        self.fieldMap["duelResultsP2ShipPos"] = self.positions.__name__
+        self.fieldMap["duelResultsShipDims"] = self.ships.__name__
+        self.fieldMap["duelResultsShadowOffset"] = self.ships.__name__
+        self.fieldMap["duelResultsShadowOpacity"] = self.ships.__name__
+        self.fieldMap["duelResultsBlurIterations"] = self.backgroundBlur.__name__
+
+    def save(self):
+        cfg.duelResultsImageDims = self.duelResultsImageDims
+        cfg.duelResultsPlayerWidth = self.duelResultsPlayerWidth
+        cfg.duelResultsP1Pos = self.duelResultsP1Pos
+        cfg.duelResultsP2Pos = self.duelResultsP2Pos
+        cfg.duelResultsNameFontSize = self.duelResultsNameFontSize
+        cfg.duelResultsStatsFontSize = self.duelResultsStatsFontSize
+        cfg.duelResultsNameFontColour = self.duelResultsNameFontColour
+        cfg.duelResultsStatsFontColour = self.duelResultsStatsFontColour
+        cfg.duelResultsMaxNameWidth = self.duelResultsMaxNameWidth
+        cfg.duelResultsMaxStatsWidth = self.duelResultsMaxStatsWidth
+        cfg.duelResultsTextLinePadding = self.duelResultsTextLinePadding
+        cfg.duelResultsP1StatsPos = self.duelResultsP1StatsPos
+        cfg.duelResultsP2StatsPos = self.duelResultsP2StatsPos
+        cfg.duelResultsP1ShipPos = self.duelResultsP1ShipPos
+        cfg.duelResultsP2ShipPos = self.duelResultsP2ShipPos
+        cfg.duelResultsShipDims = self.duelResultsShipDims
+        cfg.duelResultsShadowOffset = self.duelResultsShadowOffset
+        cfg.duelResultsShadowOpacity = self.duelResultsShadowOpacity
+        cfg.duelResultsBlurIterations = self.duelResultsBlurIterations
+        
+    embedField()
+    def imageDimensions(self):
+        return f"width: {self.duelResultsImageDims[0]}, height: {self.duelResultsImageDims[1]}"
+    
+    embedField()
+    def playerAvatars(self):
+        return f"width: {self.duelResultsPlayerWidth}\n" \
+            + f"**P1** x: {self.duelResultsP1Pos[0]}, y: {self.duelResultsP1Pos[1]}\n"\
+            + f"**P2** x: {self.duelResultsP2Pos[0]}, y: {self.duelResultsP2Pos[1]}"
+    
+    embedField()
+    def fonts(self):
+        return f"**player names** size: {self.duelResultsNameFontSize} colour: {self.duelResultsNameFontColour}\n" \
+            + f"**stats** size: {self.duelResultsStatsFontSize} colour: {self.duelResultsStatsFontColour}\n"
+    
+    embedField()
+    def textWrapping(self):
+        return f"max name width:{self.duelResultsMaxNameWidth}\n" \
+            + f"max stats width: {self.duelResultsMaxStatsWidth}\n" \
+            + f"line padding: {self.duelResultsTextLinePadding}"
+    
+    embedField()
+    def positions(self):
+        return f"**P1 stats** x: {self.duelResultsP1StatsPos[0]} y: {self.duelResultsP1StatsPos[1]}\n" \
+            + f"**P2 stats** x: {self.duelResultsP2StatsPos[0]} y: {self.duelResultsP2StatsPos[1]}\n" \
+            + f"**P1 ship** x: {self.duelResultsP1ShipPos[0]} y: {self.duelResultsP1ShipPos[1]}\n" \
+            + f"**P2 ship** x: {self.duelResultsP2ShipPos[0]} y: {self.duelResultsP2ShipPos[1]}\n" \
+            
+    embedField()
+    def ships(self):
+        return f"width: {self.duelResultsShipDims[0]}, height: {self.duelResultsShipDims[1]}\n" \
+            + f"**shadow offset** x: {self.duelResultsShadowOffset[0]} y: {self.duelResultsShadowOffset[1]}\n" \
+            + f"shadow opacity: {self.duelResultsShadowOpacity}" \
+    
+    embedField()
+    def backgroundBlur(self):
+        return f"iterations: {self.duelResultsBlurIterations}"
+    
+
+    def fillEmbedForField(self, f: DuelResultsImageSettings, embed: Embed) -> Optional[List[ImageFile]]:
+        if f is DuelResultsImageSettings.all:
+            return self.fillEmbed(embed)
+        for field in self._embedFields[self.fieldMap[f.value]]:
+            field.fillEmbed(self, embed)
+        return None
+    
+
+    def setStrValue(self, f: DuelResultsImageSettings, val: str):
+        if f is DuelResultsImageSettings.duelResultsImageDims:
+            self.duelResultsImageDims = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsPlayerWidth:
+            self.duelResultsPlayerWidth = int(val)
+        elif f is DuelResultsImageSettings.duelResultsP1Pos:
+            self.duelResultsP1Pos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsP2Pos:
+            self.duelResultsP2Pos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsNameFontSize:
+            self.duelResultsNameFontSize = int(val)
+        elif f is DuelResultsImageSettings.duelResultsStatsFontSize:
+            self.duelResultsStatsFontSize = int(val)
+        elif f is DuelResultsImageSettings.duelResultsNameFontColour:
+            self.duelResultsNameFontColour = val
+        elif f is DuelResultsImageSettings.duelResultsStatsFontColour:
+            self.duelResultsStatsFontColour = val
+        elif f is DuelResultsImageSettings.duelResultsMaxNameWidth:
+            self.duelResultsMaxNameWidth = int(val)
+        elif f is DuelResultsImageSettings.duelResultsMaxStatsWidth:
+            self.duelResultsMaxStatsWidth = int(val)
+        elif f is DuelResultsImageSettings.duelResultsTextLinePadding:
+            self.duelResultsTextLinePadding = int(val)
+        elif f is DuelResultsImageSettings.duelResultsP1StatsPos:
+            self.duelResultsP1StatsPos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsP2StatsPos:
+            self.duelResultsP2StatsPos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsP1ShipPos:
+            self.duelResultsP1ShipPos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsP2ShipPos:
+            self.duelResultsP2ShipPos = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsShipDims:
+            self.duelResultsShipDims = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsShadowOffset:
+            self.duelResultsShadowOffset = intTwoTuple(val)
+        elif f is DuelResultsImageSettings.duelResultsShadowOpacity:
+            self.duelResultsShadowOpacity = float(val)
+        elif f is DuelResultsImageSettings.duelResultsBlurIterations:
+            self.duelResultsBlurIterations = int(val)
 
 
 def base_editorView(interaction: Interaction, userId: Optional[Union[int, str]], embed: Optional[Embed] = None) -> View:
@@ -172,11 +367,11 @@ class DevMiscCog(BasedCog):
         return(sep.join(ttStrParts))
 
 #endregion util
-#region static components
+#region static-components
 #region dev_cmd_say
 
     @BasedCog.staticComponentCallback(StaticComponents.Dev_Say_Embed_Remove_Field_Select)
-    async def send_startRemoveField(self, interaction: Interaction, userId: str):
+    async def send_startRemoveField(self, interaction: Interaction, userId: str, *_):
         if not self.CommonStaticComponentsCog.ensureOwnership(interaction, userId): return
         if embedEditorCog := self.getEmbedEditorCog():
             await embedEditorCog.startRemoveField(interaction, userId=userId,
@@ -378,6 +573,7 @@ class DevMiscCog(BasedCog):
         await self.GuildsUtilCog.operateOverBasedGuildsAsync(self.broadcast_broadcastMessage.__name__, announce, "", interaction, None, sendSuccess=False, className=type(self).__name__)
         await interaction.edit_original_response(content="Complete! ✅")
 
+#endregion
 #endregion
 #endregion
 #region commands
@@ -1341,6 +1537,39 @@ class DevMiscCog(BasedCog):
 
         await self.GuildsUtilCog.operateOverBasedGuildsAsync(self.dev_cmd_force_update_listing.callback.__name__, updateCriminalForGuild, f"Bountyboard channel listing(s) updated for {criminalObj.name}", interaction, bGuild)
 
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer)
+    @app_commands.command(name="reload-graphics",
+                            description="Reload graphic assets that are stored on disk (not many!)")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_reload_graphics(self, interaction: Interaction):
+        lib.graphics._closeAll()
+        lib.graphics._init()
+        await interaction.response.send_message(f"{cfg.defaultEmojis.submit} Assets reloaded successfully.", ephemeral=True)
+
+
+    @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer)
+    @app_commands.command(name="duel-results-image-config",
+                            description="Get and set the duel results image configuration")
+    @app_commands.guilds(*cfg.developmentGuilds)
+    async def dev_cmd_duel_results_image_configuration(self, interaction: Interaction, setting: DuelResultsImageSettings = DuelResultsImageSettings.all, value: Optional[str] = None):
+        settings = DuelResultsImageSettingsEmbed()
+        if value is None:
+            e = Embed(colour=Colour.random())
+            e.set_author(name="Duel Results Image Configuration")
+            files = settings.fillEmbedForField(setting, e)
+            await interaction.response.send_message(embed=e, files=[f.file for f in files or []], ephemeral=True)
+            for f in files or []:
+                f.closeAll()
+            return
+        if setting is DuelResultsImageSettings.all:
+            await interaction.response.send_message(f"{cfg.defaultEmojis.cancel} Please select the setting to change.", ephemeral=True)
+            return
+        
+        settings.setStrValue(setting, value)
+        await interaction.response.send_message(f"{cfg.defaultEmojis.submit} Setting updated. This change will be lost if the bot restarts.", ephemeral=True)
+
+#endregion
 
 async def setup(bot: client.BasedClient):
     # Casting here because for some reason pyright doesn't think SerializableDiscordObject is a Snowflake,

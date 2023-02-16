@@ -20,7 +20,7 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
 
-from . import stringTyping, emojis, exceptions
+from . import stringTyping, emojis, exceptions, graphics
 from .. import botState
 import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
@@ -944,8 +944,8 @@ class ImageFile:
         # No isOpen check available for discord.File
         self.file.close()
         if not self.imageBytes.closed: self.imageBytes.close()
-        # No isOpen check available for PIL.Image.Image
-        self.image.close()
+        if graphics.imageIsOpen(self.image):
+            self.image.close()
         self.closed = True
 
 

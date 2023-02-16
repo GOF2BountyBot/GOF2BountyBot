@@ -1,12 +1,14 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageChops, ImageFilter
-from typing import Dict, Optional, Union, Tuple, List
+from typing import Dict, Optional, Union, Tuple, List, cast
+from typing_extensions import TypeGuard
 from ..cfg import cfg
 import atexit
 import random
 import os
 
-MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+# Typing here because, assuming correct usage of this module, the image will always be loaded in as part of _init
+MISSING_TEXTURE = cast(Image.Image, None)
 EMPTY_DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 
 XP_BAR_SILHOUETTE: Optional[Image.Image] = None
@@ -29,32 +31,53 @@ AnyColour = Union[
     ColourTuple # channels
 ]
 
-def closeAll():
-    """Close all active graphics. Should only be used for shutdown.
+
+def imageIsOpen(asset: Optional[Image.Image]) -> TypeGuard[Image.Image]:
+    if asset is None: return False
+    try:
+        asset.im.bands
+    except ValueError:
+        return False
+    return True
+
+
+def _init():
+    """graphics initialization. Loading critical assets that must be present, unlike optional/lazily loaded ones.
     """
-    if XP_BAR_SILHOUETTE is not None:
+    global MISSING_TEXTURE
+    MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+
+
+_init()
+
+
+def _closeAll():
+    """Only use this function on shutdown. This function is automatically called on module unimport.
+    Close all active graphics.
+    """
+    if imageIsOpen(XP_BAR_SILHOUETTE):
         XP_BAR_SILHOUETTE.close()
-    if USR_PROF_BACKGROUND is not None:
+    if imageIsOpen(USR_PROF_BACKGROUND):
         USR_PROF_BACKGROUND.close()
     for im in XP_BAR_FILLS.values():
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
 
     for im in DUEL_RESULTS_BACKGROUNDS:
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
-    if DUEL_RESULTS_OVERLAY is not None:
+    if imageIsOpen(DUEL_RESULTS_OVERLAY):
         DUEL_RESULTS_OVERLAY.close()
     for im in DUEL_WINNER_OVERLAYS.values():
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
 
-    if MAP_IMAGE is not None:
+    if imageIsOpen(MAP_IMAGE):
         MAP_IMAGE.close()
 
 
 # Automatically close all images when the module is unimported
-atexit.register(closeAll)
+atexit.register(_closeAll)
 
 
 def paddedScale(baseImage: Image.Image, w: int, h: int, fill: AnyColour,

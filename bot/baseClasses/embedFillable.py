@@ -62,7 +62,7 @@ class _BaseEmbedAttribute(ABC, Generic[TAnyEmbedAttributeUnderlyingMethod, TRetu
     @abstractmethod
     def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
         """Apply this attribute to an embed.
-        This method can opyionally return an image that must be sent alongside the embed, for the application to be visible.
+        This method can optionally return an image that must be sent alongside the embed, for the application to be visible.
 
         :param ownerSelf: The calling instance of the owning class, to pass down to the underlying method on that instance
         :param Embed embed: The embed to apply the attribute to
