@@ -161,41 +161,41 @@ class DuelResultsImageSettingsEmbed(EmbedFillableMixin):
         cfg.duelResultsShadowOpacity = self.duelResultsShadowOpacity
         cfg.duelResultsBlurIterations = self.duelResultsBlurIterations
         
-    embedField()
+    @embedField()
     def imageDimensions(self):
         return f"width: {self.duelResultsImageDims[0]}, height: {self.duelResultsImageDims[1]}"
     
-    embedField()
+    @embedField()
     def playerAvatars(self):
         return f"width: {self.duelResultsPlayerWidth}\n" \
             + f"**P1** x: {self.duelResultsP1Pos[0]}, y: {self.duelResultsP1Pos[1]}\n"\
             + f"**P2** x: {self.duelResultsP2Pos[0]}, y: {self.duelResultsP2Pos[1]}"
     
-    embedField()
+    @embedField()
     def fonts(self):
         return f"**player names** size: {self.duelResultsNameFontSize} colour: {self.duelResultsNameFontColour}\n" \
             + f"**stats** size: {self.duelResultsStatsFontSize} colour: {self.duelResultsStatsFontColour}\n"
     
-    embedField()
+    @embedField()
     def textWrapping(self):
         return f"max name width:{self.duelResultsMaxNameWidth}\n" \
             + f"max stats width: {self.duelResultsMaxStatsWidth}\n" \
             + f"line padding: {self.duelResultsTextLinePadding}"
     
-    embedField()
+    @embedField()
     def positions(self):
         return f"**P1 stats** x: {self.duelResultsP1StatsPos[0]} y: {self.duelResultsP1StatsPos[1]}\n" \
             + f"**P2 stats** x: {self.duelResultsP2StatsPos[0]} y: {self.duelResultsP2StatsPos[1]}\n" \
             + f"**P1 ship** x: {self.duelResultsP1ShipPos[0]} y: {self.duelResultsP1ShipPos[1]}\n" \
             + f"**P2 ship** x: {self.duelResultsP2ShipPos[0]} y: {self.duelResultsP2ShipPos[1]}\n" \
             
-    embedField()
+    @embedField()
     def ships(self):
         return f"width: {self.duelResultsShipDims[0]}, height: {self.duelResultsShipDims[1]}\n" \
             + f"**shadow offset** x: {self.duelResultsShadowOffset[0]} y: {self.duelResultsShadowOffset[1]}\n" \
             + f"shadow opacity: {self.duelResultsShadowOpacity}" \
     
-    embedField()
+    @embedField()
     def backgroundBlur(self):
         return f"iterations: {self.duelResultsBlurIterations}"
     
