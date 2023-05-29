@@ -1,22 +1,32 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedShieldInjectorModule(moduleItem.CustomSerializedModuleItem):
+    plasmaConsumption: int
+
+class TypedSerializedShieldInjectorModule(SerializedShieldInjectorModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedShieldInjectorModuleUnion = Union[SerializedShieldInjectorModule, TypedSerializedShieldInjectorModule]
+SerializedShieldInjectorModuleUnion = Union[SerializedShieldInjectorModule, TypedSerializedShieldInjectorModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class ShieldInjectorModule(moduleItem.ModuleItem):
+class ShieldInjectorModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedShieldInjectorModuleUnion]):
     """A module providing a ship with the ability to instantly refill their shield capacity, in exchange for blue plasma
 
     :var plasmaConsumption: The amount of plasma required to refill shields
     :vartype plasmaConsumption: int
     """
 
-    def __init__(self, name : str, aliases : List[str], plasmaConsumption : int = 0, value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], plasmaConsumption: int = 0, value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -36,28 +46,36 @@ class ShieldInjectorModule(moduleItem.ModuleItem):
 
         self.plasmaConsumption = plasmaConsumption
 
+#region embed fields
+
+    @embedField("Plasma Consumption")
+    def formattedPlasmaConsumption(self): return self.plasmaConsumption
+
+#endregion
 
     def statsStringShort(self):
         return "*Plasma Consumption: " + str(self.plasmaConsumption) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem toDict
+    def serialize(self, **kwargs) -> SerializedShieldInjectorModuleUnion:
+        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(ShieldInjectorModule, self).toDict(**kwargs)
+        itemDict = super(ShieldInjectorModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedShieldInjectorModuleUnion, itemDict)
             itemDict["plasmaConsumption"] = self.plasmaConsumption
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedShieldInjectorModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -66,6 +84,8 @@ class ShieldInjectorModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedShieldInjectorModuleUnion, moduleDict)
         return ShieldInjectorModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

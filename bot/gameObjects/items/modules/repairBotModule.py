@@ -1,22 +1,32 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedRepairBotModule(moduleItem.CustomSerializedModuleItem):
+    HPps: float
+
+class TypedSerializedRepairBotModule(SerializedRepairBotModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule]
+SerializedRepairBotModuleUnion = Union[SerializedRepairBotModule, TypedSerializedRepairBotModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class RepairBotModule(moduleItem.ModuleItem):
+class RepairBotModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedRepairBotModuleUnion]):
     """A module providing a ship with a slow health point increase to its hull and armour
 
     :var HPps: The amount of health points regained per second
     :vartype HPps: int
     """
 
-    def __init__(self, name : str, aliases : List[str], HPps : float = 0, value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], HPps: int = 0, value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -36,28 +46,36 @@ class RepairBotModule(moduleItem.ModuleItem):
 
         self.HPps = HPps
 
+#region embed fields
+
+    @embedField("Healing Rate")
+    def formattedEffect(self): return f"{self.HPps} HP/s"
+
+#endregion
 
     def statsStringShort(self):
         return "*HP/s: " + str(self.HPps) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem toDict
+    def serialize(self, **kwargs) -> SerializedRepairBotModuleUnion:
+        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(RepairBotModule, self).toDict(**kwargs)
+        itemDict = super(RepairBotModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedRepairBotModuleUnion, itemDict)
             itemDict["HPps"] = self.HPps
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedRepairBotModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -66,6 +84,8 @@ class RepairBotModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedRepairBotModuleUnion, moduleDict)
         return RepairBotModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

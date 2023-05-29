@@ -3,30 +3,34 @@ from . import reactionMenu
 from ..cfg import cfg
 from .. import botState, lib
 from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role
-from datetime import datetime
 from ..scheduling import timedTask
-from typing import Union
+from typing import Dict, Optional, Union, cast
+from typing_extensions import NotRequired
 from ..users import basedUser
+from ..logging import LogCategory
+from ..baseClasses.serializable import SerializesToSchema
+from ..lib.timeUtil import utcfromtimestamp
 
 
 checkMarkIcon = \
     "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/ballot-box-with-ballot_1f5f3.png"
 
 
-async def printAndExpirePollResults(msgID : int):
+async def printAndExpirePollResults(msgID: int):
     """Menu expiring method specific to ReactionPollMenus. Count the reactions on the menu, selecting only one per user
     in the case of single-choice mode polls, and replace the menu embed content with a bar chart summarising
     the results of the poll.
 
     :param int msgID: The id of the discord message containing the menu to expire
     """
-    menu: ReactionPollMenu = botState.reactionMenusDB[msgID]
+    menu = botState.client.reactionMenusDB[msgID]
+    if not isinstance(menu, ReactionPollMenu): return
     menuMsg: Message = await menu.msg.channel.fetch_message(menu.msg.id)
     results = {}
 
     if menu.owningBBUser is not None:
         try:
-            menu.owningBBUser.removeOwnedMenu("poll", menu)
+            menu.owningBBUser.removeOwnedMenu(basedUser.OwnedMenuType.poll, menu)
         except KeyError:
             pass
 
@@ -38,14 +42,15 @@ async def printAndExpirePollResults(msgID : int):
             maxOptionLen = len(option.name)
 
     for reaction in menuMsg.reactions:
-        if type(reaction.emoji) in [Emoji, PartialEmoji]:
-            currentEmoji = lib.emojis.BasedEmoji(id=reaction.emoji.id)
+        if isinstance(reaction.emoji, (Emoji, PartialEmoji)):
+            # Casting here because custom emojis are guaranteed to have an ID
+            currentEmoji = lib.emojis.BasedEmoji(id=cast(int, reaction.emoji.id))
         else:
             currentEmoji = lib.emojis.BasedEmoji(unicode=reaction.emoji)
 
         if currentEmoji is None:
-            botState.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to fetch BasedEmoji for reaction: " \
-                                + str(reaction), category="reactionMenus", eventType="INV_REACT")
+            botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to fetch BasedEmoji for reaction: " \
+                                + str(reaction), category=LogCategory.reactionMenus, eventType="INV_REACT")
             pollEmbed = menuMsg.embeds[0]
             pollEmbed.set_footer(text="This poll has ended.")
             await menu.msg.edit(content="An error occured when calculating the results of this poll. " \
@@ -59,9 +64,9 @@ async def printAndExpirePollResults(msgID : int):
                 break
 
         if menuOption is None:
-            # botState.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to find menuOption for emoji: " \
+            # botState.client.logger.log("ReactPollMenu", "prtAndExpirePollResults", "Failed to find menuOption for emoji: " \
             #                                                                 + str(currentEmoji),
-            #                     category="reactionMenus", eventType="UNKN_OPTN")
+            #                     category=LogCategory.reactionMenus, eventType="UNKN_OPTN")
             # pollEmbed = menuMsg.embeds[0]
             # pollEmbed.set_footer(text="This poll has ended.")
             # await menu.msg.edit(content="An error occured when calculating the results of this poll. " \
@@ -69,10 +74,10 @@ async def printAndExpirePollResults(msgID : int):
             # return
             continue
         
-        user: Member
+        user: Union[User, Member]
         async for user in reaction.users():
             if user != botState.client.user:
-                if menu.targetRole is not None and menu.targetRole not in user.roles:
+                if menu.targetRole is not None and (isinstance(user, User) or menu.targetRole not in user.roles):
                     continue
                 validVote = True
                 if not menu.multipleChoice:
@@ -107,16 +112,22 @@ async def printAndExpirePollResults(msgID : int):
     else:
         pollEmbed.add_field(name="Results", value="No votes received!", inline=False)
 
-    await menuMsg.edit(embed=pollEmbed)
-    if msgID in botState.reactionMenusDB:
-        del botState.reactionMenusDB[msgID]
+    await menuMsg.edit(embed=pollEmbed, view=None)
+    if msgID in botState.client.reactionMenusDB:
+        del botState.client.reactionMenusDB[msgID]
 
-    for reaction in menuMsg.reactions:
-        await reaction.remove(menuMsg.guild.me)
+    if menuMsg.guild is not None:
+        for reaction in menuMsg.reactions:
+            await reaction.remove(menuMsg.guild.me)
+
+
+class SerializedReactionPollMenu(reactionMenu.SerializedReactionMenu):
+    multipleChoice: bool
+    owningBBUser: NotRequired[int]
 
 
 @reactionMenu.saveableMenu
-class ReactionPollMenu(reactionMenu.ReactionMenu):
+class ReactionPollMenu(reactionMenu.ReactionMenu[reactionMenu.DummyReactionMenuOption, reactionMenu.SerializedReactionMenuOption], SerializesToSchema[SerializedReactionPollMenu]):
     """A saveable reaction menu taking a vote from its participants on a selection of option strings.
     On menu expiry, the menu's TimedTask should call printAndExpirePollResults. This edits to menu embed to provide a summary
     and bar chart of the votes submitted to the poll. The poll options have no functionality, all vote counting takes place
@@ -130,11 +141,11 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
     :var owningBBUser: The bbUser who started the poll
     :vartype owningBBUser: bbUser
     """
-    def __init__(self, msg : Message, pollOptions : dict, timeout : timedTask.TimedTask,
-            pollStarter : Union[User, Member] = None, multipleChoice : bool = False, titleTxt : str = "", desc : str = "",
-            col : Colour = Colour.blue(), footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "",
-            authorName : str = "", targetRole : Role = None,
-            owningBBUser : basedUser.BasedUser = None):
+    def __init__(self, msg: Message, pollOptions: Dict[lib.emojis.BasedEmoji, reactionMenu.DummyReactionMenuOption], timeout: timedTask.TimedTask,
+            pollStarter: Optional[Union[User, Member]] = None, multipleChoice: bool = False, titleTxt: str = "", desc: str = "",
+            col: Colour = Colour.blue(), img: str = "", thumb: str = "", icon: str = "",
+            authorName: str = "", targetRole: Optional[Role] = None,
+            owningBBUser: Optional[basedUser.BasedUser] = None):
         """
         :param discord.Message msg: the message where this menu is embedded
         :param options: A dictionary storing all of the poll options. Poll option behaviour functions are not called.
@@ -148,8 +159,6 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         :param str titleTxt: The content of the embed title (Default "")
         :param str desc: he content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed (Default time until
-                                menu expiry if timeout is not None, "" otherwise)
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str icon: URL to a smaller image to the left of authorName. AuthorName is required for this to be displayed.
@@ -170,7 +179,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
 
         if icon == "":
             if pollStarter is not None:
-                icon = str(pollStarter.avatar_url_as(size=64))
+                icon = pollStarter.display_avatar.with_size(64).url
         else:
             icon = icon if icon else checkMarkIcon
 
@@ -180,7 +189,7 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
             desc = "*" + desc + "*"
 
         super(ReactionPollMenu, self).__init__(msg, options=pollOptions, titleTxt=titleTxt, desc=desc, col=col,
-                                                footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName,
+                                                img=img, thumb=thumb, icon=icon, authorName=authorName,
                                                 timeout=timeout, targetRole=targetRole)
 
 
@@ -209,22 +218,24 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         return baseEmbed
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionPollMenu:
         """Serialize this menu to dictionary format for saving.
 
         :return: A dictionary containing all information needed to recreate this menu
         :rtype: dict
         """
-        baseDict = super(ReactionPollMenu, self).toDict(**kwargs)
+        # Casting here to add the new fields
+        baseDict = cast(SerializedReactionPollMenu, super().serialize(**kwargs))
         baseDict["multipleChoice"] = self.multipleChoice
-        baseDict["owningBBUser"] = self.owningBBUser.id
+        if self.owningBBUser is not None:
+            baseDict["owningBBUser"] = self.owningBBUser.id
         return baseDict
 
 
     @classmethod
-    def fromDict(cls, rmDict : dict, **kwargs) -> ReactionPollMenu:
+    def deserialize(cls, rmDict: SerializedReactionPollMenu, **kwargs) -> ReactionPollMenu:
         """Reconstruct a ReactionPollMenu object from its dictionary-serialized representation -
-        the opposite of ReactionPollMenu.toDict
+        the opposite of ReactionPollMenu.serialize
 
         :param dict rmDict: A dictionary containing all information needed to recreate the desired ReactionPollMenu
         :return: A new ReactionPollMenu object as described in rmDict
@@ -237,23 +248,23 @@ class ReactionPollMenu(reactionMenu.ReactionMenu):
         options = {}
         for emojiName in rmDict["options"]:
             emoji = lib.emojis.BasedEmoji.fromStr(emojiName)
-            options[emoji] = reactionMenu.DummyReactionMenuOption(rmDict["options"][emojiName], emoji)
+            options[emoji] = reactionMenu.DummyReactionMenuOption(rmDict["options"][emojiName]["name"], emoji)
 
         timeoutTT = None
         if "timeout" in rmDict:
-            expiryTime = datetime.utcfromtimestamp(rmDict["timeout"])
-            botState.taskScheduler.scheduleTask(timedTask.TimedTask(expiryTime=expiryTime,
+            expiryTime = utcfromtimestamp(rmDict["timeout"])
+            botState.client.taskScheduler.scheduleTask(timedTask.TimedTask(expiryTime=expiryTime,
                                                     expiryFunction=printAndExpirePollResults, expiryFunctionArgs=msg.id))
 
-        if "owningBBUser" in rmDict and botState.usersDB.idExists(rmDict["owningBBUser"]):
-            owner = botState.usersDB.getUser(rmDict["owningBBUser"])
+        if "owningBBUser" in rmDict and botState.client.usersDB.idExists(rmDict["owningBBUser"]):
+            owner = botState.client.usersDB.getUser(rmDict["owningBBUser"])
         else:
             owner = None
         
         menuColour = Colour.from_rgb(rmDict["col"][0], rmDict["col"][1], rmDict["col"][2]) \
                         if "col" in rmDict else Colour.blue()
 
-        return ReactionPollMenu(**cls._makeDefaults(args=rmDict, ignores=("type", "guild", "channel", "options", "timeout", "owningBBUser"),
+        return ReactionPollMenu(**cls._makeDefaults(args=rmDict, ignores=("type", "guild", "channel", "options", "timeout", "owningBBUser", "footerTxt"),
                                                     msg=msg, pollOptions=options, timeout=timeoutTT,
                                                     col=menuColour, owningBBUser=owner,
                                                     targetRole=msg.guild.get_role(rmDict["targetRole"]) \

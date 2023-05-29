@@ -2,12 +2,31 @@ from .cfg import cfg
 from os import path
 from datetime import datetime
 import traceback
-from typing import Tuple, List
+from typing import Dict, Optional, Tuple
 from .lib.exceptions import formatExceptionTrace
+import discord
+from enum import Enum
 
 
-LOG_TIME_FORMAT = "(%d/%m%Y-%H:%M)"
+LOG_TIME_FORMAT = "(%d/%m/%H:%M)"
+class LogCategory(Enum):
+    misc = "misc"
+    usersDB = "usersDB"
+    guildsDB = "guildsDB"
+    bountiesDB = "bountiesDB"
 
+    reactionMenus = "reactionMenus"
+    staticComponents = "staticComponents"
+
+    escapedBounties = "escapedBounties"
+    bountyConfig = "bountyConfig"
+    bountyBoards = "bountyBoards"
+    newBounties = "newBounties"
+    duels = "duels"
+
+    shop = "shop"
+    hangar = "hangar"
+    userAlerts = "userAlerts"
 
 class Logger:
     """A general event logging object.
@@ -21,20 +40,19 @@ class Logger:
     :vartype categories: List[str]
     """
 
-    def __init__(self, categories: List[str] = ["misc"]):
+    def __init__(self):
         """
         :param List[str] categories: The names of logging categories to sort and save logs into (Default ["misc"])
         """
-        self.categories = categories
-        if "misc" not in categories:
-            self.categories.append("misc")
+        self.categories = [c for c in LogCategory]
+        self.logs: Dict[LogCategory, Dict[datetime, str]] = {}
         self.clearLogs()
 
 
     def clearLogs(self):
         """Clears all logs from the database.
         """
-        self.logs = {cat: {} for cat in self.categories}
+        self.logs = {category: {} for category in self.categories}
 
 
     def isEmpty(self) -> bool:
@@ -49,7 +67,7 @@ class Logger:
         return True
 
 
-    def peekHeadTimeAndCategory(self) -> Tuple[datetime, str]:
+    def peekHeadTimeAndCategory(self) -> Tuple[Optional[datetime], Optional[LogCategory]]:
         """Get the log time of the earliest-logged event currently stored in the logger, as well as the category of the event.
         If the logger is currently empty, None is returned as the log time, and "" as the category.
 
@@ -57,9 +75,9 @@ class Logger:
                 added to the logger, and whose second element is the earliest-logged event's category. (None, "") otherwise.
         :rtype: tuple[datetime.datetime or None, str]
         """
-        head, headCat = None, ""
+        head, headCat = None, None
         for cat in self.logs:
-            if bool(self.logs[cat]):
+            if self.logs[cat]:
                 currHead = list(self.logs[cat].keys())[0]
                 if head is None or currHead < head:
                     head, headCat = currHead, cat
@@ -67,7 +85,7 @@ class Logger:
         return head, headCat
 
 
-    def popHeadLogAndCategory(self) -> Tuple[str, str]:
+    def popHeadLogAndCategory(self) -> Tuple[str, LogCategory]:
         """Pop the earliest-logged event and its category. This also removes the returned log from the logger.
         If the logger is currently empty, ("", "") is returned.
 
@@ -77,7 +95,8 @@ class Logger:
         """
         head, headCat = self.peekHeadTimeAndCategory()
 
-        if head is None:
+        if head is None or headCat is None:
+            headCat = LogCategory.misc
             log = ""
         else:
             log = self.logs[headCat][head]
@@ -103,12 +122,12 @@ class Logger:
 
         logsSaved = ""
         files = {}
-        nowStr = datetime.utcnow().strftime(LOG_TIME_FORMAT)
+        nowStr = discord.utils.utcnow().strftime(LOG_TIME_FORMAT)
 
         for category in self.logs:
             if bool(self.logs[category]):
-                currentFName = cfg.paths.logsFolder + ("" if cfg.paths.logsFolder.endswith("/") else "/") + category + ".txt"
-                logsSaved += category + ".txt, "
+                currentFName = path.join(cfg.paths.logsFolder, category.value + ".txt")
+                logsSaved += category.value + ".txt, "
 
                 if category not in files:
                     if not path.exists(currentFName):
@@ -117,13 +136,13 @@ class Logger:
                             f.close()
                             logsSaved += "[+]"
                         except IOError as e:
-                            print(nowStr + "-[LOG::SAVE]>F_NEW_IOERR: ERROR CREATING LOG FILE: " \
-                                    + currentFName + ":" + type(e).__name__ + "\n" + traceback.format_exc())
+                            print(nowStr + "-[LOG::SAVE]>F_NEW_IOERR: ERROR CREATING LOG FILE: " +
+                                  str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                     try:
                         files[category] = open(currentFName, 'ab')
                     except IOError as e:
-                        print(nowStr + "-[LOG::SAVE]>F_OPN_IOERR: ERROR OPENING LOG FILE: " \
-                                + currentFName + ":" + type(e).__name__ + "\n" + traceback.format_exc())
+                        print(nowStr + "-[LOG::SAVE]>F_OPN_IOERR: ERROR OPENING LOG FILE: " +
+                              str(currentFName) + ":" + e.__class__.__name__ + "\n" + traceback.format_exc())
                         files[category] = None
 
         while not self.isEmpty():
@@ -146,8 +165,8 @@ class Logger:
         self.clearLogs()
 
 
-    def log(self, classStr: str, funcStr: str, event: str, category: str = "misc", eventType: str = None,
-                trace: str = "", exception: BaseException = None, noPrintEvent: bool = False, noPrint: bool = False):
+    def log(self, classStr: str, funcStr: str, event: str, category: LogCategory = LogCategory.misc, eventType: Optional[str] = None,
+                trace: str = "", exception: Optional[BaseException] = None, noPrintEvent: bool = False, noPrint: bool = False, interaction: Optional[discord.Interaction] = None):
         """Log an event, queueing the log to be saved to a file.
 
         :param str classStr: The class in which the event occurred
@@ -158,18 +177,19 @@ class Logger:
         :param str eventType: The type of event, analagous to an exception type name. (Default 'MISC_ERR')
         :param str trace: If the logged event is an exception, you may wish to provide a stack trace
                             here with traceback.format_exc(). (Default "")
-        :param BaseException exception: Automatically generate event, trace and eventType from this exception.
+        :param Exception exception: Automatically generate event, trace and eventType from this exception.
                                     If any of the above are given, they are used instead. (Default None)
         :param bool noPrintEvent: Give True to print this log to console without the event string. Useful in cases where
                             the event string is very long. (Default False)
         :param bool noPrint: Skip printing this log to console entirely. Useful in cases where the log occurrs frequently
                             and helps little with debugging or similar. (Default False)
+        :param Optional[discord.Interaction] interaction: The interaction that triggered this log (Default None)
         """
         if category not in self.logs:
             self.log("Log", "log",
                         "ATTEMPTED TO LOG TO AN UNKNOWN CATEGORY '" \
                             + str(category) + "' -> Redirected to misc.", eventType="UNKWN_CTGR",
-                        category="misc")
+                        category=LogCategory.misc)
 
         if exception is not None:
             if event == "":
@@ -182,15 +202,17 @@ class Logger:
         if eventType is None:
             eventType = "MISC_ERR"
 
-        now = datetime.utcnow()
+        interactionStr = f"[interaction#{interaction.id}]" if interaction else ""
+
+        now = discord.utils.utcnow()
         if noPrintEvent:
-            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + f"-{interactionStr}[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType)
             if not noPrint:
                 print(eventStr)
             self.logs[category][now] = eventStr + ": " + str(event) + ("\n" + trace if trace != "" else "") + "\n\n"
         else:
-            eventStr = now.strftime(LOG_TIME_FORMAT) + "-[" + str(classStr).upper() \
+            eventStr = now.strftime(LOG_TIME_FORMAT) + f"-{interactionStr}[" + str(classStr).upper() \
                         + "::" + str(funcStr).upper() + "]>" + str(eventType) + ": " + str(event)
             if not noPrint:
                 print(eventStr)

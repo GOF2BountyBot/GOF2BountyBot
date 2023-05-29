@@ -1,12 +1,35 @@
 # Typing imports
 from __future__ import annotations
-from typing import List, Tuple
-
-from ...baseClasses import aliasable
+from typing import List, Optional, Tuple, Union, cast
+from typing_extensions import NotRequired
 import math
 
+from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...baseClasses import aliasable
+from ...baseClasses.serializable import SerializesToSchema
+from ...baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
+from ...cfg import bbData
 
-class SolarSystem(aliasable.Aliasable):
+class BuiltInSerializedSolarSystem(aliasable.SerializedAliasable, SerializedLoadedObject): pass
+
+class TypedBuiltInSerializedSolarSystem(BuiltInSerializedSolarSystem):
+    type: str
+
+class CustomSerializedSolarSystem(BuiltInSerializedSolarSystem):
+    faction: str
+    neighbours: List[str]
+    security: int
+    coordinates: Tuple[int, int]
+    techLevel: NotRequired[int]
+
+class TypedCustomSerializedSolarSystem(CustomSerializedSolarSystem, TypedBuiltInSerializedSolarSystem): pass
+
+BuiltInSerializedSolarSystemUnion = Union[BuiltInSerializedSolarSystem, TypedBuiltInSerializedSolarSystem]
+CustomSerializedSolarSystemUnion = Union[CustomSerializedSolarSystem, TypedCustomSerializedSolarSystem]
+SerializedSolarSystemUnion = Union[BuiltInSerializedSolarSystem, TypedBuiltInSerializedSolarSystem, CustomSerializedSolarSystem, TypedCustomSerializedSolarSystem]
+
+
+class SolarSystem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedSolarSystemUnion]):
     """A solar system where a bounty may be located.
 
     :var name: The name of this system
@@ -32,8 +55,9 @@ class SolarSystem(aliasable.Aliasable):
     :vartype hasTechLevel: bool
     """
 
-    def __init__(self, name : str, faction : str, neighbours : List[str], security : int,
-            coordinates : Tuple[int, int], aliases : List[str] = [], wiki : str = "", techLevel : int = -1):
+    def __init__(self, name: str, faction: str, neighbours: List[str], security: int,
+            coordinates: Tuple[int, int], aliases: List[str] = [], wiki: Optional[str] = None, techLevel: int = -1,
+            builtIn: Optional[bool] = False):
         """
         :param str name: The name of this system
         :param str faction: The faction that owns the system, if any
@@ -47,17 +71,36 @@ class SolarSystem(aliasable.Aliasable):
         :param int techLevel: The tech level of the system, indicating the typical tech level of items that can be found here
                                 - this currently has no behaviour, and is used only for lore. (Default -1)
         """
-        super(SolarSystem, self).__init__(name, aliases)
-        self.name = name
+        super(SolarSystem, self).__init__(name, aliases, builtIn=builtIn, wiki=wiki)
         self.faction = faction
         self.neighbours = neighbours
         self.security = security
         self.coordinates = tuple(coordinates)
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
+
+    
+    @embedField("Neighbour Systems")
+    @property
+    def neighboursStr(self): return ", ".join(i.title() for i in self.neighbours) if self.neighbours else "No Jumpgate"
+
+
+    @embedFooterUrl
+    def formattedFaction(self): return (self.faction.title(), self.embedThumbnail())
+
+
+    @embedField("Security Level")
+    @property
+    def securityLevelName(self): return bbData.securityLevels[self.security].title()
+
+
+    @embedColour
+    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+
+
+    # @embedThumbnailUrl
+    def embedThumbnail(self): return bbData.factionIcons.get(self.faction, None)
 
 
     def getNeighbours(self) -> List[str]:
@@ -69,7 +112,7 @@ class SolarSystem(aliasable.Aliasable):
         return self.neighbours
 
 
-    def distanceTo(self, other : SolarSystem) -> float:
+    def distanceTo(self, other: SolarSystem) -> float:
         """Calculate the straight-line distance from this system to another.
 
         :param System other: The other system to calculate distance to
@@ -89,23 +132,30 @@ class SolarSystem(aliasable.Aliasable):
         return bool(self.neighbours)
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = super().toDict(**kwargs)
-        data["faction"] = self.faction
-        data["neighbours"] = self.neighbours
-        data["security"] = self.security
-        data["coordinates"] = self.coordinates
+    def serialize(self, **kwargs) -> SerializedSolarSystemUnion:
+        # Casting here so I can add the new fields
+        data = cast(SerializedSolarSystemUnion, super().serialize(**kwargs))
+        
+        if self.builtIn:
+            data["name"] = self.name
+        else:
+            # Casting here because we know the system is not builtIn
+            data = cast(CustomSerializedSolarSystemUnion, super().serialize(**kwargs))
+            data["faction"] = self.faction
+            data["neighbours"] = self.neighbours
+            data["security"] = self.security
+            data["coordinates"] = self.coordinates
 
-        if self.hasWiki:
-            data["wiki"] = self.wiki
-        if self.hasTechLevel:
-            data["techLevel"] = self.techLevel
+            if self.hasWiki:
+                data["wiki"] = self.wiki
+            if self.hasTechLevel:
+                data["techLevel"] = self.techLevel
 
         return data
 
 
     @classmethod
-    def fromDict(cls, sysDict : dict, **kwargs) -> SolarSystem:
+    def deserialize(cls, sysDict: SerializedSolarSystemUnion, **kwargs) -> SolarSystem:
         """Factory function constructing a new System object from the information in the given dictionary.
 
         :param dict sysDict: A dictionary containing all information needed to construct the required System.

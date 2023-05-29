@@ -1,51 +1,96 @@
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageChops, ImageFilter
-from typing import Dict, Union, Tuple, List
+from typing import Dict, Optional, Union, Tuple, List, cast
+from typing_extensions import TypeGuard
 from ..cfg import cfg
 import atexit
 import random
+import os
 
+# Typing here because, assuming correct usage of this module, the image will always be loaded in as part of _init
+MISSING_TEXTURE = cast(Image.Image, None)
+EMPTY_DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 
-XP_BAR_SILHOUETTE: Image.Image = None
-USR_PROF_BACKGROUND: Image.Image = None
+XP_BAR_SILHOUETTE: Optional[Image.Image] = None
+USR_PROF_BACKGROUND: Optional[Image.Image] = None
 XP_BAR_FILLS: Dict[str, Image.Image] = {}
 
 DUEL_RESULTS_BACKGROUNDS: List[Image.Image] = []
-DUEL_RESULTS_OVERLAY: Image.Image = None
+DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 DUEL_WINNER_OVERLAYS: Dict[str, Image.Image] = {}
 
-MAP_IMAGE: Image.Image = None
+MAP_IMAGE: Optional[Image.Image] = None
+
+ColourTuple = Union[
+    Tuple[int, int, int],       # RGB
+    Tuple[int, int, int, int]   # RGBA
+]
+AnyColour = Union[
+    str,        # name
+    int,        # hex
+    ColourTuple # channels
+]
 
 
-def closeAll():
-    """Close all active graphics. Should only be used for shutdown.
+def imageIsOpen(asset: Optional[Image.Image]) -> TypeGuard[Image.Image]:
+    if asset is None: return False
+    try:
+        asset.im.bands
+    except ValueError:
+        return False
+    return True
+
+
+def _init():
+    """graphics initialization. Loading critical assets that must be present, unlike optional/lazily loaded ones.
     """
-    if XP_BAR_SILHOUETTE is not None:
+    global MISSING_TEXTURE, EMPTY_DUEL_RESULTS_OVERLAY, XP_BAR_SILHOUETTE, USR_PROF_BACKGROUND, DUEL_RESULTS_OVERLAY
+    MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+    EMPTY_DUEL_RESULTS_OVERLAY = None
+    XP_BAR_SILHOUETTE = None
+    USR_PROF_BACKGROUND = None
+    XP_BAR_FILLS.clear()
+    DUEL_RESULTS_BACKGROUNDS.clear()
+    DUEL_RESULTS_OVERLAY = None
+    DUEL_WINNER_OVERLAYS.clear()
+
+MAP_IMAGE: Optional[Image.Image] = None
+
+
+_init()
+
+
+def _closeAll():
+    """Only use this function on shutdown. This function is automatically called on module unimport.
+    Close all active graphics.
+    """
+    if imageIsOpen(XP_BAR_SILHOUETTE):
         XP_BAR_SILHOUETTE.close()
-    if USR_PROF_BACKGROUND is not None:
+    if imageIsOpen(USR_PROF_BACKGROUND):
         USR_PROF_BACKGROUND.close()
     for im in XP_BAR_FILLS.values():
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
 
     for im in DUEL_RESULTS_BACKGROUNDS:
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
-    if DUEL_RESULTS_OVERLAY is not None:
+    if imageIsOpen(DUEL_RESULTS_OVERLAY):
         DUEL_RESULTS_OVERLAY.close()
     for im in DUEL_WINNER_OVERLAYS.values():
-        if im is not None:
+        if imageIsOpen(im):
             im.close()
 
-    if MAP_IMAGE is not None:
+    if imageIsOpen(MAP_IMAGE):
         MAP_IMAGE.close()
 
 
 # Automatically close all images when the module is unimported
-atexit.register(closeAll)
+atexit.register(_closeAll)
 
 
-def paddedScale(baseImage: Image.Image, w: int, h: int, fill: Union[str, int, Tuple[int]], offsetMode: str = "CENTRE",
-                offset: int = 0, newMode: str = None) -> Image.Image:
+def paddedScale(baseImage: Image.Image, w: int, h: int, fill: AnyColour,
+                offsetMode: Optional[str] = "CENTRE", offset: int = 0, newMode: Optional[str] = None) -> Image.Image:
     """Scale `baseImage` down to (`w`, `h`), but without distorting/stretching the image. Instead, if the image is of a
     different aspect ratio, the empty space around it is filled with `fill` - "black bars".
 
@@ -160,8 +205,8 @@ def cropAndScale(baseImage: Image.Image, w: int, h: int) -> Image.Image:
     return newImage.resize((w, h))
 
 
-def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColour: Union[str, int, Tuple[int]],
-        lineColour: Union[str, int, Tuple[int]] = (255, 255, 255), lineWidth: int = 1):
+def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColour: AnyColour,
+        lineColour: AnyColour = (255, 255, 255), lineWidth: int = 1):
     """Apply an outline in the shape of a progress bar, over the given image. The operation is performed on a new image,
     the orignal is not modified. The given image should contain only the bar and nothing else,
     as provided by the progressBar function below.
@@ -188,8 +233,8 @@ def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColo
     return progressBar
 
 
-def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: Union[str, int, Tuple[int]] = 0,
-        barColour: Union[str, int, Tuple[int]] = 1) -> Image.Image:
+def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: AnyColour = 0,
+        barColour: AnyColour = 1) -> Image.Image:
     """Create a simple progress bar with a black background. Background fills the image, not limited to the bar shape.
     The default image mode is "1" - single-bit images intended to be used for creating image masks.
     Changes to this should be reflected in bgColour and colour
@@ -208,7 +253,7 @@ def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: Unio
     """
     im = Image.new(mode, (w, h), bgColour)
     drawObject = ImageDraw.Draw(im)
-    w *= min(1, max(0.01, progress))
+    w = int(w * min(1.0, max(0.01, progress)))
 
     drawObject.ellipse(  ((0, 0),     (h, h)),         fill=barColour)
     drawObject.ellipse(  ((w - h, 0), (w, h)),         fill=barColour)
@@ -246,7 +291,10 @@ def copyXPBarFill(divName: str) -> Image.Image:
             if fillPath in pathsDone:
                 XP_BAR_FILLS[div] = pathsDone[fillPath]
             else:
-                XP_BAR_FILLS[div] = Image.open(fillPath)
+                if not os.path.isfile(fillPath):
+                    XP_BAR_FILLS[div] = MISSING_TEXTURE
+                else:
+                    XP_BAR_FILLS[div] = Image.open(fillPath)
                 XP_BAR_FILLS[div] = XP_BAR_FILLS[div].resize((cfg.xpBarWidth, cfg.xpBarHeight))
                 pathsDone[div] = XP_BAR_FILLS[div]
 
@@ -262,11 +310,11 @@ def copyUserProfileBackground() -> Image.Image:
     """
     global USR_PROF_BACKGROUND
     if USR_PROF_BACKGROUND is None:
-        if cfg.userProfileBackground:
-            USR_PROF_BACKGROUND = Image.open(cfg.userProfileBackground)
-            USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
+        if not os.path.isfile(cfg.paths.userProfileBackground):
+            USR_PROF_BACKGROUND = MISSING_TEXTURE
         else:
-            raise ValueError("No userProfileBackground given in cfg")
+            USR_PROF_BACKGROUND = Image.open(cfg.paths.userProfileBackground)
+        USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
 
     return USR_PROF_BACKGROUND.copy()
 
@@ -274,27 +322,33 @@ def copyUserProfileBackground() -> Image.Image:
 def copyRandomDuelResultsBackground() -> Image.Image:
     """Get a copy of a random image to display behind duel results.
     The image is in "RGBA" mode, and has correct dimensions according to cfg.
-    The image has the cfg.duelResultsUnderlay already applied to it, if one was given.
+    The image has the cfg.paths.duelResultsUnderlay already applied to it, if one was given.
 
-    :return: A random image selected from cfg.duelResultsBackgrounds, but scaled to the right dimensions
+    :return: A random image selected from cfg.paths.duelResultsBackgrounds, but scaled to the right dimensions
     :rtype: Image.Image
     """
     global DUEL_RESULTS_BACKGROUNDS
     if DUEL_RESULTS_BACKGROUNDS == []:
-        if not cfg.duelResultsBackgrounds:
-            raise ValueError("No duelResultsBackgrounds given in cfg")
+        if not cfg.paths.duelResultsBackgrounds:
+            return MISSING_TEXTURE.resize(cfg.duelResultsImageDims)
 
-        if cfg.duelResultsUnderlay:
-            underlayImg = cropAndScale(Image.open(cfg.duelResultsUnderlay), cfg.duelResultsImageDims[0],
+        if os.path.isfile(cfg.paths.duelResultsUnderlay):
+            underlayImg = cropAndScale(Image.open(cfg.paths.duelResultsUnderlay), cfg.duelResultsImageDims[0],
                                         cfg.duelResultsImageDims[1]).convert("RGBA")
-        pathsDone: Dict[str, Image.Image] = {}
-        for imgPath in cfg.duelResultsBackgrounds:
+        else:
+            underlayImg = None
+
+        pathsDone: Dict[Union[str, Path], Image.Image] = {}
+        for imgPath in cfg.paths.duelResultsBackgrounds:
             if imgPath in pathsDone:
                 DUEL_RESULTS_BACKGROUNDS.append(pathsDone[imgPath])
             else:
-                DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
-                                                                cfg.duelResultsImageDims[1]).convert("RGBA"))
-                if cfg.duelResultsUnderlay:
+                if not os.path.isfile(imgPath):
+                    DUEL_RESULTS_BACKGROUNDS.append(MISSING_TEXTURE.resize(cfg.duelResultsImageDims))
+                else:
+                    DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
+                                                                    cfg.duelResultsImageDims[1]).convert("RGBA"))
+                if underlayImg is not None:
                     DUEL_RESULTS_BACKGROUNDS[-1] = Image.composite(underlayImg, DUEL_RESULTS_BACKGROUNDS[-1],
                                                                     underlayImg)
                 pathsDone[imgPath] = DUEL_RESULTS_BACKGROUNDS[-1]
@@ -310,13 +364,16 @@ def copyDuelResultsOverlay() -> Image.Image:
     :rtype: Image.Image
     """
     global DUEL_RESULTS_OVERLAY
+    global EMPTY_DUEL_RESULTS_OVERLAY
     if DUEL_RESULTS_OVERLAY is None:
-        if cfg.duelResultsOverlay:
-            DUEL_RESULTS_OVERLAY = Image.open(cfg.duelResultsOverlay)
-            DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
-                                                cfg.duelResultsImageDims[1])
+        if not os.path.isfile(cfg.paths.duelResultsOverlay):
+            if EMPTY_DUEL_RESULTS_OVERLAY is None:
+                EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+            DUEL_RESULTS_OVERLAY = EMPTY_DUEL_RESULTS_OVERLAY
         else:
-            raise ValueError("No duelResultsOverlay given in cfg")
+            DUEL_RESULTS_OVERLAY = Image.open(cfg.paths.duelResultsOverlay)
+        DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
+                                            cfg.duelResultsImageDims[1])
 
     return DUEL_RESULTS_OVERLAY.copy()
 
@@ -330,20 +387,26 @@ def copyDuelWinnerOverlay(winner: str) -> Image.Image:
     :rtype: Image.Image
     """
     global DUEL_WINNER_OVERLAYS
+    global EMPTY_DUEL_RESULTS_OVERLAY
     if DUEL_WINNER_OVERLAYS == {}:
         pathsDone: Dict[str, Image.Image] = {}
-        for side, imgPath in (("left", cfg.duelResultsLeftWinner), ("right", cfg.duelResultsRightWinner), ("draw", cfg.duelResultsDraw)):
+        for side, imgPath in (("left", cfg.paths.duelResultsLeftWinner), ("right", cfg.paths.duelResultsRightWinner), ("draw", cfg.paths.duelResultsDraw)):
             if imgPath in pathsDone:
                 DUEL_WINNER_OVERLAYS[side] = pathsDone[imgPath]
             else:
-                DUEL_WINNER_OVERLAYS[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
+                if not os.path.isfile(imgPath):
+                    if EMPTY_DUEL_RESULTS_OVERLAY is None:
+                        EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+                    DUEL_WINNER_OVERLAYS[side] = EMPTY_DUEL_RESULTS_OVERLAY
+                else:
+                    DUEL_WINNER_OVERLAYS[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
                 pathsDone[side] = DUEL_WINNER_OVERLAYS[side]
 
     return DUEL_WINNER_OVERLAYS[winner].copy()
 
 
 def padImage(pil_img: Image.Image, top: int, right: int, bottom: int, left: int,
-        colour: Union[str, int, Tuple[int]]) -> Image.Image:
+        colour: AnyColour) -> Image.Image:
     """Pads an image, placing extra space around it and filling that space with the given colour.
     This is done by creating a new image, the original is not modified.
 
@@ -371,12 +434,12 @@ def copyStarMap() -> Image.Image:
     """
     global MAP_IMAGE
     if MAP_IMAGE is None:
-        if cfg.paths.mapImage:
+        if os.path.isfile(cfg.paths.mapImage):
             MAP_IMAGE = Image.open(cfg.paths.mapImage)
-            if MAP_IMAGE.mode != "RGBA":
-                MAP_IMAGE = MAP_IMAGE.convert("RGBA")
         else:
-            raise ValueError("No map image given in cfg")
+            MAP_IMAGE = MISSING_TEXTURE
+        if MAP_IMAGE.mode != "RGBA":
+            MAP_IMAGE = MAP_IMAGE.convert("RGBA")
 
     return MAP_IMAGE.copy()
 

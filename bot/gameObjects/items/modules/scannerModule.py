@@ -1,12 +1,24 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedScannerModule(moduleItem.CustomSerializedModuleItem):
+    timeToLock: float
+    showClassAAsteroids: bool
+    showCargo: bool
+
+class TypedSerializedScannerModule(SerializedScannerModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule]
+SerializedScannerModuleUnion = Union[SerializedScannerModule, TypedSerializedScannerModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class ScannerModule(moduleItem.ModuleItem):
+class ScannerModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedScannerModuleUnion]):
     """A module providing a ship with the ability to scan in-range objects, such as asteroids and ships
 
     :var timeToLock: The number of seconds this scanner takes to lock onto an object and obtain information
@@ -17,11 +29,11 @@ class ScannerModule(moduleItem.ModuleItem):
     :vartype showCargo: bool
     """
 
-    def __init__(self, name : str, aliases : List[str], timeToLock : int = 0,
-            showClassAAsteroids : bool = False, showCargo : bool = False, value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], timeToLock: float = 0,
+            showClassAAsteroids: bool = False, showCargo: bool = False, value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -48,6 +60,19 @@ class ScannerModule(moduleItem.ModuleItem):
         self.showClassAAsteroids = showClassAAsteroids
         self.showCargo = showCargo
 
+#region embed fields
+
+    @embedField("Time to Lock")
+    def formattedTimeToLock(self): return f"{self.timeToLock}s"
+    
+    @embedField("Show Class A Asteroids")
+    def formattedShowClassAAsteroids(self): return "Yes" if self.showClassAAsteroids else "No"
+
+    @embedField("Show Cargo")
+    def formattedShowCargo(self): return "Yes" if self.showCargo else "No"
+
+#endregion
+
 
     def statsStringShort(self):
         return "*Time To Lock: " + str(self.timeToLock) \
@@ -55,15 +80,17 @@ class ScannerModule(moduleItem.ModuleItem):
                 + ", Show Cargo: " + ("Yes" if self.showCargo else "No") + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem toDict
+    def serialize(self, **kwargs) -> SerializedScannerModuleUnion:
+        """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem serialize
         method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(ScannerModule, self).toDict(**kwargs)
+        itemDict = super(ScannerModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedScannerModuleUnion, itemDict)
             itemDict["timeToLock"] = self.timeToLock
             itemDict["showClassAAsteroids"] = self.showClassAAsteroids
             itemDict["showCargo"] = self.showCargo
@@ -71,9 +98,9 @@ class ScannerModule(moduleItem.ModuleItem):
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedScannerModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -82,6 +109,8 @@ class ScannerModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedScannerModuleUnion, moduleDict)
         return ScannerModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

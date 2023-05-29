@@ -1,22 +1,40 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ....users import basedUser
+from typing import Union, cast
 import random
 from typing import Dict, Generic, List, Optional, Type, TypeVar
+from discord import Interaction
+
 from . import toolItem
 from .... import lib, botState
 from ....lib import gameMaths
-from discord import Message
+from ....lib.discordUtil import interactionSend
 from ....cfg import cfg, bbData
 from .. import gameItem
-from ....reactionMenus.confirmationReactionMenu import InlineConfirmationMenu
-from ....users.basedUser import BasedUser
-from . import shipSkinTool
-from ....baseClasses.hasRarity import HasRarity
+from ....users import basedUser
+from ....baseClasses.hasRarity import HasRarityMixin
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from .... import client
+from ....views.confirmView import ConfirmView
+from ....views.viewBase import ViewCleanup
+
+class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
+    crateType: str
+    typeNum: int
+
+TSerializedItem = TypeVar("TSerializedItem", bound=gameItem.TypedSerializedGameItemUnion)
+
+class CustomSerializedCrateTool(toolItem.SerializedToolItem, BuiltInSerializedCrateTool, Generic[TSerializedItem]):
+    itemPool: List[TSerializedItem]
+
+class TypedSerializedCrateTool(CustomSerializedCrateTool[TSerializedItem], toolItem.TypedSerializedToolItem, Generic[TSerializedItem]): pass
+
+SerializedCrateToolUnion = Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]
 
 
 singleTypeCrates: Dict[Type[gameItem.GameItem], Type["CrateTool"]] = {}
+
+TCrateType = TypeVar("TCrateType", bound=Type["CrateTool"]) 
 
 def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     """Registers this CrateTool type as restricted to a single item type in its itemPool.
@@ -24,7 +42,7 @@ def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     When a vanilla CrateTool is *deserialized*, if it only contains items of type itemType, your type-restricted CrateTool
     type will be deserialized instead.
     """
-    def dec_register(cls: Type["CrateTool"]):
+    def dec_register(cls : TCrateType) -> TCrateType:
         if itemType in singleTypeCrates:
             raise KeyError("A singleTypeCrate is already registered with this type")
         singleTypeCrates[itemType] = cls
@@ -32,8 +50,10 @@ def singleTypeCrate(itemType: Type[gameItem.GameItem]):
     return dec_register
 
 
+TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
+
 @gameItem.spawnableItem
-class CrateTool(toolItem.ToolItem):
+class CrateTool(toolItem.ToolItem, Generic[TItemType, TSerializedItem], SerializesToSchema[Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]]):
     """A tool containing a pool of GameItems which, when used, gives the user a single random item from the pool.
     Also automatically removes itself from the user's inventory upon use.
 
@@ -48,9 +68,9 @@ class CrateTool(toolItem.ToolItem):
     :vartype useRarities: bool
     """
 
-    def __init__(self, itemPool: List[gameItem.GameItem], name : str = "", value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
+    def __init__(self, itemPool: List[TItemType], name: str = "", value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = cfg.defaultCrateIcon, emoji: Optional[lib.emojis.BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, crateType: str = "", typeNum: int = 0,
             autoUse: bool = False):
         """
         :param List[gameItem.GameItem] itemPool: List of potential items to win. May contain duplicates.
@@ -92,18 +112,20 @@ class CrateTool(toolItem.ToolItem):
         self.useRarities = False
         for index, item in enumerate(self.itemPool):
             # Make sure all items have rarity
-            if not isinstance(item, HasRarity):
+            if not isinstance(item, HasRarityMixin):
                 self.useRarities = False
                 break
             # Make sure there are at least two rarity levels
+            # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True due to the above check
             if not self.useRarities \
                     and index != len(self.itemPool) - 1 \
-                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel:
+                    and item.rarityLevel != self.itemPool[index + 1].rarityLevel: # type: ignore[reportGeneralTypeIssues]
                 self.useRarities = True
 
         if self.useRarities:
             self._itemPoolByRarity = [
-                [i for i in self.itemPool if i.rarityLevel == rarityLevel]
+                # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True due to the above check
+                [i for i in self.itemPool if i.rarityLevel == rarityLevel] # type: ignore[reportGeneralTypeIssues]
                 for rarityLevel in range(len(cfg.itemRarities))
             ]
         else:
@@ -111,7 +133,7 @@ class CrateTool(toolItem.ToolItem):
 
 
     @property
-    def itemPoolByRarity(self) -> List[List[gameItem.GameItem]]:
+    def itemPoolByRarity(self) -> List[List[TItemType]]:
         """A read-only list, with lists containing the items in the crates item pool for each rarity level
         defined in `cfg.itemRarities`. This property is only valid when `self.useRarities` is `True`.
 
@@ -120,10 +142,10 @@ class CrateTool(toolItem.ToolItem):
         """
         if not self.useRarities:
             raise ValueError("itemPoolByRarity is not valid for this crate, as useRarities = False")
-        return self._itemPoolByRarity
+        return cast(List[List[TItemType]], self._itemPoolByRarity)
 
 
-    def pickItem(self) -> gameItem.GameItem:
+    def pickItem(self) -> TItemType:
         """Select an item from the crate, accounting for self.useRarities
 
         :return: A randomly selected item from the item pool
@@ -133,61 +155,65 @@ class CrateTool(toolItem.ToolItem):
             return random.choice(self.itemPool)
 
         rarityLevel = gameMaths.pickRandomItemRarityLevel()
-        while not any(i.rarityLevel == rarityLevel for i in self.itemPool):
+        # Ignoring a warning here because all items are guaranteed to have a rarity if useRarities is True
+        while not any(i.rarityLevel == rarityLevel for i in self.itemPool): # type: ignore[reportGeneralTypeIssues]
             rarityLevel = gameMaths.pickRandomItemRarityLevel()
 
         return random.choice(self.itemPoolByRarity[rarityLevel])
 
 
-    async def use(self, *args, **kwargs):
+    @toolItem.singleUse
+    async def use(self, *args, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Behaviour function which adds a random item from the pool and adds it to the owner's inventory,
         then removes the crate from their inventory. For use in a command, use userFriendlyUse
 
         :param BasedUser callingBUser: The user who owns the crate
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-        if not isinstance(kwargs["callingBUser"], BasedUser):
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
+        if not isinstance(callingBUser, basedUser.BasedUser):
+            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser, received " \
+                            + type(callingBUser).__name__)
 
-        callingBUser = kwargs["callingBUser"]
         newItem = self.pickItem()
-        callingBUser.getInventoryForItem(newItem).addItem(newItem)
-        callingBUser.inactiveTools.removeItem(self)
+        # Ignoring a warning here because pyright is complaining about potentially adding a GameItem to a UserToolInventory
+        # But this can only happen if newItem is in fact a tool, due to the getInventoryForItem check
+        callingBUser.getInventoryForItem(newItem).addItem(newItem) # type: ignore[reportGeneralTypeIssues]
+        return True
 
 
-    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
+    @toolItem.userFriendlySingleUse
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs) -> bool:
         """A version of self.use intended to be called by users, where exceptions are never thrown in the case of
         user error, and results strings to send in response are always returned.
         First asks for user confirmation, then adds a random single item from the item pool to the user inventory,
         and finally removes the crate from the user inventory.
 
-        :param Message message: The discord message that triggered this tool use
-        :param str argsStr: Ignored
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if "callingBUser" not in kwargs:
-            raise NameError("Required kwarg not given: callingBUser")
-        if kwargs["callingBUser"] is not None and type(kwargs["callingBUser"]).__name__ != "BasedUser":
-            raise TypeError("Required kwarg is of the wrong type. Expected BasedUser or None, received " \
-                            + type(kwargs["callingBUser"]).__name__)
+        callingBUser = client.onboardInteractionBasedUser(interaction)
 
-        callingBUser = kwargs["callingBUser"]
-        confirmMsg = await message.reply(mention_author=False,
-                                        content=f"Are you sure you want to open your '{self.name}' crate?")
-        confirmation = await InlineConfirmationMenu(confirmMsg, message.author,
-                                                    cfg.toolUseConfirmTimeoutSeconds).doMenu()
+        view = ConfirmView(timeout=60, cleanup=ViewCleanup.disableAll, respondOnCleanup=True)
 
-        if cfg.defaultEmojis.accept in confirmation:
+        confirmContent = f"Are you sure you want to open your '{self.name}' crate? Respond within 60s."
+        await interactionSend(interaction, respond, followup,
+                                f"Are you sure you want to open your '{self.name}' crate? Respond within 60s.",
+                                view=view)
+
+        if await view.wait():
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Crate open cancelled - out of time!")
+        elif not view.confirmed:
+            await view.interaction.edit_original_response(content=confirmContent + "\n\n🛑 Crate open cancelled.")
+        else:
             newItem = self.pickItem()
             callingBUser.getInventoryForItem(newItem).addItem(newItem)
-            callingBUser.inactiveTools.removeItem(self)
 
-            return "🎉 Success! You got a " + newItem.name + "!"
-        else:
-            return "🛑 Crate open cancelled."
+            await view.interaction.edit_original_response(content=f"🎉 Success! You got a {newItem.name}!")
+            return True
+
+        return False
 
 
     def statsStringShort(self) -> str:
@@ -210,6 +236,7 @@ class CrateTool(toolItem.ToolItem):
             return "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
+    @embedField("Item Pool")
     def statsStringLong(self) -> str:
         if self.useRarities:
             largePool = len(self.itemPool) > 30
@@ -241,30 +268,50 @@ class CrateTool(toolItem.ToolItem):
                 + "*" + " • ".join(i.name for i in self.itemPool) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> Union[CustomSerializedCrateTool[TSerializedItem], TypedSerializedCrateTool[TSerializedItem], BuiltInSerializedCrateTool]:
         """Serialize this crate into dictionary format.
 
         :return: A dictionary fully describing this crate instance
         :rtype: dict
         """
-        data = super().toDict(**kwargs)
+        data = super().serialize(**kwargs)
         if "aliases" in data:
             del data["aliases"]
         if self.builtIn:
+            # Casting here because I know that the crate is builtIn
+            data = cast(BuiltInSerializedCrateTool, data)
             data["crateType"] = self.crateType
             data["typeNum"] = self.typeNum
         else:
+            # Casting here because I know that the crate is not builtIn, so it will have all fields
+            data = cast(CustomSerializedCrateTool[TSerializedItem], data)
             if "saveType" not in kwargs:
                 kwargs["saveType"] = True
 
             data["itemPool"] = []
             for item in self.itemPool:
-                data["itemPool"].append(item.toDict(**kwargs))
+                # Casting with the assumption that TSerializedItem is the serialized for of TSerialized
+                data["itemPool"].append(cast(TSerializedItem, item.serialize(**kwargs)))
         return data
 
 
     @classmethod
-    def fromDict(cls, crateDict: dict, **kwargs) -> CrateTool:
+    def crateTypeExists(cls, crateType: str) -> bool:
+        """Decide whether a crateType exists.
+        """
+        return crateType in bbData.builtInCrateObjs
+
+
+    @classmethod
+    def crateTypeNumExists(cls, crateType: str, typeNum: int) -> bool:
+        """Decide whether a typeNum exists for a given crateType.
+        crateType must exist (see `crateTypeExists`)
+        """
+        return typeNum >= 0 and typeNum < len(bbData.builtInCrateObjs[crateType])
+
+
+    @classmethod
+    def deserialize(cls, crateDict: dict, **kwargs) -> CrateTool:
         """Deserialize a CrateTool instance from its dictionary representation.
 
         :param dict crateDict: A dictionary fully describing the CrateDict instance to create. Must contain itemPool.
@@ -275,20 +322,18 @@ class CrateTool(toolItem.ToolItem):
 
         if "builtIn" in crateDict and crateDict["builtIn"]:
             if "crateType" in crateDict:
-                if crateDict["crateType"] in bbData.builtInCrateObjs:
-                    return bbData.builtInCrateObjs[crateDict["crateType"]][crateDict["typeNum"]]
-                else:
-                    raise ValueError("Unknown crateType: " + str(crateDict["crateType"]))
-            else:
-                raise ValueError("Attempted to spawn builtIn CrateTool with no given crateType")
-        else:
-            crateToSpawn = crateDict
+                if cls.crateTypeExists(crateDict["crateType"]):
+                    if cls.crateTypeNumExists(crateDict["crateType"], crateDict["typeNum"]):
+                        return bbData.builtInCrateObjs[crateDict["crateType"]][crateDict["typeNum"]]
+                    raise KeyError(f"typeNum {crateDict['typeNum']} does not exist for crateType {crateDict['crateType']}")
+                raise KeyError("Unknown crateType: " + str(crateDict["crateType"]))
+            raise ValueError("Attempted to spawn builtIn CrateTool with no given crateType")
 
         itemPool = []
         singleType: Optional[Type[gameItem.GameItem]] = None
         allSingleType = True
-        if "itemPool" in crateToSpawn:
-            for itemDict in crateToSpawn["itemPool"]:
+        if "itemPool" in crateDict:
+            for itemDict in crateDict["itemPool"]:
                 errorStr = ""
                 errorType = ""
                 if "type" not in itemDict:
@@ -300,7 +345,7 @@ class CrateTool(toolItem.ToolItem):
                     errorType = "BAD_TYPE"
                 if errorStr:
                     if skipInvalidItems:
-                        botState.logger.log("crateTool", "fromDict", errorStr, eventType=errorType)
+                        botState.client.logger.log("crateTool", "deserialize", errorStr, eventType=errorType)
                     else:
                         raise ValueError(errorStr)
                 else:
@@ -314,80 +359,13 @@ class CrateTool(toolItem.ToolItem):
                             allSingleType = False
 
         else:
-            botState.logger.log("crateTool", "fromDict", "fromDict-ing a crateTool with no itemPool.")
+            botState.client.logger.log("crateTool", "deserialize", "deserialize-ing a crateTool with no itemPool.")
 
         if allSingleType and singleType in singleTypeCrates:
             return singleTypeCrates[singleType](**cls._makeDefaults(crateDict, ("type",), itemPool=itemPool,
-                                                emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
+                                                emoji=lib.emojis.BasedEmoji.deserialize(crateDict["emoji"]) \
                                                         if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
 
         return CrateTool(**cls._makeDefaults(crateDict, ("type", "aliases"), itemPool=itemPool,
-                                            emoji=lib.emojis.BasedEmoji.fromDict(crateDict["emoji"]) \
+                                            emoji=lib.emojis.BasedEmoji.deserialize(crateDict["emoji"]) \
                                                     if "emoji" in crateDict else lib.emojis.BasedEmoji.EMPTY))
-
-
-@gameItem.spawnableItem
-@singleTypeCrate(shipSkinTool.ShipSkinTool)
-class ShipSkinCrateTool(CrateTool):
-    """A crate that only contains ShipSkinTools.
-    Has a custom statsStringLong.
-    """
-    
-    def __init__(self, itemPool: List[shipSkinTool.ShipSkinTool], name : str = "", value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.defaultCrateIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, crateType : str = "", typeNum : int = 0,
-            autoUse: bool = False):
-        """
-        :param List[shipSkinTool.ShipSkinTool] itemPool: List of potential items to win. May contain duplicates.
-        :param str name: The name of the crate. Must be unique.
-        :param int value: The number of credits that this item can be bought/sold for at a shop. (Default 0)
-        :param str wiki: A web page that is displayed as the wiki page for this item. (Default "")
-        :param str manufacturer: The name of the manufacturer of this item (Default "")
-        :param str icon: A URL pointing to an image to use for this item's icon (Default "")
-        :param lib.emojis.BasedEmoji emoji: The emoji to use for this item's small icon (Default lib.emojis.BasedEmoji.EMPTY)
-        :param int techLevel: A rating from 1 to 10 of this item's technical advancement, generally for crates this isn't
-                                limited, e.g a measure of the rarity of the items, or of the items' TLs maybe (Default -1)
-        :param bool builtIn: Whether this is a BountyBot standard crate (loaded in from JSON) or a custom spawned
-                                item (Default False)
-        :param str crateType: A string identifier for the type of crate, to aid in loading from file in the case of contents
-                                changes (Default "")
-        :param int typeNum: A sub-type of crateType, e.g where crateType is levelup, typeNum might be the player's new level
-                                (Default 0)
-        """
-        if any(not isinstance(i, shipSkinTool.ShipSkinTool) for i in itemPool):
-            raise TypeError(f"all items in itemPool must be of type {shipSkinTool.ShipSkinTool.__name__}")
-        super().__init__(itemPool, name=name, value=value, wiki=wiki,
-            manufacturer=manufacturer, icon=icon, emoji=emoji,
-            techLevel=techLevel, builtIn=builtIn, crateType=crateType, typeNum=typeNum, autoUse=autoUse)
-
-
-    def statsStringLong(self) -> str:
-        if self.useRarities:
-            largePool = len(self.itemPool) > 30
-            itemsByRarity = ""
-            for rarityLevel, rarityName in enumerate(cfg.itemRarities):
-                itemsForLevel = self.itemPoolByRarity[rarityLevel]
-                numItemsInLevel = len(itemsForLevel)
-                if numItemsInLevel == 0:
-                    continue
-
-                truncateLevel = False
-                if largePool and numItemsInLevel > 5:
-                    truncateLevel = True
-                    itemsForLevel = self.itemPoolByRarity[rarityLevel][:5]
-
-                itemsByRarity += f"\n{getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable} " \
-                                    + f"{rarityName.title()}: " \
-                                    + ", ".join(i.skin.name for i in itemsForLevel)
-                if truncateLevel:
-                    itemsByRarity += f" +{len(self.itemPoolByRarity[rarityLevel]) - 5} more possible skins" 
-                                        
-            return f"*Use to open the crate and receive one of the following ship skins:\n{itemsByRarity}*" 
-
-        if len(self.itemPool) > 30:
-            return "Use to open the crate and receive one of the following ship skins:\n\n" \
-                + f"*{' • '.join(i.skin.name for i in self.itemPool[:30])} +{len(self.itemPool) - 30} more possible skins*"
-        else:
-            return "Use to open the crate and receive one of the following ship skins:\n\n" \
-                + "*" + " • ".join(i.skin.name for i in self.itemPool) + "*"
-

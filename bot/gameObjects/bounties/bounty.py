@@ -1,19 +1,23 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, Set, Union, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, Union, TYPE_CHECKING, cast
+from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
     from ...databases.bountyDivision import BountyDivision
     from ...databases.bountyDB import BountyDB
 
-from .bountyConfig import BountyConfig
+from .bountyConfig import BountyConfig, GeneratedConfig
 from ...cfg import bbData, cfg
 from . import criminal
-from ...baseClasses import serializable
+from ...baseClasses.serializable import SerializesToSchema
 from ...scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
 from ... import lib, botState
-from ..items.shipItem import Ship
+from ..items.ships.shipItem import Ship
+from ..items.ships.shipBase import SerializedShipUnion
+from ...lib.timeUtil import utcfromtimestamp
 from enum import Enum
+from discord.utils import utcnow
 
 
 class CheckResult(Enum):
@@ -53,7 +57,29 @@ class RewardsMeta(Enum):
             return self.value | other
 
 
-class Bounty(serializable.Serializable):
+class SerializedBounty(TypedDict):
+    faction: str
+    route: List[str]
+    answer: str
+    checked: Dict[str, int]
+    reward: int
+    issueTime: float
+    endTime: float
+    isEscaped: bool
+    criminal: criminal.SerializedCriminalUnion
+    rewardPerSys: int
+    techLevel: int
+    activeShip: NotRequired[SerializedShipUnion]
+
+
+class SerializedEscapedBounty(SerializedBounty):
+    respawnTime: float
+
+
+SerializedBountyUnion = Union[SerializedBounty, SerializedEscapedBounty]
+
+
+class Bounty(SerializesToSchema[SerializedBountyUnion]):
     """A bounty listing for a criminal, to be hunted down by players.
 
     :var criminal: The criminal who is being hunted
@@ -83,8 +109,8 @@ class Bounty(serializable.Serializable):
     :vartype expiryTT: TimedTask
     """
 
-    def __init__(self, criminalObj : criminal.Criminal = None, config : BountyConfig = None,
-                    division : BountyDivision = None, dbReload : bool = False, expiryTT: TimedTask = None):
+    def __init__(self, division: BountyDivision, criminalObj: Optional[criminal.Criminal] = None,
+                        config: Optional[BountyConfig] = None, dbReload: bool = False, expiryTT: Optional[TimedTask] = None):
         """
         :param criminalObj: The criminal to be wanted. Give None to randomly generate a criminal. (Default None)
         :type criminalObj: criminal or None
@@ -103,7 +129,6 @@ class Bounty(serializable.Serializable):
             raise ValueError("Bounty constructor: No bounty database given")
         makeFresh = criminalObj is None
         self.activeShip = None
-        self.hasShip = False
 
         if config is None:
             # generate bounty details and validate given details
@@ -115,54 +140,60 @@ class Bounty(serializable.Serializable):
 
         if not config.generated:
             config.generate(division, noCriminal=makeFresh, forceKeepChecked=dbReload, forceNoDBCheck=dbReload)
+        generatedConfig = cast(GeneratedConfig, config)
 
         if makeFresh:
-            if config.builtIn:
-                self.criminal = bbData.builtInCriminalObjs[config.name]
+            if generatedConfig.builtIn:
+                self.criminal = bbData.builtInCriminalObjs[generatedConfig.name]
                 # builtIn criminals cannot be players, so just equip the ship
                 # self.equipShip(config.ship)
             else:
-                self.criminal = criminal.Criminal(config.name, config.faction, config.icon, isPlayer=config.isPlayer,
-                                                    aliases=config.aliases, wiki=config.wiki)
+                self.criminal = criminal.Criminal(generatedConfig.name, generatedConfig.faction, generatedConfig.icon, isPlayer=generatedConfig.isPlayer,
+                                                    aliases=generatedConfig.aliases, wiki=generatedConfig.wiki)
                 # Don't just claim player ships! players could unequip ship items. Take a deep copy of the ship
-                if config.isPlayer:
-                    self.copyShip(config.ship)
+                if generatedConfig.isPlayer:
+                    self.copyShip(generatedConfig.activeShip)
 
         else:
             self.criminal = criminalObj
 
         if not self.hasShip:
             # Don't just claim player ships! players could unequip ship items. Take a deep copy of the ship
-            if config.isPlayer:
-                self.copyShip(config.activeShip)
+            if generatedConfig.isPlayer:
+                self.copyShip(generatedConfig.activeShip)
             else:
-                self.equipShip(config.activeShip)
+                self.equipShip(generatedConfig.activeShip)
 
         self.faction = self.criminal.faction
-        self.issueTime = config.issueTime
-        self.endTime = config.endTime
+        self.issueTime = generatedConfig.issueTime
+        self.endTime = generatedConfig.endTime
         self.expired = False
-        self.route = config.route
-        self.reward = config.reward
-        self.rewardPerSys = config.rewardPerSys
-        self.checked = config.checked.copy()
-        self.answer = config.answer
-        self.techLevel = config.techLevel
-        self.respawnTT: TimedTask = None
+        self.route = generatedConfig.route
+        self.reward = generatedConfig.reward
+        self.rewardPerSys = generatedConfig.rewardPerSys
+        self.checked = generatedConfig.checked.copy()
+        self.answer = generatedConfig.answer
+        self.techLevel = generatedConfig.techLevel
+        self.respawnTT: Optional[TimedTask] = None
         self.division = division
         if expiryTT is None:
             if self.endTime == -1:
                 self.expiryTT = None
             else:
-                endDT = datetime.utcfromtimestamp(self.endTime)
-                if endDT < datetime.utcnow():
+                endDT = utcfromtimestamp(self.endTime)
+                if endDT < utcnow():
                     self.expiryTT = None
                     lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
                 else:
-                    self.expiryTT = TimedTask(datetime.utcnow(), endDT, None, self.expire)
-                    botState.taskScheduler.scheduleTask(self.expiryTT)
+                    self.expiryTT = TimedTask(utcnow(), endDT, None, self.expire)
+                    botState.client.taskScheduler.scheduleTask(self.expiryTT)
         else:
             self.expiryTT = expiryTT
+
+
+    @property
+    def hasShip(self):
+        return self.activeShip is not None
 
 
     def clearShip(self):
@@ -173,7 +204,6 @@ class Bounty(serializable.Serializable):
         if not self.hasShip:
             raise RuntimeError("CRIM_CLEARSH_NOSHIP: Attempted to clearShip on a Criminal with no active ship")
         del self.activeShip
-        self.hasShip = False
         self.techLevel = -1
 
 
@@ -185,11 +215,10 @@ class Bounty(serializable.Serializable):
         if not self.hasShip:
             raise RuntimeError("CRIM_UNEQSH_NOSHIP: Attempted to unequipShip on a Criminal with no active ship")
         self.activeShip = None
-        self.hasShip = False
         self.techLevel = -1
 
 
-    def equipShip(self, newShip : Ship):
+    def equipShip(self, newShip: Ship):
         """Equip the given ship, by reference to the given object
 
         :param shipItem ship: The ship to equip
@@ -198,10 +227,9 @@ class Bounty(serializable.Serializable):
         if self.hasShip:
             raise RuntimeError("CRIM_EQUIPSH_HASSH: Attempted to equipShip on a Criminal that already has an active ship")
         self.activeShip = newShip
-        self.hasShip = True
 
 
-    def copyShip(self, newShip : Ship):
+    def copyShip(self, newShip: Ship):
         """Equip the given ship, by taking a deep copy of the given object
 
         :param shipItem ship: The ship to equip
@@ -209,11 +237,10 @@ class Bounty(serializable.Serializable):
         """
         if self.hasShip:
             raise RuntimeError("CRIM_COPYSH_HASSH: Attempted to copyShip on a Criminal that already has an active ship")
-        self.activeShip = Ship.fromDict(newShip.toDict())
-        self.hasShip = True
+        self.activeShip = Ship.deserialize(newShip.serialize())
 
 
-    def check(self, system : str, userID : int) -> CheckResult:
+    def check(self, system: str, userID: int) -> CheckResult:
         """Check a system along the route. The integer returned by this method indicates the results of the check:
         0 => This system is not in the bounty route.
         1 => this system has already been checked.
@@ -225,7 +252,7 @@ class Bounty(serializable.Serializable):
         :return: A symbollic integer representing the result of the check, as defined above
         :rtype: int
         """
-        if system not in self.route:
+        if system not in self.checked:
             return CheckResult.NOT_FOUND
         elif self.systemChecked(system):
             return CheckResult.ALREADY_CHECKED
@@ -236,7 +263,7 @@ class Bounty(serializable.Serializable):
             return CheckResult.INCORRECT
 
 
-    def systemChecked(self, system : str) -> bool:
+    def systemChecked(self, system: str) -> bool:
         """Decide whether or not a system has been checked.
 
         :param str system: The system to inspect for checking
@@ -316,7 +343,7 @@ class Bounty(serializable.Serializable):
         return self.respawnTT is not None
 
 
-    def escape(self, respawnTT : TimedTask = None, dbReload=False):
+    def escape(self, respawnTT: Optional[TimedTask] = None, dbReload=False):
         """Mark this bounty as escaped, schedule respawning, and register the bounty as escaped in the owning bountyDB.
 
         :param TimedTask respawnTT: The timedtask responsible for the respawning of the bounty
@@ -334,7 +361,7 @@ class Bounty(serializable.Serializable):
 
         if self.criminal in self.division.bounties[self.techLevel]:
             self.division.owningDB.removeBountyObj(self)
-        botState.taskScheduler.scheduleTask(self.respawnTT)
+        botState.client.taskScheduler.scheduleTask(self.respawnTT)
         self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
 
 
@@ -375,7 +402,7 @@ class Bounty(serializable.Serializable):
                 self.division.owningDB.removeBountyObj(self)
         
         if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
-            self.expiryTT.syncForceExpireNoFuncNoReschedule()
+            self.expiryTT.forceExpire(callExpiryFunc=False)
             self.expiryTT = None
 
 
@@ -401,19 +428,21 @@ class Bounty(serializable.Serializable):
         """
         if not self.isEscaped():
             raise ValueError("Attempted to cancelRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
-        self.respawnTT.forceExpire(callExpiryFunc=False)
+        # Casting here because existence of sef.respawnTT is checked by isEscaped above
+        cast(TimedTask, self.respawnTT).forceExpire(callExpiryFunc=False)
         self.respawnTT = None
         self.division.owningDB.removeEscapedCriminal(self.criminal)
 
 
-    async def forceRespawn(self):
+    def forceRespawn(self):
         """Force the immediate respawning of the bounty, by forcing the expiry of its respawn TimedTask.
 
         :raise ValueError: If the bounty is not escaped
         """
         if not self.isEscaped():
             raise ValueError("Attempted to forceRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
-        await self.respawnTT.forceExpire(callExpiryFunc=True)
+        # Casting here because existence of sef.respawnTT is checked by isEscaped above
+        cast(TimedTask, self.respawnTT).forceExpire(callExpiryFunc=True)
 
 
     def makeRespawnConfig(self):
@@ -426,28 +455,32 @@ class Bounty(serializable.Serializable):
                             issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyUnion:
         """Serialize this bounty to dictionary, to be saved to file.
 
         :return: A dictionary representation of this bounty.
         :rtype: dict
         """
-        data = {"faction": self.faction, "route": self.route, "answer": self.answer, "checked": self.checked,
+        data: SerializedBountyUnion = {"faction": self.faction, "route": self.route, "answer": self.answer, "checked": self.checked,
                 "reward": self.reward, "issueTime": self.issueTime, "endTime": self.endTime, "isEscaped": self.isEscaped(),
-                "criminal": self.criminal.toDict(**kwargs), "rewardPerSys": self.rewardPerSys, "techLevel": self.techLevel}
+                "criminal": self.criminal.serialize(**kwargs), "rewardPerSys": self.rewardPerSys, "techLevel": self.techLevel}
         
         if self.isEscaped():
-            data["respawnTime"] = self.respawnTT.expiryTime.timestamp()
+            # Casting here because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
+            # Casting here because existence of sef.respawnTT is checked by isEscaped above
+            data["respawnTime"] = cast(TimedTask, self.respawnTT).expiryTime.timestamp()
 
         if self.hasShip:
-            data["activeShip"] = self.activeShip.toDict()
+            # Casting here because existence of sef.aciveShip is checked by hasShip above
+            data["activeShip"] = cast(Ship, self.activeShip).serialize()
 
         return data
 
 
     @classmethod
-    def fromDict(cls, data : dict, owningDB: BountyDB = None, dbReload: bool = False, **kwargs) -> Bounty:
-        """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.toDict
+    def deserialize(cls, data: SerializedBountyUnion, owningDB: Optional[BountyDB] = None, dbReload: bool = False, **kwargs) -> Bounty:
+        """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
         :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
@@ -460,7 +493,7 @@ class Bounty(serializable.Serializable):
             raise ValueError("missing required argument: owningDB")
 
         if "activeShip" in data:
-            activeShip = Ship.fromDict(data["activeShip"])
+            activeShip = Ship.deserialize(data["activeShip"])
         else:
             activeShip = None
 
@@ -479,14 +512,16 @@ class Bounty(serializable.Serializable):
                                 techLevel=techLevel)
                                             
         newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
-                            criminalObj=criminal.Criminal.fromDict(data["criminal"]))
+                            criminalObj=criminal.Criminal.deserialize(data["criminal"]))
 
         if data.get("isEscaped", False):
+            # casting because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
             if "respawnTime" not in data:
                 raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
 
-            respawnTT = TimedTask(issueTime=datetime.utcfromtimestamp(data["issueTime"]),
-                                    expiryTime=datetime.utcfromtimestamp(data["respawnTime"]), 
+            respawnTT = TimedTask(issueTime=utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=utcfromtimestamp(data["respawnTime"]), 
                                     expiryFunction=newBounty._respawn,
                                     rescheduleOnExpiryFuncFailure=True)
             newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)

@@ -1,22 +1,32 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedTractorBeamModule(moduleItem.CustomSerializedModuleItem):
+    timeToLock: float
+
+class TypedSerializedTractorBeamModule(SerializedTractorBeamModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule]
+SerializedTractorBeamModuleUnion = Union[SerializedTractorBeamModule, TypedSerializedTractorBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class TractorBeamModule(moduleItem.ModuleItem):
+class TractorBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedTractorBeamModuleUnion]):
     """A module providing a ship with the ability to pull nearby debris and items into the ship's cargo hold
 
     :var timeToLock: The amount of time in seconds needed for the beam to lock onto an item and pull it into the hold
     :vartype timeToLock: float
     """
 
-    def __init__(self, name : str, aliases : List[str], timeToLock : float = 0, value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], timeToLock: float = 0, value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -37,28 +47,36 @@ class TractorBeamModule(moduleItem.ModuleItem):
 
         self.timeToLock = timeToLock
 
+#region embed fields
+
+    @embedField("Time to Lock")
+    def formattedTimeToLock(self): return f"{self.timeToLock}s"
+
+#endregion
 
     def statsStringShort(self):
         return "*Time To Lock: " + str(self.timeToLock) + "s*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedTractorBeamModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
-        toDict method as a starting point, and adds extra attributes implemented by this specific module.
+        serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(TractorBeamModule, self).toDict(**kwargs)
+        itemDict = super(TractorBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedTractorBeamModuleUnion, itemDict)
             itemDict["timeToLock"] = self.timeToLock
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedTractorBeamModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -67,6 +85,8 @@ class TractorBeamModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedTractorBeamModuleUnion, moduleDict)
         return TractorBeamModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

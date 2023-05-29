@@ -1,5 +1,25 @@
 # TODO: Remake most of these with regex
 from typing import List, Optional, Tuple, Union
+from diff_match_patch import diff_match_patch
+
+DMP = diff_match_patch()
+
+
+def stringDifference(a: str, b: str, deadline: int = 2) -> int:
+    """Compute a rough measure of the difference between two strings.
+    A lower score means the strings are more similar.
+
+    :param a: One of the strings to compare
+    :type a: str
+    :param b: The other string
+    :type b: str
+    :param deadline: Time when the diff should be complete by, defaults to 2
+    :type deadline: int, optional
+    :return: A rough measure of the difference between `a` and `b`
+    :rtype: int
+    """
+    changes = DMP.diff_main(a, b, True, 2)
+    return sum(1 for i in changes if i[0] == 1) #DMP.diff_levenshtein(changes)
 
 
 def isInt(x) -> bool:
@@ -11,6 +31,20 @@ def isInt(x) -> bool:
     """
     try:
         int(x)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def isFloat(x) -> bool:
+    """Decide whether or not something is either a float, or is castable to float.
+
+    :param x: The object to type-check
+    :return: True if x is a float or if x can be casted to float. False otherwise
+    :rtype: bool
+    """
+    try:
+        float(x)
     except (TypeError, ValueError):
         return False
     return True
@@ -38,7 +72,7 @@ def isRoleMention(m: str) -> bool:
     return all((m.endswith(">"), m.startswith("<@&"), isInt(m[3:-1])))
 
 
-def commaSplitNum(num: int) -> str:
+def commaSplitNum(num: Union[int, float]) -> str:
     """Convert an number to a string with commas in every third position. Also accepts floats.
     For example: 3 -> "3", 30000 -> "30,000", and 561928301 -> "561,928,301"
     https://stackoverflow.com/a/10742904
@@ -65,7 +99,7 @@ def getNumExtension(num: int) -> str:
     return "th" if 11 <= (num % 100) <= 13 else ("th", "st", "nd", "rd", "th")[min(num % 10, 4)]
 
 
-def shipSkinNameToToolName(skinName : str) -> str:
+def shipSkinNameToToolName(skinName: str) -> str:
     """Construct a name of a shipSkinTool from the name of the skin of the skin.
 
     :param str skinName: The name of the skin this tool name should reference
@@ -74,7 +108,7 @@ def shipSkinNameToToolName(skinName : str) -> str:
     return f"Ship Skin: {skinName}"
 
 
-def formatAdditive(stat : Union[float, int]) -> str:
+def formatAdditive(stat: Union[float, int]) -> str:
     """Format a module effect attribute into a string, including a sign symbol.
 
     :param stat: The statistic to format into a string
@@ -84,7 +118,7 @@ def formatAdditive(stat : Union[float, int]) -> str:
     return f"{'+' if stat > 0 else '-'}{stat}"
 
 
-def formatMultiplier(stat : float) -> str:
+def formatMultiplier(stat: float) -> str:
     """Format a module effect attribute into a string, including a sign symbol and percentage symbol.
 
     :param stat: The statistic to format into a string
@@ -94,8 +128,18 @@ def formatMultiplier(stat : float) -> str:
     return f"{'+' if stat >= 1 else '-'}{round(((stat - 1) if stat > 1 else (1 - stat)) * 100)}%"
 
 
+def formattedAdditiveAndOrMultiplierOrNone(additive: Union[float, int], multiplier: float) -> Optional[str]:
+    """Format additive if it is not 0, and/or multiplier if it is not 1, or return None if neither are true.
+    Formatting is done with formatAdditive/formatMultiplier.
+    """
+    addStr = "" if additive == 0 else formatAdditive(additive)
+    multStr = "" if multiplier == 1 else formatMultiplier(multiplier)
+    if addStr and multStr: return f"{addStr}\n{multStr}"
+    return addStr or multStr or None
+
+
 def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign='left', valuesAlign='left',
-                        keyMaxLenOverride: int = None, valueMaxLenOverride: int = None) -> str:
+                        keyMaxLenOverride: Optional[int] = None, valueMaxLenOverride: Optional[int] = None) -> str:
     """With each `field` in `fields` as `key` and `value`, perform a `sep`.join on `fields`, with padding between each
     `key` and `value`, such that each `value` begins in the same column.
 
@@ -117,10 +161,9 @@ def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign
     :rtype: str
     """
     longestKeyLength = max(len(k) for k, _ in fields) if keyMaxLenOverride is None else keyMaxLenOverride
-    longestValueLength = (max(len(v) for _, v in fields) if valuesAlign != 'left' else None) \
-                            if valueMaxLenOverride is None else valueMaxLenOverride
+    longestValueLength = max(len(v) for _, v in fields) if valueMaxLenOverride is None else valueMaxLenOverride
 
-    def centreOrPad(value: str, alignment: str, maxLength: Optional[int], padRight: bool) -> str:
+    def centreOrPad(value: str, alignment: str, maxLength: int, padRight: bool) -> str:
         if alignment == 'left':
             if padRight:
                 return f"{value}{pad * (maxLength - len(value))}"

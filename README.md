@@ -13,17 +13,17 @@ This repository is a work-in-progress port of [BountyBot](https://github.com/Tri
 <p align="center">
   <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/actions"
     ><img
-      src="https://img.shields.io/github/workflow/status/GOF2BountyBot/GOF2BountyBot/BASED"
+      src="https://img.shields.io/github/actions/workflow/status/GOF2BountyBot/GOF2BountyBot/lint-app.yml?branch=main"
       alt="GitHub Actions workflow status"
   /></a>
   <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3Abug"
     ><img
-      src="https://img.shields.io/github/issues-search?color=eb4034&label=bugs&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3Abug"
+      src="https://img.shields.io/github/issues-search?color=eb4034&label=bug%20reports&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3Abug"
       alt="GitHub open bug reports"
   /></a>
   <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3A&quot;game%20balance&quot;"
     ><img
-      src='https://img.shields.io/github/issues-search?color=46d2e8&label=balance%20issues&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3A"game+balance"'
+      src='https://img.shields.io/github/issues-search?color=46d2e8&label=balance%20issues&query=repo%3AGOF2BountyBot%2FGOF2BountyBot%20is%3Aopen%20label%3A%22game%2Bbalance%22'
       alt="GitHub open game balance issues"
   /></a>
   <a href="https://github.com/GOF2BountyBot/GOF2BountyBot/projects/1?card_filter_query=label%3Aenhancement"
@@ -57,8 +57,11 @@ An ambitious discord bot written in python, recreating some of the features of G
 The 'main' file is `bot.bot`, which defines regular behaviour with `discord.Client.event`s.
 Command definitions are located in the various modules of the `commands` package.
 
-## cfg
-This package configures the game's behaviour with BASED's automatic TOML config file generation, and a custom gameConfigurator script that parses a set of JSON game object descriptions.
+As of v1.0, BASED now uses [Carica](https://pypi.org/project/carica/) for configuration by default. This allows your bot to be configured with convenient, auto-generated toml configuration files, while receiving the configuration in code as strongly typed python objects.
+
+Any config variables added to the module as part of your application will automatically be read into the module from toml. For more information, including how to store and receive custom classes in config, see the [Carica repository](https://github.com/Trimatix/Carica).
+
+There is only one required config variable: Your bot's token. You can eliminate the need for a config file entirely by providing your bot token as a default config value (found in `cfg/cfg.py`).
 
 ## gameObjects
 Contains definitions for all *game objects* - representing items useable by the players (items, inventories) and playing functionality of the game itself (shops, bounties, duels).

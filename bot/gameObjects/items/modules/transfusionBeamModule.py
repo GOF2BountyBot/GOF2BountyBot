@@ -1,12 +1,23 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedTransfusionBeamModule(moduleItem.CustomSerializedModuleItem):
+    HPps: int
+    count: int
+
+class TypedSerializedTransfusionBeamModule(SerializedTransfusionBeamModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule]
+SerializedTransfusionBeamModuleUnion = Union[SerializedTransfusionBeamModule, TypedSerializedTransfusionBeamModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class TransfusionBeamModule(moduleItem.ModuleItem):
+class TransfusionBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedTransfusionBeamModuleUnion]):
     """A module that slowly steals health from nearby ships, and adds the stolen heath to this ship's health.
 
     :var HPps: The amount of health points per second to steal
@@ -15,10 +26,10 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
     :vartype count: int
     """
 
-    def __init__(self, name : str, aliases : List[str], HPps : float = 0, count : int = 0,
-            value : int = 0, wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], HPps: int = 0, count: int = 0,
+            value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -40,29 +51,40 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
         self.HPps = HPps
         self.count = count
 
+#region embed fields
+
+    @embedField("Healing Rate")
+    def formattedHealingRate(self): return f"{self.HPps} HP/s"
+    
+    @embedField("Count")
+    def formattedCount(self): return self.count
+
+#endregion
 
     def statsStringShort(self):
         return "*HP/s: " + str(self.HPps) + ", Count: " + str(self.count) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedTransfusionBeamModuleUnion:
         """Serialize this module into dictionary format, to be saved to file. Uses the base moduleItem
-        toDict method as a starting point, and adds extra attributes implemented by this specific module.
+        serialize method as a starting point, and adds extra attributes implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(TransfusionBeamModule, self).toDict(**kwargs)
+        itemDict = super(TransfusionBeamModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here to remove the possibility of builtIn due to the above check
+            itemDict = cast(CustomSerializedTransfusionBeamModuleUnion, itemDict)
             itemDict["HPps"] = self.HPps
             itemDict["count"] = self.count
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedTransfusionBeamModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -71,6 +93,8 @@ class TransfusionBeamModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedTransfusionBeamModuleUnion, moduleDict)
         return TransfusionBeamModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

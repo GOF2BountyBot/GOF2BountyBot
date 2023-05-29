@@ -1,13 +1,51 @@
 # Typing imports
 from __future__ import annotations
+from typing import Union, cast
+from typing_extensions import NotRequired
 
 from ..cfg import bbData
-from .items import shipItem
-from ..baseClasses import serializable
+from .items.ships import shipBase
+from ..baseClasses.serializable import SerializesToSchema
+from ..baseClasses.simpleHash import simpleHash
+from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .. import lib
+from ..lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from .gameObject import LoadedObject, SerializedLoadedObject
+
+class BuiltInSerializedShipUpgrade(SerializedLoadedObject):
+    pass
+
+class TypedBuiltInSerializedShipUpgrade(BuiltInSerializedShipUpgrade):
+    type: str
+
+class CustomSerializedShipUpgrade(BuiltInSerializedShipUpgrade):
+    vendor: NotRequired[str]
+    shipToUpgradeValueMult: float
+    armour: NotRequired[int]
+    cargo: NotRequired[int]
+    handling: NotRequired[int]
+    maxSecondaries: NotRequired[int]
+    maxPrimaries: NotRequired[int]
+    maxTurrets: NotRequired[int]
+    maxModules: NotRequired[int]
+    armourMultiplier: NotRequired[float]
+    cargoMultiplier: NotRequired[float]
+    handlingMultiplier: NotRequired[float]
+    maxSecondariesMultiplier: NotRequired[float]
+    maxPrimariesMultiplier: NotRequired[float]
+    maxTurretsMultiplier: NotRequired[float]
+    maxModulesMultiplier: NotRequired[float]
+
+class TypedCustomSerializedShipUpgrade(CustomSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade): pass
+
+BuiltInSerializedShipUpgradeUnion = Union[BuiltInSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade]
+CustomSerializedShipUpgradeUnion = Union[CustomSerializedShipUpgrade, TypedCustomSerializedShipUpgrade]
+SerializedShipUpgradeUnion = Union[BuiltInSerializedShipUpgrade, TypedBuiltInSerializedShipUpgrade, CustomSerializedShipUpgrade, TypedCustomSerializedShipUpgrade]
 
 
-class ShipUpgrade(serializable.Serializable):
+'https://stackoverflow.com/a/53519136'
+@simpleHash
+class ShipUpgrade(LoadedObject, EmbedFillableMixin, SerializesToSchema[SerializedShipUpgradeUnion]):
     """A ship upgrade that can be applied to shipItems, but cannot be unapplied again.
     There is no technical reason why a ship upgrade could not be removed, but from a game design perspective,
     it adds extra value and strategy to the decision to apply an upgrade.
@@ -62,12 +100,12 @@ class ShipUpgrade(serializable.Serializable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, shipToUpgradeValueMult : float, armour : int = 0.0, armourMultiplier : float = 1.0,
-                    cargo : int = 0, cargoMultiplier : float = 1.0, maxSecondaries : int = 0,
-                    maxSecondariesMultiplier : float = 1.0, handling : int = 0, handlingMultiplier : float = 1.0,
-                    maxPrimaries : int = 0, maxPrimariesMultiplier : float = 1.0, maxTurrets : int = 0,
-                    maxTurretsMultiplier : float = 1.0, maxModules : int = 0, maxModulesMultiplier : float = 1.0,
-                    vendor : str = "", wiki : str = "", techLevel : int = -1, builtIn : bool = False):
+    def __init__(self, name: str, shipToUpgradeValueMult: float, armour: int = 0, armourMultiplier: float = 1.0,
+                    cargo: int = 0, cargoMultiplier: float = 1.0, maxSecondaries: int = 0,
+                    maxSecondariesMultiplier: float = 1.0, handling: int = 0, handlingMultiplier: float = 1.0,
+                    maxPrimaries: int = 0, maxPrimariesMultiplier: float = 1.0, maxTurrets: int = 0,
+                    maxTurretsMultiplier: float = 1.0, maxModules: int = 0, maxModulesMultiplier: float = 1.0,
+                    vendor: str = "", wiki: str = "", techLevel: int = -1, builtIn: bool = False):
         """
         :param str name: The name of the upgrade. This must be unique.
         :param float shipToUpgradeValueMult: upgrades do not have a value, their value is calculated as a percentage of the
@@ -93,7 +131,6 @@ class ShipUpgrade(serializable.Serializable):
                                 compare against other ship upgrades.
         :param bool builtIn: Whether this upgrade is built into BountyBot (loaded in from bbData) or was custom spawned.
         """
-        self.name = name
         self.shipToUpgradeValueMult = shipToUpgradeValueMult
         self.vendor = vendor
         self.hasVendor = vendor != ""
@@ -119,16 +156,37 @@ class ShipUpgrade(serializable.Serializable):
         self.maxModules = maxModules
         self.maxModulesMultiplier = maxModulesMultiplier
 
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
-
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
 
-        self.builtIn = builtIn
+        super().__init__(builtIn=builtIn, wiki=wiki, name=name)
 
+#region embed fields
 
-    def __eq__(self, other : ShipUpgrade) -> bool:
+    @embedField("Upgrade Cost", hideWhenNone=True)
+    def formattedShipToUpgradeValueMult(self): return f"{self.shipToUpgradeValueMult*100}% of the ship" if self.shipToUpgradeValueMult != 0 else None
+    @embedField("Vendor", hideWhenNone=True)
+    def formattedVendor(self): return self.vendor or None
+    @embedField("Armour", hideWhenNone=True)
+    def formattedArmour(self): return formattedAdditiveAndOrMultiplierOrNone(self.armour, self.armourMultiplier)
+    @embedField("Cargo", hideWhenNone=True)
+    def formattedCargo(self): return formattedAdditiveAndOrMultiplierOrNone(self.cargo, self.cargoMultiplier)
+    @embedField("Max Secondaries", hideWhenNone=True)
+    def formattedMaxSecondaries(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxSecondaries, self.maxSecondariesMultiplier)
+    @embedField("Handling", hideWhenNone=True)
+    def formattedHandling(self): return formattedAdditiveAndOrMultiplierOrNone(self.handling, self.handlingMultiplier)
+    @embedField("Max Primaries", hideWhenNone=True)
+    def formattedMaxPrimaries(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxPrimaries, self.maxPrimariesMultiplier)
+    @embedField("Max Turrets", hideWhenNone=True)
+    def formattedMaxTurrets(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxTurrets, self.maxTurretsMultiplier)
+    @embedField("Max Modules", hideWhenNone=True)
+    def formattedMaxModules(self): return formattedAdditiveAndOrMultiplierOrNone(self.maxModules, self.maxModulesMultiplier)
+    @embedField("Tech Level", hideWhenNone=True)
+    def formattedTechLevel(self): return self.techLevel if self.hasTechLevel else None
+
+#endregion
+
+    def __eq__(self, other: ShipUpgrade) -> bool:
         """Decide whether two ship upgrades are the same, based purely on their name and object type.
 
         :param shipUpgrade other: The upgrade to compare this one against.
@@ -138,17 +196,17 @@ class ShipUpgrade(serializable.Serializable):
         return type(self) == type(other) and self.name == other.name
 
 
-    def valueForShip(self, ship : shipItem.Ship) -> int:
+    def valueForShip(self, ship: shipBase.ShipBase) -> int:
         """Calculate the value of this ship upgrade, when it is to be applied to the given ship
 
-        :param shipItem ship: The ship that the upgrade is to be applied to
+        :param shipBase.ShipBase ship: The ship that the upgrade is to be applied to
         :return: The number of credits at which this upgrade is valued when being applied to ship
         :rtype: int
         """
-        return ship.value * self.shipToUpgradeValueMult
+        return int(ship.value * self.shipToUpgradeValueMult)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedShipUpgradeUnion:
         """Serialize this shipUpgrade into a dictionary for saving to file
         Contains all information needed to reconstruct this upgrade. If the upgrade is builtIn,
         this includes only the upgrade name.
@@ -157,9 +215,11 @@ class ShipUpgrade(serializable.Serializable):
         :rtype: dict
         """
 
-        itemDict = {"name": self.name, "builtIn": self.builtIn}
+        itemDict: SerializedShipUpgradeUnion = {"name": self.name, "builtIn": self.builtIn}
 
         if not self.builtIn:
+            # Casting here because we know the upgrade is not builtIn
+            itemDict = cast(CustomSerializedShipUpgradeUnion, itemDict)
             if self.hasVendor:
                 itemDict["vendor"] = self.vendor
 
@@ -169,11 +229,11 @@ class ShipUpgrade(serializable.Serializable):
                 additiveStats = {   "armour": self.armour, "cargo": self.cargo, "handling": self.handling,
                                     "maxSecondaries": self.maxSecondaries, "maxPrimaries": self.maxPrimaries,
                                     "maxTurrets": self.maxTurrets, "maxModules": self.maxModules}
-                multiplierStats = { "armour": self.armourMultiplier, "cargo": self.cargoMultiplier,
-                                    "handling": self.handlingMultiplier,
-                                    "maxSecondaries": self.maxSecondariesMultiplier,
-                                    "maxPrimaries": self.maxPrimariesMultiplier,
-                                    "maxTurrets": self.maxTurretsMultiplier, "maxModules": self.maxModulesMultiplier}
+                multiplierStats = { "armourMultiplier": self.armourMultiplier, "cargoMultiplier": self.cargoMultiplier,
+                                    "handlingMultiplier": self.handlingMultiplier,
+                                    "maxSecondariesMultiplier": self.maxSecondariesMultiplier,
+                                    "maxPrimariesMultiplier": self.maxPrimariesMultiplier,
+                                    "maxTurretsMultiplier": self.maxTurretsMultiplier, "maxModulesMultiplier": self.maxModulesMultiplier}
 
                 for statName in additiveStats:
                     if additiveStats[statName] != 0:
@@ -211,9 +271,9 @@ class ShipUpgrade(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, upgradeDict : dict, **kwargs) -> ShipUpgrade:
+    def deserialize(cls, upgradeDict: SerializedShipUpgradeUnion, **kwargs) -> ShipUpgrade:
         """Factory function reconstructing a shipUpgrade object from its dictionary-serialized representation.
-        The opposite of shipUpgrade.toDict
+        The opposite of shipUpgrade.serialize
         If the upgrade is builtIn, return a reference to the pre-constructed upgrade object.
 
         :param dict upgradeDict: A dictionary containing all information needed to produce the required shipUpgrade

@@ -1,12 +1,15 @@
 from . import toolItem
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+from discord import Interaction
+from typing import List
+
 if TYPE_CHECKING:
     from ....users import basedUser
-from .... import lib, botState
+from ....lib.emojis import BasedEmoji
+from ....lib.discordUtil import interactionSend
 from ....cfg import cfg
-from discord import Message
-from typing import List
 from .. import gameItem
+from ....client import onboardInteractionBasedUser
 
 
 @gameItem.spawnableItem
@@ -14,9 +17,9 @@ class CreditsTool(toolItem.ToolItem):
     """A slightly unnecessary tool that is supposed to add a number of credits to a user's account upon entering their hangar.
     """
 
-    def __init__(self, name : str, aliases : List[str], value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = cfg.moneyIcon, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, autoUse: bool = True):
+    def __init__(self, name: str, aliases: List[str], value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = cfg.moneyIcon, emoji: Optional[BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, autoUse: bool = True):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -24,7 +27,7 @@ class CreditsTool(toolItem.ToolItem):
         :param str wiki: A web page that is displayed as the wiki page for this item. (Default "")
         :param str manufacturer: The name of the manufacturer of this item (Default "")
         :param str icon: A URL pointing to an image to use for this item's icon (Default cfg.moneyIcon)
-        :param lib.emojis.BasedEmoji emoji: The emoji to use for this item's small icon (Default cfg.defaultEmojis.money)
+        :param BasedEmoji emoji: The emoji to use for this item's small icon (Default cfg.defaultEmojis.money)
         :param int techLevel: A rating from 1 to 10 of this item's technical advancement. Used as a measure for its
                                 effectiveness compared to other items of the same type (Default -1)
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData) or a custom spawned
@@ -38,22 +41,26 @@ class CreditsTool(toolItem.ToolItem):
 
 
     @toolItem.singleUse
-    async def use(self, callingBUser: "basedUser.BasedUser" = None, *args, **kwargs):
+    async def use(self, *args, callingBUser: "basedUser.BasedUser", **_) -> bool:
         """Add money to the calling user's account.
         """
+        if not isinstance(callingBUser, "basedUser.BasedUser"): raise ValueError("Missing required kwarg: callingBUser")
         callingBUser.credits += self.value
+        return True
 
 
     @toolItem.userFriendlySingleUse
-    async def userFriendlyUse(self, message : Message, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **_) -> bool:
         """Add money to the calling user's account.
-        :param Message message: The discord message that triggered this tool use
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        callingBUser = botState.usersDB.getOrAddID(message.author.id)
+        callingBUser = onboardInteractionBasedUser(interaction)
         callingBUser.credits += self.value
-        return f"You got {self.value} credits!"
+        await interactionSend(interaction, respond, followup, f"You got {self.value} credits!")
+        return True
 
 
     def statsStringShort(self) -> str:
@@ -64,20 +71,8 @@ class CreditsTool(toolItem.ToolItem):
         return f"*{self.value} credits*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this tool into dictionary format.
-        This step of implementation adds a 'type' string indicating the name of this tool's subclass.
-        :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem toDict implementation, with an added 'type' field
-        :rtype: dict
-        """
-        data = super().toDict(**kwargs)
-        data["autoUse"] = self.autoUse
-        return data
-
-
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> "CreditsTool":
+    def deserialize(cls, data: toolItem.SerializedToolItemUnion, **kwargs) -> "CreditsTool":
         """Deserialize a CreditsTool from dictionary format.
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool

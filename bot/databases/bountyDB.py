@@ -1,18 +1,17 @@
 from __future__ import annotations
-from typing import Dict
-import asyncio
+from typing import Dict, Optional, cast, TYPE_CHECKING
+from typing_extensions import NotRequired, TypedDict
 
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
-from ..baseClasses import serializable
 from ..cfg import cfg
-from ..users import basedGuild
-from .. import botState, lib
 from .bountyDivision import BountyDivision
-from datetime import datetime
-from ..scheduling.timedTask import TimedTask
+from ..baseClasses.serializable import SerializesToSchema
+
+if TYPE_CHECKING:
+    from ..users import basedGuild
 
 
 def nameForDivision(div: BountyDivision) -> str:
@@ -44,7 +43,15 @@ def divisionNameForLevel(tl: int) -> str:
         raise KeyError(f"No division found for bounties of TL {tl}")
 
 
-class BountyDB(serializable.Serializable):
+class SerializedBountyDB(TypedDict):
+    active: List[bounty.SerializedBounty]
+    escaped: List[bounty.SerializedEscapedBounty]
+    temperatures: Dict[int, float]
+    bountyBoardChannels: NotRequired[Dict[int, SerializedBountyBoardChannel]]
+    alertRoleIDs: NotRequired[Dict[int, int]]
+
+
+class BountyDB(SerializesToSchema[SerializedBountyDB]):
     """A database of Bounty.
     Bounty criminal names must be unique within the database.
     Faction names are case sensitive.
@@ -55,7 +62,7 @@ class BountyDB(serializable.Serializable):
     :vartype owningBasedGuild: BasedGuild
     """
 
-    def __init__(self, owningBasedGuild: "basedGuild.BasedGuild", dummy : bool = False):
+    def __init__(self, owningBasedGuild: "basedGuild.BasedGuild", dummy: bool = False):
         """
         :param BasedGuild owningBasedGuild: The guild that owns this bountyDB
         :param bool dummy: Whether this db is to be functional or only a placeholder (Default False)
@@ -98,29 +105,24 @@ class BountyDB(serializable.Serializable):
         return self.divisionForLevel(cfg.bountyDivisionLevels[divID][0])
 
 
-    def clearAllBounties(self, includeEscaped=True):
+    async def clearAllBounties(self, includeEscaped=True):
         """Clear all bounties, for all factions in the DB
         If any division was full before, restart its new bounty spawner
 
         :param bool includeEscaped: Whether to also clear escaped criminals (Default True)
         """
         for div in self.divisions.values():
-            div.clear(includeEscaped=includeEscaped)
+            await div.clear(includeEscaped=includeEscaped)
 
 
-    async def resetAllNewBountyTTs(self):
+    def resetAllNewBountyTTs(self):
         """Reset all new bounty TimedTasks, immediately triggering the spawning of one bounty per division
         """
-        divTasks = lib.discordUtil.BasicScheduler()
         for div in self.divisions.values():
-            if not div.isFull() or not div.hasMinTLBounty():
-                divTasks.add(div.resetNewBountyCool())
-        if divTasks:
-            await divTasks.wait()
-            divTasks.logExceptions("bountiesDB", "bountyDB", "resetAllNewBountyTTs")
+            div.resetNewBountyCool()
 
 
-    def getBountyByCrim(self, crim : Criminal, level : int = None) -> bounty.Bounty:
+    def getBountyByCrim(self, crim: Criminal, level: Optional[int] = None) -> bounty.Bounty:
         """Get the bounty object for a given criminal name object
         This process is much more efficient when given the difficulty level of the criminal's bounty.
 
@@ -152,7 +154,7 @@ class BountyDB(serializable.Serializable):
         raise KeyError(f"No bounty found for criminal: '{crim.name}'" + ("" if level is None else f" and level: {level}"))
 
 
-    def getEscapedBountyByCrim(self, crim : Criminal, level : int = None) -> bounty.Bounty:
+    def getEscapedBountyByCrim(self, crim: Criminal, level: Optional[int] = None) -> bounty.Bounty:
         """Get the escaped bounty object for a given criminal object.
         This process is much more efficient when given the difficulty level of the criminal's bounty.
 
@@ -184,7 +186,7 @@ class BountyDB(serializable.Serializable):
         raise KeyError(f"No escaped bounty found for criminal: '{crim.name}'" + ("" if level is None else f" and level: {level}"))
 
 
-    def getBounty(self, name : str, level : int = None) -> bounty.Bounty:
+    def getBounty(self, name: str, level: Optional[int] = None) -> bounty.Bounty:
         """Get the bounty object for a given criminal name or alias.
         This process is much more efficient when given the difficulty level of the criminal's bounty.
 
@@ -194,7 +196,6 @@ class BountyDB(serializable.Serializable):
 
         :return: the bounty object tracking the named criminal
         :rtype: Bounty
-        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :raise KeyError: If the requested criminal name does not exist in this DB
         """
         # If the criminal's level is known
@@ -213,7 +214,7 @@ class BountyDB(serializable.Serializable):
         raise KeyError("No bounty found for name: '" + name + ("'" if level is None else "' and level: " + str(level)))
 
 
-    def getEscapedBounty(self, name : str, level : int = None) -> bounty.Bounty:
+    def getEscapedBounty(self, name: str, level: Optional[int] = None) -> bounty.Bounty:
         """Get the escaped bounty object for a given criminal name or alias.
         This process is much more efficient when given the difficulty level of the criminal's bounty.
 
@@ -242,7 +243,7 @@ class BountyDB(serializable.Serializable):
         raise KeyError(f"No escaped bounty found for name: '{name}'" + ("" if level is None else " and level: " + str(level)))
 
 
-    def totalBounties(self, includeEscaped : bool = True) -> int:
+    def totalBounties(self, includeEscaped: bool = True) -> int:
         """Decide the total number of bounties currently stored across all divisions.
         If includeEscaped is given as true, escaped bounties will also be counted.
 
@@ -250,7 +251,7 @@ class BountyDB(serializable.Serializable):
         :return: The number of bounties stored in the DB across all divisions
         :rtype: int
         """
-        return sum(div.getNumBounties(includeEscaped=includeEscaped) for div in self.divisions)
+        return sum(div.getNumBounties(includeEscaped=includeEscaped) for div in self.divisions.values())
 
 
     def canMakeBounty(self) -> bool:
@@ -262,9 +263,9 @@ class BountyDB(serializable.Serializable):
         return any((not div.isFull() or not div.hasMinTLBounty()) for div in self.divisions.values())
 
 
-    def bountyNameExists(self, name : str, level : int = None, noEscapedCrim : bool = True) -> bool:
+    def bountyNameExists(self, name: str, level: Optional[int] = None, noEscapedCrim: bool = True) -> bool:
         """Check whether a criminal with the given name or alias exists in the DB
-        The process is much more efficient if the faction where the criminal should reside is known.
+        The process is much more efficient if the level of the criminal is known.
 
         :param str name: The name or alias to check for criminal existence against
         :param str level: The difficulty level of the named criminal's bounty.
@@ -300,7 +301,7 @@ class BountyDB(serializable.Serializable):
         return div in self.divisions.values()
 
 
-    def bountyObjExists(self, bounty : bounty.Bounty) -> bool:
+    def bountyObjExists(self, bounty: bounty.Bounty) -> bool:
         """Check whether a given bounty object exists in the DB.
         Existence is checked for the bounty's criminal, at the given techLevel
 
@@ -311,18 +312,23 @@ class BountyDB(serializable.Serializable):
         return self.divisionForLevel(bounty.techLevel).bountyObjExists(bounty)
 
 
-    def criminalObjExists(self, crim : Criminal) -> bool:
+    def criminalObjExists(self, crim: Criminal, noEscapedCrim=True) -> bool:
         """Check whether a given criminal object exists in the DB.
         Existence is checked across all divisions and levels.
 
         :param Criminal crim: The criminal object to check for existence in the DB
+        :param bool noEscapedCriminal: Give `False` to also search escaped criminals (Defaults to True)
         :return: True if the given criminal is found within the DB, False otherwise
         :rtype: bool
         """
-        return any(div.criminalObjExists(crim) for div in self.divisions.values())
+        activeExists = any(div.criminalObjExists(crim) for div in self.divisions.values())
+        if noEscapedCrim:
+            return activeExists
+        escapedExists = any(div.escapedCriminalExists(crim) for div in self.divisions.values())
+        return activeExists or escapedExists
 
 
-    def addBounty(self, bounty : bounty.Bounty, dbReload=False, isRespawn=False):
+    def addBounty(self, bounty: bounty.Bounty, dbReload=False, isRespawn=False):
         """Add a given bounty object to the database.
         Bounties cannot be added if the division for its level does not have space for more bounties.
         Bounties cannot be added if a bounty already exists for the same criminal in this DB.
@@ -361,7 +367,7 @@ class BountyDB(serializable.Serializable):
         return any(div.escapedCriminalExists(crim) for div in self.divisions.values())
 
 
-    def addEscapedBounty(self, bounty : bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
+    def addEscapedBounty(self, bounty: bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
         """Add a given bounty object to the escaped bounties database.
         Bounties cannot be added if the object or name already exists in the database.
 
@@ -373,7 +379,12 @@ class BountyDB(serializable.Serializable):
         div = self.divisionForLevel(bounty.techLevel)
 
         # Ensure the DB has space for the bounty
-        if not ignoreFull and not dbReload and div.isFull(includeEscaped=True) \
+        # If ignoreFull is set, don't check
+        # If the database is being reloaded (i.e we are in 'eventual consistency' style mode), don't check
+        # The divison is full if it has both reached capacity, and has min-level bounty (or the new bounty is not min level)
+        if not ignoreFull and \
+                not dbReload and \
+                div.isFull(includeEscaped=True) and \
                 ((bounty.techLevel == div.minLevel and div.hasMinTLBounty()) or (bounty.techLevel != div.minLevel)):
             raise OverflowError(f"Division for the escaped bounty ({bounty.criminal.name}, level {bounty.techLevel}) is full")
         
@@ -391,7 +402,7 @@ class BountyDB(serializable.Serializable):
         div._addEscapedBounty(bounty, dbReload=dbReload, ignoreFull=ignoreFull)
 
 
-    def removeEscapedBountyObj(self, bounty : bounty.Bounty):
+    def removeEscapedBountyObj(self, bounty: bounty.Bounty):
         """Remove a given escaped bounty object from the database.
         the bounty must already be recorded in the escaped criminals database.
         This does not perform respawning of the bounty.
@@ -417,7 +428,7 @@ class BountyDB(serializable.Serializable):
         # print(f"removed escaped criminal {bounty.criminal.name} from div {nameForDivision(self.divisionForLevel(bounty.techLevel))}, level {bounty.techLevel}")
 
 
-    def removeBountyObj(self, bounty : bounty.Bounty):
+    def removeBountyObj(self, bounty: bounty.Bounty):
         """Remove a given bounty object from the database.
         If the division was full before, restart the new bounty spawner
 
@@ -426,7 +437,7 @@ class BountyDB(serializable.Serializable):
         self.divisionForLevel(bounty.techLevel).removeBountyObj(bounty)
 
 
-    def removeBountyName(self, name : str, faction : str = None):
+    def removeBountyName(self, name: str, faction: Optional[str] = None):
         """Find the bounty associated with the given criminal name or alias, and remove it from the database.
         This process is much more efficient if the faction under which the bounty is wanted is given.
 
@@ -434,7 +445,7 @@ class BountyDB(serializable.Serializable):
         :param str faction: The faction whose bounties to check for the named criminal.
                             Use None if the faction is not known. (default None)
         """
-        self.removeBountyObj(self.getBounty(name, faction=faction))
+        self.removeBountyObj(self.getBounty(name))
 
 
     def hasBounties(self) -> bool:
@@ -446,24 +457,28 @@ class BountyDB(serializable.Serializable):
         return any(not div.isEmpty() for div in self.divisions.values())
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyDB:
         """Serialise the bountyDB and all of its divisions into dictionary format.
 
         :return: A dictionary containing all data needed to recreate this bountyDB.
         :rtype: dict
         """
-        data = {"active": [], "escaped": [], "temperatures": {}}
+        data: SerializedBountyDB = {"active": [], "escaped": [], "temperatures": {}}
         for div in self.divisions.values():
             data["temperatures"][div.minLevel] = div.temperature
             for tlBounties in div.bounties.values():
                 for bty in tlBounties.values():
-                    data["active"].append(bty.toDict(**kwargs))
+                    data["active"].append(bty.serialize(**kwargs))
             for tlBounties in div.escapedBounties.values():
                 for bty in tlBounties.values():
-                    data["escaped"].append(bty.toDict(**kwargs))
+                    # Casting here because we know the bounty si escaped
+                    serialized = cast(bounty.SerializedEscapedBounty, bty.serialize(**kwargs))
+                    data["escaped"].append(serialized)
         
         if next(i for i in self.divisions.values()).bountyBoardChannel is not None:
-            data["bountyBoardChannels"] = {div.minLevel: div.bountyBoardChannel.toDict(**kwargs) for div in self.divisions.values()}
+            # Casting here div.bountyBoardChannel can be None, but this is only the case if all divisions have None bountyBoardChannel.
+            # If any division in the DB has a bountyBoardChannel, they all must have one.
+            data["bountyBoardChannels"] = {div.minLevel: cast(BountyBoardChannel, div.bountyBoardChannel).serialize(**kwargs) for div in self.divisions.values()}
         
         if next(i for i in self.divisions.values()).alertRoleID != -1:
             data["alertRoleIDs"] = {div.minLevel: div.alertRoleID for div in self.divisions.values()}
@@ -472,8 +487,8 @@ class BountyDB(serializable.Serializable):
 
 
     @classmethod
-    def fromDict(cls, bountyDBDict: dict, owningBasedGuild: basedGuild.BasedGuild = None, dbReload: bool = False, **kwargs) -> BountyDB:
-        """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.toDict.
+    def deserialize(cls, bountyDBDict: SerializedBountyDB, owningBasedGuild: Optional["basedGuild.BasedGuild"] = None, dbReload: bool = False, **kwargs) -> BountyDB:
+        """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.serialize.
 
         :param dict bountyDBDict: a dictionary representation of the bountyDB, to convert to an object
         :param bool dbReload: Whether or not this bountyDB is being created during the initial database loading
@@ -496,17 +511,17 @@ class BountyDB(serializable.Serializable):
             newDB.divisionForLevel(int(minLevel)).setTemp(divTemp)
 
         for bountyDict in activeBountiesData:
-            newDB.addBounty(bounty.Bounty.fromDict(bountyDict, dbReload=dbReload, owningDB=newDB, makeExpiryTT=False),
+            newDB.addBounty(bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB, makeExpiryTT=False),
                             dbReload=dbReload)
         for bountyDict in escapedBountiesData:
-            # Adding escaped bounties to DB is done during Bounty.fromDict
+            # Adding escaped bounties to DB is done during Bounty.deserialize
             # TODO: Should probably change that
-            bounty.Bounty.fromDict(bountyDict, dbReload=dbReload, owningDB=newDB)
+            bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB)
 
         if "bountyBoardChannels" in bountyDBDict:
             for minLevel, bbcDict in bountyDBDict["bountyBoardChannels"].items():
                 div = newDB.divisionForLevel(int(minLevel))
-                div.bountyBoardChannel = BountyBoardChannel.fromDict(bbcDict, division=div)
+                div.bountyBoardChannel = BountyBoardChannel.deserialize(bbcDict, division=div)
 
         if "alertRoleIDs" in bountyDBDict:
             for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():

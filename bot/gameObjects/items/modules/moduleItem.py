@@ -1,11 +1,39 @@
-from ..gameItem import GameItem, spawnableItem
-from ....cfg import bbData
+from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
 from .... import lib
-from typing import List
+from ....lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from typing import List, Union
+from typing_extensions import NotRequired
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from ....cfg import bbData
+
+
+class BuiltInSerializedModuleItem(BuiltInSerializedGameItem): pass
+class TypedBuiltInSerializedModuleItem(BuiltInSerializedModuleItem, TypedBuiltInSerializedGameItem): pass
+
+class CustomSerializedModuleItem(CustomSerializedGameItem):
+    armour: NotRequired[int]
+    shield: NotRequired[int]
+    dps: NotRequired[float]
+    cargo: NotRequired[int]
+    handling: NotRequired[int]
+    armourMultiplier: NotRequired[int]
+    shieldMultiplier: NotRequired[int]
+    dpsMultiplier: NotRequired[float]
+    cargoMultiplier: NotRequired[int]
+    handlingMultiplier: NotRequired[int]
+
+class TypedCustomSerializedModuleItem(CustomSerializedModuleItem, TypedCustomSerializedGameItem): pass
+
+CustomSerializedModuleItemUnion = Union[CustomSerializedModuleItem, TypedCustomSerializedModuleItem]
+BuiltInSerializedModuleItemUnion = Union[BuiltInSerializedModuleItem, TypedBuiltInSerializedModuleItem]
+TypedSerializedModuleItemUnion = Union[TypedCustomSerializedModuleItem, TypedBuiltInSerializedModuleItem]
+
+SerializedModuleItemUnion = Union[CustomSerializedModuleItemUnion, BuiltInSerializedModuleItemUnion]
 
 
 @spawnableItem
-class ModuleItem(GameItem):
+class ModuleItem(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedModuleItemUnion]):
     """"An equippable item, providing ships with various stat perks and new functionality.
     All, none, or any combination of a moduleItem's attributes may be populated.
 
@@ -32,13 +60,13 @@ class ModuleItem(GameItem):
     :vartype handlingMultiplier: float
     """
 
-    def __init__(self, name: str, aliases : List[str], armour : int = 0,
-            armourMultiplier : float = 1.0, shield : int = 0, shieldMultiplier : float = 1.0,
-            dps : int = 0, dpsMultiplier : float = 1.0, cargo : int = 0,
-            cargoMultiplier : float = 1.0, handling : int = 0, handlingMultiplier : float = 1.0,
-            value : int = 0, wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], armour: int = 0,
+            armourMultiplier: float = 1.0, shield: int = 0, shieldMultiplier: float = 1.0,
+            dps: int = 0, dpsMultiplier: float = 1.0, cargo: int = 0,
+            cargoMultiplier: float = 1.0, handling: int = 0, handlingMultiplier: float = 1.0,
+            value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this module may be referred to by.
@@ -82,6 +110,27 @@ class ModuleItem(GameItem):
         self.handling = handling
         self.handlingMultiplier = handlingMultiplier
 
+#region embed fields
+
+    @embedField("Armour", hideWhenNone=True)
+    def formattedArmour(self): return formattedAdditiveAndOrMultiplierOrNone(self.armour, self.armourMultiplier)
+    
+    @embedField("Shield", hideWhenNone=True)
+    def formattedShield(self): return formattedAdditiveAndOrMultiplierOrNone(self.shield, self.shieldMultiplier)
+
+    @embedField("DPS", hideWhenNone=True)
+    def formattedDPS(self): return formattedAdditiveAndOrMultiplierOrNone(self.dps, self.dpsMultiplier)
+
+    @embedField("Cargo", hideWhenNone=True)
+    def formattedCargo(self): return formattedAdditiveAndOrMultiplierOrNone(self.cargo, self.cargoMultiplier)
+
+    @embedField("Handling", hideWhenNone=True)
+    def formattedHandling(self): return formattedAdditiveAndOrMultiplierOrNone(self.handling, self.handlingMultiplier)
+    
+    @embedField("BB Shop Spawn Rate", hideWhenNone=True)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self, bbData.moduleObjsByTL)
+
+#endregion
 
     def statsStringShort(self) -> str:
         """Summarise all effects of this module as a string.
@@ -105,11 +154,11 @@ class ModuleItem(GameItem):
         return statsStr if len(statsStr) > 1 else "*No effect*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedModuleItemUnion:
         """Serialize this moduleItem into dictionary format, for saving to file.
         This method should be overriden and used as a base in any modules that implement
         custom behaviour, outside of simple stat boosts.
-        For an example of using this toDict implementation as a base for an overridden implementation,
+        For an example of using this serialize implementation as a base for an overridden implementation,
         please see a moduleItem class (e.g bbMiningDrillModule.py)
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -120,13 +169,13 @@ class ModuleItem(GameItem):
         if "saveType" not in kwargs:
             kwargs["saveType"] = True
 
-        itemDict = super(ModuleItem, self).toDict(**kwargs)
+        itemDict = super(ModuleItem, self).serialize(**kwargs)
 
         if not self.builtIn:
             additiveStats = {   "armour": self.armour, "shield": self.shield, "dps": self.dps,
                                 "cargo": self.cargo, "handling": self.handling}
-            multiplierStats = { "armour": self.armourMultiplier, "shield": self.shieldMultiplier, "dps": self.dpsMultiplier,
-                                "cargo": self.cargoMultiplier, "handling": self.handlingMultiplier}
+            multiplierStats = { "armourMultiplier": self.armourMultiplier, "shieldMultiplier": self.shieldMultiplier, "dpsMultiplier": self.dpsMultiplier,
+                                "cargoMultiplier": self.cargoMultiplier, "handlingMultiplier": self.handlingMultiplier}
 
             for statName in additiveStats:
                 if additiveStats[statName] != 0:
@@ -139,16 +188,20 @@ class ModuleItem(GameItem):
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedModuleItemUnion, **kwargs):
         """Factory function constructing a new moduleItem object from a dictionary serialised
-        representation - the opposite of moduleItem.toDict. This generic module factory function is unlikely
-        to ever be called, your module type-specific fromDict should be used instead. Except of course, in the
+        representation - the opposite of moduleItem.serialize. This generic module factory function is unlikely
+        to ever be called, your module type-specific deserialize should be used instead. Except of course, in the
         case of custom-spawned, custom-typed modules which do not correspond to a BountyBot-known module type.
 
         :param dict moduleDict: A dictionary containing all information needed to construct the desired moduleItem
         :return: A new moduleItem object as described in moduleDict
         :rtype: moduleItem
         """
+        if "emoji" in moduleDict:
+            # ignoring a warning here because pyright can't know the structure of the dict
+            e = lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) # type: ignore[reportGeneralTypeIssues]
+        else:
+            e = lib.emojis.BasedEmoji.EMPTY
         return ModuleItem(**cls._makeDefaults(moduleDict, ignores=("type",),
-                                                emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
-                                                        if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))
+                                                emoji=e))

@@ -1,7 +1,7 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
+from typing import List, cast
 from ..gameItem import spawnableItem
 
 
@@ -10,10 +10,10 @@ class SignatureModule(moduleItem.ModuleItem):
     """A module allowing a the owner to disguise themselves as a member of th faction that manufactured this signature.
     """
 
-    def __init__(self, name : str, aliases : List[str], manufacturer : str, value : int = 0,
-            wiki : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], manufacturer: str, value: int = 0,
+            wiki: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -38,21 +38,10 @@ class SignatureModule(moduleItem.ModuleItem):
         return "*Faction: " + self.manufacturer + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this module into dictionary format, to be saved to file.
-        No extra attributes implemented by this class, so just eses the base moduleItem toDict method.
-
-        :return: A dictionary containing all information needed to reconstruct this module
-        :rtype: dict
-        """
-        itemDict = super(SignatureModule, self).toDict(**kwargs)
-        return itemDict
-
-
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: moduleItem.SerializedModuleItemUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -61,6 +50,8 @@ class SignatureModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(moduleItem.CustomSerializedModuleItemUnion, moduleDict)
         return SignatureModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

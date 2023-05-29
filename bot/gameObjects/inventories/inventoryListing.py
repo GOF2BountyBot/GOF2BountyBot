@@ -1,33 +1,42 @@
-from ...baseClasses import serializable
-from ..itemDiscount import ItemDiscount
-from typing import List
+from typing_extensions import NotRequired
+from ...baseClasses.serializable import SerializesToSchema
+from ..itemDiscount import ItemDiscount, SerializedItemDiscount
+from ..items import gameItem
+from typing import Generic, List, TypeVar, cast
+from typing_extensions import TypedDict
 
+TItemType = TypeVar("TItemType", bound=gameItem.GameItem)
+TItemSerialized = TypeVar("TItemSerialized", bound=gameItem.SerializedGameItemUnion)
 
-class InventoryListing(serializable.Serializable):
+class SerializedInventoryListing(TypedDict, Generic[TItemSerialized]):
+    item: TItemSerialized
+    count: int
+
+class InventoryListing(SerializesToSchema[SerializedInventoryListing[TItemSerialized]], Generic[TItemType, TItemSerialized]):
     """A listing representing an object and a quantity of that object stored.
     To ensure serializability, inventorylistings can only store serializable objects.
 
     serializable deserializing is not defined in the general case, so InventoryListing does
-    not have a general case fromDict function.
+    not have a general case deserialize function.
 
     :var item: The item this inventory listing represents
     :var count: The quantity of item stored
     :vartype count: int
     """
 
-    def __init__(self, item, count : int = 0):
+    def __init__(self, item: TItemType, count: int = 0):
         """
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
         """
-        if not isinstance(item, serializable.Serializable):
+        if not isinstance(item, gameItem.GameItem):
             raise TypeError("InventoryListing can only store serializables to ensure serializability. Given: " \
                             + type(item).__name__)
         self.item = item
         self.count = count
 
 
-    def increaseCount(self, numIncrease : int):
+    def increaseCount(self, numIncrease: int):
         """Increase the number of this item stored in the listing
 
         :param int numIncrease: The amount to increment this listing's count by
@@ -35,7 +44,7 @@ class InventoryListing(serializable.Serializable):
         self.count += numIncrease
 
 
-    def decreaseCount(self, numDecrease : int):
+    def decreaseCount(self, numDecrease: int):
         """Decrease the number of this item stored in the listing
 
         :param int numDecrease: The amount to decrement this listing's count by
@@ -55,7 +64,7 @@ class InventoryListing(serializable.Serializable):
         return self.item
 
 
-    def storesItem(self, otherItem) -> bool:
+    def storesItem(self, otherItem: TItemType) -> bool:
         """Decide whether this inventory listing stores the given object
 
         :return: True if otherItem is the same object as the one stored in the listing, down to memory location.
@@ -65,39 +74,31 @@ class InventoryListing(serializable.Serializable):
         return self.item is otherItem
 
 
-    def statsStringShort(self) -> str:
-        """Get a short string summarising string describing this inventory listing
-        Written by Novahkiin22
-
-        ⚠ WARNING
-        Does not validate that the stored item has a value. Also does not return information identifying the stored item
-
-        :return: A string describing the quantity of the item stored, and its value.
-        :rtype: str
-        """
-        return str(self.count) + " in inventory. " + str(self.item.value) + " credits each"
-
-
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedInventoryListing[TItemSerialized]:
         """Return a dictionary description of this inventory listing.
 
         :return: A dictionary identifying the object stored, and the amount
         :rtype: int
         """
-        return {"item": self.item.toDict(**kwargs), "count": self.count}
+        # Casting here with the assumption that TItemSerialized is the serialized form of TItem 
+        return {"item": cast(TItemSerialized, self.item.serialize(**kwargs)), "count": self.count}
 
 
     @classmethod
-    def fromDict(cls, listingDict : dict, **kwargs):
-        raise NotImplementedError("Cannot fromDict on InventoryListing in the general case. " \
-                                    + "Instead instance InventoryListing with your fromDict-ed item object.")
+    def deserialize(cls, listingDict: SerializedInventoryListing, **kwargs):
+        raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
+                                    + "Instead instance InventoryListing with your deserialized item object.")
 
 
-class DiscountableItemListing(InventoryListing):
+class SerializedDiscountableItemListing(SerializedInventoryListing[TItemSerialized], Generic[TItemSerialized]):
+    discounts: NotRequired[List[SerializedItemDiscount]]
+
+
+class DiscountableItemListing(InventoryListing[TItemType, TItemSerialized], Generic[TItemType, TItemSerialized]):
     """An item listing that also stores a max-sorted list of single-use value modifications.
     A single value modification applies to a single instance of an item.
     """
-    def __init__(self, item, count : int = 0):
+    def __init__(self, item: TItemType, count: int = 0):
         """
         :param item: The item to store
         :param int quantity: The amount of item to store (Default 0)
@@ -106,17 +107,18 @@ class DiscountableItemListing(InventoryListing):
         self.discounts: List[ItemDiscount] = []
 
 
-    def pushDiscount(self, discount : ItemDiscount):
+    def pushDiscount(self, discount: ItemDiscount):
         self.discounts.append(discount)
-        self.discounts.sort()
+        self.discounts.sort(reverse=True) # reversed to give max-sorting - the biggest discount will be first
 
 
     def popDiscount(self) -> ItemDiscount:
         return self.discounts.pop(0)
 
 
-    def toDict(self, **kwargs) -> dict:
-        data = super().toDict(**kwargs)
+    def serialize(self, **kwargs) -> SerializedDiscountableItemListing[TItemSerialized]:
+        # Casting here so I can add the new fields
+        data = cast(SerializedDiscountableItemListing[TItemSerialized], super().serialize(**kwargs))
         if self.discounts:
-            data["discounts"] = [discount.toDict(**kwargs) for discount in self.discounts]
+            data["discounts"] = [discount.serialize(**kwargs) for discount in self.discounts]
         return data

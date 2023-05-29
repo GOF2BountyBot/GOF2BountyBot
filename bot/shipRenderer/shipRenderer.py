@@ -9,17 +9,18 @@ import subprocess
 # import sys
 from typing import Any, List, Dict
 import os
+from os.path import join
 import pathlib
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 CWD = os.getcwd()
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-RENDER_TEMP_DIR = script_path + os.sep + "temp"
-RENDER_ARGS_PATH = script_path + os.sep + "render_vars"
+RENDER_TEMP_DIR = join(script_path, "temp")
+RENDER_ARGS_PATH = join(script_path, "render_vars")
 
 
 class RenderFailed(Exception):
@@ -29,7 +30,7 @@ class RenderFailed(Exception):
 
 ##### UTIL FUNCTIONS #####
 
-def trim(im : Image) -> Image:
+def trim(im: Image.Image) -> Image.Image:
     """Crop image to content, written by neouyghur: https://stackoverflow.com/a/48605963/11754606
 
     :param Image im: The image to crop
@@ -45,7 +46,7 @@ def trim(im : Image) -> Image:
     return im
 
 
-def ensureImageMode(tex : Image, mode="RGBA") -> Image:
+def ensureImageMode(tex: Image.Image, mode="RGBA") -> Image.Image:
     """Ensure the passed image is in a given mode. If it is not, convert it.
     https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
 
@@ -57,7 +58,7 @@ def ensureImageMode(tex : Image, mode="RGBA") -> Image:
     return tex if tex.mode == mode else tex.convert(mode)
 
 
-def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str], disabledLayers: List[int]):
+def compositeTextures(outTexPath: str, shipPath: str, textures: Dict[int, str], disabledLayers: List[int]):
     """Combine a list of textures into a single image, with respect to masks provided in shipPath.
 
     :param str outTexPath: Path to which the resulting texture should be saved, including file name and extension
@@ -73,8 +74,12 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
     """
     # Load and combine the base texture and under layer
     workingTex = ensureImageMode(Image.open(textures[0]))
-    baseTex = ensureImageMode(Image.open(shipPath + os.sep + "skinBase.png"))
-    workingTex = Image.alpha_composite(workingTex, baseTex)
+    baseTex = ensureImageMode(Image.open(join(shipPath, "skinBase.png")))
+
+    try:
+        workingTex = Image.alpha_composite(workingTex, baseTex)
+    except Exception as e:
+        raise e
 
     maxLayerNum = max(max(textures), max(disabledLayers)) if disabledLayers else max(textures)
 
@@ -92,7 +97,7 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
 
         # Check that a corresponding mask exists for the model
         try:
-            mask = Image.open(shipPath + os.sep + "mask" + str(maskNum) + ".jpg")
+            mask = Image.open(join(shipPath, "mask" + str(maskNum) + ".jpg"))
         except FileNotFoundError:
             print("WARNING: Attempted to " + ("render" if maskNum in textures else "disable") + " texture region " \
                     + str(maskNum) + " but mask" + str(maskNum) + ".jpg does not exist. shipPath:" + shipPath)
@@ -111,29 +116,29 @@ def compositeTextures(outTexPath : str, shipPath : str, textures : Dict[int, str
     workingTex.convert("RGB").save(outTexPath)
 
 
-def setRenderArgs(args : List[str]):
+def setRenderArgs(args: List[str]):
     """Pass arguments to the render via the arguments file
 
     :param List[str] args: List of arguments to write to file
     """
-    with open(SCRIPT_PATH + os.sep + "render_vars", "w") as f:
+    with open(join(SCRIPT_PATH, "render_vars"), "w") as f:
         for arg in args:
             f.write(arg + "\n")
 
 
 def start_render():
-    subprocess.call("blender -b \"" + SCRIPT_PATH + os.sep + "cube.blend\" -P \"" + SCRIPT_PATH + os.sep + "_render.py\"",
+    subprocess.call("blender -b \"" + join(SCRIPT_PATH, "cube.blend") + "\" -P \"" + join(SCRIPT_PATH, "_render.py") + "\"",
                     shell=True)
 
 
-async def renderShip(skinName : str, shipPath : str, shipModelName : str, textures : Dict[int, str],
-                        disabledLayers: List[int], res_x : int, res_y : int, numSamples: int, full=False):
+async def renderShip(shipPath: str, shipModelName: str, textures: Dict[int, str],
+                        disabledLayers: List[int], res_x: int, res_y: int, numSamples: int,
+                        renderOutputPath: str, compositesTexturePath: str, full=False):
     """Render the given ship model with the specified skin layer(s).
     The resulting image is cropped to content and saved in shipPath + "/skins/" + skinName.jpg
     TODO: Add 'useBaseTexture' argument. Pass to render_vars. If true, should bypass skinBase
     (for 'full' skins that don't use skinBase)
 
-    :param str skinName: The name of the skin being rendered. Depicts the name of the output file.
     :param str shipPath: Path to the bbShip being rendered. Must contain shipModelName
     :param str shipModelName: The name of the model file to render. Not a path. Must be contained within shipPath
     :param Dict[int, str] textures: Dictionary associating mask indices to texture file paths to composite. If a mask index is
@@ -151,9 +156,9 @@ async def renderShip(skinName : str, shipPath : str, shipModelName : str, textur
                         element in textures as the texture for the model. (Default False)
     """
     # Generate render arguments
-    current_model = shipPath + os.sep + shipModelName
-    render_output_file = shipPath + os.sep + "skins" + os.sep + skinName + "-RENDER.png"
-    texture_output_file = shipPath + os.sep + "skins" + os.sep + skinName + ".jpg"
+    current_model = join(shipPath, shipModelName)
+    render_output_file = os.path.abspath(renderOutputPath) #join(shipPath, "skins", skinName + "-RENDER.png")
+    texture_output_file = compositesTexturePath #join(shipPath, "skins", skinName + ".jpg")
 
     if res_x > 1920:
         raise ValueError("Attempted to render an image above 1080p (width=" + str(res_x) + ")")
@@ -208,13 +213,14 @@ class AutoskinArgs:
     shipModelName: str
     textures: Dict[int, str]
     disabledLayers: List[int]
-    res_x : int
-    res_y : int
+    res_x: int
+    res_y: int
     numSamples: int
     full: bool = False
 
+    # Adding these methods to make the class unpackable
     def keys(self) -> List[str]:
-        return self.__dataclass_fields__.keys()
+        return [i.name for i in fields(self)]
 
     def __getitem__(self, k: str) -> Any:
         """Get a config setting by name
@@ -225,9 +231,3 @@ class AutoskinArgs:
         :rtype: Any
         """
         return getattr(self, k)
-
-
-async def renderShipByArgs(args: AutoskinArgs):
-    """Call renderShip, using an AutoskinArgs object instead of individual arguments.
-    """
-    return await renderShip(**args)

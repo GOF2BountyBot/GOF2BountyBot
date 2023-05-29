@@ -1,6 +1,10 @@
-from datetime import timedelta, datetime
-from typing import Dict
+from datetime import timedelta, datetime, timezone
+from typing import Dict, Optional
 import random
+from discord.utils import utcnow
+
+def utcfromtimestamp(timestamp: float):
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 def td_format_noYM(td_object: timedelta) -> str:
@@ -44,15 +48,41 @@ def getRandomDelay(minmaxDict: Dict[str, timedelta]) -> timedelta:
     :return: A timedelta randomly placed between the given min and max
     :rtype: timedelta
     """
-    return timedelta(seconds=random.randint(minmaxDict["min"].total_seconds(), minmaxDict["max"].total_seconds()))
+    return timedelta(seconds=random.randint(int(minmaxDict["min"].total_seconds()), int(minmaxDict["max"].total_seconds())))
 
 
-def tomorrow(today : datetime = None) -> datetime:
+def tomorrow(today: Optional[datetime] = None) -> datetime:
     """Make a new timestamp at 12am tomorrow. Or edit the provided one, to be one day later.
 
     :param datetime today: A timestamp whose day to increment by one, and all other time attributes to zero out (default now)
     :return: a timestamp for 12am tomorrow utc time if today is not given. Return today after changing to tomorrow otherwise.
     """
     if today is None:
-        today = datetime.utcnow()
+        today = utcnow()
     return today.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+
+    
+def td_secondsMinutesHours(td: timedelta):
+    """Computes the number of hours minutes and minutes for the given timedelta.
+
+    :param td: The timedelta to collapse
+    :type td: timedelta
+    :return: The number of hours, minutes and seconds in a tuple
+    :rtype: List[Tuple[str, int]]
+    """
+    seconds = int(td.total_seconds())
+    periods = [
+        ('hours', 60 * 60),
+        ('minutes', 60),
+        ('seconds', 1)
+    ]
+    results = {
+        'hours': 0,
+        'minutes': 0,
+        'seconds': 0
+    }
+    for period_name, period_seconds in periods:
+        if seconds >= period_seconds:
+            results[period_name], seconds = divmod(seconds, period_seconds)
+        
+    return results

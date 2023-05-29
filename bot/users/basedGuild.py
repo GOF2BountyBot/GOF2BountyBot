@@ -1,21 +1,29 @@
 from __future__ import annotations
-from datetime import datetime
-from discord import Embed, channel, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, guild
+from enum import Enum
+from discord import Embed, Forbidden, Guild, Member, Message, HTTPException, NotFound, Colour, Role, User
 from discord import TextChannel
-from typing import Any, List, Dict, Tuple, Union, cast
-import asyncio
+from discord.utils import MISSING, utcnow
+from typing import Any, List, Dict, Optional, Union, cast
+from typing_extensions import NotRequired, TypedDict
 from aiohttp import client_exceptions
 import random
 
+from ..baseClasses.serializable import SerializesToSchema, SerializesToType
+
 from .. import botState, lib
+from ..lib import gameMaths
 from ..lib.stringTyping import commaSplitNum
+from ..lib.timeUtil import utcfromtimestamp
+from ..logging import LogCategory
 from ..gameObjects import guildShop
-from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel
+from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
 from ..userAlerts import userAlerts
 from ..cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
-from ..baseClasses import serializable
 from ..databases import bountyDivision
+from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
+from ..gameObjects.items.gameItem import GameItem
+from . import basedUser
 
 
 def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:
@@ -72,12 +80,90 @@ def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
     e.set_author(name="Bounty Expired", icon_url=b.criminal.icon)
     e.description = f"**{b.criminal.name}**\nOut of time! The bounty has expired."
     e.colour = bbData.factionColours[b.faction]
-    activeTime = datetime.utcnow() - datetime.utcfromtimestamp(b.issueTime)
+    activeTime = utcnow() - utcfromtimestamp(b.issueTime)
     e.set_footer(text=f"Active time: {lib.timeUtil.td_format_noYM(activeTime)}")
     return e
 
 
-class BasedGuild(serializable.Serializable):
+class GuildChannelType(Enum):
+    BountyPlay = "0"
+    Announcements = "1"
+    Renders = "2"
+
+
+class GuildChannels(SerializesToType[Dict[str, int]]):
+    def __init__(self, bountyPlay: Optional[TextChannel] = None, announcements: Optional[TextChannel] = None, renders: Optional[TextChannel] = None) -> None:
+        self.bountyPlay = bountyPlay
+        self.announcements = announcements
+        self.renders = renders
+
+
+    def getForType(self, channelType: GuildChannelType) -> Optional[TextChannel]:
+        return {GuildChannelType.BountyPlay: self.bountyPlay,
+                GuildChannelType.Announcements: self.announcements,
+                GuildChannelType.Renders: self.renders}[channelType]
+
+
+    def setForType(self, channelType: GuildChannelType, channel: Optional[TextChannel]):
+        if channelType is GuildChannelType.BountyPlay:
+            self.bountyPlay = channel
+        elif channelType is GuildChannelType.Announcements:
+            self.announcements = channel
+        elif channelType is GuildChannelType.Renders:
+            self.renders = channel
+
+    
+    def keys(self):
+        return [
+            GuildChannelType.BountyPlay,
+            GuildChannelType.Announcements,
+            GuildChannelType.Renders
+        ]
+
+
+    def hasChannel(self, channelType: GuildChannelType) -> bool:
+        return self.getForType(channelType) is not None
+
+
+    def serialize(self, **kwargs) -> Dict[str, int]:
+        return {k.value: cast(TextChannel, self.getForType(k)).id for k in self.keys() if self.hasChannel(k)}
+
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, int], /, dcGuild: Guild, **kwargs):
+        new = cls()
+        for k in new.keys():
+            if k.value in data:
+                c = dcGuild.get_channel(cast(int, data[k.value]))
+                if isinstance(c, TextChannel):
+                    new.setForType(k, c)
+        return new
+
+
+class SerializedBasedGuild(TypedDict):
+    alertRoles: NotRequired[Dict[str, int]]
+    bountiesDisabled: NotRequired[bool]
+    shopsDisabled: NotRequired[bool]
+    guildChannels: NotRequired[Dict[str, int]]
+    ownedRoleMenus: NotRequired[int]
+    commandPrefix: NotRequired[str]
+
+
+class SerializedBasedGuildWIthBounties(SerializedBasedGuild):
+    bountiesDB: NotRequired[SerializedBountyDB]
+
+
+class SerializedBasedGuildWIthShops(SerializedBasedGuild):
+    divisionShops: NotRequired[Dict[str, guildShop.SerializedTechLeveledShop]]
+
+
+class SerializedBasedGuildWIthBountiesAndShops(SerializedBasedGuildWIthShops, SerializedBasedGuildWIthBounties): pass
+
+
+SerializedBasedGuildUnion = Union[SerializedBasedGuild, SerializedBasedGuildWIthBounties, SerializedBasedGuildWIthShops, SerializedBasedGuildWIthBountiesAndShops]
+
+
+class BasedGuild(SerializesToSchema[SerializedBasedGuildUnion]):
     """A class representing a guild in discord, and storing extra bot-specific information about it.
 
     :var id: The ID of the guild, directly corresponding to a discord guild's ID.
@@ -111,11 +197,10 @@ class BasedGuild(serializable.Serializable):
     """
 
     def __init__(self, id: int, dcGuild: Guild, bounties: BountyDB, commandPrefix: str = cfg.defaultCommandPrefix,
-            announceChannel :  Union[TextChannel, None] = None, playChannel :  Union[TextChannel, None] = None,
-            rendersChannel :  Union[TextChannel, None] = None,
-            divisionShops : Union[None, Dict[str, guildShop.TechLeveledShop]] = None,
-            alertRoles : Dict[str, int] = {}, ownedRoleMenus : int = 0, bountiesDisabled : bool = False,
-            shopsDisabled : bool = False):
+            guildChannels: Optional[GuildChannels] = None,
+            divisionShops: Union[None, Dict[str, guildShop.TechLeveledShop]] = None,
+            alertRoles: Dict[str, int] = {}, ownedRoleMenus: int = 0, bountiesDisabled: bool = False,
+            shopsDisabled: bool = False):
         """
         :param int id: The ID of the guild, directly corresponding to a discord guild's ID.
         :param discord.Guild dcGuild: This guild's corresponding discord.Guild object
@@ -152,9 +237,7 @@ class BasedGuild(serializable.Serializable):
         elif type(id) != int:
             raise TypeError("id must be int, given " + str(type(id)))
 
-        self.announceChannel = announceChannel
-        self.playChannel = playChannel
-        self.rendersChannel = rendersChannel
+        self.guildChannels = GuildChannels() if guildChannels is None else guildChannels
 
         self.shopsDisabled = shopsDisabled
         if shopsDisabled:
@@ -212,7 +295,10 @@ class BasedGuild(serializable.Serializable):
                                                     colour=Colour.from_rgb(*cfg.bountyAlertRoleColoursByDivision[divID]),
                                                     reason="Creating new bounty alert roles requested by BB command")
             div.alertRoleID = newRole.id
-        for div in self.bountiesDB.divisions.values():
+        
+        # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+        bountiesDB = cast(BountyDB, self.bountiesDB)
+        for div in bountiesDB.divisions.values():
             roleMakers.add(makeDivRole(div))
 
         await roleMakers.wait()
@@ -221,9 +307,11 @@ class BasedGuild(serializable.Serializable):
             for doneDiv in divsDone:
                 doneDiv.alertRoleID = -1
             raise list(exceptions.values())[0]
-        for div in self.bountiesDB.divisions.values():
+        # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+        for div in bountiesDB.divisions.values():
             if div.alertRoleID == -1:
-                for doneDiv in self.bountiesDB.divisions.values():
+                # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+                for doneDiv in bountiesDB.divisions.values():
                     doneDiv.alertRoleID = -1
                 raise RuntimeError("An unknown error occurred when creating roles")
         
@@ -249,7 +337,9 @@ class BasedGuild(serializable.Serializable):
                 if tlRole is not None:
                     await tlRole.delete(reason="Removing new bounty alert roles requested by BB command")
                 div.alertRoleID = -1
-        for div in self.bountiesDB.divisions.values():
+        
+        # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+        for div in cast(BountyDB, self.bountiesDB).divisions.values():
             roleRemovers.add(removeDivRole(div))
         await roleRemovers.wait()
         roleRemovers.raiseExceptions()
@@ -257,63 +347,85 @@ class BasedGuild(serializable.Serializable):
         self.hasBountyAlertRoles = False
 
 
-    async def levelUpSwapRoles(self, dcUser: Member, channel: TextChannel, oldRole: Role, newRole: Role,
-                                    actionOverride="leveled up"):
+    async def levelUpSwapRoles(self, dcUser: Member, oldRole: Optional[Role], newRole: Optional[Role],
+                                    actionOverride="leveled up") -> List[str]:
         """Remove oldRole from dcUser, and grant newRole.
         If errors occur, they will be printed in the context of dcUser leveling up their bounty Hunting level,
         and sent in channel. If oldRole or newRole are given as None, they will be ignored and no exception raised.
 
         :param Member dcUser: The user to toggle roles for
-        :param TextChannel channel: The channel in which to send errors
         :param Role oldRole: The role to remove, corresponding to dcUser's previous tech level
         :param Role newRole: The role to grant, corresponding to dcUser's new tech level
         :param str actionOverride: The reason for the role change, inserted partially into each message.
                                     (Default "leveled up")
+        :returns: A list of errors that occurred
+        :rtype: List[str]
         """
+        errors = []
         if oldRole is not None:
             try:
                 await dcUser.remove_roles(oldRole, reason=f"User {actionOverride} into a new division")
             except Forbidden:
-                await channel.send(":woozy_face: I don't have permission to remove your old division role! Please ensure " \
+                errors.append("I don't have permission to remove your old division role! Please ensure " \
                                     + "it is beneath the BountyBot role.")
             except HTTPException as e:
-                await channel.send(":woozy_face: Something went wrong when removing your old division role!\n" \
+                errors.append("Something went wrong when removing your old division role!\n" \
                                     + "The error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
             except client_exceptions.ClientOSError as e:
-                await channel.send(":thinking: Whoops! A connection error occurred when removing your old division role, " \
+                errors.append("A connection error occurred when removing your old division role, " \
                                     + "the error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to remove new bounty role " \
                                         + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
         if newRole is not None:
             try:
                 await dcUser.add_roles(newRole, reason=f"User {actionOverride} into a new division")
             except Forbidden:
-                await channel.send(":woozy_face: I don't have permission to grant your new division role! Please ensure " \
+                errors.append("I don't have permission to grant your new division role! Please ensure " \
                                     + "it is beneath the BountyBot role.")
             except HTTPException as e:
-                await channel.send(":woozy_face: Something went wrong when granting your new division role!\n" \
+                errors.append("Something went wrong when granting your new division role!\n" \
                                     + "The error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
-                                        + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
+                                        + f"{newRole.name}#{newRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
-            except client_exceptions.ClientOSError:
-                await channel.send(":thinking: Whoops! A connection error occurred when granting your new division role, " \
+                                    category=LogCategory.userAlerts, exception=e)
+            except client_exceptions.ClientOSError as e:
+                errors.append("A connection error occurred when granting your new division role, " \
                                     + "the error has been logged.")
-                botState.logger.log("main", "cmd_notify",
+                botState.client.logger.log("main", "cmd_notify",
                                     f"{type(e).__name__} occurred when attempting to grant new bounty role " \
-                                        + f"{oldRole.name}#{oldRole.id}  from user {dcUser.name}#{dcUser.id}" \
+                                        + f"{newRole.name}#{newRole.id}  from user {dcUser.name}#{dcUser.id}" \
                                         + f" in guild {self.dcGuild.name}#{self.id}.",
-                                    category="userAlerts", exception=e)
+                                    category=LogCategory.userAlerts, exception=e)
+        return errors
+
+
+    def getChannel(self, channelType: GuildChannelType) -> TextChannel:
+        c = self.guildChannels.getForType(channelType)
+        if c is None:
+            raise ValueError("This guild has no announce channel set")
+        return c
+
+
+    def hasChannel(self, channelType: GuildChannelType) -> bool:
+        return self.guildChannels.getForType(channelType) is not None
+
+
+    def setChannel(self, channelType: GuildChannelType, channel: Optional[TextChannel]):
+        self.guildChannels.setForType(channelType, channel)
+
+
+    def removeChannel(self, channelType: GuildChannelType):
+        self.guildChannels.setForType(channelType, None)
 
 
     def getAnnounceChannel(self) -> TextChannel:
@@ -325,7 +437,7 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasAnnounceChannel():
             raise ValueError("This guild has no announce channel set")
-        return self.announceChannel
+        return cast(TextChannel, self.guildChannels.announcements)
 
 
     def getPlayChannel(self) -> TextChannel:
@@ -337,23 +449,23 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasPlayChannel():
             raise ValueError("This guild has no play channel set")
-        return self.playChannel
+        return cast(TextChannel, self.guildChannels.bountyPlay)
 
 
-    def setAnnounceChannel(self, announceChannel : TextChannel):
+    def setAnnounceChannel(self, announceChannel: TextChannel):
         """Set the discord channel object of the guild's announcements channel.
 
         :param TextChannel announceChannel: The discord channel object of the guild's new announcements channel
         """
-        self.announceChannel = announceChannel
+        self.guildChannels.announcements = announceChannel
 
 
-    def setPlayChannel(self, playChannel : TextChannel):
+    def setPlayChannel(self, playChannel: TextChannel):
         """Set the discord channel of the guild's bounty playing channel.
 
         :param TextChannel playChannel: The discord channel object of the guild's new bounty playing channel
         """
-        self.playChannel = playChannel
+        self.guildChannels.bountyPlay = playChannel
 
 
     def hasAnnounceChannel(self) -> bool:
@@ -362,7 +474,7 @@ class BasedGuild(serializable.Serializable):
         :return: True if this guild has a announcements channel, False otherwise
         :rtype bool:
         """
-        return self.announceChannel is not None
+        return self.guildChannels.hasChannel(GuildChannelType.Announcements)
 
 
     def hasPlayChannel(self) -> bool:
@@ -371,7 +483,7 @@ class BasedGuild(serializable.Serializable):
         :return: True if this guild has a play channel, False otherwise
         :rtype bool:
         """
-        return self.playChannel is not None
+        return self.guildChannels.bountyPlay is not None
 
 
     def removePlayChannel(self):
@@ -381,7 +493,7 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasPlayChannel():
             raise ValueError("Attempted to remove play channel on a BasedGuild that has no playChannel")
-        self.playChannel = None
+        self.guildChannels.bountyPlay = None
 
 
     def removeAnnounceChannel(self):
@@ -391,15 +503,23 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasAnnounceChannel():
             raise ValueError("Attempted to remove announce channel on a BasedGuild that has no announceChannel")
-        self.announceChannel = None
+        self.guildChannels.announcements = None
 
 
-    def setRendersChannel(self, rendersChannel : TextChannel):
+    def setRendersChannel(self, rendersChannel: TextChannel):
         """Set the discord channel of the guild's autoskin renders channel.
 
         :param TextChannel rendersChannel: The discord channel object of the guild's autoskin renders channel
         """
-        self.rendersChannel = rendersChannel
+        self.guildChannels.renders = rendersChannel
+
+
+    def getRendersChannel(self) -> TextChannel:
+        """Get the discord channel of the guild's autoskin renders channel.
+        """
+        if not self.hasRendersChannel():
+            raise ValueError("Attempted to get renders channel on a BasedGuild that has no renders channel")
+        return cast(TextChannel, self.guildChannels.renders)
 
 
     def hasRendersChannel(self) -> bool:
@@ -408,7 +528,7 @@ class BasedGuild(serializable.Serializable):
         :return: True if this guild has a renders channel, False otherwise
         :rtype bool:
         """
-        return self.rendersChannel is not None
+        return self.guildChannels.renders is not None
 
 
     def removeRendersChannel(self):
@@ -418,10 +538,10 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasRendersChannel():
             raise ValueError("Attempted to remove renders channel on a BasedGuild that has no rendersChannel")
-        self.rendersChannel = None
+        self.guildChannels.renders = None
 
 
-    def getUserAlertRoleID(self, alertID : str) -> int:
+    def getUserAlertRoleID(self, alertID: str) -> int:
         """Get the ID of this guild's alerts role for the given alert ID.
 
         :param str alertID: The alert ID for which the role ID should be fetched
@@ -431,7 +551,7 @@ class BasedGuild(serializable.Serializable):
         return self.alertRoles[alertID]
 
 
-    def setUserAlertRoleID(self, alertID : str, roleID : int):
+    def setUserAlertRoleID(self, alertID: str, roleID: int):
         """Set the ID of this guild's alerts role for the given alert ID.
 
         :param str alertID: The alert ID for which the role ID should be set
@@ -440,7 +560,7 @@ class BasedGuild(serializable.Serializable):
         self.alertRoles[alertID] = roleID
 
 
-    def removeUserAlertRoleID(self, alertID : str):
+    def removeUserAlertRoleID(self, alertID: str):
         """Remove the stored role and deactivate alerts for the given alertID
 
         :param str alertID: The alert ID for which the role ID should be removed
@@ -448,7 +568,7 @@ class BasedGuild(serializable.Serializable):
         self.alertRoles[alertID] = -1
 
 
-    def hasUserAlertRoleID(self, alertID : str) -> bool:
+    def hasUserAlertRoleID(self, alertID: str) -> bool:
         """Decide whether or not this guild has a role set for the given alert ID.
 
         :param str alertID: The alert ID for which the role existence should be tested
@@ -461,7 +581,7 @@ class BasedGuild(serializable.Serializable):
         raise KeyError("Unknown GuildRoleUserAlert ID: " + alertID)
 
 
-    async def makeBountyBoardChannelMessage(self, bounty : bounty.Bounty, msg : str = "", embed : Embed = None) -> Message:
+    async def makeBountyBoardChannelMessage(self, bounty: bounty.Bounty, msg: str = "", embed: Optional[Embed] = None) -> Message:
         """Create a new bountyBoardChannel listing for the given bounty, in the given guild.
         guild must own a bountyBoardChannel.
 
@@ -476,13 +596,16 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasBountyBoardChannels:
             raise ValueError("The requested BasedGuild has no bountyBoardChannel")
-        bountyListing = await bounty.division.bountyBoardChannel.channel.send(msg, embed=embed)
-        await bounty.division.bountyBoardChannel.addBounty(bounty, bountyListing)
-        await bounty.division.bountyBoardChannel.updateBountyMessage(bounty)
+        
+        # Casting here because division.bountyBoardChannel is guaranteed for every division, if the guild has hasBountyBoardChannels as True
+        bbc = cast(bountyBoardChannel.BountyBoardChannel, bounty.division.bountyBoardChannel)
+        bountyListing = await bbc.channel.send(msg, embed=embed if embed is not None else MISSING)
+        await bbc.addBounty(bounty, bountyListing)
+        await bbc.updateBountyMessage(bounty)
         return bountyListing
 
 
-    async def removeBountyBoardChannelMessage(self, bounty : bounty.Bounty):
+    async def removeBountyBoardChannelMessage(self, bounty: bounty.Bounty):
         """Remove guild's bountyBoardChannel listing for bounty.
 
         :param bounty bounty: The bounty whose BBC listing should be removed
@@ -491,28 +614,31 @@ class BasedGuild(serializable.Serializable):
         """
         if not self.hasBountyBoardChannels:
             raise ValueError("The requested BasedGuild has no bountyBoardChannel")
-        if bounty.division.bountyBoardChannel.hasMessageForBounty(bounty):
+
+        # Casting here because division.bountyBoardChannel is guaranteed for every division, if the guild has hasBountyBoardChannels as True
+        bbc = cast(bountyBoardChannel.BountyBoardChannel, bounty.division.bountyBoardChannel)
+        if bbc.hasMessageForBounty(bounty):
             try:
-                await bounty.division.bountyBoardChannel.getMessageForBounty(bounty).delete()
-            except HTTPException:
-                botState.logger.log("Main", "rmBBCMsg",
-                                    "HTTPException thrown when removing bounty listing message for criminal: " \
-                                    + bounty.criminal.name, category='bountyBoards', eventType="RM_LISTING-HTTPERR")
+                await bbc.getMessageForBounty(bounty).delete()
             except Forbidden:
-                botState.logger.log("Main", "rmBBCMsg",
+                botState.client.logger.log("Main", "rmBBCMsg",
                                     "Forbidden exception thrown when removing bounty listing message for criminal: " \
-                                    + bounty.criminal.name, category='bountyBoards', eventType="RM_LISTING-FORBIDDENERR")
+                                    + bounty.criminal.name, category=LogCategory.bountyBoards, eventType="RM_LISTING-FORBIDDENERR")
             except NotFound:
-                botState.logger.log("Main", "rmBBCMsg",
+                botState.client.logger.log("Main", "rmBBCMsg",
                                     "Bounty listing message no longer exists, BBC entry removed: " + bounty.criminal.name,
-                                    category='bountyBoards', eventType="RM_LISTING-NOT_FOUND")
-            await bounty.division.bountyBoardChannel.removeBounty(bounty)
+                                    category=LogCategory.bountyBoards, eventType="RM_LISTING-NOT_FOUND")
+            except HTTPException:
+                botState.client.logger.log("Main", "rmBBCMsg",
+                                    "HTTPException thrown when removing bounty listing message for criminal: " \
+                                    + bounty.criminal.name, category=LogCategory.bountyBoards, eventType="RM_LISTING-HTTPERR")
+            await bbc.removeBounty(bounty)
         else:
             raise KeyError("The requested BasedGuild (" + str(self.id) \
                             + ") does not have a bountyBoardChannel listing for the given bounty: " + bounty.criminal.name)
 
 
-    async def updateBountyBoardChannel(self, bounty : bounty.Bounty, bountyComplete : bool = False):
+    async def updateBountyBoardChannel(self, bounty: bounty.Bounty, bountyComplete: bool = False):
         """Update the BBC listing for the given bounty in the given server.
 
         :param bounty bounty: The bounty whose listings should be updated
@@ -520,22 +646,26 @@ class BasedGuild(serializable.Serializable):
                                     When True, bounty listings will be removed rather than updated. (Default False)
         """
         if self.hasBountyBoardChannels:
+            # Casting here because division.bountyBoardChannel is guaranteed for every division, if the guild has hasBountyBoardChannels as True
+            bbc = cast(bountyBoardChannel.BountyBoardChannel, bounty.division.bountyBoardChannel)
             if bountyComplete:
-                if bounty.division.bountyBoardChannel.hasMessageForBounty(bounty):
+                if bbc.hasMessageForBounty(bounty):
                     await self.removeBountyBoardChannelMessage(bounty)
             else:
-                if not bounty.division.bountyBoardChannel.hasMessageForBounty(bounty):
+                if not bbc.hasMessageForBounty(bounty):
                     await self.makeBountyBoardChannelMessage(bounty, "A new bounty is now available from **" \
                                                                     + bounty.faction.title() + "** central command:")
                 else:
-                    await bounty.division.bountyBoardChannel.updateBountyMessage(bounty)
+                    await bbc.updateBountyMessage(bounty)
 
 
-    async def announceNewBounty(self, newBounty : bounty.Bounty, isRespawn: bool = False):
+    async def announceNewBounty(self, newBounty: bounty.Bounty, isRespawn: bool = False):
         """Announce the creation of a new bounty to this guild's announceChannel, if it has one
 
         :param bounty newBounty: the bounty to announce
         """
+        if newBounty.activeShip is None:
+            raise ValueError(f"Bounty does not have a ship: {newBounty.criminal.name}")
         print("Difficulty", newBounty.techLevel, "New bounty with value:", newBounty.activeShip.getValue())
         # Create the announcement embed
         bountyEmbed = lib.discordUtil.makeEmbed(titleTxt=lib.discordUtil.criminalNameOrDiscrim(newBounty.criminal),
@@ -556,20 +686,24 @@ class BasedGuild(serializable.Serializable):
         bountyEmbed.add_field(name="Bounty ends:", value=f"<t:{int(newBounty.endTime)}:R>")
 
         if self.hasBountyBoardChannels:
+            # Casting here because division.bountyBoardChannel is guaranteed for every division, if the guild has hasBountyBoardChannels as True
+            bbc = cast(bountyBoardChannel.BountyBoardChannel, newBounty.division.bountyBoardChannel)
             try:
                 if self.hasBountyAlertRoles:
                     msg = f"<@&{newBounty.division.alertRoleID}> {msg}"
                 # announce to the given channel
-                bountyListing = await newBounty.division.bountyBoardChannel.channel.send(msg, embed=bountyEmbed)
-                await newBounty.division.bountyBoardChannel.addBounty(newBounty, bountyListing)
-                await newBounty.division.bountyBoardChannel.updateBountyMessage(newBounty)
+                bountyListing = await bbc.channel.send(msg, embed=bountyEmbed)
+                await bbc.addBounty(newBounty, bountyListing)
+                await bbc.updateBountyMessage(newBounty)
                 return bountyListing
 
             except Forbidden:
-                botState.logger.log("BasedGuild", "anncBnty",
-                                    "Failed to post BBCh listing to guild " + botState.client.get_guild(self.id).name + "#" \
-                                    + str(self.id) + " in channel " + newBounty.division.bountyBoardChannel.channel.name + "#" \
-                                    + str(newBounty.division.bountyBoardChannel.channel.id), category="bountyBoards",
+                dcGuild = botState.client.get_guild(self.id)
+                guildName = "<unknown>" if dcGuild is None else dcGuild.name
+                botState.client.logger.log("BasedGuild", "anncBnty",
+                                    "Failed to post BBCh listing to guild " + guildName + "#" \
+                                    + str(self.id) + " in channel " + bbc.channel.name + "#" \
+                                    + str(bbc.channel.id), category=LogCategory.bountyBoards,
                                     eventType="BBC_NW_FRBDN")
 
         # If the guild has an announceChannel
@@ -585,9 +719,11 @@ class BasedGuild(serializable.Serializable):
                     else:
                         await currentChannel.send(msg, embed=bountyEmbed)
                 except Forbidden:
-                    botState.logger.log("BasedGuild", "anncBnty",
+                    dcGuild = botState.client.get_guild(self.id)
+                    guildName = "<unknown>" if dcGuild is None else dcGuild.name
+                    botState.client.logger.log("BasedGuild", "anncBnty",
                                         "Failed to post announce-channel bounty listing to guild " \
-                                        + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel " \
+                                        + guildName + "#" + str(self.id) + " in channel " \
                                         + currentChannel.name + "#" + str(currentChannel.id), eventType="ANNCCH_SND_FRBDN")
 
             # TODO: may wish to add handling for invalid announceChannels - e.g remove them from the BasedGuild object
@@ -598,13 +734,16 @@ class BasedGuild(serializable.Serializable):
         and announce it if this guild has an appropriate channel selected.
         """
         if self.bountiesDisabled:
-            botState.logger.log("basedGuild", "spwnAndAnncBty",
+            botState.client.logger.log("basedGuild", "spwnAndAnncBty",
                                 "Attempted to spawn a bounty into a guild where bounties are disabled: " \
                                     + (self.dcGuild.name if self.dcGuild is not None else "") + "#" + str(self.id),
                                 eventType="BTYS_DISABLED")
             return
         # ensure a new bounty can be created
-        if isRespawn or self.bountiesDB.canMakeBounty():
+        # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+        bountiesDB = cast(BountyDB, self.bountiesDB)
+
+        if isRespawn or bountiesDB.canMakeBounty():
             newBounty: bounty.Bounty = newBountyData["newBounty"]
             config: bountyConfig.BountyConfig = newBountyData["newConfig"].copy() if "newConfig" in newBountyData else bountyConfig.BountyConfig()
 
@@ -613,27 +752,25 @@ class BasedGuild(serializable.Serializable):
                 if config.techLevel == -1:
                     config.techLevel = newBounty.techLevel
             elif config.techLevel != -1:
-                div = self.bountiesDB.divisionForLevel(config.techLevel)
+                div = bountiesDB.divisionForLevel(config.techLevel)
             else:
-                div: "bountyDivision.BountyDivision" = random.choice(list(self.bountiesDB.divisions.values()))
+                div: "bountyDivision.BountyDivision" = random.choice(list(bountiesDB.divisions.values()))
                 while div.isFull():
-                    div = random.choice(list(self.bountiesDB.divisions.values()))
+                    div = random.choice(list(bountiesDB.divisions.values()))
                 config.techLevel = div.pickNewTL()
 
             if newBounty is None:
                 newBounty = bounty.Bounty(division=div, config=config)
             else:
                 # If removed, uncomment this line from bounty._respawn
-                if self.bountiesDB.escapedCriminalExists(newBounty.criminal):
-                    self.bountiesDB.removeEscapedCriminal(newBounty.criminal)
+                if bountiesDB.escapedCriminalExists(newBounty.criminal):
+                    bountiesDB.removeEscapedCriminal(newBounty.criminal)
 
                 if config is not None:
                     newConfig = config.copy()
                     if not newConfig.generated:
                         newConfig.generate(div)
                     newBounty.route = newConfig.route
-                    newBounty.start = newConfig.start
-                    newBounty.end = newConfig.end
                     newBounty.answer = newConfig.answer
                     newBounty.checked = newConfig.checked
                     newBounty.reward = newConfig.reward
@@ -641,7 +778,7 @@ class BasedGuild(serializable.Serializable):
                     newBounty.endTime = newConfig.endTime
 
             # activate and announce the bounty
-            self.bountiesDB.addBounty(newBounty, isRespawn=isRespawn)
+            bountiesDB.addBounty(newBounty, isRespawn=isRespawn)
             await self.announceNewBounty(newBounty, isRespawn=isRespawn)
         
         else:
@@ -649,9 +786,9 @@ class BasedGuild(serializable.Serializable):
                                 + "in the bountiesDB")
 
 
-    async def announceBountyWon(self, bounty : bounty.Bounty, rewards : Dict[int, Dict[str, Union[int, bool]]],
-                                winningUser : Member, rewardsMeta: Dict[int, bounty.RewardsMeta],
-                                divUpUnlockedUserIDs: List[int], prestigeUnlockedUserIDs: List[int]):
+    async def announceBountyWon(self, bounty: bounty.Bounty, rewards: Dict[int, Dict[str, Union[int, bool]]],
+                                winningUser: Union[Member, User], rewardsMeta: Dict[int, bounty.RewardsMeta],
+                                leveledUp: Dict["basedUser.BasedUser", List[GameItem]]):
         """Announce the completion of a bounty
         Messages will be sent to the playChannel if one is set
 
@@ -665,62 +802,73 @@ class BasedGuild(serializable.Serializable):
         :param prestigeUnlockedUserIDs: IDs for each user that unlocked prestiging with this bounty.
         :type prestigeUnlockedUserIDs: List[int]
         """
-        if self.dcGuild is not None:
-            if self.hasPlayChannel():
-                winningUserId = winningUser.id
-                # Create the announcement embed
-                rewardsEmbed = lib.discordUtil.makeEmbed(titleTxt="Bounty Complete!",
-                                                        authorName=lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
-                                                        + " Arrested", icon=bounty.criminal.icon,
-                                                        col=bbData.factionColours[bounty.faction],
-                                                        desc="`Suspect located in '" + bounty.answer + "'`")
-
-                # Add the winning user to the embed
-                rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUserId, rewards[winningUserId],
-                                                                    rewardsMeta[winningUserId]))
-
-                # The index of the current user in the embed
-                place = 2
-                # Loop over all non-winning users in the rewards dictionary
-                for userID, userRewards in rewards.items():
-                    if not userRewards["won"]:
-                        rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
-                        place += 1
-
-                if divUpUnlockedUserIDs:
-                    if len(divUpUnlockedUserIDs) > 1:
-                        divUpUnlockedStr = ", ".join(f"<@{i}>" for i in divUpUnlockedUserIDs[:-1]) + f" and <@{divUpUnlockedUserIDs[-1]}>"
-                    else:
-                        divUpUnlockedStr = f"<@{divUpUnlockedUserIDs[0]}>"
-                    
-                    divUpUnlockedStr += f" unlocked the next division! use the `{self.commandPrefix}div-up` command to " \
-                                        + "move up, and take on tougher bounties!\n"
-                else:
-                    divUpUnlockedStr = ""
-
-                if prestigeUnlockedUserIDs:
-                    if len(prestigeUnlockedUserIDs) > 1:
-                        prestigeUnlockedStr = ", ".join(f"<@{i}>" for i in prestigeUnlockedUserIDs[:-1]) + f" and <@{prestigeUnlockedUserIDs[-1]}>"
-                    else:
-                        prestigeUnlockedStr = f"<@{prestigeUnlockedUserIDs[0]}>"
-                    
-                    prestigeUnlockedStr += f" unlocked prestiging! use the `{self.commandPrefix}prestige` command to " \
-                                        + "gain special rewards and start a new run!"
-                else:
-                    prestigeUnlockedStr = ""
-
-                # Send the announcement to the guild's playChannel
-                await self.getPlayChannel().send(":trophy: **You win!**\n**" + winningUser.display_name \
-                                                    + "** located and EMP'd **" + bounty.criminal.name \
-                                                    + "**, who has been arrested by local security forces. :chains:\n\n" \
-                                                    + divUpUnlockedStr + prestigeUnlockedStr,
-                                                    embed=rewardsEmbed)
-
-        else:
-            botState.logger.log("Main", "AnncBtyWn",
+        if self.dcGuild is None:
+            dcGuild = botState.client.get_guild(self.id)
+            guildName = "<unknown>" if dcGuild is None else dcGuild.name
+            botState.client.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty won to guild " \
-                                + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
+                                + guildName + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
+            return
+
+        if self.bountiesDB is None or not self.hasPlayChannel(): return
+        
+        # Create the announcement embed
+        rewardsEmbed = lib.discordUtil.makeEmbed(titleTxt="Bounty Complete!",
+                                                authorName=lib.discordUtil.criminalNameOrDiscrim(bounty.criminal) \
+                                                + " Arrested", icon=bounty.criminal.icon,
+                                                col=bbData.factionColours[bounty.faction],
+                                                desc="`Suspect located in '" + bounty.answer + "'`")
+
+        # Add the winning user to the embed
+        rewardsEmbed.add_field(**bountyResultsFieldKwargs(1, winningUser.id, rewards[winningUser.id],
+                                                            rewardsMeta[winningUser.id]))
+
+        # The index of the current user in the embed
+        place = 2
+        # Loop over all non-winning users in the rewards dictionary
+        for userID, userRewards in rewards.items():
+            if not userRewards["won"]:
+                rewardsEmbed.add_field(**bountyResultsFieldKwargs(place, userID, userRewards, rewardsMeta[userID]))
+                place += 1
+
+        levelUpsStr = ""
+        division: Optional[bountyDivision.BountyDivision] = None
+        divUpUnlocked: List["basedUser.BasedUser"] = []
+
+        for user, userRewards in leveledUp.items():
+            level = gameMaths.calculateUserBountyHuntingLevel(user.bountyHuntingXP)
+            levelUpsStr += "\n:arrow_up: **Level Up!**\n" \
+                        + f"<@{user.id}> reached **Bounty Hunter Level {level}!** :partying_face:"
+
+            if len(userRewards) == 1:
+                levelUpsStr += f"\nYou got a **{userRewards[0].name}**."
+            elif len(userRewards) != 0:
+                levelUpsStr += "\nYou got:\n- " + "\n".join(f"- a **{i.name}**" for i in userRewards)
+            
+            division = division or self.bountiesDB.divisionForLevel(level)
+            if level == division.maxLevel:
+                divUpUnlocked.append(user)
+
+        if divUpUnlocked:
+            if len(divUpUnlocked) > 1:
+                levelUpsStr += ", ".join(f"<@{i.id}>" for i in divUpUnlocked[:-1]) + f" and <@{divUpUnlocked[-1].id}>"
+            else:
+                levelUpsStr += f"<@{divUpUnlocked[0].id}>"
+                
+            if cast(bountyDivision.BountyDivision, division).maxLevel == cfg.maxTechLevel:
+                levelUpsStr += f" unlocked prestiging! use the `{self.commandPrefix}prestige` command to " \
+                                + "gain special rewards and start a new run!"
+            else:
+                levelUpsStr += f" unlocked the next division! use the `/div-up` command to " \
+                                + "move up, and take on tougher bounties!\n"
+
+        # Send the announcement to the guild's playChannel
+        await self.getPlayChannel().send(":trophy: **You win!**\n**" + winningUser.display_name \
+                                            + "** located and EMP'd **" + bounty.criminal.name \
+                                            + "**, who has been arrested by local security forces. :chains:\n\n" \
+                                            + levelUpsStr,
+                                            embed=rewardsEmbed)
 
 
     async def announceBountyExpired(self, b: bounty.Bounty):
@@ -733,9 +881,11 @@ class BasedGuild(serializable.Serializable):
             if self.hasPlayChannel():
                 await self.getPlayChannel().send(embed=makeBountyExpiredEmbed(b))
         else:
-            botState.logger.log("Main", "AnncBtyWn",
+            dcGuild = botState.client.get_guild(self.id)
+            guildName = "<unknown>" if dcGuild is None else dcGuild.name
+            botState.client.logger.log("Main", "AnncBtyWn",
                                 "None dcGuild received when posting bounty expiry to guild " \
-                                + botState.client.get_guild(self.id).name + "#" + str(self.id) + " in channel ?#" \
+                                + guildName + "#" + str(self.id) + " in channel ?#" \
                                 + str(self.getPlayChannel().id), eventType="DCGUILD_NONE")
 
 
@@ -762,7 +912,10 @@ class BasedGuild(serializable.Serializable):
             raise ValueError("Bounties are already disabled in this guild")
 
         if self.hasBountyBoardChannels:
-            self.removeBountyBoardChannel()
+            # Casting here because guild.bountiesDB can be None, but this is checked for in the hasBountyBoardChannels check above
+            for div in cast(BountyDB, self.bountiesDB).divisions.values():
+                div.removeBountyBoardChannel()
+            self.hasBountyBoardChannels = False
         self.bountiesDisabled = True
         self.bountiesDB = None
 
@@ -797,7 +950,7 @@ class BasedGuild(serializable.Serializable):
         self.shopsDisabled = True
 
 
-    async def announceNewShopStock(self, newLevel: int = None):
+    async def announceNewShopStock(self, newLevel: Optional[int] = None):
         """Announce to the guild's play channel that this guild's shop stock has been refreshed.
         If no playChannel has been set, does nothing.
         If newLevel is None, announce that all of the guild's shops have been refreshed.
@@ -826,42 +979,53 @@ class BasedGuild(serializable.Serializable):
                     await playCh.send(":arrows_counterclockwise: " + msg,
                                         embed=msgEmbed)
             except Forbidden:
-                botState.logger.log("Main", "anncNwShp",
+                botState.client.logger.log("Main", "anncNwShp",
                                     "Failed to post shop stock announcement to " + self.dcGuild.name + "#" + str(self.id) \
-                                    + " in channel " + playCh.name + "#" + str(playCh.id), category="shop",
+                                    + " in channel " + playCh.name + "#" + str(playCh.id), category=LogCategory.shop,
                                     eventType="PLCH_NONE")
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBasedGuildUnion:
         """Serialize this BasedGuild into dictionary format to be saved to file.
 
         :return: A dictionary containing all information needed to reconstruct this BasedGuild
         :rtype: dict
         """
-        data = {    "announceChannel":  self.announceChannel.id if self.hasAnnounceChannel() else -1,
-                    "playChannel":      self.playChannel.id if self.hasPlayChannel() else -1,
-                    "rendersChannel":   self.rendersChannel.id if self.hasRendersChannel() else -1,
-                    "alertRoles":       self.alertRoles,
-                    "ownedRoleMenus":   self.ownedRoleMenus,
-                    "bountiesDisabled": self.bountiesDisabled,
-                    "shopsDisabled":     self.shopsDisabled}
+        data: SerializedBasedGuildUnion = {
+            "alertRoles":       self.alertRoles,
+            "bountiesDisabled": self.bountiesDisabled,
+            "shopsDisabled":     self.shopsDisabled
+        }
+
+        guildChannels = self.guildChannels.serialize()
+        if guildChannels != {}:
+            data["guildChannels"] = guildChannels
+
+        if self.ownedRoleMenus:
+            data["ownedRoleMenus"] = self.ownedRoleMenus
 
         if self.commandPrefix != cfg.defaultCommandPrefix:
             data["commandPrefix"] = self.commandPrefix
 
         if not self.bountiesDisabled:
-            data["bountiesDB"] = self.bountiesDB.toDict(**kwargs)
+            # Casting here because we know the guild has bounties enabled
+            data = cast(SerializedBasedGuildWIthBounties, data)
+            # Casting here because bountiesDB cannot be None if bountiesDisabled is False
+            data["bountiesDB"] = cast(BountyDB, self.bountiesDB).serialize(**kwargs)
 
         if not self.shopsDisabled:
-            data["divisionShops"] = {k: v.toDict(**kwargs) for k, v in self.divisionShops.items()}
+            # Casting here because we know the guild has shops enabled
+            data = cast(SerializedBasedGuildWIthShops, data)
+            # Casting here because shop existence is checked with the shopsDisabled check
+            data["divisionShops"] = {k: v.serialize(**kwargs) for k, v in cast(Dict[str, guildShop.TechLeveledShop], self.divisionShops).items()}
 
         return data
 
 
     @classmethod
-    def fromDict(cls, guildDict: dict, dbReload=False, **kwargs) -> BasedGuild:
+    def deserialize(cls, guildDict: SerializedBasedGuildUnion, dbReload=False, *, guildID: int, **kwargs) -> BasedGuild:
         """Factory function constructing a new BasedGuild object from the information
-        in the provided guildDict - the opposite of BasedGuild.toDict
+        in the provided guildDict - the opposite of BasedGuild.serialize
 
         :param int guildID: The discord ID of the guild
         :param dict guildDict: A dictionary containing all information required to build the BasedGuild object
@@ -870,20 +1034,30 @@ class BasedGuild(serializable.Serializable):
         :return: A BasedGuild according to the information in guildDict
         :rtype: BasedGuild
         """
-        if "guildID" not in kwargs:
+        if guildID is None:
             raise NameError("Required kwarg missing: guildID")
-        guildID = kwargs["guildID"]
 
-        dcGuild: Guild = botState.client.get_guild(guildID)
+        dcGuild = botState.client.get_guild(guildID)
         if dcGuild is None:
             raise lib.exceptions.NoneDCGuildObj("Could not get guild object for id " + str(guildID))
 
-        announceChannel = guildDict.get("announceChannel", -1)
-        announceChannel = dcGuild.get_channel(announceChannel) if announceChannel != -1 else None
-        playChannel = guildDict.get("playChannel", -1)
-        playChannel = dcGuild.get_channel(playChannel) if playChannel != -1 else None
-        rendersChannel = guildDict.get("rendersChannel", -1)
-        rendersChannel = dcGuild.get_channel(rendersChannel) if rendersChannel != -1 else None
+        if "guildChannels" in guildDict:
+            guildChannels = GuildChannels.deserialize(cast(dict, guildDict["guildChannels"]), dcGuild=dcGuild)
+        else:
+            guildChannels = GuildChannels()
+            # Ignoring here because I'm porting the legacy serialized guild schema
+            if guildDict.get("announceChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["announceChannel"])) # type: ignore[reportGeneralTypeIssues]
+                if isinstance(c, TextChannel):
+                    guildChannels.announcements = c
+            if guildDict.get("playChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["playChannel"])) # type: ignore[reportGeneralTypeIssues]
+                if isinstance(c, TextChannel):
+                    guildChannels.bountyPlay = c
+            if guildDict.get("rendersChannel", -1) != -1:
+                c = dcGuild.get_channel(cast(int, guildDict["rendersChannel"])) # type: ignore[reportGeneralTypeIssues]
+                if isinstance(c, TextChannel):
+                    guildChannels.renders = c
 
         bountiesDisabled = guildDict.get("bountiesDisabled", False)
 
@@ -894,20 +1068,26 @@ class BasedGuild(serializable.Serializable):
         else:
             # For legacy savedata, just generate new shops
             if "divisionShops" in guildDict:
-                divisionShops = {k: guildShop.TechLeveledShop.fromDict(v) for k, v in guildDict["divisionShops"].items()}
+                # Casting here because we know the guild has shops
+                guildDict = cast(SerializedBasedGuildWIthShops, guildDict)
+                # Casting here because pyright doesn't know the structure of a serialized BasedGuild
+                divisionShops = {k: guildShop.TechLeveledShop.deserialize(v) for k, v in guildDict.get("divisionShops", {}).items()}
             else:
                 divisionShops = {divName: guildShop.TechLeveledShop(max(cfg.minTechLevel, levels[0]), levels[1]) \
                                     for divName, levels in bountyDivision.divisionNameLevels().items()}
 
-        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled"),
+        newGuild = BasedGuild(**cls._makeDefaults(guildDict, ("bountiesDB","bountyBoardChannel","shop","shopDisabled","announceChannel","playChannel","rendersChannel"),
                                                     id=guildID, dcGuild=dcGuild, bounties=None,
-                                                    announceChannel=announceChannel, playChannel=playChannel,
-                                                    rendersChannel=rendersChannel,
+                                                    guildChannels=guildChannels,
                                                     divisionShops=divisionShops, shopsDisabled=shopsDisabled))
 
         if not bountiesDisabled:
             if "bountiesDB" in guildDict:
-                bountiesDB = BountyDB.fromDict(guildDict["bountiesDB"], dbReload=dbReload, owningBasedGuild=newGuild)
+                # Casting here because we know the guild has bounties
+                guildDict = cast(SerializedBasedGuildWIthBounties, guildDict)
+                # Ignoring here because I just checked that the key is present
+                bountiesDB = BountyDB.deserialize(guildDict["bountiesDB"], # type: ignore[reportTypedDictNotRequiredAccess]
+                                                    dbReload=dbReload, owningBasedGuild=newGuild)
             else:
                 bountiesDB = BountyDB(newGuild)
             newGuild.bountiesDB = bountiesDB

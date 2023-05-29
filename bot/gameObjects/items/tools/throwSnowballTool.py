@@ -1,16 +1,18 @@
 from . import toolItem
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ....users import basedUser
-from .... import lib, botState
-from discord import Message, User, MessageType, File, TextChannel, Embed, Colour
+from typing import TYPE_CHECKING, Optional
+from discord import Guild, Interaction, Message, MessageType, Embed, Colour
 from typing import List, cast
-from .. import gameItem
 from random import randint
 from PIL import Image
 from io import BytesIO
-from ....cfg import cfg
 import asyncio
+
+if TYPE_CHECKING:
+    from ....users import basedUser
+from ....lib.discordUtil import ImageFile, interactionSend
+from ....lib.emojis import BasedEmoji
+from .. import gameItem
+from ....cfg import cfg
 
 SNOWBALL_ICON = "https://cdn.discordapp.com/attachments/700683544103747594/924100261046259742/Snowball_PNG_Clipart.png"
 
@@ -20,9 +22,9 @@ class ThrowSnowballTool(toolItem.ToolItem):
     with a snowball layered over the top.
     """
 
-    def __init__(self, name : str, aliases : List[str] = [], value : int = 0, wiki : str = "",
-            manufacturer : str = "", icon : str = SNOWBALL_ICON, emoji : lib.emojis.BasedEmoji = None,
-            techLevel : int = -1, builtIn : bool = False, autoUse: bool = False):
+    def __init__(self, name: str, aliases: List[str] = [], value: int = 0, wiki: str = "",
+            manufacturer: str = "", icon: str = SNOWBALL_ICON, emoji: Optional[BasedEmoji] = None,
+            techLevel: int = -1, builtIn: bool = False, autoUse: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -38,80 +40,81 @@ class ThrowSnowballTool(toolItem.ToolItem):
         :param bool autoUse: Ignored. This is always False
         """
         super().__init__(name, aliases, value=value, wiki=wiki, manufacturer=manufacturer, icon=icon,
-                            emoji=lib.emojis.BasedEmoji(id=924100293925412894) if emoji is None else emoji,
+                            emoji=BasedEmoji(unicode="❄") if emoji is None else emoji, # TODO: BasedEmoji(id=924100293925412894)
                             techLevel=techLevel, builtIn=builtIn, autoUse=False)
 
-
-    async def use(self, callingBUser: "basedUser.BasedUser" = None, *args, **kwargs):
+    
+    async def use(self, *, callingBUser: "basedUser.BasedUser", **kwargs) -> bool:
         """This tool can only be used from userFriendlyUse, as it must be interactive.
         :raise NotImplementedError: always
         """
+        return False
         raise NotImplementedError("This tool can only be used from userFriendlyUse, as it must be interactive")
 
 
     @toolItem.userFriendlySingleUse
-    async def userFriendlyUse(self, message: Message, argsStr: str, *args, **kwargs) -> str:
+    async def userFriendlyUse(self, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs) -> bool:
         """Pick a user, and throw a snowball at them by rendering a snowball image over their profile
-        :param Message message: The discord message that triggered this tool use
-        :param str argsStr: Optionally, a string containing a user mention or ID.
-        :return: A user-friendly message summarising the result of the tool use.
-        :rtype: str
+
+        :param interaction Interaction: The discord interaction that triggered this tool use
+        :returns: Whether or not the use was successful
+        :rtype: bool
         """
-        if argsStr:
-            if not lib.stringTyping.isInt(argsStr) and not lib.stringTyping.isMention(argsStr):
-                return ":x: This tool accepts either a user ID or user @mention."
-            targetId = int(argsStr.lstrip("<@!").rstrip(">"))
-            targetUser = botState.client.get_user(targetId)
-            if targetUser is None:
-                return ":x: Unknown user!"
+        if interaction.guild is None:
+            await interactionSend(interaction, respond, followup,
+                                    f":x: The {self.name} can only be used from within a server!",
+                                    ephemeral=True)
+            return False
+        
+        pickMsg = await interactionSend(interaction, respond, followup,
+                                        "Pick your target! **Reply** to this message, pinging one victim, within 60s.")
+        if respond or followup:
+            pickMsg = await interaction.original_response()
+            respond, followup = False, False
+
+        if not isinstance(pickMsg, Message): raise RuntimeError("Failed to fetch menu message")
+
+        def targetCheck(m: Message) -> bool:
+            # Casting here because the message must be a reply to one sent in the same channel as the message that triggered the use
+            return      m.type == MessageType.default \
+                    and m.reference is not None \
+                    and m.reference.message_id == cast(Message, pickMsg).id \
+                    and ((len(m.mentions) == 1 and m.mentions[0] == cast(Guild, interaction.guild).me)
+                        or (len([u for u in m.mentions if u != cast(Guild, interaction.guild).me]) == 1))
+
+        try:
+            targetPickedMsg: Message = await interaction.client.wait_for("message", check=targetCheck, timeout=60)
+        except asyncio.TimeoutError:
+            await pickMsg.reply(":x: Out of time! Please try again.")
+            return False
+
+        if len(targetPickedMsg.mentions) != 1:
+            targetUser = next(u for u in targetPickedMsg.mentions if u != interaction.guild.me)
         else:
-            pickMsg = await message.reply("Pick your target! **Reply** to this message, pinging one victim, within 60s.")
+            targetUser = targetPickedMsg.mentions[0]
 
-            def targetCheck(m: Message) -> bool:
-                return      m.type == MessageType.default \
-                        and m.reference is not None \
-                        and m.reference.message_id == pickMsg.id \
-                        and ((len(m.mentions) == 1 and m.mentions[0] == message.guild.me)
-                            or (len([u for u in m.mentions if u != message.guild.me]) == 1))
+        profileAsset = targetUser.display_avatar.with_size(256).with_format("png")
+        with BytesIO() as assetBytes:
+            await profileAsset.save(assetBytes, seek_begin=True)
+            assetBytes.seek(0)
 
-            try:
-                targetPickedMsg: Message = await botState.client.wait_for("message", check=targetCheck, timeout=60)
-            except asyncio.TimeoutError:
-                await message.reply(":x: Out of time! Please try again.")
-                return
+            targetProfile = Image.open(assetBytes)
+            if targetProfile.mode != "RGBA":
+                targetProfile = targetProfile.convert("RGBA")
 
-            if len(targetPickedMsg.mentions) != 1:
-                targetUser: User = next(u for u in targetPickedMsg.mentions if u != message.guild.me)
-            else:
-                targetUser = targetPickedMsg.mentions[0]
+            with Image.open(f"{cfg.paths.snowballImages}/{randint(0, cfg.numSnowballs - 1)}.png") as overlay:
+                targetProfile.paste(overlay, (0, 0), overlay)
 
-        profileAsset = targetUser.avatar_url_as(size=256, format="png")
-        assetBytes = BytesIO()
-        await profileAsset.save(assetBytes, seek_begin=True)
-        assetBytes.seek(0)
-        targetProfile = Image.open(assetBytes)
-        if targetProfile.mode != "RGBA":
-            targetProfile = targetProfile.convert("RGBA")
+                with ImageFile(targetProfile, "splat.png") as resultFile:
+                    splatEmbed = Embed()
+                    splatEmbed.colour = Colour.random()
+                    splatEmbed.set_image(url=f"attachment://{resultFile.fileName}")
 
-        overlay = Image.open(f"{cfg.paths.snowballImages}/{randint(0, cfg.numSnowballs - 1)}.png")
-        targetProfile.paste(overlay, (0, 0), overlay)
-
-        resultBytes = BytesIO()
-        targetProfile.save(resultBytes, "PNG")
-        resultBytes.seek(0)
-
-        splatEmbed = Embed()
-        splatEmbed.colour = Colour.random()
-        splatEmbed.set_image(url="attachment://splat.png")
-
-        await cast(TextChannel, message.channel).send(embed=splatEmbed, file=File(resultBytes, filename="splat.png"))
-
-        assetBytes.close()
-        targetProfile.close()
-        overlay.close()
-        resultBytes.close()
-
-        return f"{message.author.display_name} threw a snowball at {targetUser.display_name}!"
+                    await interactionSend(interaction, respond, followup,
+                                            f"{interaction.user.display_name} threw a snowball at {targetUser.display_name}!",
+                                            embed=splatEmbed, file=resultFile)
+        
+        return True
 
 
     def statsStringShort(self) -> str:
@@ -122,20 +125,8 @@ class ThrowSnowballTool(toolItem.ToolItem):
         return f"*{self.value} credits*"
 
 
-    def toDict(self, **kwargs) -> dict:
-        """Serialize this tool into dictionary format.
-        This step of implementation adds a 'type' string indicating the name of this tool's subclass.
-        :param bool saveType: When true, include the string name of the object type in the output.
-        :return: The default gameItem toDict implementation, with an added 'type' field
-        :rtype: dict
-        """
-        data = super().toDict(**kwargs)
-        data["autoUse"] = self.autoUse
-        return data
-
-
     @classmethod
-    def fromDict(cls, data: dict, **kwargs) -> "ThrowSnowballTool":
+    def deserialize(cls, data: toolItem.SerializedToolItemUnion, **kwargs) -> "ThrowSnowballTool":
         """Deserialize a CreditsTool from dictionary format.
         :return: A new CreditsTool as described by data
         :rtype: CreditsTool

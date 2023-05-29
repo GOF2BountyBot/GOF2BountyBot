@@ -1,17 +1,45 @@
 # Typing imports
 from __future__ import annotations
-from typing import Dict, List, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
-from ...baseClasses import aliasable
+from ...baseClasses import aliasable, serializable
+from ...baseClasses.embedFillable import EmbedFillableMixin, embedField, embedThumbnailUrl, embedColour
 from abc import abstractmethod
 from ... import lib
+from ...lib import gameMaths
+from ...lib.stringTyping import commaSplitNum
+from ...cfg import bbData, cfg, schema
+from..gameObject import LoadedObject, SerializedLoadedObject
 
+
+class BuiltInSerializedGameItem(SerializedLoadedObject, aliasable.SerializedAliasable): pass
+
+class CustomSerializedGameItem(BuiltInSerializedGameItem):
+    value: int
+    manufacturer: str
+    icon: str
+    emoji: lib.emojis.SerializedBasedEmoji
+    techLevel: int
+
+
+class TypedCustomSerializedGameItem(CustomSerializedGameItem):
+    type: str
+
+class TypedBuiltInSerializedGameItem(BuiltInSerializedGameItem):
+    type: str
+
+
+CustomSerializedGameItemUnion = Union[CustomSerializedGameItem, TypedCustomSerializedGameItem]
+BuiltInSerializedGameItemUnion = Union[BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem]
+SerializedGameItemUnion = Union[CustomSerializedGameItem, BuiltInSerializedGameItemUnion]
+
+TypedSerializedGameItemUnion = Union[TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem]
 
 subClassNames: Dict[str, Type["GameItem"]] = {}
 nameSubClasses: Dict[Type["GameItem"], str] = {}
 
 
-class GameItem(aliasable.Aliasable):
+class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, serializable.SerializesToSchema[SerializedGameItemUnion]):
     """A game item, with a value, a manufacturer, a wiki page, an icon, an emoji, and a tech level.
 
     :var wiki: A web page to represent as the item's wikipedia article in its info page
@@ -44,10 +72,10 @@ class GameItem(aliasable.Aliasable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, aliases : List[str], value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the item. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this item may be referred to by.
@@ -61,9 +89,7 @@ class GameItem(aliasable.Aliasable):
         :param bool builtIn: Whether this is a BountyBot standard item (loaded in from bbData)
                                 or a custom spawned item (Default False)
         """
-        super(GameItem, self).__init__(name, aliases)
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
+        super(GameItem, self).__init__(name, aliases, builtIn=builtIn, wiki=wiki)
 
         self.manufacturer = manufacturer
         self.hasManufacturer = manufacturer != ""
@@ -71,7 +97,7 @@ class GameItem(aliasable.Aliasable):
         self.icon = icon
         self.hasIcon = icon != ""
 
-        self.emoji = emoji
+        self._emoji = emoji
         self.hasEmoji = emoji is not None and emoji != lib.emojis.BasedEmoji.EMPTY
 
         self.value = value
@@ -80,7 +106,31 @@ class GameItem(aliasable.Aliasable):
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1
 
-        self.builtIn = builtIn
+    @property
+    def emoji(self):
+        if self._emoji is None: return None
+        if isinstance(self._emoji, lib.emojis.UninitializedBasedEmoji):
+            self._emoji = schema.convertEmoji(self._emoji)
+        return cast(lib.emojis.BasedEmoji, self._emoji)
+
+#region embed attributes
+
+    @embedThumbnailUrl
+    def iconOrNone(self): return self.icon if self.hasIcon else None
+
+    @embedField("Manufacturer", hideWhenNone=True)
+    def formattedManufacturer(self): return self.manufacturer.title() if self.hasManufacturer else None
+
+    @embedField("Value")
+    def formattedValue(self): return f"{commaSplitNum(self.value)} Credits"
+
+    @embedField("Tech Level", hideWhenNone=True)
+    def formattedTechLevel(self): return self.techLevel if self.hasTechLevel else None
+
+    @embedColour
+    def manufacturerColour(self): return bbData.factionColours.get(self.manufacturer, bbData.factionColours["neutral"])
+
+#endregion
 
 
     @abstractmethod
@@ -103,7 +153,7 @@ class GameItem(aliasable.Aliasable):
 
 
     @abstractmethod
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, saveType: Optional[bool] = False, **kwargs) -> SerializedGameItemUnion:
         """Serialize this item into dictionary format, for saving to file.
         This base implementation should be used in gameItem implementations, and custom attributes saved into it.
 
@@ -112,27 +162,27 @@ class GameItem(aliasable.Aliasable):
                     If the item is builtIn, this is only its name.
         :rtype: dict
         """
-        saveType = kwargs.pop("saveType") if "saveType" in kwargs else False
-
         if self.builtIn:
-            data = {"name": self.name, "builtIn": True}
+            data: BuiltInSerializedGameItem = {"name": self.name, "builtIn": True}
         else:
-            data = super().toDict(**kwargs)
+            data = cast(CustomSerializedGameItemUnion, super().serialize(**kwargs))
             data["value"] = self.value
             data["wiki"] = self.wiki
             data["manufacturer"] = self.manufacturer
             data["icon"] = self.icon
-            data["emoji"] = self.emoji.toDict(**kwargs)
+            if self.emoji is not None:
+                data["emoji"] = self.emoji.serialize(**kwargs)
             data["techLevel"] = self.techLevel
             data["builtIn"] = False
 
         if saveType:
+            data = cast(TypedSerializedGameItemUnion, data)
             data["type"] = type(self).__name__
 
         return data
 
 
-TClass = TypeVar("TClass", bound=GameItem)
+TClass = TypeVar("TClass", bound=Type[GameItem])
 
 
 def spawnableItem(cls: TClass) -> TClass:
@@ -147,13 +197,13 @@ def spawnableItem(cls: TClass) -> TClass:
     return cast(TClass, cls)
 
 
-def spawnItem(data : dict) -> GameItem:
+def spawnItem(data: TypedSerializedGameItemUnion) -> GameItem:
     if "type" not in data or data["type"] == "":
         raise NameError("Not given a type")
     elif data["type"] not in subClassNames:
         raise KeyError("Unrecognised item type: " + str(data["type"]))
 
-    return subClassNames[data["type"]].fromDict(data)
+    return subClassNames[data["type"]].deserialize(data)
 
 
 def isSpawnableItemClass(cls):
@@ -166,3 +216,21 @@ def spawnableItemClassFromName(n: str) -> Type[GameItem]:
 
 def isSpawnableItemInstance(o):
     return isinstance(o, GameItem) and type(o) in nameSubClasses
+
+
+def topThreeItemSpawnRates(item: GameItem, shopPool: List[List[Any]]) -> Optional[str]:
+    """Get a string describing the top 3 spawn rates for an item with tech level `tl`.
+
+    :param item: The item
+    :type item: GameItem
+    :param shopPool: The shop's techlevel-sorted pool of items
+    :type shopPool: List[List[Any]]
+    :return: A string describing the item's top 3 spawn rates, or None if `tl` is invalid
+    :rtype: Optional[str]
+    """
+    if not item.hasTechLevel or item.techLevel < cfg.minTechLevel or item.techLevel > cfg.maxTechLevel:
+        return None
+    
+    tlRange = range(max(item.techLevel - 1, cfg.minTechLevel), min(item.techLevel + 1, cfg.maxTechLevel) + 1)
+    rates = [(tl, gameMaths.itemTLSpawnChanceForShopTL[tl - 1][item.techLevel - 1]) for tl in tlRange if shopPool[tl - 1]]
+    return "\n".join(f"Level {tl} Shops: {round((rate/len(shopPool[tl - 1]))*100, 2)}%" for tl, rate in rates)

@@ -1,19 +1,20 @@
 from datetime import timedelta
-from typing import Set, List
+from typing import Optional, Set, List
+from typing_extensions import Never
 from discord import Member, Message, Colour, Role
 from . import reactionMenu, expiryFunctions
-from ..gameObjects.items import gameItem
 from .. import botState
 from ..users import basedUser
 from ..scheduling import timedTask
+from ..gameObjects.guildShop import StoredItemType
 
 
-class GiveawayMenu(reactionMenu.ReactionMenu):
-    def __init__(self, msg: Message, items: List[gameItem.GameItem], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = None, footerTxt: str = "", img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Member = None, targetRole: Role = None):
+class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption", Never]):
+    def __init__(self, msg: Message, items: List[StoredItemType], activeTime: timedelta, titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), img: str = "", thumb: str = "", icon: str = "", authorName: str = "", targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         options = {i.emoji: GiveawayMenuOption(self, i) for i in items}
         timeout = timedTask.TimedTask(expiryDelta=activeTime, expiryFunction=expiryFunctions.markExpiredMenu, expiryFunctionArgs=msg.id, rescheduleOnExpiryFuncFailure=True)
-        botState.taskScheduler.scheduleTask(timeout)
-        super().__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, timeout=timeout, footerTxt=footerTxt, img=img, thumb=thumb, icon=icon, authorName=authorName, targetMember=targetMember, targetRole=targetRole)
+        botState.client.taskScheduler.scheduleTask(timeout)
+        super().__init__(msg, options=options, titleTxt=titleTxt, desc=desc, col=col, timeout=timeout, img=img, thumb=thumb, icon=icon, authorName=authorName, targetMember=targetMember, targetRole=targetRole)
         self.givenUsers: Set[Member] = set()
         self.originalDesc = desc
 
@@ -23,21 +24,22 @@ class GiveawayMenu(reactionMenu.ReactionMenu):
 
 
     async def addGivenUser(self, user: Member):
+        self.givenUsers.add(user)
         self.desc = f"{self.originalDesc}\n\nNumber of users given to: {len(self.givenUsers)}"
         await self.updateMessage(noRefreshOptions=True)
 
 
     @classmethod
-    def fromDict(cls, data: dict, **kwargs):
+    def deserialize(cls, data: Never, **kwargs):
         raise NotImplementedError()
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> Never:
         raise NotImplementedError()
 
 
 class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
-    def __init__(self, menu: GiveawayMenu, item: gameItem.GameItem):
+    def __init__(self, menu: GiveawayMenu, item: StoredItemType):
         super().__init__(item.name, item.emoji, addFunc=self.award)
         self.item = item
         self.menu = menu
@@ -45,9 +47,11 @@ class GiveawayMenuOption(reactionMenu.NonSaveableReactionMenuOption):
 
     async def award(self, reactingUser: Member):
         if not self.menu.hasGivenToUser(reactingUser):
-            bUser: basedUser.BasedUser = botState.usersDB.getOrAddID(reactingUser.id)
+            bUser: basedUser.BasedUser = botState.client.usersDB.getOrAddID(reactingUser.id)
             # de-serializing and re-serializing here in order to get a copy (if appropriate)
-            itemCopy = type(self.item).fromDict(self.item.toDict(saveType=True))
-            bUser.getInventoryForItem(self.item).addItem(itemCopy)
-            self.menu.givenUsers.add(reactingUser)
+            # Ignoring here because the type of the item is guaranteed to support the serialzied schema of the item
+            itemCopy = type(self.item).deserialize(self.item.serialize(saveType=True)) #  type: ignore[reportGeneralTypeIssues]
+            # itemCopy is StoredItemType here. getInventoryForItem is guaranteed to return the inventory that stores a StoredItemType.
+            # Therefore, itemCopy is guaranteed to be compatible with the inventory's addItem method.
+            bUser.getInventoryForItem(self.item).addItem(itemCopy) # type: ignore[reportGeneralTypeIssues]
             await self.menu.addGivenUser(reactingUser)

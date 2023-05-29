@@ -1,34 +1,39 @@
+from ..ships import shipItem
 from . import toolItem, shipSkinTool, throwSnowballTool
 from . import crateTool
-from .. import shipItem, moduleItemFactory
+from .crates import shipSkinCrateTool
+from .. import moduleItemFactory
 from ..weapons import primaryWeapon, turretWeapon
+from ....baseClasses.serializable import Factory
 
-itemConstructors = {"Ship": shipItem.Ship.fromDict,
-                        "PrimaryWeapon": primaryWeapon.PrimaryWeapon.fromDict,
-                        "ModuleItem": moduleItemFactory.fromDict,
-                        "TurretWeapon": turretWeapon.TurretWeapon.fromDict}
-
-
-def fromDict(toolDict : dict) -> toolItem.ToolItem:
-    """Construct a toolItem from its dictionary-serialized representation.
-    This method decodes which tool constructor is appropriate based on the 'type' attribute of the given dictionary.
-
-    :param dict toolDict: A dictionary containing all information needed to construct the required toolItem. Critically,
-                            a name, type, and builtIn specifier.
-    :return: A new toolItem object as described in toolDict
-    :rtype: toolItem.toolItem
-    :raise NameError: When toolDict does not contain a 'type' attribute.
-    """
-    if "type" not in toolDict:
-        raise NameError("Required dictionary attribute missing: 'type'")
-    elif toolDict["type"] == "ToolItem":
-        raise ValueError("Cannot deserialize abstract type 'ToolItem'")
-    return toolTypeConstructors[toolDict["type"]](toolDict)
+itemConstructors = {shipItem.Ship.__name__: shipItem.Ship,
+                        primaryWeapon.PrimaryWeapon.__name__: primaryWeapon.PrimaryWeapon,
+                        moduleItemFactory.ModuleItem.__name__: moduleItemFactory.ModuleItemFactory,
+                        turretWeapon.TurretWeapon.__name__: turretWeapon.TurretWeapon}
 
 
-toolTypeConstructors = {"ShipSkinTool": shipSkinTool.ShipSkinTool.fromDict,
-                        "CrateTool": crateTool.CrateTool.fromDict,
-                        "ToolItem": fromDict,
-                        "ShipSkinCrateTool": crateTool.ShipSkinCrateTool.fromDict,
-                        "ThrowSnowballTool": throwSnowballTool.ThrowSnowballTool.fromDict}
+class ToolItemFactory(Factory[toolItem.TypedSerializedToolItem, toolItem.ToolItem]):
+    @classmethod
+    def deserialize(cls, data: toolItem.TypedSerializedToolItem, **kwargs) -> toolItem.ToolItem:
+        """Construct a toolItem from its dictionary-serialized representation.
+        This method decodes which tool constructor is appropriate based on the 'type' attribute of the given dictionary.
+
+        :param dict toolDict: A dictionary containing all information needed to construct the required toolItem. Critically,
+                                a name, type, and builtIn specifier.
+        :return: A new toolItem object as described in toolDict
+        :rtype: toolItem.toolItem
+        :raise NameError: When toolDict does not contain a 'type' attribute.
+        """
+        if "type" not in data:
+            raise NameError("Required dictionary attribute missing: 'type'")
+        elif data["type"] == "ToolItem":
+            raise ValueError("Cannot deserialize abstract type 'ToolItem'")
+        return toolTypeConstructors[data["type"]].deserialize(data, **kwargs)
+
+
+toolTypeConstructors = {shipSkinTool.ShipSkinTool.__name__: shipSkinTool.ShipSkinTool,
+                        crateTool.CrateTool.__name__: crateTool.CrateTool,
+                        "ToolItem": ToolItemFactory,
+                        shipSkinCrateTool.ShipSkinCrateTool.__name__: shipSkinCrateTool.ShipSkinCrateTool,
+                        throwSnowballTool.ThrowSnowballTool.__name__: throwSnowballTool.ThrowSnowballTool}
 itemConstructors.update(toolTypeConstructors)

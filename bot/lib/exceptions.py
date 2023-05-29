@@ -1,7 +1,6 @@
 import traceback
 
-
-def formatExceptionTrace(e: Exception) -> str:
+def formatExceptionTrace(e: BaseException) -> str:
     """Formats the trace for an exception into a string.
     Great for debugging errors that are swallowed by the event loop.
 
@@ -55,6 +54,13 @@ class IncorrectCommandCallContext(Exception):
     pass
 
 
+class IncorrectInteractionContext(Exception):
+    """Exception used to indicate when an interaction is triggered from somewhere it shouldn't, e.g in DMs,
+    or in a non-messageable channel.
+    """
+    pass
+
+
 class NoneDCGuildObj(Exception):
     """Raised when constructing a guild object, but the corresponding dcGuild was either not given or invalid.
     """
@@ -65,7 +71,7 @@ class InvalidGameObjectFolder(Exception):
     """Raised when attempting to load in a game object configuration folder with
     """
     def __init__(self, filePath, reason):
-        super().__init__("Invalid game object configuration folder (" + reason + "): " + filePath)
+        super().__init__("Invalid game object configuration folder (" + reason + "): " + str(filePath))
         self.filePath = filePath
         self.reason = reason
 
@@ -74,3 +80,28 @@ class NoLongerExists(Exception):
     """Raised when initializing a bountyboardchannel but couldnt find the channel to load
     """
     pass
+
+
+class NotReady(Exception):
+    """Raised when attempting to perform an action on the client when the client is not ready yet.
+    E.g:
+    - databases not loaded yet
+    - client not logged in yet
+    """
+    pass
+
+
+class ClientInitFailed(Exception):
+    """Raised when initialization of the discord client fails.
+    """
+    def __init__(self, inner: Exception) -> None:
+        self.inner = inner
+        super().__init__("Initialization of the discord client failed due to the following exception:\n" \
+                        + formatExceptionTrace(inner))
+
+
+class SharedCogNotLoaded(Exception):
+    """Raised when trying to use a utility cog that is not loaded. This is a special-case exception, because it shouldn't really happen.
+    """
+    def __init__(self, cogName: str):
+        super().__init__("Shared cog is not loaded: " + cogName)

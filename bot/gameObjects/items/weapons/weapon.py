@@ -1,19 +1,34 @@
 from __future__ import annotations
-from ..gameItem import GameItem
+from typing import List, Union, cast
+
+from ..gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
 from .... import lib
-from typing import List
+from ....cfg import bbData
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 
+class BuiltInSerializedWeapon(BuiltInSerializedGameItem): pass
+class TypedBuiltInSerializedWeapon(TypedBuiltInSerializedGameItem): pass
 
-class Weapon(GameItem):
+class CustomSerializedWeapon(CustomSerializedGameItem):
+    dps: float
+
+class TypedCustomSerializedWeapon(CustomSerializedWeapon, TypedCustomSerializedGameItem): pass
+
+BuiltInSerializedWeaponUnion = Union[BuiltInSerializedWeapon, TypedBuiltInSerializedWeapon]
+CustomSerializedWeaponUnion = Union[CustomSerializedWeapon, TypedCustomSerializedWeapon]
+SerializedWeaponUnion = Union[BuiltInSerializedWeaponUnion, CustomSerializedWeaponUnion]
+
+class Weapon(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedWeaponUnion]):
     """An abstract class representing weapons that can be equipped onto a bbShip for use in duels.
 
     :var dps: The weapon's damage per second to a target ship.
     :vartype dps: float
     """
 
-    def __init__(self, name : str, aliases : List[str], dps : float = 0.0, value : int = 0,
-            wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1, builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], dps: float = 0.0, value: int = 0,
+            wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1, builtIn: bool = False):
         """
         :param str name: The name of the weapon. Must be unique. (a model number is a good starting point)
         :param list[str] aliases: A list of alternative names this weapon may be referred to by.
@@ -33,6 +48,10 @@ class Weapon(GameItem):
 
         self.dps = dps
 
+    
+    @embedField("Damage Per Second (DPS)")
+    def formattedDps(self): return self.dps
+
 
     def statsStringShort(self) -> str:
         """Get a short string summary of the weapon. This currently only includes the DPS.
@@ -43,7 +62,7 @@ class Weapon(GameItem):
         return "*Dps: " + str(self.dps) + "*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedWeaponUnion:
         """Serialize this item into dictionary format, for saving to file.
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -51,7 +70,9 @@ class Weapon(GameItem):
                     If the weapon is builtIn, this is only its name.
         :rtype: dict
         """
-        itemDict = super(Weapon, self).toDict(**kwargs)
+        itemDict = super(Weapon, self).serialize(**kwargs)
         if not self.builtIn:
+            # casting here because we know the weapon is not builtIn
+            itemDict = cast(CustomSerializedWeaponUnion, itemDict)
             itemDict["dps"] = self.dps
         return itemDict

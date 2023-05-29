@@ -1,12 +1,32 @@
 # Typing imports
 from __future__ import annotations
-from typing import List
+from typing import List, Optional, Union
 
 from ...cfg import bbData
 from ...baseClasses import aliasable
+from ..gameObject import LoadedObject, SerializedLoadedObject
+from ...baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour, embedFooterUrl
+from ...baseClasses.serializable import SerializesToSchema
+
+class BuiltInSerializedCriminal(aliasable.SerializedAliasable, SerializedLoadedObject): pass
+
+class TypedBuiltInSerializedCriminal(BuiltInSerializedCriminal):
+    type: str
+
+class CustomSerializedCriminal(BuiltInSerializedCriminal):
+    isPlayer: bool
+    icon: str
+    faction: str
+    aliases: List[str]
+
+class TypedCustomSerializedCriminal(CustomSerializedCriminal, TypedBuiltInSerializedCriminal): pass
+
+BuiltInSerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal]
+CustomSerializedCriminalUnion = Union[CustomSerializedCriminal, TypedCustomSerializedCriminal]
+SerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal, CustomSerializedCriminal, TypedCustomSerializedCriminal]
 
 
-class Criminal(aliasable.Aliasable):
+class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[SerializedCriminalUnion]):
     """A criminal to be wanted in bounties.
 
     :var name: The name of the criminal
@@ -25,8 +45,8 @@ class Criminal(aliasable.Aliasable):
     :vartype builtIn: bool
     """
 
-    def __init__(self, name : str, faction : str, icon : str, builtIn : bool = False,
-                    isPlayer : bool = False, aliases : List[str] = [], wiki : str = ""):
+    def __init__(self, name: str, faction: str, icon: str, builtIn: bool = False,
+                    isPlayer: bool = False, aliases: List[str] = [], wiki: Optional[str] = None):
         """
         :param str name: The name of the criminal
         :param str faction: the faction that this criminal is wanted by
@@ -36,7 +56,7 @@ class Criminal(aliasable.Aliasable):
         :param bool builtIn: If this criminal is an NPC, are they built in or custom?
         :param list[str] aliases: Alias names that can be used to refer to this criminal
         """
-        super(Criminal, self).__init__(name, aliases)
+        super().__init__(name=name, aliases=aliases, wiki=wiki, builtIn=builtIn)
         if name == "":
             raise RuntimeError("CRIM_CONS_NONAM: Attempted to create a Criminal with an empty name")
         # if faction == "":
@@ -44,16 +64,26 @@ class Criminal(aliasable.Aliasable):
         if faction == "":
             raise RuntimeError("CRIM_CONS_NOICO: Attempted to create a Criminal with an empty icon")
 
-        self.name = name
         self.faction = faction
-        self.icon = icon
-        self.wiki = wiki
-        self.hasWiki = wiki != ""
+        self._icon = icon
         self.isPlayer = isPlayer
-        self.builtIn = builtIn
 
 
-    def toDict(self, **kwargs) -> dict:
+    @embedThumbnailUrl
+    @property
+    def icon(self): return self._icon
+
+
+    @embedField("Wanted By")
+    @property
+    def formattedFaction(self): return self.faction.title() + "s"
+
+
+    @embedColour
+    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+
+
+    def serialize(self, **kwargs) -> SerializedCriminalUnion:
         """Serialize this criminal into dictionary format, for saving to file.
 
         :return: A dictionary containing all data necessary to replicate this object
@@ -67,7 +97,7 @@ class Criminal(aliasable.Aliasable):
 
 
     @classmethod
-    def fromDict(cls, crimDict : dict, **kwargs) -> Criminal:
+    def deserialize(cls, crimDict: SerializedCriminalUnion, **kwargs) -> Criminal:
         """Factory function that will either provide a reference to a builtIn criminal if a builtIn criminal is requested,
         or construct a new criminal object from the provided data.
 

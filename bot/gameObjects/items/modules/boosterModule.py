@@ -1,12 +1,23 @@
 from . import moduleItem
 from ....cfg import bbData
 from .... import lib
-from typing import List
-from ..gameItem import spawnableItem
+from typing import List, Union, cast
+from ..gameItem import spawnableItem, BuiltInSerializedGameItem
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+
+class SerializedBoosterModule(moduleItem.CustomSerializedModuleItem):
+    effect: float
+    duration: float
+
+class TypedSerializedBoosterModule(SerializedBoosterModule, moduleItem.TypedCustomSerializedModuleItem): ...
+
+CustomSerializedBoosterModuleUnion = Union[SerializedBoosterModule, TypedSerializedBoosterModule]
+SerializedBoosterModuleUnion = Union[SerializedBoosterModule, TypedSerializedBoosterModule, BuiltInSerializedGameItem]
 
 
 @spawnableItem
-class BoosterModule(moduleItem.ModuleItem):
+class BoosterModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[SerializedBoosterModuleUnion]):
     """"A module providing a ship with the ability to boost its speed for a short period of time.
 
     :var effect: Multiplier to apply to the ship's velocity
@@ -15,10 +26,10 @@ class BoosterModule(moduleItem.ModuleItem):
     :vartype duration: float
     """
 
-    def __init__(self, name : str, aliases : List[str], effect : int = 0, duration : int = 0,
-            value : int = 0, wiki : str = "", manufacturer : str = "", icon : str = "",
-            emoji : lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel : int = -1,
-            builtIn : bool = False):
+    def __init__(self, name: str, aliases: List[str], effect: float = 0, duration: float = 0,
+            value: int = 0, wiki: str = "", manufacturer: str = "", icon: str = "",
+            emoji: lib.emojis.BasedEmoji = lib.emojis.BasedEmoji.EMPTY, techLevel: int = -1,
+            builtIn: bool = False):
         """
         :param str name: The name of the module. Must be unique.
         :param list[str] aliases: Alternative names by which this module may be referred to
@@ -39,31 +50,42 @@ class BoosterModule(moduleItem.ModuleItem):
         self.effect = effect
         self.duration = duration
 
+#region embed fields
+
+    @embedField("Effect")
+    def formattedEffect(self): return f"{self.effect*100}%"
+    
+    @embedField("Duration", hideWhenNone=True)
+    def formattedDuration(self): return f"{self.duration}s"
+
+#endregion
 
     def statsStringShort(self):
         return "*Effect: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) \
                 + ", Duration: " + moduleItem.lib.stringTyping.formatAdditive(self.duration) + "s*"
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBoosterModuleUnion:
         """Serialize this module into dictionary format, to be saved to file.
-        Uses the base moduleItem toDict method as a starting point, and adds extra attributes
+        Uses the base moduleItem serialize method as a starting point, and adds extra attributes
         implemented by this specific module.
 
         :return: A dictionary containing all information needed to reconstruct this module
         :rtype: dict
         """
-        itemDict = super(BoosterModule, self).toDict(**kwargs)
+        itemDict = super(BoosterModule, self).serialize(**kwargs)
         if not self.builtIn:
+            # Casting here because the item not being builtIn guarantees that moduleItem.serialize does not return a BuiltInSerializedModuleItem
+            itemDict = cast(CustomSerializedBoosterModuleUnion, itemDict)
             itemDict["effect"] = self.effect
             itemDict["duration"] = self.duration
         return itemDict
 
 
     @classmethod
-    def fromDict(cls, moduleDict : dict, **kwargs):
+    def deserialize(cls, moduleDict: SerializedBoosterModuleUnion, **kwargs):
         """Factory function building a new module object from the information in the provided dictionary.
-        The opposite of this class's toDict function.
+        The opposite of this class's serialize function.
 
         :param moduleDict: A dictionary containing all information needed to construct the requested module
         :return: The new module object as described in moduleDict
@@ -72,6 +94,8 @@ class BoosterModule(moduleItem.ModuleItem):
         if moduleDict.get("builtIn", False):
             return bbData.builtInModuleObjs[moduleDict["name"]]
 
+        # Casting here because due to the above check, we know that the module is not builtIn
+        moduleDict = cast(CustomSerializedBoosterModuleUnion, moduleDict)
         return BoosterModule(**cls._makeDefaults(moduleDict, ignores=("type",),
                                                 emoji=lib.emojis.BasedEmoji.fromStr(moduleDict["emoji"]) \
                                                         if "emoji" in moduleDict else lib.emojis.BasedEmoji.EMPTY))

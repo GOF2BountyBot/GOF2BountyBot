@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional, cast
 from . import reactionMenu
 from ..cfg import cfg
 from ..gameObjects.items import gameItem
@@ -11,6 +12,10 @@ from ..scheduling import timedTask
 maxItemsPerPage = len(cfg.defaultEmojis.menuOptions)
 
 
+class SerializedReactionInventoryPickerOption(reactionMenu.SerializedReactionMenuOption):
+    item: gameItem.SerializedGameItemUnion
+
+
 class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
     """A reaction menu option that represents a gameItem instance.
     Unless configured otherwise, the option's name and emoji will correspond to the item's name and emoji.
@@ -19,8 +24,8 @@ class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
     :vartype item: gameItem
     """
 
-    def __init__(self, item : gameItem.GameItem, menu : "ReactionInventoryPicker", emoji : lib.emojis.BasedEmoji = None,
-            name : str = None):
+    def __init__(self, item: gameItem.GameItem, menu: "ReactionInventoryPicker", emoji: Optional[lib.emojis.BasedEmoji] = None,
+            name: Optional[str] = None):
         """
         :param gameItem item: The gameItem that this option represents
         :param ReactionInventoryPicker menu: The ReactionMenu where this option is active
@@ -47,20 +52,21 @@ class ReactionInventoryPickerOption(reactionMenu.ReactionMenuOption):
                                                             removeFunc=menu.deselectItem, removeArgs=self.item)
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedReactionInventoryPickerOption:
         """Serialize this menu option to dictionary format for saving.
 
         :return: A dictionary containing all information needed to reconstruct this menu option instance - the item
                     it represents
         :rtype: dict
         """
-        baseDict = super(ReactionInventoryPickerOption, self).toDict(**kwargs)
-        baseDict["item"] = self.item.toDict(**kwargs)
+        # Casting here so I can add the new fields
+        baseDict = cast(SerializedReactionInventoryPickerOption, super().serialize(**kwargs))
+        baseDict["item"] = self.item.serialize(**kwargs)
 
         return baseDict
 
 
-class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
+class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu[ReactionInventoryPickerOption, SerializedReactionInventoryPickerOption]):
     """A reaction menu allowing users to select a gameItem from a inventory.
     TODO: Implement paging
     TODO: Display item counts?
@@ -74,10 +80,10 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
     :vartype page: int
     """
 
-    def __init__(self, msg : Message, inventory : inventory.Inventory, itemsPerPage : int = maxItemsPerPage,
-            titleTxt : str = "", desc : str = "", col : Colour = None, timeout : timedTask.TimedTask = None,
-            footerTxt : str = "", img : str = "", thumb : str = "", icon : str = "", authorName : str = "",
-            targetMember : Member = None, targetRole : Role = None):
+    def __init__(self, msg: Message, inventory: inventory.Inventory, itemsPerPage: int = maxItemsPerPage,
+            titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None,
+            img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
+            targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):
         """
         :param discord.Message msg: The discord message where this menu should be embedded
         :param inventory inventory: The inventory to display and select from (TODO: Rename)
@@ -86,7 +92,6 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         :param str desc: The content of the embed description; appears at the top below the title (Default "")
         :param discord.Colour col: The colour of the embed's side strip (Default None)
         :param TimedTask timeout: The TimedTask responsible for expiring this menu (Default None)
-        :param str footerTxt: Secondary description appearing in darker font at the bottom of the embed (Default "")
         :param str img: URL to a large icon appearing as the content of the embed, left aligned like a field (Default "")
         :param str thumb: URL to a larger image appearing to the right of the title (Default "")
         :param str authorName: Secondary, smaller title for the embed (Default "")
@@ -116,12 +121,12 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
             itemOptions[optionEmoji] = ReactionInventoryPickerOption(item, self, emoji=optionEmoji)
 
         super(ReactionInventoryPicker, self).__init__(msg, options=itemOptions, titleTxt=titleTxt, desc=desc, col=col,
-                                                        footerTxt=footerTxt, img=img, thumb=thumb, icon=icon,
+                                                        img=img, thumb=thumb, icon=icon,
                                                         authorName=authorName, timeout=timeout, targetMember=targetMember,
                                                         targetRole=targetRole)
 
 
-    def selectItem(self, item : gameItem.GameItem) -> gameItem.GameItem:
+    def selectItem(self, item: gameItem.GameItem) -> gameItem.GameItem:
         """Pass back the selected gameItem to the calling function.
         This method is called on reaction add that corresponds to a gameItem currently on display
 
@@ -133,7 +138,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         return item
 
 
-    def deselectItem(self, item : gameItem.GameItem) -> gameItem.GameItem:
+    def deselectItem(self, item: gameItem.GameItem) -> gameItem.GameItem:
         """Pass back the deselected gameItem to the calling function.
         This method is called on reaction remove that corresponds to a gameItem currently on display
 
@@ -145,7 +150,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         return item
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> dict:
         """⚠ ReactionInventoryPickers are not currently saveable. Do not use this method.
         Dummy method, once implemented this method will serialize this reactionMenu to dictionary format.
 
@@ -154,16 +159,16 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu):
         :rtype: dict
         :raise NotImplementedError: Always.
         """
-        raise NotImplementedError("Attempted to call toDict on an unsaveable reaction menu type")
+        raise NotImplementedError("Attempted to call serialize on an unsaveable reaction menu type")
 
 
     @classmethod
-    def fromDict(cls, rmDict : dict, **kwargs) -> ReactionInventoryPicker:
+    def deserialize(cls, rmDict: dict, **kwargs) -> ReactionInventoryPicker:
         """⚠ ReactionInventoryPickers are not currently saveable. Do not use this method.
         When implemented, this function will construct a new ReactionInventoryPicker from a dictionary-serialized
-        representation - The opposite of ReactionInventoryPicker.toDict.
+        representation - The opposite of ReactionInventoryPicker.serialize.
 
         :param dict rmDict: A dictionary containg all information needed to construct the required ReactionInventoryPicker
         :raise NotImplementedError: Always.
         """
-        raise NotImplementedError("Attempted to call fromDict on an unsaveable reaction menu type")
+        raise NotImplementedError("Attempted to call deserialize on an unsaveable reaction menu type")

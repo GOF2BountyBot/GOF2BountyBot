@@ -1,5 +1,8 @@
 discord.py
-emoji
-toml
+emoji==1.7.0
+carica>1.3
+aiohttp[speedups]
 PyGithub
-discord-py-slash-command
+typing-extensions
+pillow
+diff-match-patch

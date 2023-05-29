@@ -1,12 +1,14 @@
-from .aliasable import Aliasable
-from typing import Any, List, Dict
+from .aliasable import AliasableMixin
+from typing import List, Dict, TypeVar
 
 
-class AliasableDict(dict):
+TKey = TypeVar("TKey", bound=AliasableMixin)
+TValue = TypeVar("TValue")
+class AliasableDict(Dict[TKey, TValue]):
     """A dictionary where keys are guaranteed to be Aliasable subclasses.
     """
 
-    def getKeyNamed(self, name: str) -> Aliasable:
+    def getKeyNamed(self, name: str) -> TKey:
         """Search the dictionary for a key with the given name or alias.
 
         :param str name: The name or alias to look up
@@ -23,7 +25,7 @@ class AliasableDict(dict):
         raise KeyError("Could not find a key with the given name: " + name)
 
 
-    def getValueForKeyNamed(self, name: str) -> Any:
+    def getValueForKeyNamed(self, name: str) -> TValue:
         """Search the dictionary for a key with the given name or alias, and get the value paired with it.
 
         :param str name: The name or alias to look up
@@ -35,7 +37,7 @@ class AliasableDict(dict):
         return self[self.getKeyNamed(name)]
 
 
-    def getManyKeysNamed(self, names: List[str]) -> Dict[str, Aliasable]:
+    def getManyKeysNamed(self, names: List[str]) -> Dict[str, TKey]:
         """Search the dictionary for a list of keys with the given names or aliases.
         All names must match a key, no partial results are returned.
 
@@ -63,38 +65,29 @@ class AliasableDict(dict):
         return results
 
 
-    def getValuesForManyKeysNamed(self, name: List[str]) -> Dict[str, Any]:
+    def getValuesForManyKeysNamed(self, names: List[str]) -> Dict[str, TValue]:
         """Search the dictionary for keys with the given names or aliases, and get the values paired with them.
         All names must match a key, no partial results are returned.
 
         In the worst case, this is as efficient as executing one getManyKeysNamed search per name.
         In the general case however, this is much more efficient as the search is performed over a single iteration.
 
-        :param str name: The list of names or aliases to look up
+        :param str names: The list of names or aliases to look up
         :return: A mapping from search terms to values paired with registered keys that are named/aliased as such
         :rtype: Dict[str, Any]
         :raise KeyError: If no key in the dictionary could be found for at least one search term
-        :raise TypeError: If name is not a list of strings
+        :raise TypeError: If names is not a list of strings
         """
-        return {n: self[k] for n, k in self.getManyKeysNamed().items()}
+        return {n: self[k] for n, k in self.getManyKeysNamed(names).items()}
 
 
-    def __setitem__(self, k: Aliasable, v: Any) -> None:
+    def __setitem__(self, k: TKey, v: TValue) -> None:
         """Register a key value pair, or change the value of an existing pair. k must be an Aliasable.
 
         :param Aliasable k: The key to register, or change the value of
         :param Any v: The value to register to key k
         :raise TypeError: If k is not an Aliasable
         """
-        if not isinstance(k, Aliasable):
+        if not isinstance(k, AliasableMixin):
             raise TypeError("Keys must be Aliasable, given " + type(k).__name__)
         super().__setitem__(k, v)
-
-
-    def add(self, k: Aliasable) -> None:
-        """Register a key value pair, or change the value of an existing pair. k must be an Aliasable.
-        The key to register is inferred as k.name
-
-        :param Aliasable k: The key to register, or change the value of
-        """
-        self[k.name] = k

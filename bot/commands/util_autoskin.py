@@ -10,7 +10,7 @@ from ..cfg import cfg, bbData
 from .. import lib, botState
 from ..lib.discordUtil import truncateWithEllipse
 from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
-from ..gameObjects.items import shipItem
+from ..gameObjects.items.ships import shipItem
 from ..shipRenderer import shipRenderer
 from ..reactionMenus.reactionMenu import DummySingleUserReactionMenu
 
@@ -99,8 +99,8 @@ async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName:
     return False, menuMsg
 
 
-async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x : int, res_y : int, numSamples: int,
-                                doQueue: bool, full: bool = False) -> Tuple[str, Optional[shipRenderer.AutoskinArgs]]:
+async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x: int, res_y: int, numSamples: int,
+                                doQueue: bool, full: bool = False) -> Optional[Tuple[str, shipRenderer.AutoskinArgs]]:
     """Collect a usable AutoskinArgs object to pass to the ship renderer
 
     :param message: The message that triggered the operation
@@ -121,7 +121,7 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
     if message.guild is None:
         prefix: str = cfg.defaultCommandPrefix
     else:
-        prefix = botState.guildsDB.getGuild(message.guild.id).commandPrefix
+        prefix = botState.client.guildsDB.getGuild(message.guild.id).commandPrefix
 
     # look up the ship data
     try:
@@ -348,7 +348,7 @@ async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.Autosk
     except shipRenderer.RenderFailed:
         await message.reply("🥺 Render failed! The error has been logged, please try a different ship.",
                             mention_author=True)
-        botState.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
+        botState.client.logger.log("Main", "admin_cmd_showmeHD", f"Ship render failed. Identifer: {renderIdentifier}")
     else:
         with open(renderPath, "rb") as f:
             rendersChannel = botState.client.get_channel(cfg.showmeSkinRendersChannel)

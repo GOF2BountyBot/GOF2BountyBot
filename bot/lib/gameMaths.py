@@ -1,10 +1,10 @@
 from ..cfg import cfg
 import math
 import random
-from typing import List, Union
+from typing import List, Optional, Union, cast
 
 
-def makeMatrix(xDim : int, yDim : int) -> List[List[int]]:
+def makeMatrix(xDim: int, yDim: int) -> List[List[float]]:
     """Create an (xDim, yDim) matrix of zeros.
 
     :param int xDim: The number of columns to create
@@ -16,14 +16,14 @@ def makeMatrix(xDim : int, yDim : int) -> List[List[int]]:
 
 
 # cfg.itemSpawnRateResDP in terms of decimal digits, used 
-itemSpawnRateResDigits = math.pow(10, cfg.itemSpawnRateResDP)
+itemSpawnRateResDigits = int(math.pow(10, cfg.itemSpawnRateResDP))
 
 # Valid ranges of item tech levels
 numTechLevels = cfg.maxTechLevel - cfg.minTechLevel + 1
 techLevelRange = range(cfg.minTechLevel, cfg.maxTechLevel + 1)
 
 # The probability of a shop spawning with a given tech level. Tech level = index + 1
-cumulativeShopTLChance = [0] * numTechLevels
+cumulativeShopTLChance: List[float] = [0] * numTechLevels
 
 # CUMULATIVE probabilities of items of a given tech level spawning in a shop of a given tech level
 # Outer dimension is shop tech level
@@ -38,7 +38,7 @@ tl_s = 7
 tl_o = 2.3
 
 
-def truncItemSpawnResolution(num : float) -> float:
+def truncItemSpawnResolution(num: float) -> float:
     """Truncate the passed float to cfg.itemSpawnRateResDP decimal places.
 
     :param float num: Float number to truncate
@@ -48,7 +48,7 @@ def truncItemSpawnResolution(num : float) -> float:
     return math.trunc(num * itemSpawnRateResDigits) / itemSpawnRateResDigits
 
 
-def normalizeArray(nums: List[Union[int, float]]) -> List[Union[int, float]]:
+def normalizeArray(nums: List[Union[int, float]]) -> List[float]:
     """Rescale the array elements to the range [0, 1], in place.
 
     :param nums: Array of numbers to normalize
@@ -60,7 +60,7 @@ def normalizeArray(nums: List[Union[int, float]]) -> List[Union[int, float]]:
     return [truncItemSpawnResolution(i / numSum) for i in nums]
 
 
-def makeCumulative(nums : List[Union[int, float]]) -> List[Union[int, float]]:
+def makeCumulative(nums: List[Union[int, float]]) -> List[float]:
     """Add the items in the array in series, from left to right, to create a cumulative scale.
     0-valued elements are ignored in rescaling.
     This operation is performed in place.
@@ -70,9 +70,11 @@ def makeCumulative(nums : List[Union[int, float]]) -> List[Union[int, float]]:
     :return: nums, with each element added to the next iteratively.
     :rtype: List[Union[int, float]
     """
+    nums[0] = float(nums[0])
     for i in range(1,len(nums)):
         nums[i] = truncItemSpawnResolution(nums[i] + nums[i-1])
-    return nums
+    # Casting here because every item is tranformed as part of this function
+    return cast(List[float], nums)
 
 
 def pickRandomShopTL() -> int:
@@ -88,7 +90,7 @@ def pickRandomShopTL() -> int:
         return cfg.maxTechLevel
 
 
-def tl_u(x : int, t : int) -> float:
+def tl_u(x: int, t: int) -> float:
     """mathematical function used when calculating item spawn probabilities.
 
     :param int x: int representing the item's tech level
@@ -96,10 +98,10 @@ def tl_u(x : int, t : int) -> float:
     :return: A partial probability for use in probability generation
     :rtype: float
     """
-    return max(0, truncItemSpawnResolution(1 - math.pow((x - t) / 1.4, 2)))
+    return max(0, truncItemSpawnResolution(1 - math.pow((x - t) / 2.3, 2)))
 
 
-def pickRandomItemTL(shopTL : int) -> int:
+def pickRandomItemTL(shopTL: int) -> int:
     """Pick a random item techlevel, with probabilities calculated previously in gameMaths.
 
     :param int shopTL: int representing the tech level of the shop owning the item
@@ -123,7 +125,7 @@ def possibleItemTLs(shopTL: int) -> List[int]:
     return [i for i in techLevelRange if itemTLSpawnChanceForShopTL[shopTL - 1][i - 1] != 0]
 
 
-def shipSkinValueForTL(averageTL : int) -> int:
+def shipSkinValueForTL(averageTL: int) -> int:
     """Calculate how skins are valued with respect to their average compatible ship techlevel.
 
     :param int averageTL: The average techLevel of the ships that this skin is compatible with
@@ -173,7 +175,8 @@ BHLd = 13.55
 def bountyHuntingXPForLevel(level):
     return cfg.bountyXPLevelBoundaries[level]
     
-def calculateUserBountyHuntingLevel(xp):
+def calculateUserBountyHuntingLevel(xp: Optional[int]):
+    if xp is None: return 0
     try:
         return next(i-1 for i, v in enumerate(cfg.bountyXPLevelBoundaries) if v > xp)
     except StopIteration:
@@ -211,7 +214,7 @@ def calculateUserBountyHuntingLevel(xp):
 #     return 4 * xp - 30001
 
 
-def rewardPerSysCheck(techLevel : int, loadoutValue: int) -> int:
+def rewardPerSysCheck(techLevel: int, loadoutValue: int) -> int:
     """The number of credits to award for each system check of a bounty
     This implmentation is guaranteed to be at least cfg.classic_creditsPerCheck
 
@@ -224,7 +227,7 @@ def rewardPerSysCheck(techLevel : int, loadoutValue: int) -> int:
                 int((loadoutValue * (1.3 if techLevel == 1 else 1)) / (2*(techLevel+(1 if techLevel == 1 else 2)) * 10)))
 
 
-def crateValueForTL(TL : int) -> int:
+def crateValueForTL(TL: int) -> int:
     """Calculate how crate are valued with respect to their techlevel.
 
     :param int averageTL: The techLevel of the crate
@@ -236,7 +239,7 @@ def crateValueForTL(TL : int) -> int:
 
 
 # The probability of a criminal spawning with a given tech level. Tech level = index
-cumulativeCriminalTLChance = [0] * (numTechLevels + 1)
+cumulativeCriminalTLChance: List[float] = [0] * (numTechLevels + 1)
 
 # Calculate spawn chance for each criminal TL
 for criminalTL in range(cfg.minTechLevel - 1, cfg.maxTechLevel + 1):

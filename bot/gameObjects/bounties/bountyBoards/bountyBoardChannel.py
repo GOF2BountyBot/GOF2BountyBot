@@ -1,9 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Tuple
-from discord import Embed, HTTPException, Forbidden, NotFound, Client, Message, Colour, channel, File
+from typing import TYPE_CHECKING, Coroutine, List, Tuple
+from typing_extensions import NotRequired, TypedDict
+from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
+from ....baseClasses.serializable import SerializesToSchema
 
 if TYPE_CHECKING:
     from ....databases.bountyDivision import BountyDivision
@@ -11,10 +13,9 @@ from ....cfg import bbData, cfg
 from .... import lib
 from .. import criminal, bounty
 from .... import botState
-import asyncio
-from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Set, Union, cast
-from ....baseClasses import serializable
+from typing import Dict, Optional, Set, Union, cast
 from .. import solarSystem
+from ....logging import LogCategory
 
 
 stopwatchIcon = 'https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/stopwatch_23f1.png'
@@ -62,11 +63,18 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
     :param meta: An extra string to describe the message, only used in exceptions
     :type meta: str
     """
-    return await lib.discordUtil.asyncOperationWithRetry(message.delete, "delete message", "bountyBoards",
+    return await lib.discordUtil.asyncOperationWithRetry(message.delete, "delete message", LogCategory.bountyBoards,
                                                         "BBC", meta, *args, **kwargs)
 
 
-class BountyBoardChannel(serializable.Serializable):
+class SerializedBountyBoardChannel(TypedDict):
+    listings: Dict[int, criminal.SerializedCriminalUnion]
+    channel: int
+    noBountiesMsg: int
+    escapedBountiesMsg: int
+
+
+class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
     """A channel which stores a continuously updating listing message for every active bounty.
 
     Initialisation atts: These attributes are used only when loading in the BBC from dictionary-serialised format.
@@ -94,9 +102,8 @@ class BountyBoardChannel(serializable.Serializable):
     :var channel: The channel where this BBC's listings are to be posted
     :vartype channel: discord.TextChannel
     """
-
-    def __init__(self, division: "BountyDivision", channelIDToBeLoaded : int, messagesToBeLoaded : Dict[int, dict],
-                    noBountiesMsgToBeLoaded : Union[int, None], escapedBountiesMsgToBeLoaded: Union[int, None]):
+    def __init__(self, division: "BountyDivision", channelIDToBeLoaded: int, messagesToBeLoaded: Dict[int, criminal.SerializedCriminalUnion],
+                    noBountiesMsgToBeLoaded: Union[int, None], escapedBountiesMsgToBeLoaded: Union[int, None]):
         """
         :param BountyDivision division: The division that this BBC represents
         :param int channelIDToBeLoaded: The discord channel ID of the channel where this BBC is active,
@@ -118,14 +125,22 @@ class BountyBoardChannel(serializable.Serializable):
         # discord message object to list all escaped bounties. Active even when there are no escaped bounties.
         self.escapedBountiesMessage = None
         # discord channel object
-        self.channel = None
+        # This will be None if the BBC has not yet been initialized
+        self._channel: Optional[TextChannel] = None
         # A list of coroutines to await after init is complete
-        self.postInitTasks: Optional[Set[Awaitable]] = None
+        self.postInitTasks: Optional[Set[Coroutine]] = None
         
         self.initialized = False
 
+    
+    @property
+    def channel(self):
+        if self._channel is None:
+            raise lib.exceptions.NotReady("Attempted to access BountyBoardChannel.channel before the BBC was initialized")
+        return cast(TextChannel, self._channel)
 
-    async def makeBountyEmbed(self, bounty : bounty.Bounty) -> Embed:
+
+    async def makeBountyEmbed(self, bounty: bounty.Bounty) -> Embed:
         """Construct a discord.Embed for listing in a bountyBoardChannel
 
         :param Bounty bounty: The bounty to describe in this embed
@@ -143,43 +158,46 @@ class BountyBoardChannel(serializable.Serializable):
                 + f"**Bounty Ends:** <t:{int(bounty.endTime)}:R>"
         embed.add_field(name="​", value=infoStr)
 
-        loadoutFieldValue = ""
-        if cfg.bbcShowLoadoutEmojis:
-            loadoutFieldName = "**Loadout:**"
-            weaponsStr = "".join(i.emoji.sendable for i in bounty.activeShip.weapons if i.hasEmoji)
-            modulesStr = "".join(i.emoji.sendable for i in bounty.activeShip.modules if i.hasEmoji)
-            turretsStr = "".join(i.emoji.sendable for i in bounty.activeShip.turrets if i.hasEmoji)
-            
-            statsShown = True
-            if cfg.bbcShowHpDps:
-                totalHp = bounty.activeShip.getArmour() + bounty.activeShip.getShield()
-                duelingStatsStr = f" {totalHp} HP // {bounty.activeShip.getDPS()} DPS"
-                statsShown = False
-
-            if bounty.activeShip.hasEmoji:
-                loadoutFieldValue += f"{bounty.activeShip.emoji.sendable}{'' if statsShown else duelingStatsStr}\n"
+        if bounty.activeShip is not None:
+            loadoutFieldValue = ""
+            if cfg.bbcShowLoadoutEmojis:
+                loadoutFieldName = "**Loadout:**"
+                weaponsStr = "".join(i.emoji.sendable for i in bounty.activeShip.weapons if i.hasEmoji)
+                modulesStr = "".join(i.emoji.sendable for i in bounty.activeShip.modules if i.hasEmoji)
+                turretsStr = "".join(i.emoji.sendable for i in bounty.activeShip.turrets if i.hasEmoji)
+                
                 statsShown = True
+                if cfg.bbcShowHpDps:
+                    totalHp = bounty.activeShip.getArmour() + bounty.activeShip.getShield()
+                    duelingStatsStr = f" {totalHp} HP // {bounty.activeShip.getDPS()} DPS"
+                    statsShown = False
+                else:
+                    duelingStatsStr = ""
+
+                if bounty.activeShip.hasEmoji:
+                    loadoutFieldValue += f"{bounty.activeShip.emoji.sendable}{'' if statsShown else duelingStatsStr}\n"
+                    statsShown = True
+                else:
+                    duelingStatsStr += "\n"
+
+                if weaponsStr:
+                    loadoutFieldValue += f"{weaponsStr}{'' if statsShown else duelingStatsStr}\n"
+                    statsShown = True
+                if modulesStr:
+                    loadoutFieldValue += f"{modulesStr}{'' if statsShown else duelingStatsStr}\n"
+                    statsShown = True
+                if turretsStr:
+                    loadoutFieldValue += f"{turretsStr}{'' if statsShown else duelingStatsStr}\n"
+                    statsShown = True
             else:
-                duelingStatsStr += "\n"
+                loadoutFieldName = "**See the culprit's loadout with:**"
+                if cfg.bbcShowHpDps:
+                    embed.add_field(name="**Dueling stats:**",
+                                    value=f"Total health: {bounty.activeShip.getArmour() + bounty.activeShip.getShield()}\n" \
+                                        + f"Total DPS: {bounty.activeShip.getDPS()}")
 
-            if weaponsStr:
-                loadoutFieldValue += f"{weaponsStr}{'' if statsShown else duelingStatsStr}\n"
-                statsShown = True
-            if modulesStr:
-                loadoutFieldValue += f"{modulesStr}{'' if statsShown else duelingStatsStr}\n"
-                statsShown = True
-            if turretsStr:
-                loadoutFieldValue += f"{turretsStr}{'' if statsShown else duelingStatsStr}\n"
-                statsShown = True
-        else:
-            loadoutFieldName = "**See the culprit's loadout with:**"
-            if cfg.bbcShowHpDps:
-                embed.add_field(name="**Dueling stats:**",
-                                value=f"Total health: {bounty.activeShip.getArmour() + bounty.activeShip.getShield()}\n" \
-                                    + f"Total DPS: {bounty.activeShip.getDPS()}")
-
-        prefix = self.division.owningDB.owningBasedGuild.commandPrefix
-        embed.add_field(name=loadoutFieldName, value=f"{loadoutFieldValue}`{prefix}loadout criminal {bounty.criminal.name}`")
+            prefix = self.division.owningDB.owningBasedGuild.commandPrefix
+            embed.add_field(name=loadoutFieldName, value=f"{loadoutFieldValue}`{prefix}loadout criminal {bounty.criminal.name}`")
 
         embed.set_thumbnail(url=bounty.criminal.icon)
         # embed.add_field(name="**Reward Pool:**", value=lib.stringTyping.commaSplitNum(bounty.reward) + " Credits")
@@ -225,7 +243,7 @@ class BountyBoardChannel(serializable.Serializable):
         :return: A jump URL to the identified message
         :rtype: str
         """
-        if self.channel is None:
+        if self.channel is not None:
             channelID = self.channelIDToBeLoaded
             guildID = None
         else:
@@ -250,7 +268,7 @@ class BountyBoardChannel(serializable.Serializable):
         return f"[{self.jumpUrl(id) if logUrls else id}]{f' {content}' if content else ''}"
 
 
-    async def loadMessageWithRetry(self, id: int, meta: str, logUrls: bool = True) -> Optional[Message]:
+    async def loadMessageWithRetry(self, id: int, meta: str, logUrls: bool = True, initializing: bool = False) -> Optional[Message]:
         """Load a message from self.channel by id
 
         :param id: The id of the message to load
@@ -262,11 +280,11 @@ class BountyBoardChannel(serializable.Serializable):
         :return: A message if one is found, None if an error occurred
         :rtype: Optional[Message]
         """
-        if self.channel is None:
+        if not self.initialized and not initializing:
             raise ValueError(f"Attempted loadMessageWithRetry before initializing self.channel")
 
         meta = self.prependJumpUrl(id, logUrls, meta)
-        return await lib.discordUtil.asyncOperationWithRetry(self.channel.fetch_message, "load message", "bountyBoards",
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.fetch_message, "load message", LogCategory.bountyBoards,
                                                             "BBC", meta, id)
 
 
@@ -282,7 +300,7 @@ class BountyBoardChannel(serializable.Serializable):
         if self.channel is None:
             raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
 
-        return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", "bountyBoards",
+        return await lib.discordUtil.asyncOperationWithRetry(self.channel.send, "send message", LogCategory.bountyBoards,
                                                             "BBC", meta, *args, **kwargs)
 
 
@@ -302,7 +320,7 @@ class BountyBoardChannel(serializable.Serializable):
             raise ValueError("Attempted to sendMessageWithRetry before initializing self.channel")
 
         meta = self.prependJumpUrl(message.id, logUrls, meta)
-        await lib.discordUtil.asyncOperationWithRetry(message.edit, "edit message", "bountyBoards",
+        await lib.discordUtil.asyncOperationWithRetry(message.edit, "edit message", LogCategory.bountyBoards,
                                                         "BBC", meta, *args, **kwargs)
         return message
 
@@ -320,7 +338,7 @@ class BountyBoardChannel(serializable.Serializable):
         return f"g:{self.channel.guild.name}#{self.channel.guild.id} c:{self.channel.name}#{self.channel.id}"
 
 
-    def makeEscapedBountiesMsgKwargs(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()) -> Dict[str, Union[str, Embed]]:
+    def makeEscapedBountiesMsgKwargs(self, ignoredBounties: Tuple[bounty.Bounty, ...] = ()) -> Dict[str, Union[str, Optional[Embed]]]:
         """Construct an embed listing all escaped bounties in the division.
 
         :return: A kwargs mapping detailing the content of the BBC's escaped bounties message
@@ -359,14 +377,18 @@ class BountyBoardChannel(serializable.Serializable):
             await self.rebuild()
 
 
-    async def _loadEscapedBountiesMessage(self, logUrls: bool):
+    async def _loadEscapedBountiesMessage(self, logUrls: bool, initializing: bool = False):
+        if self.escapedBountiesMsgToBeLoaded is None:
+            raise ValueError("escapedBountiesMsgToBeLoaded not supplied")
         self.escapedBountiesMessage = await self.loadMessageWithRetry(self.escapedBountiesMsgToBeLoaded,
-                                                                        "escaped bounties", logUrls)
+                                                                        "escaped bounties", logUrls, initializing=initializing)
 
 
-    async def _loadNoBountiesMessage(self, logUrls: bool):
+    async def _loadNoBountiesMessage(self, logUrls: bool, initializing: bool = False):
+        if self.noBountiesMsgToBeLoaded is None:
+            raise ValueError("noBountiesMsgToBeLoaded not supplied")
         self.noBountiesMessage = await self.loadMessageWithRetry(self.noBountiesMsgToBeLoaded,
-                                                                    "no bounties", logUrls)
+                                                                    "no bounties", logUrls, initializing=initializing)
 
 
     async def _sendNoBountiesMessage(self):
@@ -374,11 +396,10 @@ class BountyBoardChannel(serializable.Serializable):
                                                                     embed=noBountiesEmbed)
 
 
-    async def _loadCriminalMsg(self, crimDict: dict, msgId: int, logUrls: bool = True):
-        crim = criminal.Criminal.fromDict(crimDict)
+    async def _loadCriminalMsg(self, crimDict: criminal.SerializedCriminalUnion, msgId: int, logUrls: bool = True, initializing: bool = False):
+        crim = criminal.Criminal.deserialize(crimDict)
         if self.division.criminalObjExists(crim):
-            msg = await self.loadMessageWithRetry(msgId,
-                                                    f"criminal: {crim.name}", logUrls)
+            msg = await self.loadMessageWithRetry(msgId, f"criminal: {crim.name}", logUrls, initializing=initializing)
             if msg is not None:
                 self.bountyMessages[crim] = msg
 
@@ -415,7 +436,7 @@ class BountyBoardChannel(serializable.Serializable):
                                                 self.prependJumpUrl(listing.id, logUrls, f"bounty listing for {crim}")))
 
         await tasks.wait()
-        tasks.logExceptions("bountyBoards")
+        tasks.logExceptions(LogCategory.bountyBoards)
         tasks.clear()
         self.escapedBountiesMessage = await self.sendMessageWithRetry(f"escaped bounties {self.guildAndChannelMeta()}",
                                                                         **self.makeEscapedBountiesMsgKwargs())
@@ -433,19 +454,23 @@ class BountyBoardChannel(serializable.Serializable):
         elif self.noBountiesMessage is not None:
             self.noBountiesMessage = None
 
-        tasks.logExceptions("bountyBoards")
+        tasks.logExceptions(LogCategory.bountyBoards)
 
 
-    async def init(self, client : Client, logUrls: bool = True):
+    async def init(self, client: Client, logUrls: bool = True):
         """Initialise the BBC's attributes to allow it to function.
         Initialisation is done here rather than in the constructor as initialisation can only be done asynchronously.
 
         :param discord.Client client: A logged in client instance used to fetch the BBC's message and channel instances
         :param logUrls: Whether to include message jump urls in logs (Default True)
         """
-        self.channel = client.get_channel(self.channelIDToBeLoaded) or await client.fetch_channel(self.channelIDToBeLoaded)
-        if self.channel is None:
+        chan = client.get_channel(self.channelIDToBeLoaded) or await client.fetch_channel(self.channelIDToBeLoaded)
+        if chan is None:
             raise lib.exceptions.NoLongerExists(f"Failed to load requested channel: {self.channelIDToBeLoaded}")
+        if not isinstance(chan, TextChannel):
+            raise ValueError(f"Channel is not a TextChannel: {self.channelIDToBeLoaded}")
+        
+        self._channel = chan
 
         tasks = lib.discordUtil.BasicScheduler()
         # True if the channel configuration is invalid and needs to be rebuilt
@@ -454,24 +479,24 @@ class BountyBoardChannel(serializable.Serializable):
         if self.escapedBountiesMsgToBeLoaded == -1:
             doReload = True
         else:
-            await self._loadEscapedBountiesMessage(logUrls)
+            await self._loadEscapedBountiesMessage(logUrls, initializing=True)
             doReload = self.escapedBountiesMessage is None
 
         if not self.messagesToBeLoaded:
             if self.noBountiesMsgToBeLoaded != -1:
-                tasks.add(self._loadNoBountiesMessage(logUrls))
+                tasks.add(self._loadNoBountiesMessage(logUrls, initializing=True))
             else:
                 tasks.add(self._sendNoBountiesMessage())
         else:
             for id, crimDict in self.messagesToBeLoaded.items():
-                tasks.add(self._loadCriminalMsg(crimDict, id, logUrls))
+                tasks.add(self._loadCriminalMsg(crimDict, id, logUrls, initializing=True))
             
         # del self.messagesToBeLoaded
         # del self.channelIDToBeLoaded
         # del self.noBountiesMsgToBeLoaded
 
         await tasks.wait()
-        tasks.logExceptions("bountyBoards")
+        tasks.logExceptions(LogCategory.bountyBoards)
 
         if doReload:
             await self.rebuild(logUrls)
@@ -483,28 +508,28 @@ class BountyBoardChannel(serializable.Serializable):
                         tasks.add(self._sendBountyMsg(b))
             if tasks:
                 await tasks.wait()
-                tasks.logExceptions("bountyBoards")
+                tasks.logExceptions(LogCategory.bountyBoards)
 
         self.initialized = True
         
-        if self.postInitTasks is not None:
+        if self.postInitTasks:
             t = lib.discordUtil.BasicScheduler()
             for task in self.postInitTasks:
                 t.add(task)
             await t.wait()
-            t.logExceptions(logCategory="bountyBoards")
+            t.logExceptions(logCategory=LogCategory.bountyBoards)
             del self.postInitTasks
             self.postInitTasks = None
 
     
-    def addPostInitTask(self, coro: Awaitable):
+    def addPostInitTask(self, coro: Coroutine):
         if self.postInitTasks is None:
             self.postInitTasks = {coro}
         else:
             self.postInitTasks.add(coro)
 
 
-    def hasMessageForCriminal(self, criminal : criminal.Criminal) -> bool:
+    def hasMessageForCriminal(self, criminal: criminal.Criminal) -> bool:
         """Decide whether this BBC stores a listing for the given criminal 
 
         :param Criminal criminal: The criminal to check for listing existence
@@ -514,7 +539,7 @@ class BountyBoardChannel(serializable.Serializable):
         return criminal in self.bountyMessages
 
 
-    def hasMessageForBounty(self, bounty : bounty.Bounty) -> bool:
+    def hasMessageForBounty(self, bounty: bounty.Bounty) -> bool:
         """Decide whether this BBC stores a listing for the criminal wanted by the given bounty
 
         :param Bounty bounty: The bounty whose criminal to check for listing existence
@@ -524,7 +549,7 @@ class BountyBoardChannel(serializable.Serializable):
         return self.hasMessageForCriminal(bounty.criminal)
 
 
-    def getMessageForBounty(self, bounty : bounty.Bounty) -> Message:
+    def getMessageForBounty(self, bounty: bounty.Bounty) -> Message:
         """Return the message acting as a listing for the given bounty's criminal
 
         :param Bounty bounty: The bounty whose criminal to fetch a listing for
@@ -543,7 +568,7 @@ class BountyBoardChannel(serializable.Serializable):
         return not bool(self.bountyMessages)
 
 
-    async def addBounty(self, bounty : bounty.Bounty, message : Message, logUrls: bool = True):
+    async def addBounty(self, bounty: bounty.Bounty, message: Message, logUrls: bool = True):
         """Treat the given message as a listing for the given bounty, and store it in the database.
         If the BBC was previously empty, remove the empty bounty board message if one exists.
         If a HTTP error is thrown when attempting to remove the empty board message,
@@ -560,17 +585,17 @@ class BountyBoardChannel(serializable.Serializable):
         if self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-ADD-BNTY_EXSTS: Attempted to add a bounty to a bountyboardchannel, " \
                             + "but the bounty is already listed")
-            botState.logger.log("BBC", "addBty",
+            botState.client.logger.log("BBC", "addBty",
                         "Attempted to add a bounty to a bountyboardchannel, but the bounty is already listed: " \
                         + bounty.criminal.name, category='bountyBoards', eventType="LISTING_ADD-EXSTS")
         self.bountyMessages[bounty.criminal] = message
 
-        if removeMsg:
+        if removeMsg and self.noBountiesMessage is not None:
             await deleteMessageWithRetry(self.noBountiesMessage,
                                         self.prependJumpUrl(self.noBountiesMessage.id, logUrls, "no bounties"))
 
 
-    async def removeCriminal(self, criminal : criminal.Criminal):
+    async def removeCriminal(self, criminal: criminal.Criminal):
         """Remove the listing message stored for the given criminal from the database,
         and delete its associated message from discord.
         
@@ -584,7 +609,7 @@ class BountyBoardChannel(serializable.Serializable):
         if not self.hasMessageForCriminal(criminal):
             raise KeyError("BNTY_BRD_CH-REM-BNTY_NOT_EXST: Attempted to remove a criminal from a bountyboardchannel, " \
                             + "but the criminal is not listed")
-            botState.logger.log("BBC", "remCrim",
+            botState.client.logger.log("BBC", "remCrim",
                                 "Attempted to remove a criminal from a bountyboardchannel, but the criminal is not listed: " \
                                     + criminal.name,
                                 category='bountyBoards', eventType="LISTING_REM-NO_EXST")
@@ -596,7 +621,7 @@ class BountyBoardChannel(serializable.Serializable):
             await self._sendNoBountiesMessage()
 
 
-    async def removeBounty(self, bounty : bounty.Bounty):
+    async def removeBounty(self, bounty: bounty.Bounty):
         """Remove the listing message stored for the given bounty from the database. 
         his does not attempt to delete the message from discord.
 
@@ -610,7 +635,7 @@ class BountyBoardChannel(serializable.Serializable):
         await self.removeCriminal(bounty.criminal)
 
 
-    async def updateBountyMessage(self, bounty : bounty.Bounty):
+    async def updateBountyMessage(self, bounty: bounty.Bounty):
         """Update the embed for the listing associated with the given bounty.
         This includes newly checked and near-correct systems along the route.
         If a HTTP error is thrown when updating the listing, wait and retry the edit for the number of times defined in cfg
@@ -621,7 +646,7 @@ class BountyBoardChannel(serializable.Serializable):
         if not self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-UPD-BNTY_NOT_EXST: " \
                             + "Attempted to update a BBC message for a criminal that is not listed")
-            botState.logger.log("BBC", "remBty", "Attempted to update a BBC message for a criminal that is not listed: " \
+            botState.client.logger.log("BBC", "remBty", "Attempted to update a BBC message for a criminal that is not listed: " \
                         + bounty.criminal.name, category='bountyBoards', eventType="LISTING_UPD-NO_EXST")
 
         content = self.bountyMessages[bounty.criminal].content
@@ -637,34 +662,32 @@ class BountyBoardChannel(serializable.Serializable):
             clearTasks.add(self.removeCriminal(criminal))
         if clearTasks:
             await clearTasks.wait()
-            clearTasks.logExceptions("bountyBoards", "bountyBoardChannel", "clear")
+            clearTasks.logExceptions(LogCategory.bountyBoards, "bountyBoardChannel", "clear")
             await self.updateEscapedBountiesMessage()
 
 
-    def toDict(self, **kwargs) -> dict:
+    def serialize(self, **kwargs) -> SerializedBountyBoardChannel:
         """Serialise this BBC to dictionary format
 
         :return: A dictionary containing all data needed to recreate this BBC
         :rtype: dict
         """
         # dict of message id: criminal dict
-        listings = {msg.id: crim.toDict(**kwargs) for crim, msg in self.bountyMessages.items()}
+        listings = {msg.id: crim.serialize(**kwargs) for crim, msg in self.bountyMessages.items()}
         return {"channel": self.channel.id, "listings": listings,
                 "noBountiesMsg": self.noBountiesMessage.id if self.noBountiesMessage is not None else -1,
                 "escapedBountiesMsg": self.escapedBountiesMessage.id if self.escapedBountiesMessage is not None else -1}
 
 
     @classmethod
-    def fromDict(cls, BBCDict : dict, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
+    def deserialize(cls, BBCDict: SerializedBountyBoardChannel, division: "BountyDivision", **kwargs) -> BountyBoardChannel:
         """Factory function constructing a new BBC from the information in the provided dictionary
-        - the opposite of bountyBoardChannel.toDict
+        - the opposite of bountyBoardChannel.serialize
 
         :param dict BBCDict: a dictionary representation of the BBC, to convert to an object
         :return: The new bountyBoardChannel object
         :rtype: bountyBoardChannel
         """
-        if BBCDict is None:
-            return None
         return BountyBoardChannel(division, BBCDict["channel"], BBCDict["listings"],
                                     BBCDict.get("noBountiesMsg", -1),
                                     BBCDict.get("escapedBountiesMsg", -1))
