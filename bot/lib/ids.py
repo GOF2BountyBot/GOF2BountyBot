@@ -1,4 +1,8 @@
 from typing import List, Optional, Union
+from uuid import uuid4
+
+def guid():
+    return uuid4().hex
 
 """This alphabet was obtained from:
 >>> import string

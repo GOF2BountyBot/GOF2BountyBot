@@ -93,7 +93,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Serial
             return {"builtIn":True, "name":self.name}
         else:
             return {"builtIn": False, "isPlayer": self.isPlayer, "name": self.name, "icon": self.icon,
-                    "faction": self.faction, "aliases": self.aliases, "wiki": self.wiki}
+                    "faction": self.faction, "aliases": self._aliases, "wiki": self.wiki}
 
 
     @classmethod

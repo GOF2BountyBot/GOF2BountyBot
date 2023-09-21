@@ -324,7 +324,7 @@ def loadAllGameObjects():
     # generate shipSkinTool objects for each shipSkin
     for currentSkin in bbData.builtInShipSkins.values():
         # if len(currentSkin.compatibleShips) > 0:
-        toolName = lib.stringTyping.shipSkinNameToToolName(currentSkin.name)
+        toolName = lib.stringUtil.shipSkinNameToToolName(currentSkin.name)
         if toolName not in bbData.builtInToolObjs:
             newTool = shipSkinTool.ShipSkinTool(currentSkin, value=gameMaths.shipSkinValueForTL(currentSkin.averageTL),
                                                 builtIn=True)

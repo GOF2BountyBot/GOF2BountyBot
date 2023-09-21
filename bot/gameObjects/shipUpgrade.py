@@ -9,7 +9,7 @@ from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
 from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .. import lib
-from ..lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from ..lib.stringUtil import formattedAdditiveAndOrMultiplierOrNone
 from .gameObject import LoadedObject, SerializedLoadedObject
 
 class BuiltInSerializedShipUpgrade(SerializedLoadedObject):
@@ -261,9 +261,9 @@ class ShipUpgrade(LoadedObject, EmbedFillableMixin, SerializesToSchema[Serialize
                             "Handling": self.handlingMultiplier}
 
         statsStr = "*"
-        additiveStrs = (statName + ": " + lib.stringTyping.formatAdditive(additiveStats[statName])
+        additiveStrs = (statName + ": " + lib.stringUtil.formatAdditive(additiveStats[statName])
                             for statName in additiveStats if additiveStats[statName] != 0)
-        multiplierStrs = (statName + ": " + lib.stringTyping.formatMultiplier(multiplierStats[statName])
+        multiplierStrs = (statName + ": " + lib.stringUtil.formatMultiplier(multiplierStats[statName])
                             for statName in additiveStats if multiplierStats[statName] != 1)
         statsStr = ", ".join(tuple(additiveStrs) + tuple(multiplierStrs))
 

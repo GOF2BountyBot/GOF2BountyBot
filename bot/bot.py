@@ -26,9 +26,9 @@ import asyncio
 from . import lib, botState
 from .lib import BASED_version
 from .lib.discordUtil import timestamp, TimeStampStyle
-from .databases import bountyDB
+from .repositories import bountyRepository
 from .scheduling.timedTask import TimedTask
-from .gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from .entities.bounties.bountyBoardChannel import BountyBoardChannel
 
 # register as spawnable
 from .gameObjects.items.tools import creditsTool, throwSnowballTool
@@ -56,7 +56,7 @@ async def initializeBountyBoardChannels():
     for guild in botState.client.guildsDB.getGuilds():
         if guild.hasBountyBoardChannels:
             # Casting here because the guild is guaranteed to have a BountyDB if hasBountyBaordChannels is true
-            for div in cast(bountyDB.BountyDB, guild.bountiesDB).divisions.values():
+            for div in cast(bountyRepository.BountyRepository, guild.bountiesDB).divisions.values():
                 try:
                     # Casting here because each division in the db is guaranteed to have a bountyBoardChannel if hasBountyBoardChannels is true at the guild level
                     await cast(BountyBoardChannel, div.bountyBoardChannel).init(botState.client)
@@ -64,7 +64,7 @@ async def initializeBountyBoardChannels():
                     botState.client.logger.log("main", "initializeBountyBoardChannels",
                                         # Casting here because each division in the db is guaranteed to have a bountyBoardChannel if hasBountyBoardChannels is true at the guild level
                                         f"failed to load bountyboard channel {cast(BountyBoardChannel, div.bountyBoardChannel).channelIDToBeLoaded}" \
-                                            + f" for guild {guild.id}, division {bountyDB.nameForDivision(div)}. Removing.",
+                                            + f" for guild {guild.id}, division {bountyRepository.nameForDivision(div)}. Removing.",
                                         category=LogCategory.bountyBoards, eventType="UKWN_CHAN")
                     div.removeBountyBoardChannel()
 

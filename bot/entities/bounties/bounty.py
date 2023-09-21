@@ -1,0 +1,510 @@
+# Typing imports
+from __future__ import annotations
+
+from typing import Dict, Optional, Set, Union, TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .bountyDivision import BountyDivision
+    from ...repositories.bountyRepository import BountyRepository
+
+from datetime import timedelta
+from enum import Enum
+
+from discord.utils import utcnow
+
+from ...gameObjects.bounties.bountyConfig import BountyConfig, GeneratedConfig
+from ...cfg import bbData, cfg
+from ...gameObjects.bounties import criminal
+from ...baseClasses.serializable import SerializesToSchema
+from ...scheduling.timedTask import TimedTask
+from ... import lib, botState
+from ...gameObjects.items.ships.shipItem import Ship
+from ...lib.timeUtil import utcfromtimestamp
+from .bounty_json import SerializedBountyUnion
+
+
+class CheckResult(Enum):
+    """Indicate the result of a check. Does not indicate the result of the following duel.
+    
+    0 => This system is not in the bounty route.
+    1 => this system has already been checked.
+    2 => The system was unchecked, but is not the answer.
+    3 => answer found.
+    """
+    NOT_FOUND = 0
+    ALREADY_CHECKED = 1
+    INCORRECT = 2
+    CORRECT = 3
+
+
+class RewardsMeta(Enum):
+    """Binary flags representing special cases to apply to giving rewards for checking a bounty's route
+
+    none: no flags
+    prestige: user has since prestiged, so they dont get xp and their credits are shared to the other contributor(s)
+    """
+    NONE = 0b0
+    USER_PRESTIGED = 0b1
+
+    def __and__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value & other.value
+        else:
+            return self.value & other
+
+    
+    def __or__(self, other: Union[int, RewardsMeta]):
+        if isinstance(other, RewardsMeta):
+            return self.value | other.value
+        else:
+            return self.value | other
+
+
+class Bounty(SerializesToSchema[SerializedBountyUnion]):
+    """A bounty listing for a criminal, to be hunted down by players.
+
+    :var criminal: The criminal who is being hunted
+    :vartype criminal: criminal
+    :var issueTime: The time at which the bounty was created
+    :vartype issueTime: datetime.datetime
+    :var route: the names of systems that are in the route
+    :vartype route: list[str]
+    :var reward: the number of credits available to contributing players
+    :vartype reward: int
+    :var endTime: the time at which the bounty should automatically expire
+    :vartype endTime: datetime.datetime
+    :var faction: the faction to which this bounty belongs
+    :vartype faction: str
+    :var checked: A dictionary tracking which player checked each system. Keys are system names, values are user ids.
+                    values for unchecked systems are -1.
+    :vartype checked: dict[str, int]
+    :var answer: The name of the system where the criminal is located
+    :vartype answer: str
+    :var activeShip: The ship equipped by this criminal
+    :vartype activeShip: shipItem
+    :var hasShip: Whether this criminal has a ship equipped or not
+    :vartype hasShip: bool
+    :var techLevel: The current difficulty level of the bounty
+    :vartype techLevel: int
+    :var expiryTT: The timedtask responsible for expiring this bounty.
+    :vartype expiryTT: TimedTask
+    """
+
+    def __init__(self, division: BountyDivision, criminalObj: Optional[criminal.Criminal] = None,
+                        config: Optional[BountyConfig] = None, dbReload: bool = False, expiryTT: Optional[TimedTask] = None):
+        """
+        :param criminalObj: The criminal to be wanted. Give None to randomly generate a criminal. (Default None)
+        :type criminalObj: criminal or None
+        :param config: a bountyconfig describing all aspects of this bounty. Give None to randomly generate one (Default None)
+        :type config: BountyConfig or None
+        :param owningDB: The database of currenly active bounties. This is required unless dbReload is True. (Default None)
+        :type owningDB: BountyDB or None
+        :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :param TimedTask expiryTT: The timedtask responsible for expiring this bounty. If None, no new task will be created.
+                                This is however handled by the Bounty or BountyDB deserializers (Default None)
+        :raise ValueError: When dbReload is False but owningDB is not given
+        """
+        if not dbReload and division is None:
+            raise ValueError("Bounty constructor: No bounty database given")
+        makeFresh = criminalObj is None
+        self.activeShip = None
+
+        if config is None:
+            # generate bounty details and validate given details
+            if makeFresh:
+                config = BountyConfig()
+            else:
+                config = BountyConfig(faction=criminalObj.faction,
+                                        name=criminalObj.name)
+
+        if not config.generated:
+            config.generate(division, noCriminal=makeFresh, forceKeepChecked=dbReload, forceNoDBCheck=dbReload)
+        generatedConfig = cast(GeneratedConfig, config)
+
+        if makeFresh:
+            if generatedConfig.builtIn:
+                self.criminal = bbData.builtInCriminalObjs[generatedConfig.name]
+                # builtIn criminals cannot be players, so just equip the ship
+                # self.equipShip(config.ship)
+            else:
+                self.criminal = criminal.Criminal(generatedConfig.name, generatedConfig.faction, generatedConfig.icon, isPlayer=generatedConfig.isPlayer,
+                                                    aliases=generatedConfig.aliases, wiki=generatedConfig.wiki)
+                # Don't just claim player ships! players could unequip ship items. Take a deep copy of the ship
+                if generatedConfig.isPlayer:
+                    self.copyShip(generatedConfig.activeShip)
+
+        else:
+            self.criminal = criminalObj
+
+        if not self.hasShip:
+            # Don't just claim player ships! players could unequip ship items. Take a deep copy of the ship
+            if generatedConfig.isPlayer:
+                self.copyShip(generatedConfig.activeShip)
+            else:
+                self.equipShip(generatedConfig.activeShip)
+
+        self.faction = self.criminal.faction
+        self.issueTime = generatedConfig.issueTime
+        self.endTime = generatedConfig.endTime
+        self.expired = False
+        self.route = generatedConfig.route
+        self.reward = generatedConfig.reward
+        self.rewardPerSys = generatedConfig.rewardPerSys
+        self.checked = generatedConfig.checked.copy()
+        self.answer = generatedConfig.answer
+        self.techLevel = generatedConfig.techLevel
+        self.respawnTT: Optional[TimedTask] = None
+        self.division = division
+        if expiryTT is None:
+            if self.endTime == -1:
+                self.expiryTT = None
+            else:
+                endDT = utcfromtimestamp(self.endTime)
+                if endDT < utcnow():
+                    self.expiryTT = None
+                    lib.discordUtil.scheduleCoroWithLogging(self.expire(dbReload=True))
+                else:
+                    self.expiryTT = TimedTask(utcnow(), endDT, None, self.expire)
+                    botState.client.taskScheduler.scheduleTask(self.expiryTT)
+        else:
+            self.expiryTT = expiryTT
+
+
+    @property
+    def hasShip(self):
+        return self.activeShip is not None
+
+
+    def clearShip(self):
+        """Delete the equipped ship, removing it from memory
+
+        :raise RuntimeError: If the criminal does not have a ship equipped
+        """
+        if not self.hasShip:
+            raise RuntimeError("CRIM_CLEARSH_NOSHIP: Attempted to clearShip on a Criminal with no active ship")
+        del self.activeShip
+        self.techLevel = -1
+
+
+    def unequipShip(self):
+        """unequip the equipped ship, without deleting the object
+
+        :raise RuntimeError: If the criminal does not have a ship equipped
+        """
+        if not self.hasShip:
+            raise RuntimeError("CRIM_UNEQSH_NOSHIP: Attempted to unequipShip on a Criminal with no active ship")
+        self.activeShip = None
+        self.techLevel = -1
+
+
+    def equipShip(self, newShip: Ship):
+        """Equip the given ship, by reference to the given object
+
+        :param shipItem ship: The ship to equip
+        :raise RuntimeError: If the criminal already has a ship equipped
+        """
+        if self.hasShip:
+            raise RuntimeError("CRIM_EQUIPSH_HASSH: Attempted to equipShip on a Criminal that already has an active ship")
+        self.activeShip = newShip
+
+
+    def copyShip(self, newShip: Ship):
+        """Equip the given ship, by taking a deep copy of the given object
+
+        :param shipItem ship: The ship to equip
+        :raise RuntimeError: If the criminal already has a ship equipped
+        """
+        if self.hasShip:
+            raise RuntimeError("CRIM_COPYSH_HASSH: Attempted to copyShip on a Criminal that already has an active ship")
+        self.activeShip = Ship.deserialize(newShip.serialize())
+
+
+    def check(self, system: str, userID: int) -> CheckResult:
+        """Check a system along the route. The integer returned by this method indicates the results of the check:
+        0 => This system is not in the bounty route.
+        1 => this system has already been checked.
+        2 => The system was unchecked, but is not the answer.
+        3 => answer found.
+
+        :param str system: The name of the system to check
+        :param int userID: The id of the user checking the system
+        :return: A symbollic integer representing the result of the check, as defined above
+        :rtype: int
+        """
+        if system not in self.checked:
+            return CheckResult.NOT_FOUND
+        elif self.systemChecked(system):
+            return CheckResult.ALREADY_CHECKED
+        else:
+            self.checked[system] = userID
+            if self.answer == system:
+                return CheckResult.CORRECT
+            return CheckResult.INCORRECT
+
+
+    def systemChecked(self, system: str) -> bool:
+        """Decide whether or not a system has been checked.
+
+        :param str system: The system to inspect for checking
+        :return: True if system has been checked yet, False otherwise
+        :rtype: bool
+        """
+        return self.checked[system] != -1
+
+
+    def calcRewards(self, classicModeUserIDs: Set[int]) -> Dict[int, Dict[str, Union[int, bool]]]:
+        """Calculate the winning user and how many credits (and in the future, xp points) to award to which contributing users
+
+        :return: A dictionary of user IDs to rewards. rewards are given as a dict, giving the number of systems checked,
+                    the reward credits, and whether this user ID won or not.
+        :rtype: dict[int, dict[str, int or bool]]]
+        """
+        creditsPool = self.reward
+        rewardPerSys = self.rewardPerSys
+        rewards = {}
+        checkedSystems = 0
+        for system in self.route:
+            if self.systemChecked(system):
+                checkedSystems += 1
+                if self.checked[system] not in rewards:
+                    rewards[self.checked[system]] = {"reward": 0, "checked": 0, "won": False, "xp":0}
+
+        winningUserID = self.checked[self.answer]
+        if classicModeUserIDs:
+            contributors = set(self.checked.values())
+
+            # Winner is classic mode
+            if winningUserID in classicModeUserIDs:
+                winningUserSystems = [system for system in self.route if not self.systemChecked(system) \
+                                        or self.checked[system] == winningUserID]
+                rewards[self.checked[self.answer]]["reward"] = len(winningUserSystems) * cfg.classic_creditsPerCheck
+            
+            # At least one non-classic mode contributor
+            if len(contributors) > 1 and \
+                    any(i not in (winningUserID, -1) and i not in classicModeUserIDs for i in contributors):
+                classicModeSystems = [system for system in self.route if self.checked[system] in classicModeUserIDs]
+                if winningUserID in classicModeUserIDs:
+                    classicModeSystems += [system for system in self.route if not self.systemChecked(system)]
+                classicModePool = len(classicModeSystems) * cfg.classic_creditsPerCheck
+                numNonClassicModeSystems = len(self.route) - len(classicModeSystems)
+                if winningUserID not in classicModeUserIDs:
+                    numNonClassicModeSystems += len([system for system in self.route if not self.systemChecked(system)])
+                rewardPerSys = int((creditsPool - classicModePool) / numNonClassicModeSystems)
+
+        for system in self.route:
+            if self.systemChecked(system):
+                rewards[self.checked[system]]["checked"] += 1
+                if self.checked[system] != winningUserID:
+                    # currentReward = int(self.reward / len(self.route))
+                    # currentReward = bbConfig.classic_creditsPerCheck
+                    if self.checked[system] in classicModeUserIDs:
+                        currentReward = cfg.classic_creditsPerCheck
+                    else:
+                        currentReward = rewardPerSys
+                    rewards[self.checked[system]]["reward"] += currentReward
+                    creditsPool -= currentReward
+
+        if winningUserID not in classicModeUserIDs:
+            rewards[self.checked[self.answer]]["reward"] = creditsPool
+        rewards[self.checked[self.answer]]["won"] = True
+
+        for user in rewards:
+            rewards[user]["xp"] = int(rewards[user]["reward"] * cfg.bountyRewardToXPGainMult)
+        return rewards
+
+
+    def isEscaped(self) -> bool:
+        """Decide whether this bounty has escaped and is awaiting respawn.
+
+        :return: True if the bounty is escaped and waiting to respawn, False otherwise
+        :rtype: bool
+        """
+        return self.respawnTT is not None
+
+
+    def escape(self, respawnTT: Optional[TimedTask] = None, dbReload=False):
+        """Mark this bounty as escaped, schedule respawning, and register the bounty as escaped in the owning bountyDB.
+
+        :param TimedTask respawnTT: The timedtask responsible for the respawning of the bounty
+        :raise ValueError: If the bounty is already marked as escaped
+        """
+        if self.isEscaped():
+            raise ValueError("Attempted to mark a bounty as escaped that is already escaped: " + self.criminal.name)
+        
+        if respawnTT is None:
+            self.respawnTT = TimedTask(expiryDelta=timedelta(minutes=len(self.route)), 
+                                        expiryFunction=self._respawn,
+                                        rescheduleOnExpiryFuncFailure=True)
+        else:
+            self.respawnTT = respawnTT
+
+        if self.criminal in self.division.bounties[self.techLevel]:
+            self.division.owningDB.removeBountyObj(self)
+        botState.client.taskScheduler.scheduleTask(self.respawnTT)
+        self.division.owningDB.addEscapedBounty(self, dbReload=dbReload, ignoreFull=True)
+
+
+    async def expire(self, dbReload: bool = False):
+        """Mark this bounty as expired, and notify both the owning bountyDB and the owning guild in discord.
+        
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :raise ValueError: If the bounty is not currently active, e.g it has already expired
+        """
+        if self.division.bountyBoardChannel is not None and not self.division.bountyBoardChannel.initialized:
+            self.division.bountyBoardChannel.addPostInitTask(self.division.announceBountyExpiry(self, dbReload=dbReload))
+        else:
+            await self.division.announceBountyExpiry(self, dbReload=dbReload)
+        self._expire(dbReload=dbReload)
+
+
+    def _expire(self, dbReload: bool = False, killExpiryTT: bool = True):
+        """Mark this bounty as expired, and register the bounty as expired in the owning bountyDB.
+        Does not notify the guild in discord.
+
+        :param bool dbReload: Give True if this bounty is being expired during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        :param bool killExpiryTT: Give True to also expire the bounty's expiryTT, *without* executing the task's
+                                expiry function (Default True)
+        :raise ValueError: If the bounty is already marked as expired
+        """
+        if self.expired:
+            raise ValueError("Attempted to mark a bounty as expired that is already expired: " + self.criminal.name)
+
+        if self.isEscaped():
+            if self.criminal in self.division.escapedBounties[self.techLevel]:
+                self.division.owningDB.removeEscapedBountyObj(self)
+        else:
+            if self.criminal in self.division.bounties[self.techLevel]:
+                self.division.owningDB.removeBountyObj(self)
+        
+        if killExpiryTT and self.expiryTT is not None and not self.expiryTT.isExpired():
+            self.expiryTT.forceExpire(callExpiryFunc=False)
+            self.expiryTT = None
+
+
+    async def _respawn(self):
+        if not self.isEscaped():
+            raise ValueError("Attempted to respawn on a bounty that is not awaiting respawn: " + self.criminal.name)
+
+        respawnArgs = {"newBounty": self,
+                        "newConfig": self.makeRespawnConfig()}
+        await self.division.owningDB.owningBasedGuild.spawnAndAnnounceBounty(respawnArgs, isRespawn=True)
+        # This is handled by spawnAndAnnounceBounty
+        # self.division.owningDB.removeEscapedCriminal(self.criminal)
+        self.respawnTT = None
+
+        if self.division.bountyBoardChannel is not None:
+            await self.division.bountyBoardChannel.updateEscapedBountiesMessage()
+
+
+    def cancelRespawn(self):
+        """Cancel the respawning of the bounty, by forcing the expiry of its respawn TimedTask.
+
+        :raise ValueError: If the bounty is not escaped
+        """
+        if not self.isEscaped():
+            raise ValueError("Attempted to cancelRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
+        # Casting here because existence of sef.respawnTT is checked by isEscaped above
+        cast(TimedTask, self.respawnTT).forceExpire(callExpiryFunc=False)
+        self.respawnTT = None
+        self.division.owningDB.removeEscapedCriminal(self.criminal)
+
+
+    def forceRespawn(self):
+        """Force the immediate respawning of the bounty, by forcing the expiry of its respawn TimedTask.
+
+        :raise ValueError: If the bounty is not escaped
+        """
+        if not self.isEscaped():
+            raise ValueError("Attempted to forceRespawn on a bounty that is not awaiting respawn: " + self.criminal.name)
+        # Casting here because existence of sef.respawnTT is checked by isEscaped above
+        cast(TimedTask, self.respawnTT).forceExpire(callExpiryFunc=True)
+
+
+    def makeRespawnConfig(self):
+        """Create a new, partially configured, ungenerated BountyConfig object, to be used in the respawning of this bounty.
+
+        :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
+        :rtype: BountyConfig
+        """
+        return BountyConfig(faction=self.faction, isPlayer=self.criminal.isPlayer, endTime=self.endTime,
+                            issueTime=self.issueTime, activeShip=self.activeShip, techLevel=self.techLevel)
+
+
+    def serialize(self, **kwargs) -> SerializedBountyUnion:
+        """Serialize this bounty to dictionary, to be saved to file.
+
+        :return: A dictionary representation of this bounty.
+        :rtype: dict
+        """
+        data: SerializedBountyUnion = {"faction": self.faction, "route": self.route, "answer": self.answer, "checked": self.checked,
+                "reward": self.reward, "issueTime": self.issueTime, "endTime": self.endTime, "isEscaped": self.isEscaped(),
+                "criminal": self.criminal.serialize(**kwargs), "rewardPerSys": self.rewardPerSys, "techLevel": self.techLevel}
+        
+        if self.isEscaped():
+            # Casting here because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
+            # Casting here because existence of sef.respawnTT is checked by isEscaped above
+            data["respawnTime"] = cast(TimedTask, self.respawnTT).expiryTime.timestamp()
+
+        if self.hasShip:
+            # Casting here because existence of sef.aciveShip is checked by hasShip above
+            data["activeShip"] = cast(Ship, self.activeShip).serialize()
+
+        return data
+
+
+    @classmethod
+    def deserialize(cls, data: SerializedBountyUnion, owningDB: Optional[BountyRepository] = None, dbReload: bool = False, **kwargs) -> Bounty:
+        """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
+
+        :param dict bounty: Dictionary containing all information needed to construct the desired bounty
+        :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        """
+        if type(data) != dict:
+            raise ValueError(str(data))
+        if owningDB is None:
+            raise ValueError("missing required argument: owningDB")
+
+        if "activeShip" in data:
+            activeShip = Ship.deserialize(data["activeShip"])
+        else:
+            activeShip = None
+
+        if "techLevel" in data:
+            techLevel = data["techLevel"]
+        elif activeShip is not None:
+            techLevel = activeShip.techLevel
+        else:
+            raise ValueError(f"Missing required data: Bounty tech level. Data: {str(data)}")
+            # techLevel = -1
+
+        newCfg = BountyConfig(faction=data["faction"], route=data["route"],
+                                answer=data["answer"], checked=data["checked"], reward=data["reward"],
+                                issueTime=data["issueTime"], endTime=data["endTime"],
+                                rewardPerSys=data["rewardPerSys"], activeShip=activeShip,
+                                techLevel=techLevel)
+                                            
+        newBounty = Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
+                            criminalObj=criminal.Criminal.deserialize(data["criminal"]))
+
+        if data.get("isEscaped", False):
+            # casting because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
+            if "respawnTime" not in data:
+                raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
+
+            respawnTT = TimedTask(issueTime=utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=utcfromtimestamp(data["respawnTime"]), 
+                                    expiryFunction=newBounty._respawn,
+                                    rescheduleOnExpiryFuncFailure=True)
+            newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
+
+        return newBounty

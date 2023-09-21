@@ -223,7 +223,7 @@ class UserKaamoCog(BasedCog):
                                                     + (currentItem.emoji.sendable + " " if currentItem.hasEmoji else "") \
                                                     + ((" `(" + str(currentItemCount) + ")` ") if currentItemCount > 1 else "") \
                                                     + "**" + currentItem.name + "**",
-                                                value=lib.stringTyping.commaSplitNum(currentItem.value) + " Credits\n" \
+                                                value=lib.stringUtil.commaSplitNum(currentItem.value) + " Credits\n" \
                                                     + currentItem.statsStringShort(), inline=True)
 
         await interaction.response.send_message(embed=shopEmbed, ephemeral=True)

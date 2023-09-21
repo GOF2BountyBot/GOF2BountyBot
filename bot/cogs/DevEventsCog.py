@@ -13,7 +13,7 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..gameObjects.items.tools import crateTool
 from .util.transformers import PlayOrAnnounceChannel
-from ..users.basedGuild import BasedGuild
+from ..entities.guild.basedGuild import BasedGuild
 from ..reactionMenus.giveawayMenu import GiveawayMenu
 
 

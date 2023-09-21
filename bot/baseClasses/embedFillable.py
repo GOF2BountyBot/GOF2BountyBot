@@ -1,19 +1,22 @@
-from typing import Any, Dict, Generic, List, Optional, Protocol, Set, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Awaitable, Dict, Generic, List, Optional, Protocol, Set, Tuple, Type, TypeVar, Union, cast
 from abc import ABC, ABCMeta, abstractmethod
 from inspect import signature, _empty
 from PIL import Image
 from ..lib.discordUtil import ZWSP, ImageFile
+from ..lib.asyncUtil import BasicScheduler
 
 from discord import Colour, Embed
 
 MAX_EMBED_VALUE_LENGTH = 1024
 MAX_EMBED_NAME_LENGTH = 256
 MAX_MESSAGE_ATTACHMENTS = 10
+MIN_TASKS_IN_PARALLEL = 3
 
 #region types
 
 #region base
 
+# The return value of an embed attribute callback.
 TReturnValue = TypeVar("TReturnValue", covariant=True)
 
 class _NoRequiredArgsInstanceMethod(Protocol, Generic[TReturnValue]):
@@ -30,11 +33,26 @@ class _NoRequiredArgsClassMethod(Protocol, Generic[TReturnValue]):
     def __call__(protocolSelf, cls: type, /) -> TReturnValue: ... # type: ignore[reportSelfClsParameterName]
 
 
+class _NoRequiredArgsInstanceMethodAsync(Protocol, Generic[TReturnValue]):
+    """Protocol representing an instance method with no required arguments
+    """
+    __name__: str
+    def __call__(protocolSelf, self: Any, /) -> Awaitable[TReturnValue]: ... # type: ignore[reportSelfClsParameterName]
+
+
+class _NoRequiredArgsClassMethodAsync(Protocol, Generic[TReturnValue]):
+    """Protocol representing a class method with no required arguments
+    """
+    __name__: str
+    def __call__(protocolSelf, cls: type, /) -> Awaitable[TReturnValue]: ... # type: ignore[reportSelfClsParameterName]
+
+
 # Any embed attribute-compatible instance/class member
 NoRequiredArgsMethod = Union[_NoRequiredArgsInstanceMethod[Any], _NoRequiredArgsClassMethod[Any]]
-AnyEmbedAttributeUnderlyingMethod = Union[property, NoRequiredArgsMethod]
+NoRequiredArgsCoroutine = Union[_NoRequiredArgsInstanceMethodAsync[Any], _NoRequiredArgsClassMethodAsync[Any]]
+AnyEmbedAttributeUnderlyingMethod = Union[property, NoRequiredArgsMethod, NoRequiredArgsCoroutine]
 
-TNoRequiredArgsMethod = TypeVar("TNoRequiredArgsMethod", bound=NoRequiredArgsMethod)
+TNoRequiredArgsMethod = TypeVar("TNoRequiredArgsMethod", bound=Union[NoRequiredArgsMethod, NoRequiredArgsCoroutine])
 TAnyEmbedAttributeUnderlyingMethod = TypeVar("TAnyEmbedAttributeUnderlyingMethod", bound=AnyEmbedAttributeUnderlyingMethod)
 
 
@@ -50,9 +68,22 @@ class _BaseEmbedAttribute(ABC, Generic[TAnyEmbedAttributeUnderlyingMethod, TRetu
         self.inner = inner
 
 
-    @abstractmethod
-    def value(self, ownerSelf) -> TReturnValue:
+    async def getValue(self, ownerSelf) -> TReturnValue:
         """Get the value of the attribute from the underlying method (`self.inner`).
+        If `self.inner` is a coroutine, this method will await it.
+
+        :param ownerSelf: The calling instance of the owning class, to pass down to the underlying method on that instance
+        """
+        result = self.value(ownerSelf)
+        if isinstance(result, Awaitable):
+            result = cast(TReturnValue, await result)
+        return result
+
+
+    @abstractmethod
+    def value(self, ownerSelf) -> Union[TReturnValue, Awaitable[TReturnValue]]:
+        """Get the value of the attribute from the underlying method (`self.inner`).
+        This may or may not be a Coroutine. The result will be awaited automatically.
 
         :param ownerSelf: The calling instance of the owning class, to pass down to the underlying method on that instance
         """
@@ -60,7 +91,7 @@ class _BaseEmbedAttribute(ABC, Generic[TAnyEmbedAttributeUnderlyingMethod, TRetu
 
         
     @abstractmethod
-    def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
+    async def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
         """Apply this attribute to an embed.
         This method can optionally return an image that must be sent alongside the embed, for the application to be visible.
 
@@ -79,7 +110,7 @@ class _BaseEmbedAttribute(ABC, Generic[TAnyEmbedAttributeUnderlyingMethod, TRetu
         return super().__hash__()
 
 
-class _BaseEmbedFileAttribute(_BaseEmbedAttribute, Generic[TAnyEmbedAttributeUnderlyingMethod, TReturnValue]):
+class _BaseEmbedFileAttribute(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, TReturnValue], Generic[TAnyEmbedAttributeUnderlyingMethod, TReturnValue]):
     """An embed attribute that returns a file which must be uploaded alongside the embed, in order for
     the attribute's changes to take effect.
     """
@@ -146,7 +177,7 @@ def _validateMethod(prop: TNoRequiredArgsMethod) -> TNoRequiredArgsMethod:
 class _PropEmbedAttribute(_BaseEmbedAttribute[property, TReturnValue], Generic[TReturnValue]):
     """An embed attribute whose underlying value-providing method is a `property`.
     """
-    def value(self, ownerSelf) -> TReturnValue:
+    def value(self, ownerSelf) -> Union[TReturnValue, Awaitable[TReturnValue]]:
         # If __self__ is set, then this is a bound method - e.g the decorator was applied to a method on an already instanced class,
         # or the @classmethod decorator was used
         return self.inner.__get__(getattr(self.inner, "__self__") if hasattr(self.inner, "__self__") else ownerSelf, type(ownerSelf))
@@ -161,7 +192,7 @@ class _MethodEmbedAttribute(_BaseEmbedAttribute[Union[_NoRequiredArgsInstanceMet
         return self.inner(*args, **kwargs)
     
 
-    def value(self, ownerSelf) -> Any:
+    def value(self, ownerSelf) -> Union[TReturnValue, Awaitable[TReturnValue]]:
         # If __self__ is set, then this is a bound method - e.g the decorator was applied to a method on an already instanced class,
         # or the @classmethod decorator was used
         return self.inner(getattr(self.inner, "__self__") if hasattr(self.inner, "__self__") else ownerSelf)
@@ -173,8 +204,8 @@ class _MethodEmbedAttribute(_BaseEmbedAttribute[Union[_NoRequiredArgsInstanceMet
 class _BaseEmbedColour(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[Colour]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed colour setter. The underlying method must return `Colour` or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        embed.colour = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        embed.colour = await self.getValue(ownerSelf)
 
     def __hash__(self) -> int:
         """The hash implementation for _BaseEmbedColour hashes the _BaseEmbedColour class itself.
@@ -193,8 +224,8 @@ class _MethodEmbedColour(_BaseEmbedColour[Union[_NoRequiredArgsInstanceMethod[Op
 class _BaseEmbedUrlThumbnail(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[str]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed thumbnail setter, by url. The underlying method must return `str` (the image url) or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        val = await self.getValue(ownerSelf)
         if (isinstance(val, str) and val) or val is None:
             embed.set_thumbnail(url=val)
 
@@ -208,8 +239,8 @@ class _BaseEmbedUrlThumbnail(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMet
 class _BaseEmbedFileThumbnail(_BaseEmbedFileAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[Union[str, Image.Image]]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed thumbnail setter, by reference to an image file. The underlying method must return `str` (the path to the file), `Image.Image` or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
+        val = await self.getValue(ownerSelf)
         if not (f := imageOrPathValue(val, "autoFillEmbedThumbnail")):
             return None
         embed.set_thumbnail(url=f"attachment://{f.fileName}")
@@ -234,8 +265,8 @@ class _BaseEmbedUrlAuthor(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod
     """An embed author setter, setting the author icon by url.
     The underlying method must return `None`, or a tuple of (`str` (author name), `str` (icon_url), `str` (url)). Each tuple member is optional.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        val = await self.getValue(ownerSelf)
         if val is None:
             embed.remove_author()
         elif not isinstance(val, tuple) or len(val) != 3:
@@ -254,8 +285,8 @@ class _BaseEmbedFileAuthor(_BaseEmbedFileAttribute[TAnyEmbedAttributeUnderlyingM
     """An embed author setter, setting the author icon by reference to a file.
     The underlying method must return `None`, or a tuple of (`str` (author name), `str` (path to the icon file) or `Image.Image` (icon), `str` (url)). Each tuple member is optional.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
+        val = await self.getValue(ownerSelf)
         if val is None:
             embed.remove_author()
         elif not isinstance(val, tuple) or len(val) != 3:
@@ -285,8 +316,8 @@ class _BaseEmbedUrlFooter(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod
     """An embed footer setter, setting the footer icon by url.
     The underlying method must return `None`, or a tuple of (`str` (footer text), `str` (icon_url)). Each tuple member is optional.
     """
-    def fillEmbed(self, ownerSelf, embed):
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed):
+        val = await self.getValue(ownerSelf)
         if val is None:
             embed.remove_footer()
         elif not isinstance(val, tuple) or len(val) != 2:
@@ -305,8 +336,8 @@ class _BaseEmbedFileFooter(_BaseEmbedFileAttribute[TAnyEmbedAttributeUnderlyingM
     """An embed author setter, setting the footer icon by file reference.
     The underlying method must return `None`, or a tuple of (`str` (footer text), `str` (path to the icon) or `Image.Image` (icon)). Each tuple member is optional.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
+        val = await self.getValue(ownerSelf)
         if val is None:
             embed.remove_footer()
         elif not isinstance(val, tuple) or len(val) != 2:
@@ -335,8 +366,8 @@ class _MethodEmbedFileFooter(_BaseEmbedFileFooter[Union[_NoRequiredArgsInstanceM
 class _BaseEmbedDescription(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[str]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed description setter. The underlying method must return `str` or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        embed.description = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        embed.description = await self.getValue(ownerSelf)
 
     def __hash__(self) -> int:
         """The hash implementation for _BaseEmbedDescription hashes the _BaseEmbedDescription class itself.
@@ -354,8 +385,8 @@ class _MethodEmbedDescription(_BaseEmbedDescription[Union[_NoRequiredArgsInstanc
 class _BaseEmbedTitle(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[str]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed title setter. The underlying method must return `str` or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        embed.title = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        embed.title = await self.getValue(ownerSelf)
 
     def __hash__(self) -> int:
         """The hash implementation for _BaseEmbedTitle hashes the _BaseEmbedTitle class itself.
@@ -374,8 +405,8 @@ class _BaseEmbedUrlImage(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod,
     """An embed main image setter, by url.
     The underlying method must return `str` (icon_url) or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        embed.set_image(url=self.value(ownerSelf))
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        embed.set_image(url=await self.getValue(ownerSelf))
 
     def __hash__(self) -> int:
         """The hash implementation for _BaseEmbedUrlImage hashes the _BaseEmbedUrlImage class itself.
@@ -388,8 +419,8 @@ class _BaseEmbedFileImage(_BaseEmbedFileAttribute[TAnyEmbedAttributeUnderlyingMe
     """An embed main image setter, by file reference.
     The underlying method must return `str` (path to the file), `Image.Image` (the file) or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed) -> Optional[ImageFile]:
+        val = await self.getValue(ownerSelf)
         if not (f := imageOrPathValue(val, "autoFillEmbedImage")):
             return None
         embed.set_image(url=f"attachment://{f.fileName}")
@@ -414,8 +445,8 @@ class _MethodEmbedFileImage(_BaseEmbedFileImage[Union[_NoRequiredArgsInstanceMet
 class _BaseEmbedUrl(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, Optional[str]], Generic[TAnyEmbedAttributeUnderlyingMethod]):
     """An embed url setter. The underlying method must return `str` or `None`.
     """
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        embed.url = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        embed.url = await self.getValue(ownerSelf)
 
     def __hash__(self) -> int:
         """The hash implementation for _BaseEmbedUrl hashes the _BaseEmbedUrl class itself.
@@ -443,8 +474,8 @@ class _BaseEmbedField(_BaseEmbedAttribute[TAnyEmbedAttributeUnderlyingMethod, An
         self.uniqueFieldName = uniqueFieldName
 
 
-    def fillEmbed(self, ownerSelf, embed: Embed):
-        val = self.value(ownerSelf)
+    async def fillEmbed(self, ownerSelf, embed: Embed):
+        val = await self.getValue(ownerSelf)
         if val is not None or not self.hideWhenNone:
             valStr = str(val)
             if len(valStr) > MAX_EMBED_VALUE_LENGTH:
@@ -477,6 +508,8 @@ class _MethodEmbedField(_BaseEmbedField[Union[_NoRequiredArgsInstanceMethod[Any]
 TEmbedColourMethod = TypeVar("TEmbedColourMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[Colour]], _NoRequiredArgsClassMethod[Optional[Colour]]])
 def embedColour(prop: TEmbedColourMethod) -> TEmbedColourMethod:
     """Mark a method, class method or property as a discord Embed colour setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -504,6 +537,7 @@ def embedColour(prop: TEmbedColourMethod) -> TEmbedColourMethod:
 TEmbedThumbnailUrlMethod = TypeVar("TEmbedThumbnailUrlMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[str]], _NoRequiredArgsClassMethod[Optional[str]]])
 def embedThumbnailUrl(prop: TEmbedThumbnailUrlMethod) -> TEmbedThumbnailUrlMethod:
     """Mark a method, class method or property as a discord Embed thumbnail setter.
+    If the callback is async, then it will be awaited.
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -531,7 +565,9 @@ def embedThumbnailUrl(prop: TEmbedThumbnailUrlMethod) -> TEmbedThumbnailUrlMetho
 TEmbedThumbnailFileMethod = TypeVar("TEmbedThumbnailFileMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[Union[str, Image.Image]]], _NoRequiredArgsClassMethod[Optional[Union[str, Image.Image]]]])
 def embedThumbnailFile(prop: TEmbedThumbnailFileMethod) -> TEmbedThumbnailFileMethod:
     """Mark a method, class method or property as a discord Embed thumbnail setter,
-    giving the image eithe as the path to a file on disk, or the file itself as a Pillow Image
+    giving the image eithe as the path to a file on disk, or the file itself as a Pillow Image.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -559,6 +595,8 @@ def embedThumbnailFile(prop: TEmbedThumbnailFileMethod) -> TEmbedThumbnailFileMe
 TEmbedAuthorUrlMethod = TypeVar("TEmbedAuthorUrlMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[Tuple[Optional[str], Optional[str], Optional[str]]]], _NoRequiredArgsClassMethod[Optional[Tuple[Optional[str], Optional[str], Optional[str]]]]])
 def embedAuthorUrl(prop: TEmbedAuthorUrlMethod) -> TEmbedAuthorUrlMethod:
     """Mark a method, class method or property as a discord Embed Author setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -594,6 +632,8 @@ TEmbedAuthorFileMethod = TypeVar("TEmbedAuthorFileMethod", bound=Union[property,
 def embedAuthorFile(prop: TEmbedAuthorFileMethod) -> TEmbedAuthorFileMethod:
     """Mark a method, class method or property as a discord Embed Author setter,
     setting the author icon by the path to the file on disk, or by the file itself as a Pillow Image.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -628,6 +668,8 @@ def embedAuthorFile(prop: TEmbedAuthorFileMethod) -> TEmbedAuthorFileMethod:
 TEmbedFooterUrlMethod = TypeVar("TEmbedFooterUrlMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[Tuple[Optional[str], Optional[str]]]], _NoRequiredArgsClassMethod[Optional[Tuple[Optional[str], Optional[str]]]]])
 def embedFooterUrl(prop: TEmbedFooterUrlMethod) -> TEmbedFooterUrlMethod:
     """Mark a method, class method or property as a discord Embed Footer setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -662,6 +704,8 @@ TEmbedFooterFileMethod = TypeVar("TEmbedFooterFileMethod", bound=Union[property,
 def embedFooterFile(prop: TEmbedFooterFileMethod) -> TEmbedFooterFileMethod:
     """Mark a method, class method or property as a discord Embed Footer setter,
     with the footer icon being either the image itself, or a path to the image file on disk.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -695,6 +739,8 @@ def embedFooterFile(prop: TEmbedFooterFileMethod) -> TEmbedFooterFileMethod:
 TEmbedDescriptionMethod = TypeVar("TEmbedDescriptionMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[str]], _NoRequiredArgsClassMethod[Optional[str]]])
 def embedDescription(prop: TEmbedDescriptionMethod) -> TEmbedDescriptionMethod:
     """Mark a method, class method or property as a discord Embed Description setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -722,6 +768,8 @@ def embedDescription(prop: TEmbedDescriptionMethod) -> TEmbedDescriptionMethod:
 TEmbedTitleMethod = TypeVar("TEmbedTitleMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[str]], _NoRequiredArgsClassMethod[Optional[str]]])
 def embedTitle(prop: TEmbedTitleMethod) -> TEmbedTitleMethod:
     """Mark a method, class method or property as a discord Embed Title setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -749,6 +797,8 @@ def embedTitle(prop: TEmbedTitleMethod) -> TEmbedTitleMethod:
 TEmbedImageUrlMethod = TypeVar("TEmbedImageUrlMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[str]], _NoRequiredArgsClassMethod[Optional[str]]])
 def embedImageUrl(prop: TEmbedImageUrlMethod) -> TEmbedImageUrlMethod:
     """Mark a method, class method or property as a discord Embed Image setter, by the image's url.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -777,6 +827,8 @@ def embedImageUrl(prop: TEmbedImageUrlMethod) -> TEmbedImageUrlMethod:
 TEmbedImageFileMethod = TypeVar("TEmbedImageFileMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[Union[str, Image.Image]]], _NoRequiredArgsClassMethod[Optional[Union[str, Image.Image]]]])
 def embedImageFile(prop: TEmbedImageFileMethod) -> TEmbedImageFileMethod:
     """Mark a method, class method or property as a discord Embed Image setter, by the image itself or the path to the image.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -805,6 +857,8 @@ def embedImageFile(prop: TEmbedImageFileMethod) -> TEmbedImageFileMethod:
 TEmbedUrlMethod = TypeVar("TEmbedUrlMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Optional[str]], _NoRequiredArgsClassMethod[Optional[str]]])
 def embedUrl(prop: TEmbedUrlMethod) -> TEmbedUrlMethod:
     """Mark a method, class method or property as a discord Embed Url setter.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -832,6 +886,8 @@ def embedUrl(prop: TEmbedUrlMethod) -> TEmbedUrlMethod:
 TEmbedFieldMethod = TypeVar("TEmbedFieldMethod", bound=Union[property, _NoRequiredArgsInstanceMethod[Any], _NoRequiredArgsClassMethod[Any]])
 def embedField(fieldName: Optional[str] = None, showFirst: bool = False, showLast: bool = False, showInline: bool = True, hideWhenNone: bool = True, uniqueFieldName: bool = False):
     """Mark a method, class method or property as a discord Embed field.
+    If the callback is async, then it will be awaited.
+
     This decorator will only work if:
     - It is the last decorator in the chain
     - It is applied to a method defined on an `EmbedFillableMixin` subclass
@@ -884,6 +940,7 @@ def embedField(fieldName: Optional[str] = None, showFirst: bool = False, showLas
     return inner
 
 TClass = TypeVar("TClass", bound=Type["EmbedFillableMixin"])
+
 def removeEmbedField(fieldName: str):
     """This decorator is applied to your class, not to its methods.
     Remove any embed fields from this class with the given name.
@@ -1022,24 +1079,41 @@ class EmbedFillableMixin(metaclass=_EmbedFillableMeta):
         return list(self._embedFields.keys())
 
 
-    def embedFieldValue(self, fieldName: str) -> List[Any]:
+    async def embedFieldValue(self, fieldName: str) -> List[Any]:
         """The current value(s) of the embed field(s) with the name `fieldName`.
         If the embedField is marked as `uniqueFieldName`, then this will return a list with one value.
         """
         if fieldName in self._embedFields:
-            return [f.value(self) for f in self._embedFields[fieldName]]
+            # If there aren't many fields with this name, read them one after another to save on overhead
+            if len(self._embedFields[fieldName]) < MIN_TASKS_IN_PARALLEL:
+                return [await f.getValue(self) for f in self._embedFields[fieldName]]
+            
+            # If there are lots of fields with this name, read them in parallel
+            result = []
+            tasks = BasicScheduler()
+
+            async def wait(f: _BaseEmbedField):
+                result.append(await f.getValue(self))
+            
+            for f in self._embedFields[fieldName]:
+                tasks.add(wait(f))
+
+            await tasks.wait()
+            tasks.raiseExceptions()
+            return result
+            
         raise KeyError(f"Unknown field: {fieldName}")
 
 
-    def embedColour(self) -> Colour:
+    async def embedColour(self) -> Colour:
         """The colour of this class's auto-fill embed.
         If no `@embedColour` is set, this currently defaults to blue.
         """
         if self._embedColour is None: return Colour.blue()
-        return self._embedColour.value(self) or Colour.blue()
+        return await self._embedColour.getValue(self) or Colour.blue()
 
     
-    def fillEmbed(self, embed: Embed) -> Optional[List[ImageFile]]:
+    async def fillEmbed(self, embed: Embed) -> Optional[List[ImageFile]]:
         """Auto-fill this object into `embed`.
 
         This method can optionally return a list of `ImageFile`s. These represent attachments that must be sent alongside
@@ -1047,13 +1121,34 @@ class EmbedFillableMixin(metaclass=_EmbedFillableMeta):
         Don't forget to call `.closeAll` on each of the `ImageFile`s, to avoid any memory leaks.
         """
         files: List[ImageFile] = []
+        
         try:
-            for att in self._embedAttributes:
-                f = att.fillEmbed(self, embed)
-                if f is not None: files.append(f)
+            # If there aren't many attributes, invoke them one after another to save on overhead
+            if len(self._embedAttributes) < MIN_TASKS_IN_PARALLEL:
+                for att in self._embedAttributes:
+                    f = await att.fillEmbed(self, embed)
+                    if f is not None:
+                        files.append(f)
+
+            # If there are lots of attributes, invoke them in parallel
+            else:
+                tasks = BasicScheduler()
+
+                async def wait(att: _BaseEmbedAttribute):
+                    f = await att.fillEmbed(self, embed)
+                    if f is not None:
+                        files.append(f)
+                
+                for att in self._embedAttributes:
+                    tasks.add(wait(att))
+
+                await tasks.wait()
+                tasks.raiseExceptions()
+                
         except Exception as e:
             if files:
                 for file in files:
                     file.closeAll()
             raise e
+        
         return files or None

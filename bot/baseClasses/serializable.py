@@ -1,9 +1,7 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union
-from typing_extensions import TypedDict
-import carica
-from carica import ISerializable, SerializesToType, PrimativeType
+from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union, TypedDict
+from carica import SerializesToType, PrimativeType
 from .defaultable import DefaultableMixin
 from .simpleHash import SimpleHashMixin
 
@@ -13,30 +11,37 @@ JsonPrimatives = Optional[Union[int, float, str, bool, datetime, Iterable["JsonP
 # Make sure it is a dict at its base.
 JsonType = Dict[str, JsonPrimatives]
 
-class Serializable(ISerializable, DefaultableMixin, SimpleHashMixin):
+TSelf = TypeVar("TSelf", bound="Serializable")
+
+class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHashMixin):
     """BountyBot uses DefaultableMixin for shorthanding deserializer implementations in most serializable classes,
-    and SimpleHashMixin for using game objects as dict keys,
-    so just include both by default.
+    and SimpleHashMixin for using game objects as dict keys, so just include both by default.
     """
     @abstractmethod
-    def serialize(self, **kwargs) -> JsonPrimatives:
+    async def serialize(self, **kwargs) -> JsonPrimatives:
         return {}
+    
+    @abstractmethod
+    @classmethod
+    async def deserialize(cls: Type[TSelf], data: JsonPrimatives, **kwargs) -> TSelf:
+        raise NotImplementedError()
 
 
 # TODO: Really SerializedSchema should be bound to JsonType, but this isn't supported:
 # https://github.com/microsoft/pyright/issues/3870
 SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
-TSelf = TypeVar("TSelf", bound="Serializable")
 
-class SerializesToSchema(Serializable, Generic[SerializedSchema]):
-    """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing to/from a Json-compliant TypedDict schema.
+class SerializesToSchema(Serializable, DefaultableMixin, Generic[SerializedSchema]):
+    """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing
+    to/from a Json-compliant TypedDict schema.
     """
     @abstractmethod
-    def serialize(self, **kwargs) -> SerializedSchema: return {}
+    async def serialize(self, **kwargs) -> SerializedSchema: return {}
 
     @classmethod
     @abstractmethod
-    def deserialize(cls: Type[TSelf], data: SerializedSchema, **kwargs) -> TSelf: raise NotImplementedError()
+    async def deserialize(cls: Type[TSelf], data: SerializedSchema, **kwargs) -> TSelf: raise NotImplementedError()
+
 
 SerializesToJson = SerializesToType[JsonType]
 
@@ -59,4 +64,4 @@ class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     """
     @classmethod
     @abstractmethod
-    def deserialize(cls, data: TSerialized, **kwargs) -> TDeserialized: ...
+    async def deserialize(cls, data: TSerialized, **kwargs) -> TDeserialized: ...

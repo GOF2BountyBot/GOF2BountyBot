@@ -11,7 +11,7 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
 from ..lib.discordUtil import memberDisplayNameOrUserNameAndDiscrim, timestamp, TimeStampStyle
-from ..lib.stringTyping import isInt
+from ..lib.stringUtil import isInt
 from ..gameObjects.battles.duelRequest import DuelRequest, expireAndAnnounceDuelReq, fightDuel
 from ..scheduling.timedTask import TimedTask
 from ..userAlerts import userAlerts

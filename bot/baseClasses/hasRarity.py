@@ -1,16 +1,21 @@
-from typing_extensions import TypedDict
+from sqlalchemy.orm import DeclarativeBase, Mapped
+
 from .embedFillable import EmbedFillableMixin, embedField
 from ..cfg import cfg
+from ..lib.sql import EmbedFillableSqlTableMeta
+from .hasRarity_json import SerializedWithRarity
+from .serializable import SerializesToSchema
 
-class SerializedWithRarity(TypedDict):
-    """HasRarityMixin does not require the type to be serializable, but I'm including this here to help write contracts for serializable items with rarities
-    """
-    rarityLevel: int
 
-class HasRarityMixin(EmbedFillableMixin):
-    """A mixin that simply ensures the existence of the `rarityLevel` attribute.
+class Base(DeclarativeBase): pass
+
+
+class HasRarityMixin(Base, EmbedFillableMixin, SerializesToSchema[SerializedWithRarity], metaclass=EmbedFillableSqlTableMeta):
+    """A mixin that simply ensures the existence of the `rarityLevel` column.
     Also comes with EmbedFillableMixin, and `rarityLevel` as a field.
     """
+    rarityLevel: Mapped[int]
+
     def __init__(self, rarityLevel: int, *args, **kwargs):
         self.rarityLevel = rarityLevel
         super().__init__(*args, **kwargs)
@@ -24,3 +29,7 @@ class HasRarityMixin(EmbedFillableMixin):
         rarityName = cfg.itemRarities[self.rarityLevel]
         rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable
         return f"{rarityEmoji} {rarityName.title()}"
+    
+
+    async def serialize(self, **kwargs) -> SerializedWithRarity:
+        return {"rarityLevel": self.rarityLevel}

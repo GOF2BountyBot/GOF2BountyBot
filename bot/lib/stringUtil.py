@@ -1,0 +1,203 @@
+# TODO: Remake most of these with regex
+from typing import List, Optional, Tuple, Union
+from diff_match_patch import diff_match_patch
+
+DMP = diff_match_patch()
+
+
+def stringDifference(a: str, b: str, deadline: int = 2) -> int:
+    """Compute a rough measure of the difference between two strings.
+    A lower score means the strings are more similar.
+
+    :param a: One of the strings to compare
+    :type a: str
+    :param b: The other string
+    :type b: str
+    :param deadline: Time when the diff should be complete by, defaults to 2
+    :type deadline: int, optional
+    :return: A rough measure of the difference between `a` and `b`
+    :rtype: int
+    """
+    changes = DMP.diff_main(a, b, True, deadline=deadline)
+    return sum(1 for i in changes if i[0] == 1) #DMP.diff_levenshtein(changes)
+
+
+def isInt(x) -> bool:
+    """Decide whether or not something is either an integer, or is castable to integer.
+
+    :param x: The object to type-check
+    :return: True if x is an integer or if x can be casted to integer. False otherwise
+    :rtype: bool
+    """
+    try:
+        int(x)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def isFloat(x) -> bool:
+    """Decide whether or not something is either a float, or is castable to float.
+
+    :param x: The object to type-check
+    :return: True if x is a float or if x can be casted to float. False otherwise
+    :rtype: bool
+    """
+    try:
+        float(x)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def isMention(m: str) -> bool:
+    """Decide whether the given string is a discord user mention,
+    being either <@USERID> or <@!USERID> where USERID is an integer discord user id.
+
+    :param str mention: The string to check
+    :return: True if mention matches the formatting of a discord user mention, False otherwise
+    :rtype: bool
+    """
+    return m.endswith(">") and ((m.startswith("<@") and isInt(m[2:-1])) or \
+                                (m.startswith("<@!") and isInt(m[3:-1])))
+
+
+def isRoleMention(m: str) -> bool:
+    """Decide whether the given string is a discord role mention, being <@&ROLEID> where ROLEID is an integer discord role id.
+
+    :param str mention: The string to check
+    :return: True if mention matches the formatting of a discord role mention, False otherwise
+    :rtype: bool
+    """
+    return all((m.endswith(">"), m.startswith("<@&"), isInt(m[3:-1])))
+
+
+def commaSplitNum(num: Union[int, float]) -> str:
+    """Convert an number to a string with commas in every third position. Also accepts floats.
+    For example: 3 -> "3", 30000 -> "30,000", and 561928301 -> "561,928,301"
+    https://stackoverflow.com/a/10742904
+
+    :param int num: string to insert commas into. probably just containing digits
+    :return: num, but split with commas at every third digit
+    :rtype: str
+    """
+    return f"{num:,}"
+
+
+# string extensions for numbers, e.g 11th, 1st, 23rd...
+numExtensions = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"]
+
+
+def getNumExtension(num: int) -> str:
+    """Return the string extension for an integer, e.g 'th' or 'rd'.
+    https://stackoverflow.com/a/50992575
+
+    :param int num: The integer to find the extension for
+    :return: string containing a number extension from numExtensions
+    :rtype: str
+    """
+    return "th" if 11 <= (num % 100) <= 13 else ("th", "st", "nd", "rd", "th")[min(num % 10, 4)]
+
+
+def shipSkinNameToToolName(skinName: str) -> str:
+    """Construct a name of a shipSkinTool from the name of the skin of the skin.
+
+    :param str skinName: The name of the skin this tool name should reference
+    :return: The name that should be given to a shipSkinTool that applies the named shipSkin
+    """
+    return f"Ship Skin: {skinName}"
+
+
+def formatAdditive(stat: Union[float, int]) -> str:
+    """Format a module effect attribute into a string, including a sign symbol.
+
+    :param stat: The statistic to format into a string
+    :type stat: Union[float, int]
+    :return: A sign symbol, followed by stat
+    """
+    return f"{'+' if stat > 0 else '-'}{stat}"
+
+
+def formatMultiplier(stat: float) -> str:
+    """Format a module effect attribute into a string, including a sign symbol and percentage symbol.
+
+    :param stat: The statistic to format into a string
+    :type stat: float
+    :return: A sign symbol, followed by stat, followed by a percentage sign.
+    """
+    return f"{'+' if stat >= 1 else '-'}{round(((stat - 1) if stat > 1 else (1 - stat)) * 100)}%"
+
+
+def formattedAdditiveAndOrMultiplierOrNone(additive: Union[float, int], multiplier: float) -> Optional[str]:
+    """Format additive if it is not 0, and/or multiplier if it is not 1, or return None if neither are true.
+    Formatting is done with formatAdditive/formatMultiplier.
+    """
+    addStr = "" if additive == 0 else formatAdditive(additive)
+    multStr = "" if multiplier == 1 else formatMultiplier(multiplier)
+    if addStr and multStr: return f"{addStr}\n{multStr}"
+    return addStr or multStr or None
+
+
+def matchIndentation(fields: List[Tuple[str, str]], sep="\n", pad=" ", keysAlign='left', valuesAlign='left',
+                        keyMaxLenOverride: Optional[int] = None, valueMaxLenOverride: Optional[int] = None) -> str:
+    """With each `field` in `fields` as `key` and `value`, perform a `sep`.join on `fields`, with padding between each
+    `key` and `value`, such that each `value` begins in the same column.
+
+    :param fields: List of `key`, `value` tuples. `key` will be placed at column 0, and `value` will be indentation-matched.
+    :type fields: List[Tuple[str, str]]
+    :param sep: The character to place in between each `field` (Default "\n")
+    :type sep: str, optional
+    :param pad: The string to pad between `key`s and `value`s with (Default " ")
+    :type pad: str, optional
+    :param centreKeys: How to horizontally align `key`s, `left`, `right` or `centre` (Default `left`)
+    :type centreKeys: str, optional
+    :param centreValues: How to horizontally align `value`s, `left`, `right` or `centre` (Default `left`)
+    :type centreValues: str, optional
+    :param keyMaxLenOverride: Override for the maximum width of the `key`s column (Default inferred)
+    :type keyMaxLenOverride: int, optional
+    :param valueMaxLenOverride: Override for the maximum width of the `value`s column (Default inferred)
+    :type valueMaxLenOverride: int, optional
+    :return: [description]
+    :rtype: str
+    """
+    longestKeyLength = max(len(k) for k, _ in fields) if keyMaxLenOverride is None else keyMaxLenOverride
+    longestValueLength = max(len(v) for _, v in fields) if valueMaxLenOverride is None else valueMaxLenOverride
+
+    def centreOrPad(value: str, alignment: str, maxLength: int, padRight: bool) -> str:
+        if alignment == 'left':
+            if padRight:
+                return f"{value}{pad * (maxLength - len(value))}"
+            return value
+        elif alignment == 'right':
+            return f"{pad * (maxLength - len(value))}{value}"
+        elif alignment == 'centre':
+            if len(value) == maxLength:
+                return value
+            total = maxLength - len(value)
+            left = total // 2
+            right = total - left
+            return f"{pad * left}{value}{pad * right}"
+        else:
+            raise ValueError(f"Invalid alignment: {alignment}")
+
+    return sep.join(centreOrPad(k, keysAlign, longestKeyLength, True)
+                    + centreOrPad(v, valuesAlign, longestValueLength, False)
+                    for k, v in fields)
+
+
+def truncateWithEllipse(s: str, maxLength: int, truncatedLength: int, ellipse: str = "...") -> str:
+    """If `s` is longer than `maxLength`, truncate it to `truncatedLength` and append `ellipse`.
+    If `s` is not longer than `maxLength`, do nothing.
+
+    :param s: The string to potentially truncate
+    :type s: str
+    :param maxLength: The cutoff before truncation is triggered
+    :type maxLength: int
+    :param truncatedLength: The number of characters that should remain after truncation is triggered (ignoring `ellipse`)
+    :type truncatedLength: int
+    :param ellipse: The string to append onto truncated strings (Default "...")
+    :type ellipse: str, optional
+    :return: `s` truncated to `truncatedLength` and with `ellipse` appended if `s` is longer than `maxLength`, `s` otherwise
+    :rtype: str
+    """
+    return s if len(s) <= maxLength else s[:truncatedLength] + ellipse

@@ -8,7 +8,7 @@ import asyncio
 
 from ..cfg import cfg, bbData
 from .. import lib, botState
-from ..lib.discordUtil import truncateWithEllipse
+from ..lib.stringUtil import truncateWithEllipse
 from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
 from ..gameObjects.items.ships import shipItem
 from ..shipRenderer import shipRenderer
@@ -100,7 +100,7 @@ async def fixImageAspectRatio(skinPath: str, message: discord.Message, itemName:
 
 
 async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x: int, res_y: int, numSamples: int,
-                                doQueue: bool, full: bool = False) -> Optional[Tuple[str, shipRenderer.AutoskinArgs]]:
+                                doQueue: bool, full: bool = False) -> Optional[Tuple[str, shipRenderer.AutoskinShipRendererArgs]]:
     """Collect a usable AutoskinArgs object to pass to the ship renderer
 
     :param message: The message that triggered the operation
@@ -318,11 +318,11 @@ async def collectAutoskinArgs(message: discord.Message, userShipName: str, res_x
                     if cancelled:
                         return None
     
-    return itemName, shipRenderer.AutoskinArgs(str(message.id), shipData["path"], shipData["model"], skinPaths,
+    return itemName, shipRenderer.AutoskinShipRendererArgs(str(message.id), shipData["path"], shipData["model"], skinPaths,
                                                 disabledLayers, res_x, res_y, numSamples, full=full)
 
 
-async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.AutoskinArgs, shipName: str,
+async def doAutoSkin(message: discord.Message, rendererArgs: shipRenderer.AutoskinShipRendererArgs, shipName: str,
                     renderIdentifierPrefix: str = ""):
     """Call shipRenderer following a render command.
 

@@ -3,14 +3,14 @@ from discord.app_commands import Range
 
 from .. import client
 from ..lib.discordUtil import makeEmbed
-from ..lib.stringTyping import formatMultiplier, commaSplitNum
+from ..lib.stringUtil import formatMultiplier, commaSplitNum
 from ..cfg import cfg
 from ..logging import LogCategory
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..gameObjects.guildShop import StoredItemTypesTuple
+from ..entities.shops.guildShop import StoredItemTypesTuple
 
 
 class UserLomaCog(BasedCog):

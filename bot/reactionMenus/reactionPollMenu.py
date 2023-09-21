@@ -6,7 +6,7 @@ from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, R
 from ..scheduling import timedTask
 from typing import Dict, Optional, Union, cast
 from typing_extensions import NotRequired
-from ..users import basedUser
+from ..entities.user import basedUser
 from ..logging import LogCategory
 from ..baseClasses.serializable import SerializesToSchema
 from ..lib.timeUtil import utcfromtimestamp

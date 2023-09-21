@@ -2,7 +2,7 @@
 from __future__ import annotations, division
 from typing import TYPE_CHECKING, List, Dict, Optional, Protocol, Any, Type, Union
 if TYPE_CHECKING:
-    from ...databases import bountyDivision
+    from ...entities.bounties import bountyDivision
 
 import random
 from datetime import timedelta
@@ -16,7 +16,7 @@ from ...logging import LogCategory
 from ..items.modules import armourModule, shieldModule, moduleItem
 from ..items.ships import shipItem
 from ..items.weapons import primaryWeapon, turretWeapon
-from ...databases import bountyDB
+from ...repositories import bountyRepository
 
 class ValidatorWithKwargs(Protocol):
     def __call__(self, tl: int, **kwargs) -> bool: ...
@@ -73,29 +73,6 @@ def findItemTL(center: int, minTL: int, maxTL: int, upperBound: int, validator: 
             tl += 1
     
     return -1
-
-    # # Old implementation
-    # tlsTried = 0
-    # upward = False
-    # while tlsTried < maxTL - minTL:
-    #     if validator(tl):
-    #         return tl
-    #     else:
-    #         tlsTried += 1
-    #         if tl == minTL:
-    #             if tl < maxTL - 1:
-    #                 upward = True
-    #                 tl = center + 1
-    #             else:
-    #                 break
-    #         elif upward:
-    #             if tl - center < upperBound:
-    #                 tl += 1
-    #             else:
-    #                 break
-    #         else:
-    #             tl -= 1
-    # return -1
 
 
 def shipTLHasPrimaries(tl: int) -> bool:
@@ -282,7 +259,7 @@ class BountyConfig:
 
         if doDBCheck and division.isFull() and (division.hasMinTLBounty() or \
                 (not division.hasMinTLBounty() and self.techLevel not in [division.minLevel, -1])):
-            raise OverflowError("The given division is full: " + bountyDB.nameForDivision(division))
+            raise OverflowError("The given division is full: " + bountyRepository.nameForDivision(division))
             
         if noCriminal:
             if self.name in bbData.bountyNames:

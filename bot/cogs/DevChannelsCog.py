@@ -6,7 +6,7 @@ from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..databases.bountyDB import nameForDivision
+from ..repositories.bountyRepository import nameForDivision
 from typing import List, cast
 
 
@@ -30,7 +30,7 @@ class DevChannelsCog(BasedCog):
                 return
             guildId = interaction.guild.id
         else:
-            if not lib.stringTyping.isInt(guild_id):
+            if not lib.stringUtil.isInt(guild_id):
                 await interaction.response.send_message(":x: Invalid `guild_id`: Not a number", ephemeral=False)
                 return
             guildId = int(guild_id)

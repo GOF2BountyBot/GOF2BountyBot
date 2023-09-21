@@ -62,8 +62,8 @@ class RepairBeamModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSc
 #endregion
 
     def statsStringShort(self):
-        return "*Effect: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) \
-                + ", Count: " + lib.stringTyping.formatAdditive(self.count) + "*"
+        return "*Effect: " + moduleItem.lib.stringUtil.formatMultiplier(self.effect) \
+                + ", Count: " + lib.stringUtil.formatAdditive(self.count) + "*"
 
 
     def serialize(self, **kwargs) -> SerializedRepairBeamModuleUnion:

@@ -55,7 +55,7 @@ class GammaShieldModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToS
 
 
     def statsStringShort(self):
-        return "*Gamma Shielding: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) + "*"
+        return "*Gamma Shielding: " + moduleItem.lib.stringUtil.formatMultiplier(self.effect) + "*"
 
 
     def serialize(self, **kwargs) -> SerializedGammaShieldModuleUnion:

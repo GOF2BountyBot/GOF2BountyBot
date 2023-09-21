@@ -7,7 +7,7 @@ from ...baseClasses.embedFillable import EmbedFillableMixin, embedField, embedTh
 from abc import abstractmethod
 from ... import lib
 from ...lib import gameMaths
-from ...lib.stringTyping import commaSplitNum
+from ...lib.stringUtil import commaSplitNum
 from ...cfg import bbData, cfg, schema
 from..gameObject import LoadedObject, SerializedLoadedObject
 
@@ -216,21 +216,3 @@ def spawnableItemClassFromName(n: str) -> Type[GameItem]:
 
 def isSpawnableItemInstance(o):
     return isinstance(o, GameItem) and type(o) in nameSubClasses
-
-
-def topThreeItemSpawnRates(item: GameItem, shopPool: List[List[Any]]) -> Optional[str]:
-    """Get a string describing the top 3 spawn rates for an item with tech level `tl`.
-
-    :param item: The item
-    :type item: GameItem
-    :param shopPool: The shop's techlevel-sorted pool of items
-    :type shopPool: List[List[Any]]
-    :return: A string describing the item's top 3 spawn rates, or None if `tl` is invalid
-    :rtype: Optional[str]
-    """
-    if not item.hasTechLevel or item.techLevel < cfg.minTechLevel or item.techLevel > cfg.maxTechLevel:
-        return None
-    
-    tlRange = range(max(item.techLevel - 1, cfg.minTechLevel), min(item.techLevel + 1, cfg.maxTechLevel) + 1)
-    rates = [(tl, gameMaths.itemTLSpawnChanceForShopTL[tl - 1][item.techLevel - 1]) for tl in tlRange if shopPool[tl - 1]]
-    return "\n".join(f"Level {tl} Shops: {round((rate/len(shopPool[tl - 1]))*100, 2)}%" for tl, rate in rates)

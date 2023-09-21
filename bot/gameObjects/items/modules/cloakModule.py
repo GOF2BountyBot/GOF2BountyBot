@@ -55,7 +55,7 @@ class CloakModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToSchema[
 
 
     def statsStringShort(self):
-        return "*Duration: " + moduleItem.lib.stringTyping.formatAdditive(self.duration) + "s*"
+        return "*Duration: " + moduleItem.lib.stringUtil.formatAdditive(self.duration) + "s*"
 
 
     def serialize(self, **kwargs) -> SerializedCloakModuleUnion:

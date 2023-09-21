@@ -6,7 +6,7 @@ from discord.app_commands import Range
 from discord.utils import MISSING
 
 from .. import client, lib
-from ..lib.stringTyping import commaSplitNum, formatMultiplier
+from ..lib.stringUtil import commaSplitNum, formatMultiplier
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory
@@ -14,9 +14,9 @@ from ..interactions import basedCommand, basedApp
 from ..gameObjects.items import gameItem
 from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.lomaShop import LomaShop
-from ..gameObjects import guildShop
+from ..entities.shops import guildShop
 from ..logging import LogCategory
-from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
+from ..entities.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
 from ..views.serializedItemModal import SerializedItemModal
 
 class DevLomaCog(basedApp.BasedCog):

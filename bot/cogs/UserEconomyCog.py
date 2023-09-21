@@ -6,7 +6,7 @@ from discord.app_commands import Range
 from bot.gameObjects.items.ships.shipItem import Ship
 
 from .. import client
-from ..lib.stringTyping import isInt, commaSplitNum
+from ..lib.stringUtil import isInt, commaSplitNum
 from ..lib.discordUtil import makeEmbed, ZWSP
 from ..lib.gameMaths import calculateUserBountyHuntingLevel
 from ..cfg import cfg
@@ -14,12 +14,12 @@ from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..users import basedUser
+from ..entities.user import basedUser
 from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, \
                                     anyUserHangerItemAutoComplete, AnyUserHangarItem
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
-from ..gameObjects.guildShop import TechLeveledShop
+from ..entities.shops.guildShop import TechLeveledShop
 from ..logging import LogCategory
 from ..views.confirmView import ConfirmView
 

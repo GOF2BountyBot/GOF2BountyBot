@@ -1,4 +1,6 @@
 import os, shutil
+import uuid
+
 from ..cfg import cfg
 
 class TempFolder:
@@ -15,19 +17,26 @@ class TempFolder:
     def __init__(self, folderName: str) -> None:
         self.folderName = folderName
 
+
+    @classmethod
+    def Random(cls):
+        """Create a TempFolder with a random name.
+        """
+        return TempFolder(uuid.uuid1().hex)
+
     
     @property
-    def folderPath(self): return os.path.join(cfg.paths.tempRenders, self.folderName)
+    def path(self): return os.path.join(cfg.paths.tempRenders, self.folderName)
 
 
     def __enter__(self):
-        os.makedirs(self.folderPath, exist_ok=True)
+        os.makedirs(self.path, exist_ok=True)
         return self
 
 
     def __exit__(self, cls, value, traceback):
         try:
-            shutil.rmtree(self.folderPath)
+            shutil.rmtree(self.path)
         except ValueError:
             pass
         return False

@@ -15,20 +15,20 @@ from PIL import Image, ImageDraw, ImageFont
 from .. import client, lib, botState
 from ..lib.BASED_version import getBASEDVersion, BASED_REPO_URL
 from ..lib.discordUtil import ZWSP
-from ..lib.stringTyping import isInt, commaSplitNum
+from ..lib.stringUtil import isInt, commaSplitNum
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..interactions import basedCommand, basedApp
 from ..interactions.basedComponent import StaticComponents
 from ..interactions.commandChecks import guildOnly
 from ..cfg import cfg, bbData
 from .util.transformers import BoolYesNo
-from ..users import basedUser
+from ..entities.user import basedUser
 from ..userAlerts import userAlerts
-from ..databases import bountyDB
+from ..repositories import bountyRepository
 from ..logging import LogCategory
 from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
 from ..reactionMenus import reactionPollMenu
-from ..databases.bountyDB import divisionNameForLevel
+from ..repositories.bountyRepository import divisionNameForLevel
 
 #region how to play util
 
@@ -955,7 +955,7 @@ class UserMiscCog(basedApp.BasedCog):
                 await interaction.response.send_message(":x: This server does not have roles for new bounties notifications. :robot:")
                 return
 
-            bountiesDB = cast(bountyDB.BountyDB, requestedBBGuild.bountiesDB)
+            bountiesDB = cast(bountyRepository.BountyRepository, requestedBBGuild.bountiesDB)
 
             if requestedBBUser.classicModeEnabled:
                 tl = -1

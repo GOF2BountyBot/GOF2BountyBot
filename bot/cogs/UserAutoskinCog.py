@@ -9,6 +9,7 @@ import discord
 from discord.abc import Messageable
 from discord.ui import View, Button, button, select, Select
 from PIL import Image
+from contextlib import nullcontext
 
 from .. import client, botState, lib
 from ..lib.discordUtil import textChannel
@@ -29,11 +30,6 @@ from ..views.viewBase import ViewBase
 
 ROBOT_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 CWD = os.getcwd()
-
-
-class DummyScope:
-    def __enter__(self): return self
-    def __exit__(self, cls, value, traceback): return False
 
 
 class RendererReservation:
@@ -422,13 +418,13 @@ class UserAutoskinCog(BasedCog):
             if baseTex.mode == "RGBA":
                 ext = "png"
                 convertedTex = baseTex
-                baseTex = DummyScope()
+                baseTex = nullcontext()
             else:
                 convertedTex = baseTex.convert("RGB")
                 ext = "jpg"
             
             with baseTex, convertedTex:
-                path = os.path.join(folder.folderPath, f"{fileName}.{ext}")
+                path = os.path.join(folder.path, f"{fileName}.{ext}")
                 convertedTex.save(path)
             return path
 
@@ -510,7 +506,7 @@ class UserAutoskinCog(BasedCog):
 
     async def collectAutoskinArgs(self, interaction: Interaction, ship: str,
                                     full: bool, res_x: int, res_y: int, numSamples: int,
-                                    folder: TempFolder) -> Optional[shipRenderer.AutoskinArgs]:
+                                    folder: TempFolder) -> Optional[shipRenderer.AutoskinShipRendererArgs]:
         """Collect the necessary images from a user to perform a render, possibly with autoskin.
         Will respond to `Interaction`.
 
@@ -542,7 +538,7 @@ class UserAutoskinCog(BasedCog):
         skinPaths[0] = path
 
         if full or shipData["textureRegions"] == 0:
-            return shipRenderer.AutoskinArgs(str(interaction.id), shipData["path"], shipData["model"], skinPaths,
+            return shipRenderer.AutoskinShipRendererArgs(str(interaction.id), shipData["path"], shipData["model"], skinPaths,
                                             [], res_x, res_y, numSamples, full=full)
 
         view = AutoskinRegionSelectorView(interaction.user, ship, timeout=cfg.timeouts.menuInteractionDefault.total_seconds())
@@ -576,11 +572,11 @@ class UserAutoskinCog(BasedCog):
             if path is None: return None
             skinPaths[regionNum] = path
         
-        return shipRenderer.AutoskinArgs(str(interaction.id), shipData["path"], shipData["model"], skinPaths,
+        return shipRenderer.AutoskinShipRendererArgs(str(interaction.id), shipData["path"], shipData["model"], skinPaths,
                                         list(view.disabledRegions), res_x, res_y, numSamples, full=full)
 
     
-    def constructRenderIdentifier(self, interaction: Interaction, ship: str, rendererArgs: shipRenderer.AutoskinArgs, prefix: str = ""):
+    def constructRenderIdentifier(self, interaction: Interaction, ship: str, rendererArgs: shipRenderer.AutoskinShipRendererArgs, prefix: str = ""):
         return RenderIdentifier(prefix,
                                 interaction.user.id,
                                 None if interaction.guild is None else interaction.guild.id,
@@ -595,7 +591,7 @@ class UserAutoskinCog(BasedCog):
         return RenderIdentifier.fromStr(id)
 
 
-    async def doAutoSkin(self, interaction: Interaction, channel: Messageable, rendererArgs: shipRenderer.AutoskinArgs, shipName: str, folder: TempFolder, renderIdentifierPrefix: str = ""):
+    async def doAutoSkin(self, interaction: Interaction, channel: Messageable, rendererArgs: shipRenderer.AutoskinShipRendererArgs, shipName: str, folder: TempFolder, renderIdentifierPrefix: str = ""):
         """Call shipRenderer following a render command.
         If `trigger` is an interaction, it will be responded to, not followed up.
 
@@ -608,8 +604,8 @@ class UserAutoskinCog(BasedCog):
         """
         waitMsg = await channel.send("🤖 Render started! I'll ping you when I'm done.")
 
-        renderPath = os.path.join(folder.folderPath, f"{interaction.id}-RENDER.png")
-        outSkinPath = os.path.join(folder.folderPath, f"{interaction.id}-GENTEX.jpg")
+        renderPath = os.path.join(folder.path, f"{interaction.id}-RENDER.png")
+        outSkinPath = os.path.join(folder.path, f"{interaction.id}-GENTEX.jpg")
 
         renderIdentifier = self.constructRenderIdentifier(interaction, shipName, rendererArgs, prefix=renderIdentifierPrefix).toStr()
 
@@ -724,10 +720,10 @@ class UserAutoskinCog(BasedCog):
                 return
 
             if _autoskin:
-                texPath = os.path.join(folder.folderPath, f"{interaction.id}-GENTEX.jpg")
+                texPath = os.path.join(folder.path, f"{interaction.id}-GENTEX.jpg")
                 shipRenderer.compositeTextures(texPath, shipData["path"], rendererArgs.textures, rendererArgs.disabledLayers)
             else:
-                texPath = os.path.join(folder.folderPath, rendererArgs.textures[0])
+                texPath = os.path.join(folder.path, rendererArgs.textures[0])
 
             renderEmbed = lib.discordUtil.makeEmbed(desc=f"Select a format to get the generated texture file.\n> *🖼 JPG 🤖 AEI (android) 🖥 AEI(PC)*",
                                                     col=discord.Colour.random(),

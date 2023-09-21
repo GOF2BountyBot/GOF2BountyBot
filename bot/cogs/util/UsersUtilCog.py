@@ -5,10 +5,10 @@ from discord.app_commands import Range
 
 from ...interactions.basedApp import BasedCog
 from ... import client, lib
-from ...lib.stringTyping import isInt
-from ...users import basedUser
+from ...lib.stringUtil import isInt
+from ...entities.user import basedUser
 from ...cfg.bbData import ItemCategory
-from ...gameObjects.inventories.inventory import Inventory
+from ...gameObjects.inventories.inventoryBase import Inventory
 from ...gameObjects.items.gameItem import GameItem
 
 
@@ -20,7 +20,7 @@ class UsersUtilCog(BasedCog):
         If user_id is not given, return the id of the interaction author (`id, True`)
         """
         if user_id:
-            if not lib.stringTyping.isInt(user_id):
+            if not lib.stringUtil.isInt(user_id):
                 if sendError:
                     await interaction.response.send_message(":x: Invalid user ID!", ephemeral=errorEphemeral)
                 return -1, False

@@ -1,5 +1,5 @@
-from typing import Optional, TypeVar, Type
-from typing_extensions import NotRequired, TypedDict
+from typing import Optional, TypeVar, Type, TypedDict
+from typing_extensions import NotRequired
 from abc import abstractmethod
 
 from ..baseClasses.serializable import SerializesToSchema

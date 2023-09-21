@@ -7,8 +7,7 @@ TValue = TypeVar("TValue")
 class AliasableDict(Dict[TKey, TValue]):
     """A dictionary where keys are guaranteed to be Aliasable subclasses.
     """
-
-    def getKeyNamed(self, name: str) -> TKey:
+    async def getKeyNamed(self, name: str) -> TKey:
         """Search the dictionary for a key with the given name or alias.
 
         :param str name: The name or alias to look up
@@ -19,13 +18,14 @@ class AliasableDict(Dict[TKey, TValue]):
         """
         if type(name) != str:
             raise TypeError("Expecting type str for parameter name, received '" + type(name).__name__ + "'")
+        
         for k in self:
-            if k.isCalled(name):
+            if await k.isCalled(name):
                 return k
         raise KeyError("Could not find a key with the given name: " + name)
 
 
-    def getValueForKeyNamed(self, name: str) -> TValue:
+    async def getValueForKeyNamed(self, name: str) -> TValue:
         """Search the dictionary for a key with the given name or alias, and get the value paired with it.
 
         :param str name: The name or alias to look up
@@ -34,10 +34,10 @@ class AliasableDict(Dict[TKey, TValue]):
         :raise KeyError: If no key in the dictionary is called name
         :raise TypeError: If name is not a str
         """
-        return self[self.getKeyNamed(name)]
+        return self[await self.getKeyNamed(name)]
 
 
-    def getManyKeysNamed(self, names: List[str]) -> Dict[str, TKey]:
+    async def getManyKeysNamed(self, names: List[str]) -> Dict[str, TKey]:
         """Search the dictionary for a list of keys with the given names or aliases.
         All names must match a key, no partial results are returned.
 
@@ -53,19 +53,22 @@ class AliasableDict(Dict[TKey, TValue]):
         for name in names:
             if type(name) != str:
                 raise TypeError(f"Names must be str, but got type '{type(name).__name__}' for name '{name!s}'")
+            
         toFind = set(names)
         results = {}
         for k in self:
             for name in toFind:
-                if k.isCalled(name):
+                if await k.isCalled(name):
                     results[name] = k
                     toFind.remove(name)
+
         if toFind:
             raise KeyError(f"Could not find keys with the following names: {', '.join(toFind)}")
+        
         return results
 
 
-    def getValuesForManyKeysNamed(self, names: List[str]) -> Dict[str, TValue]:
+    async def getValuesForManyKeysNamed(self, names: List[str]) -> Dict[str, TValue]:
         """Search the dictionary for keys with the given names or aliases, and get the values paired with them.
         All names must match a key, no partial results are returned.
 
@@ -78,7 +81,7 @@ class AliasableDict(Dict[TKey, TValue]):
         :raise KeyError: If no key in the dictionary could be found for at least one search term
         :raise TypeError: If names is not a list of strings
         """
-        return {n: self[k] for n, k in self.getManyKeysNamed(names).items()}
+        return {n: self[k] for n, k in (await self.getManyKeysNamed(names)).items()}
 
 
     def __setitem__(self, k: TKey, v: TValue) -> None:
@@ -90,4 +93,5 @@ class AliasableDict(Dict[TKey, TValue]):
         """
         if not isinstance(k, AliasableMixin):
             raise TypeError("Keys must be Aliasable, given " + type(k).__name__)
+        
         super().__setitem__(k, v)

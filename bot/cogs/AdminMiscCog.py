@@ -295,7 +295,7 @@ class AdminMiscCog(basedApp.BasedCog):
             return
         else:
             for rawId in selectedRaw:
-                if not lib.stringTyping.isInt(rawId):
+                if not lib.stringUtil.isInt(rawId):
                     self.bot.logger.log(type(self).__name__, self.manageRoles.__name__,
                                 f"Non-int role ID received '{rawId}': " \
                                     + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Manage_Roles),
@@ -436,7 +436,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                 category=LogCategory.staticComponents, eventType="COMPONENT_NOT_SELECT", interaction=interaction)
         else:
             rawId = selected[0]
-            if not lib.stringTyping.isInt(rawId):
+            if not lib.stringUtil.isInt(rawId):
                 self.bot.logger.log(type(self).__name__, self.endChangeEmoji.__name__,
                             f"Non-int role ID received '{rawId}': " \
                                 + interactionErrorString(interaction, StaticComponents.Admin_MakeRoleMenu_Change_Emoji),
@@ -581,7 +581,7 @@ class AdminMiscCog(basedApp.BasedCog):
     async def admin_cmd_del_reaction_menu(self, interaction: Interaction, menu_id: str):
         """Force the expiry of the specified reaction menu message, regardless of reaction menu type.
         """
-        if not lib.stringTyping.isInt(menu_id):
+        if not lib.stringUtil.isInt(menu_id):
             await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.", ephemeral=True)
             return
 
@@ -733,7 +733,7 @@ class AdminMiscCog(basedApp.BasedCog):
     @app_commands.command(name="add-role",
                             description="Add a role to a role menu.")
     async def admin_cmd_add_role_menu_role(self, interaction: Interaction, emoji: str, role: Role, menu_id: str):
-        if not lib.stringTyping.isInt(menu_id.strip()):
+        if not lib.stringUtil.isInt(menu_id.strip()):
             await interaction.response.send_message(":x: Invalid `menu_id`! Must be a number. These are usually visible at the bottom of the menu.", ephemeral=True)
             return
 

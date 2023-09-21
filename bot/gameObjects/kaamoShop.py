@@ -3,28 +3,28 @@ from typing import TYPE_CHECKING, Optional
 
 from .items.ships import shipItem, shipBase
 if TYPE_CHECKING:
-    from ..users import basedUser
+    from ..entities.user import basedUser
 
-from . import guildShop
+from ..entities.shops import guildShop
 from ..cfg import cfg
 from .items import gameItem
 from .items.weapons import primaryWeapon, turretWeapon
 from .items.modules import moduleItem
 from .items.tools import toolItem
-from .inventories import inventory
-from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
+from .inventories import inventoryBase
+from ..entities.inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 
 
-class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInventoryListing], InventoryListing]):
+class KaamoShop(guildShop.ShopBase[inventoryBase.SerializedInventory[SerializedInventoryListing], InventoryListing]):
     """A "shop" where all transactions are free, essentially operating an item storage service.
     KaamoShops have a maximum capacity defined in cfg. Items equipped onto ships count towards this cap.
     """
 
-    def __init__(self, shipsStock: Optional[inventory.Inventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
-            weaponsStock: Optional[inventory.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
-            modulesStock: Optional[inventory.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
-            turretsStock: Optional[inventory.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
-            toolsStock: Optional[inventory.Inventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None):
+    def __init__(self, shipsStock: Optional[inventoryBase.Inventory[shipItem.Ship, shipBase.SerializedShipUnion]] = None,
+            weaponsStock: Optional[inventoryBase.Inventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]] = None,
+            modulesStock: Optional[inventoryBase.Inventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]] = None,
+            turretsStock: Optional[inventoryBase.Inventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]] = None,
+            toolsStock: Optional[inventoryBase.Inventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]] = None):
         """
         :param Inventory shipsStock: The shop's current stock of ships (Default empty Inventory)
         :param Inventory weaponsStock: The shop's current stock of weapons (Default empty Inventory)
@@ -33,11 +33,11 @@ class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInven
         :param Inventory toolsStock: The shop's current stock of tools (Default empty Inventory)
         """
 
-        super().__init__(shipsStock=shipsStock or inventory.Inventory(shipItem.Ship),
-                            weaponsStock=weaponsStock or inventory.Inventory(primaryWeapon.PrimaryWeapon),
-                            modulesStock=modulesStock or inventory.Inventory(moduleItem.ModuleItem),
-                            turretsStock=turretsStock or inventory.Inventory(turretWeapon.TurretWeapon),
-                            toolsStock=toolsStock or inventory.Inventory(toolItem.ToolItem))
+        super().__init__(shipsStock=shipsStock or inventoryBase.Inventory(shipItem.Ship),
+                            weaponsStock=weaponsStock or inventoryBase.Inventory(primaryWeapon.PrimaryWeapon),
+                            modulesStock=modulesStock or inventoryBase.Inventory(moduleItem.ModuleItem),
+                            turretsStock=turretsStock or inventoryBase.Inventory(turretWeapon.TurretWeapon),
+                            toolsStock=toolsStock or inventoryBase.Inventory(toolItem.ToolItem))
         self.totalItems = self.weaponsStock.totalItems + self.modulesStock.totalItems + self.turretsStock.totalItems \
                             + self.toolsStock.totalItems
         for ship in self.shipsStock.items:

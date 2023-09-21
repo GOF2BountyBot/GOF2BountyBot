@@ -1,4 +1,4 @@
-from ..users import basedUser
+from ..entities.user import basedUser
 from .import reactionMenu
 from discord import Message, Member, Role, Embed
 from .. import lib, botState

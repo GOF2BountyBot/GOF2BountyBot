@@ -9,6 +9,10 @@ from carica import SerializableTimedelta
 import json
 import random
 
+from ..entities.bounties import bounty
+
+from ..entities.guild import basedGuild
+
 from ..scheduling import timedTask
 from ..interactions import basedCommand, basedApp
 from .. import botState, lib, client
@@ -16,11 +20,11 @@ from ..lib import gameMaths
 from ..lib.timeUtil import utcfromtimestamp
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
-from ..gameObjects.bounties import bounty, bountyConfig
+from ..gameObjects.bounties import bountyConfig
 from ..gameObjects.items.ships import shipItem
-from ..users import basedGuild, basedUser
-from ..databases.bountyDB import nameForDivision, BountyDB
-from ..databases.bountyDivision import BountyDivision
+from ..entities.user import basedUser
+from ..repositories.bountyRepository import nameForDivision, BountyRepository
+from ..gameObjects.bounties.bountyDivision import BountyDivision
 from ..logging import LogCategory
 from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, DivisionNameOrAll, \
                                     systemAutoComplete, SystemKey, SystemKeyList, \
@@ -53,7 +57,7 @@ class DevBountiesCog(basedApp.BasedCog):
         errors: List[str] = []
 
         if player_id is not None:
-            if not lib.stringTyping.isInt(player_id):
+            if not lib.stringUtil.isInt(player_id):
                 errors.append("Your `player_id` is not a valid user id")
             else:
                 playerIdInt = int(player_id)
@@ -117,7 +121,7 @@ class DevBountiesCog(basedApp.BasedCog):
             else:
                 config.reward = reward
         if endTime is not None:
-            if lib.stringTyping.isFloat(endTime):
+            if lib.stringUtil.isFloat(endTime):
                 errors.append("Your `endTime` is not a valid unix timestamp")
             else:
                 endTimeFloat = float(endTime)
@@ -133,7 +137,7 @@ class DevBountiesCog(basedApp.BasedCog):
             config.icon = icon
 
         # Casting here because getGuildWithBounties ensures that `calling BBGuild` has bounties enabled
-        bountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, callingBBGuild.bountiesDB)
         if division is not None:
             div = bountiesDB.divisionForName(division)
         else:
@@ -179,7 +183,7 @@ class DevBountiesCog(basedApp.BasedCog):
             homeBGuild: basedGuild.BasedGuild = self.bot.guildsDB.getGuild(requestedBBUser.homeGuildID)
             if not homeBGuild.bountiesDisabled and homeBGuild.hasBountyAlertRoles:
                 # Casing here because bountiesDisabled being False guarantees bountiesDB
-                bountiesDB = cast(BountyDB, homeBGuild.bountiesDB)
+                bountiesDB = cast(BountyRepository, homeBGuild.bountiesDB)
                 tl = gameMaths.calculateUserBountyHuntingLevel(requestedBBUser.bountyHuntingXP)
                 oldDiv = bountiesDB.divisionForLevel(tl)
                 oldRole = homeBGuild.dcGuild.get_role(oldDiv.alertRoleID)
@@ -608,7 +612,7 @@ class DevBountiesCog(basedApp.BasedCog):
 
         criminalObj = bbData.builtInCriminalObjs[criminal]
 
-        async def callback(db: BountyDB):
+        async def callback(db: BountyRepository):
             try:
                 bounty = db.getBountyByCrim(criminalObj)
             except KeyError:
@@ -639,7 +643,7 @@ class DevBountiesCog(basedApp.BasedCog):
             
         criminalObj = bbData.builtInCriminalObjs[criminal]
 
-        async def callback(db: BountyDB):
+        async def callback(db: BountyRepository):
             try:
                 bounty = db.getBountyByCrim(criminalObj)
             except KeyError:
@@ -668,7 +672,7 @@ class DevBountiesCog(basedApp.BasedCog):
 
         criminalObj = bbData.builtInCriminalObjs[criminal]
 
-        def callback(db: BountyDB):
+        def callback(db: BountyRepository):
             try:
                 bounty = db.getEscapedBountyByCrim(criminalObj)
             except KeyError:
@@ -789,13 +793,13 @@ class DevBountiesCog(basedApp.BasedCog):
         if not valid: return
 
         callingBBGuild = cast(basedGuild.BasedGuild, callingBBGuild)
-        bountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, callingBBGuild.bountiesDB)
 
         # report unrecognised criminal names
         if not bountiesDB.bountyNameExists(name, noEscapedCrim=True):
             errmsg = ":x: That pilot is not currently wanted!"
 
-            if lib.stringTyping.isMention(name):
+            if lib.stringUtil.isMention(name):
                 errmsg += "\n:warning: **Don't tag users**, use their name and ID number like so: `" \
                             + callingBBGuild.commandPrefix + "loadout criminal Trimatix#2244`"
 

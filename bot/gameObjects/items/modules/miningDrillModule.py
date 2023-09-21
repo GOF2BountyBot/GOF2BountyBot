@@ -63,8 +63,8 @@ class MiningDrillModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesToS
 
 
     def statsStringShort(self):
-        return "*Yield: " + moduleItem.lib.stringTyping.formatMultiplier(self.oreYield) \
-                + ", Handling: " + lib.stringTyping.formatMultiplier(self.drillHandling) + "*"
+        return "*Yield: " + moduleItem.lib.stringUtil.formatMultiplier(self.oreYield) \
+                + ", Handling: " + lib.stringUtil.formatMultiplier(self.drillHandling) + "*"
 
 
     def serialize(self, **kwargs) -> SerializedMiningDrillModuleUnion:

@@ -18,22 +18,22 @@ from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
-from ..users.basedGuild import BasedGuild
-from ..users.basedUser import OwnedMenuType
+from ..entities.guild.basedGuild import BasedGuild
+from ..entities.user.basedUser import OwnedMenuType
 from .util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
 from .util.transformers import PlayOrAnnounceChannel
 from ..scheduling.timedTask import TimedTask
 from ..commands import commandsDB as textCommandsDB
 from ..interactions.accessLevels import _accessLevels
 from ..reactionMenus import reactionMenu
-from ..databases.bountyDB import nameForDivision, BountyDB
+from ..repositories.bountyRepository import nameForDivision, BountyRepository
 from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey
 from .util.parameterVerifiers import verifyCriminalName
 from ..logging import LogCategory
 from ..baseClasses.basedEnum import BasedEnum
 from ..gameObjects.items.ships import shipItem
 from ..gameObjects.bounties import solarSystem
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..entities.bounties.bountyBoardChannel import BountyBoardChannel
 from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 if TYPE_CHECKING:
@@ -876,7 +876,7 @@ class DevMiscCog(BasedCog):
         embed = Embed(title="Bot Status", colour=Colour.random())
 
         embed.add_field(name="Built-in GameObjects",
-                        value=lib.stringTyping.matchIndentation([
+                        value=lib.stringUtil.matchIndentation([
                             ("`Ships",      f" | {len(bbData.builtInShipData)} data/{len(bbData.shipKeysByTL)} sorted/{sum(len(i) for i in bbData.shipKeysByTL)} sorted (total)`"),
                             ("`Modules",    f" | {len(bbData.builtInModuleData)} data/{len(bbData.builtInModuleObjs)} objs/{len(bbData.moduleObjsByTL)} sorted/{sum(len(i) for i in bbData.moduleObjsByTL)} sorted (total)`"),
                             ("`Weapons",    f" | {len(bbData.builtInWeaponData)} data/{len(bbData.builtInWeaponObjs)} objs/{len(bbData.weaponObjsByTL)} sorted/{sum(len(i) for i in bbData.weaponObjsByTL)} sorted (total)`"),
@@ -1140,7 +1140,7 @@ class DevMiscCog(BasedCog):
         _, bGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if bGuild is None: return
         # Casting here because bountiesDB is guaranteed after guildWithBountiesByIdOrAllOrContext
-        bountiesDB = cast(BountyDB, bGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, bGuild.bountiesDB)
 
         await interaction.response.defer(ephemeral=True)
 
@@ -1216,7 +1216,7 @@ class DevMiscCog(BasedCog):
         _, bGuild = await self.GuildsUtilCog.guildWithBountiesByIdOrAllOrContext(interaction, guild_id, allowAllGuilds=False)
         if bGuild is None: return
         # Casting here because bountiesDB is guaranteed after guildWithBountiesByIdOrAllOrContext
-        bountiesDB = cast(BountyDB, bGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, bGuild.bountiesDB)
 
         # look up the criminal object
         criminalObj = bbData.builtInCriminalObjs[criminal]
@@ -1345,7 +1345,7 @@ class DevMiscCog(BasedCog):
             b.checked = {s: b.checked.get(s, -1) for s in parsedRoute}
 
         elif field is BountyEditField.reward:
-            if not lib.stringTyping.isInt(new_value) or int(new_value) < 0:
+            if not lib.stringUtil.isInt(new_value) or int(new_value) < 0:
                 await interaction.followup.send(f"Invalid reward: {new_value}", ephemeral=True)
                 return
             newReward = int(new_value)
@@ -1356,7 +1356,7 @@ class DevMiscCog(BasedCog):
             b.reward = newReward
 
         elif field is BountyEditField.rewardPerSys:
-            if not lib.stringTyping.isInt(new_value) or int(new_value) < 0:
+            if not lib.stringUtil.isInt(new_value) or int(new_value) < 0:
                 await interaction.followup.send(f"Invalid reward per sys: {new_value}", ephemeral=True)
                 return
             newReward = int(new_value)
@@ -1379,7 +1379,7 @@ class DevMiscCog(BasedCog):
                     await interaction.followup.send(f"Invalid mapping: '{pair}'. Must be <system>: <user id>", ephemeral=True)
                     return
                 s, u = pairSplit
-                if not lib.stringTyping.isInt(u) or int(u) == 0 or int(u) < -1:
+                if not lib.stringUtil.isInt(u) or int(u) == 0 or int(u) < -1:
                     await interaction.followup.send(f"invalid user ID: {u}", ephemeral=True)
                     return
                 try:
@@ -1421,7 +1421,7 @@ class DevMiscCog(BasedCog):
                             category=LogCategory.bountiesDB, eventType="CHEAT", interaction=interaction)
 
         elif field is BountyEditField.techLevel:
-            if not lib.stringTyping.isInt(new_value) or int(new_value) < 0 or int(new_value) > cfg.maxTechLevel:
+            if not lib.stringUtil.isInt(new_value) or int(new_value) < 0 or int(new_value) > cfg.maxTechLevel:
                 await interaction.followup.send(f"invalid TL: {new_value}", ephemeral=True)
                 return
 
@@ -1522,10 +1522,10 @@ class DevMiscCog(BasedCog):
                 return
 
             try:
-                b = cast(BountyDB, guild.bountiesDB).getBountyByCrim(criminalObj)
+                b = cast(BountyRepository, guild.bountiesDB).getBountyByCrim(criminalObj)
             except KeyError:
                 try:
-                    b = cast(BountyDB, guild.bountiesDB).getEscapedBountyByCrim(criminalObj)
+                    b = cast(BountyRepository, guild.bountiesDB).getEscapedBountyByCrim(criminalObj)
                 except KeyError:
                     return
             

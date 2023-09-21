@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Type, TypeVar, Generic, Union, cast, overload, TypedDict
+from typing_extensions import NotRequired
+
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
+from sqlalchemy import ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
+
+from abc import ABC
+
+from .inventoryListingValueAugment import InventoryListingValueAugment
+from ...database.constants import StoreableItemType
+from ...database.tables import TableNames
+from ..items.base.itemBase import ItemBase
+from ..items.base.itemBase_storeable import StoreableItemTypes
+from ..items.base.itemBase_json import SerializedItemBaseUnion
+from ...lib.sql import AbcSqlTableMeta
+from ...baseClasses.serializable import SerializesToSchema
+from .inventoryListing_json import SerializedInventoryListing
+
+
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
+
+
+TStoredItem = TypeVar("TStoredItem", bound=ItemBase)
+TItemSerialized = TypeVar("TItemSerialized", bound=SerializedItemBaseUnion)
+
+
+class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], SerializesToSchema[SerializedInventoryListing[TItemSerialized]], metaclass=AbcSqlTableMeta):
+    """Subclassing is not supported for this class.
+    An entry in an item inventory, containing the item reference, the quantity, and an optional **stack** of value augments (e.g discounts).
+    This class is generic in the type of stored item.
+
+    Since the type of the stored item is not known at class creation time, InventoryListing has several complications:
+        - Ease of accessing the stored item reference from the listing
+        - Static typing of the concrete item reference
+        - Eager loading of the item reference
+
+    To solve these issues, the generic type parameter is added at the base class level, and populated
+    using the SQLAlchemy single table inheritance pattern.
+    The inheritance heirarchy consists of concrete, non-generic ItemListing subclasses.
+    """
+    __tablename__ = TableNames.InventoryListing.value
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    inventoryId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.Inventory.value}.id"))
+
+    _valueAugments: Mapped[List[InventoryListingValueAugment]] = relationship()
+    quantity: Mapped[int]
+
+    itemType: Mapped[StoreableItemType]
+    itemId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.AllItems.value}.id"))
+    item: Mapped[TStoredItem] = relationship(lazy='joined')
+
+    @declared_attr.directive
+    def __mapper_args__(cls) -> Dict[str, Any]:
+        return {
+            "polymorphic_on": cls.itemType,
+        }
+    
+
+    @property
+    async def valueAugments(self) -> List[InventoryListingValueAugment]:
+        return await self.awaitable_attrs._valueAugments
+    
+
+    @valueAugments.setter
+    def setValueAugments(self, value: List[InventoryListingValueAugment]):
+        self._valueAugments = value
+    
+
+    async def serialize(self, **kwargs) -> SerializedInventoryListing[TItemSerialized]:
+        """Return a dictionary description of this inventory listing.
+
+        :return: A dictionary identifying the object stored, and the amount
+        :rtype: int
+        """
+        # Casting here with the assumption that TItemSerialized is the serialized form of TItem
+        serialized = cast(TItemSerialized, await self.item.serialize(**kwargs))
+        data: SerializedInventoryListing = {"item": serialized, "count": self.quantity}
+        if len(await self.valueAugments) > 0:
+            data["valueAugments"] = [
+                await a.serialize(**kwargs) for a in await self.valueAugments
+            ]
+        return data
+
+
+    @classmethod
+    def deserialize(cls, listingDict: SerializedInventoryListing[TItemSerialized], **kwargs):
+        raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
+                                    + "Instead instance InventoryListing with your deserialized item object.")
+
+
+ListingTypes: Dict[Type[ItemBase], Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]] = {}
+
+
+# Dynamically create concrete subclasses for each item type.
+# We do this to enable the SQLAlchemy single table inheritance pattern.
+# InventoryListing is generic in the stored item type, but SQLAlchemy can only infer the type from the discriminator column,
+# not the generic type parameter. Therefore, we associate each discriminator value with its own non-generic type.
+for itemType, itemTypeClass in StoreableItemTypes.items():
+    @declared_attr.directive
+    def __mapper_args__(cls: Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]) -> Dict[str, Any]:
+        return {
+            "polymorphic_identity": itemType.value,
+        }
+    
+    ListingTypes[itemTypeClass] = type(
+        f"{itemTypeClass.__name__}InventoryListing",
+        (InventoryListing[itemTypeClass, SerializedItemBaseUnion],),
+        {"__mapper_args__": __mapper_args__}
+    )
+
+
+@overload
+def inventoryListingType(storedItemType: Type[TStoredItem]) -> Type[InventoryListing[TStoredItem, SerializedItemBaseUnion]]:
+    """Given a stored item type `MyItem`, get a concrete, non-generic InventoryListing subclass that stores `MyItem`s.
+
+    :param storedItemType: The item type that the listing type should store. This is what would be given as the generic type parameter.
+    :type storedItemType: Type[StoreableItem]
+    :return: A type `MyItemInventoryListing`, that represents `InventoryListing[storedItemType]`.
+    :rtype: Type[InventoryListing[storedItemType]]
+    """
+
+@overload
+def inventoryListingType(storedItemType: StoreableItemType) -> Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]:
+    """Given a stored item type `MyItem`, get a concrete, non-generic InventoryListing subclass that stores `MyItem`s.
+    It is recommended to use the generic overload of this function where possible, to enable proper typing.
+
+    :param storedItemType: The identifier for the item type that the listing type should store. This indentifies what would be given as the generic type parameter.
+    :type storedItemType: StoreableItemType
+    :return: A type `MyItemInventoryListing`, that represents `InventoryListing[MyItem]`, where `MyItem` is the class identified by `storedItemType`
+    :rtype: Type[InventoryListing[StoreableItem]]
+    """
+
+def inventoryListingType(storedItemType: Union[Type[ItemBase], StoreableItemType]) -> Type[InventoryListing[Any, SerializedItemBaseUnion]]:
+    if isinstance(storedItemType, StoreableItemType):
+        return ListingTypes[StoreableItemTypes[storedItemType]]
+    return ListingTypes[storedItemType]

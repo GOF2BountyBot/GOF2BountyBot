@@ -1,4 +1,5 @@
 import traceback
+from typing import Optional
 
 def formatExceptionTrace(e: BaseException) -> str:
     """Formats the trace for an exception into a string.
@@ -105,3 +106,13 @@ class SharedCogNotLoaded(Exception):
     """
     def __init__(self, cogName: str):
         super().__init__("Shared cog is not loaded: " + cogName)
+
+
+class UnknownItem(Exception):
+    """Raised when attempting to look up an item in the database, but it was not found.
+    """
+    def __init__(self, itemId: Optional[int] = None, itemType: Optional[str] = None, itemName: Optional[str] = None, *args: object) -> None:
+        super().__init__(*args)
+        self.itemType = itemType
+        self.itemName = itemName
+        self.itemId = itemId

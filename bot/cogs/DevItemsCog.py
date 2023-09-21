@@ -17,9 +17,9 @@ from ..interactions.basedApp import BasedCog
 from ..gameObjects.items import gameItem
 from .util.CommonAutocomplete import divisionAutoComplete, DivisionNameOrAll
 from .util.parameterVerifiers import verifyDivName
-from ..users.basedGuild import BasedGuild
-from ..gameObjects.guildShop import TechLeveledShop
-from ..databases.bountyDB import divisionNameForLevel
+from ..entities.guild.basedGuild import BasedGuild
+from ..entities.shops.guildShop import TechLeveledShop
+from ..repositories.bountyRepository import divisionNameForLevel
 from ..logging import LogCategory
 from ..views.serializedItemModal import SerializedItemModal
 
@@ -162,7 +162,7 @@ class DevItemsCog(BasedCog):
 
         if new_level == "random":
             level = -1
-        elif lib.stringTyping.isInt(new_level):
+        elif lib.stringUtil.isInt(new_level):
             level = int(new_level)
             if level < cfg.minTechLevel or level > cfg.maxTechLevel:
                 await interaction.response.send_message(f"Invalid tech level! Must be either a number between {cfg.minTechLevel} and {cfg.maxTechLevel}, or `random`.",

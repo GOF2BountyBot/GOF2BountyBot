@@ -1,18 +1,21 @@
-from ... import lib, botState, client
-from ...cfg import cfg
-from discord import Embed, Interaction, Member, User, DiscordException, HTTPException, NotFound, File
-from discord.utils import MISSING
-from ...users import basedUser
-from ...scheduling import timedTask
-from ..items.ships import shipItem
-from ..bounties import criminal
-import random
+from datetime import datetime
 from typing import Optional, Tuple, Union
+import random
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import aiohttp
 import textwrap
 from dataclasses import dataclass, field
+
+from discord import Embed, Interaction, Member, User, DiscordException, HTTPException, NotFound, File
+from discord.utils import MISSING
+
+from ... import lib, botState, client
+from ...cfg import cfg
+from ...entities.user import basedUser
+from ...scheduling import timedTask
+from ..items.ships import shipItem
+from ..bounties import criminal
 
 @dataclass
 class FightStats:
@@ -66,39 +69,6 @@ def makeDuelStatsEmbed(duelResults: FightResults, targetUser: Union[User, Member
                             + f"{targetStr         }: {duelResults.receiverStats.TimeAliveStr}")
 
     return statsEmbed
-
-
-class DuelRequest:
-    """A duel challenge for stakes credits, issued by sourceBasedUser to targetBasedUser in sourceBasedGuild,
-    and expiring with duelTimeoutTask.
-
-    :var sourceBasedUser: The BasedUser that issued this challenge
-    :vartype sourceBasedUser: BasedUser
-    :var targetBasedUser: The BasedUser that this challenge was targetted towards
-    :vartype targetBasedUser: BasedUser
-    :var stakes: The amount of credits to award the winner of the duel, and take from the loser
-    :vartype stakes: int
-    :var duelTimeoutTask: The TimedTask responsible for expiring this duel challenge
-    :vartype duelTimeoutTask: TimedTask
-    :var sourceBasedGuild: The BasedGuild in which this challenge was issued
-    :vartype sourceBasedGuild: BasedGuild
-    :var menus: A list of ReactionDuelChallengeMenu, each of which may trigger, or be removed by, the expiry or completion
-                of this duel request
-    :vartype menus: ReactionDuelChallengeMenu
-    """
-    def __init__(self, sourceBasedUser: basedUser.BasedUser, targetBasedUser: basedUser.BasedUser, stakes: int,
-                    duelTimeoutTask: Optional[timedTask.TimedTask]):
-        """
-        :param BasedUser sourceBasedUser: -- The BasedUser who issued the duel challenge
-        :param BasedUser targetBasedUser: -- The BasedUser to accept/reject the challenge
-        :param int stakes: -- The amount of credits to move from the winner to the loser
-        :param TimedTask duelTimeoutTask: -- the TimedTask responsible for expiring this challenge
-        """
-        self.sourceBasedUser = sourceBasedUser
-        self.targetBasedUser = targetBasedUser
-        self.stakes = stakes
-        self.duelTimeoutTask = duelTimeoutTask
-        self.menus = []
 
 
 # ⚠⚠⚠ THIS FUNCTION IS MARKED FOR CHANGE

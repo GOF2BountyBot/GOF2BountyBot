@@ -34,7 +34,7 @@ class DefaultableMixin:
 
 
     @classmethod
-    def _makeDefaults(cls, args: Mapping[str, Any] = {}, ignores: Tuple[str, ...] = (), **overrides) -> Dict[str, Any]:
+    def _makeDefaults(cls, args: Mapping[str, Any] = {}, ignores: Tuple[str, ...] = (), **overrides: Any) -> Dict[str, Any]:
         """Creates a dictionary addressing each KEYWORD argument of this class's constructor.
         Does not address positional arguments.
 

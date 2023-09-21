@@ -62,8 +62,8 @@ class TimeExtenderModule(moduleItem.ModuleItem, EmbedFillableMixin, SerializesTo
 #endregion
 
     def statsStringShort(self):
-        return "*Effect: " + moduleItem.lib.stringTyping.formatMultiplier(self.effect) \
-                + ", Duration: " + moduleItem.lib.stringTyping.formatAdditive(self.duration) + "s*"
+        return "*Effect: " + moduleItem.lib.stringUtil.formatMultiplier(self.effect) \
+                + ", Duration: " + moduleItem.lib.stringUtil.formatAdditive(self.duration) + "s*"
 
 
     def serialize(self, **kwargs) -> SerializedTimeExtenderModuleUnion:

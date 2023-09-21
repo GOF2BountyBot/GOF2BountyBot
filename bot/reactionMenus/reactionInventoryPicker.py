@@ -3,7 +3,7 @@ from typing import Optional, cast
 from . import reactionMenu
 from ..cfg import cfg
 from ..gameObjects.items import gameItem
-from ..gameObjects.inventories import inventory
+from ..gameObjects.inventories import inventoryBase
 from discord import Message, Colour, Member, Role
 from .. import lib
 from ..scheduling import timedTask
@@ -80,7 +80,7 @@ class ReactionInventoryPicker(reactionMenu.CancellableReactionMenu[ReactionInven
     :vartype page: int
     """
 
-    def __init__(self, msg: Message, inventory: inventory.Inventory, itemsPerPage: int = maxItemsPerPage,
+    def __init__(self, msg: Message, inventory: inventoryBase.Inventory, itemsPerPage: int = maxItemsPerPage,
             titleTxt: str = "", desc: str = "", col: Colour = Colour.blue(), timeout: Optional[timedTask.TimedTask] = None,
             img: str = "", thumb: str = "", icon: str = "", authorName: str = "",
             targetMember: Optional[Member] = None, targetRole: Optional[Role] = None):

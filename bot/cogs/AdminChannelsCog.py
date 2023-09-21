@@ -6,9 +6,9 @@ from .. import client, lib
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
-from ..users.basedGuild import GuildChannelType
-from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from ..entities.guild.basedGuild import GuildChannelType
+from ..repositories.bountyRepository import BountyRepository, nameForDivision
+from ..entities.bounties.bountyBoardChannel import BountyBoardChannel
 
 class AdminChannelsCog(basedApp.BasedCog):
     async def setGuildChannel(self, interaction: Interaction, channelType: GuildChannelType, friendlyName: str):
@@ -111,7 +111,7 @@ class AdminChannelsCog(basedApp.BasedCog):
             return
             
         # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
-        bountiesDB = cast(BountyDB, guild.bountiesDB)
+        bountiesDB = cast(BountyRepository, guild.bountiesDB)
 
         if guild.hasBountyBoardChannels:
             await interaction.response.send_message(":x: This server already has bounty board channels!", ephemeral=True)
@@ -165,7 +165,7 @@ class AdminChannelsCog(basedApp.BasedCog):
             await interaction.response.send_message(":x: This server does not have bounty board channels!", ephemeral=True)
         else:
             # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
-            for div in cast(BountyDB, guild.bountiesDB).divisions.values():
+            for div in cast(BountyRepository, guild.bountiesDB).divisions.values():
                 div.removeBountyBoardChannel()
             guild.hasBountyBoardChannels = False
             await interaction.response.send_message(":ballot_box_with_check: All bounty board channels disabled!", ephemeral=True)
@@ -190,7 +190,7 @@ class AdminChannelsCog(basedApp.BasedCog):
             await interaction.response.defer(ephemeral=True, thinking=True)
             found = False
             # Casting here because guild.bountiesDB can be None, but this is checked for in the guild.bountiesDisabled check above
-            for div in cast(BountyDB, guild.bountiesDB).divisions.values():
+            for div in cast(BountyRepository, guild.bountiesDB).divisions.values():
                 # Casting here because division.bountyBoardChannel can be None, but this is checked for with the
                 # guild.hasBountyBoardChannels check above.
                 if cast(BountyBoardChannel, div.bountyBoardChannel).channel == interaction.channel:

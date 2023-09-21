@@ -11,10 +11,10 @@ from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
-from ..users import basedUser
+from ..entities.user import basedUser
 from ..gameObjects.inventories.inventoryListing import SerializedInventoryListing
 from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
-from ..gameObjects.inventories.inventory import Inventory
+from ..gameObjects.inventories.inventoryBase import Inventory
 from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
 from ..gameObjects.items.weapons.turretWeapon import TurretWeapon
@@ -22,7 +22,7 @@ from ..gameObjects.items.modules.moduleItem import ModuleItem
 from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList, anyShipEquippedItemAutoComplete, AnyShipEquippedItemOrAll, AutocompleteResult
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
-from ..databases.bountyDB import BountyDB
+from ..repositories.bountyRepository import BountyRepository
 
 
 class UserLoadoutCog(BasedCog):
@@ -250,14 +250,14 @@ class UserLoadoutCog(BasedCog):
         """
         # Assume that the command is being called from within a guild with bounties enabled, because this command is decorated with @guildOnly(bountiesEnabled=True)
         callingBBGuild = self.bot.guildsDB.getGuild(cast(Guild, interaction.guild).id)
-        bountiesDB = cast(BountyDB, callingBBGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, callingBBGuild.bountiesDB)
 
         criminalObj = bbData.builtInCriminalObjs[criminal]
         # report unrecognised criminal names
         if not bountiesDB.criminalObjExists(criminalObj, noEscapedCrim=False):
             errmsg = ":x: That pilot is not currently wanted!"
 
-            if lib.stringTyping.isMention(criminal):
+            if lib.stringUtil.isMention(criminal):
                 errmsg += "\n:warning: **Don't tag users**, use their name and discriminator like so: `/loadout criminal Trimatix#2244`"
 
             await interaction.response.send_message(errmsg)

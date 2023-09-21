@@ -14,14 +14,14 @@ import os
 from github.Repository import Repository
 
 from .interactions import accessLevels, commandChecks
-from .databases import userDB, guildDB, reactionMenuDB
+from .repositories import guildRepository, reactionMenuRepository, userRepository
 from . import lib
 from .cfg import cfg
 from . import logging
 from .scheduling import timedTaskHeap
 from .interactions import basedCommand, basedComponent, basedApp
-from .users.basedGuild import BasedGuild
-from .users import basedUser
+from .entities.guild.basedGuild import BasedGuild
+from .entities.user import basedUser
 from .cfg import gameConfigurator
 from .reactionMenus import reactionMenu
 from .baseClasses.serializable import SerializesToJson
@@ -52,7 +52,7 @@ class GracefulKiller:
         self.kill_now = True
 
 
-def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
+def loadUsersDB(filePath: Union[Path, str]) -> userRepository.UserRepository:
     """Build a UserDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
@@ -60,11 +60,11 @@ def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     """
     if os.path.isfile(filePath):
         # Ignoring here because I can't statically validate the structure of a file
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
-    return userDB.UserDB()
+        return userRepository.UserRepository.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+    return userRepository.UserRepository()
 
 
-def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
+def loadGuildsDB(filePath: Union[Path, str]) -> guildRepository.GuildRepository:
     """Build a GuildDB from the specified JSON file.
 
     :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
@@ -73,11 +73,11 @@ def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
     if os.path.isfile(filePath):
         content = lib.jsonHandler.readJSON(filePath)
         # Ignoring here because I cannot statically validate the structure of a file
-        return guildDB.GuildDB.deserialize(content, dbReload=True) # type: ignore[reportGeneralTypeIssues]
-    return guildDB.GuildDB()
+        return guildRepository.GuildRepository.deserialize(content, dbReload=True) # type: ignore[reportGeneralTypeIssues]
+    return guildRepository.GuildRepository()
 
 
-async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.ReactionMenuDB:
+async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuRepository.ReactionMenuRepository:
     """Build a reactionMenuDB from the specified JSON file.
     This method must be called asynchronously, to allow awaiting of discord message fetching functions.
 
@@ -86,8 +86,8 @@ async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.Reac
     """
     if os.path.isfile(filePath):
         # Ignoring here because I can't statically validate the structure of a file
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
-    return reactionMenuDB.ReactionMenuDB()
+        return await reactionMenuRepository.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+    return reactionMenuRepository.ReactionMenuRepository()
 
 
 def waitBeforeStartingTask(task: tasks.Loop):
@@ -112,9 +112,9 @@ class BasedClient(ClientBaseClass):
     :vartype killer: GracefulKiller
     """
 
-    def __init__(self, usersDB: Optional[userDB.UserDB] = None,
-                        guildsDB: Optional[guildDB.GuildDB] = None,
-                        reactionMenusDB: Optional[reactionMenuDB.ReactionMenuDB] = None,
+    def __init__(self, usersDB: Optional[userRepository.UserRepository] = None,
+                        guildsDB: Optional[guildRepository.GuildRepository] = None,
+                        reactionMenusDB: Optional[reactionMenuRepository.ReactionMenuRepository] = None,
                         logger: Optional[logging.Logger] = None,
                         httpClient: Optional[aiohttp.ClientSession] = None):
         intents = discord.Intents.default()
@@ -416,7 +416,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(userDB.UserDB, self._usersDB)
+        return cast(userRepository.UserRepository, self._usersDB)
 
 
     @property
@@ -430,11 +430,11 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(guildDB.GuildDB, self._guildsDB)
+        return cast(guildRepository.GuildRepository, self._guildsDB)
 
 
     @property
-    def reactionMenusDB(self) -> reactionMenuDB.ReactionMenuDB:
+    def reactionMenusDB(self) -> reactionMenuRepository.ReactionMenuRepository:
         """The bot's database of reaction menus.
         Databases are only available after on_ready.
 
@@ -444,7 +444,7 @@ class BasedClient(ClientBaseClass):
         """
         if not self._dbsLoaded:
             raise lib.exceptions.NotReady("Databases not yet loaded. BasedClient.usersDB is only available after on_ready.")
-        return cast(reactionMenuDB.ReactionMenuDB, self._reactionMenusDB)
+        return cast(reactionMenuRepository.ReactionMenuRepository, self._reactionMenusDB)
 
 
     @property
@@ -726,7 +726,7 @@ class BasedClient(ClientBaseClass):
         try:
             return self.fetch_user(id)
         except NotFound:
-            return lib.discordUtil.dummyCoroutine(None)
+            return lib.discordUtil.nullCoro(None)
 
 
     async def multiWaitFor(self, eventTypes: Union[List[str], Tuple[str]], timeout: float, check: Optional[Callable[..., bool]] = None) -> Any:

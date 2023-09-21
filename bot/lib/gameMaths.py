@@ -1,7 +1,7 @@
 from ..cfg import cfg
 import math
 import random
-from typing import List, Optional, Union, cast
+from typing import Any, List, Optional, Union, cast
 
 
 def makeMatrix(xDim: int, yDim: int) -> List[List[float]]:
@@ -288,3 +288,21 @@ def pickRandomItemRarityLevel() -> int:
                     if weight >= rarityChance)
     except StopIteration:
         return 0
+
+
+def topThreeItemSpawnRates(tl: Optional[int], shopPool: List[List[Any]]) -> Optional[str]:
+    """Get a string describing the top 3 spawn rates for an item with tech level `tl`.
+
+    :param item: The item
+    :type item: GameItem
+    :param shopPool: The shop's techlevel-sorted pool of items
+    :type shopPool: List[List[Any]]
+    :return: A string describing the item's top 3 spawn rates, or None if `tl` is invalid
+    :rtype: Optional[str]
+    """
+    if tl is None or not (cfg.minTechLevel <= tl <= cfg.maxTechLevel):
+        return None
+    
+    tlRange = range(max(tl - 1, cfg.minTechLevel), min(tl + 1, cfg.maxTechLevel) + 1)
+    rates = [(tl, itemTLSpawnChanceForShopTL[tl - 1][tl - 1]) for tl in tlRange if shopPool[tl - 1]]
+    return "\n".join(f"Level {tl} Shops: {round((rate/len(shopPool[tl - 1]))*100, 2)}%" for tl, rate in rates)

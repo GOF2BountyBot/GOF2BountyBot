@@ -4,9 +4,9 @@ from typing_extensions import Never
 from discord import Member, Message, Colour, Role
 from . import reactionMenu, expiryFunctions
 from .. import botState
-from ..users import basedUser
+from ..entities.user import basedUser
 from ..scheduling import timedTask
-from ..gameObjects.guildShop import StoredItemType
+from ..entities.shops.guildShop import StoredItemType
 
 
 class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption", Never]):

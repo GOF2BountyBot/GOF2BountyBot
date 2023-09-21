@@ -5,13 +5,13 @@ from discord.abc import Snowflake
 
 from ...interactions.basedApp import BasedCog
 from ... import client, lib
-from ...lib.stringTyping import isInt
-from ...users import basedGuild
-from ...databases.bountyDB import BountyDB
-from ...databases.bountyDivision import BountyDivision
+from ...lib.stringUtil import isInt
+from ...entities.guild import basedGuild
+from ...repositories.bountyRepository import BountyRepository
+from ...entities.bounties.bountyDivision import BountyDivision
 from ...logging import LogCategory
 from ...cfg import cfg
-from ...gameObjects.guildShop import TechLeveledShop
+from ...entities.shops.guildShop import TechLeveledShop
 
 
 class GuildsUtilCog(BasedCog):
@@ -39,7 +39,7 @@ class GuildsUtilCog(BasedCog):
                     await interaction.response.send_message("This command cannot be applied to all guilds.", ephemeral=sendErrorEphemeral)
                 return False, None
             callingBBGuild = None
-        elif not lib.stringTyping.isInt(guild_id):
+        elif not lib.stringUtil.isInt(guild_id):
             if sendError:
                 await interaction.response.send_message(f":x: Invalid guild id - not a number. Please give an ID, {'`all`, ' if allowAllGuilds else ''}`here` or `this`.", ephemeral=sendErrorEphemeral)
             return False, None
@@ -171,7 +171,7 @@ class GuildsUtilCog(BasedCog):
             await dbTasks.wait()
 
     
-    async def operateOverBountyDBs(self, callback: Callable[[BountyDB], Any], operationCompleteStr: str, interaction: Interaction, callingBBGuild: Optional[basedGuild.BasedGuild], sendErrors: bool = True, sendSuccess: bool = True, sendErrorsEphemeral: bool = True, sendSuccessEphemeral: bool = True, defer: bool = True) -> bool:
+    async def operateOverBountyDBs(self, callback: Callable[[BountyRepository], Any], operationCompleteStr: str, interaction: Interaction, callingBBGuild: Optional[basedGuild.BasedGuild], sendErrors: bool = True, sendSuccess: bool = True, sendErrorsEphemeral: bool = True, sendSuccessEphemeral: bool = True, defer: bool = True) -> bool:
         """Perform some synchronous operation over the bounty DB(s) in:
         - all guilds if `callingBBGuild` is `None`
         - `callingBBGuild` if it isn't `None`
@@ -187,7 +187,7 @@ class GuildsUtilCog(BasedCog):
             for currentGuild in self.bot.guildsDB.guilds.values():
                 if not currentGuild.bountiesDisabled:
                     # casting here because guild.bountiesDB cannot be None if bountiesDisabled is False
-                    callback(cast(BountyDB, currentGuild.bountiesDB))
+                    callback(cast(BountyRepository, currentGuild.bountiesDB))
         else:
             if callingBBGuild.bountiesDisabled:
                 if sendErrors:
@@ -196,7 +196,7 @@ class GuildsUtilCog(BasedCog):
                 return False
             
             # casting here because guild.bountiesDB cannot be None if bountiesDisabled is False
-            callback(cast(BountyDB, callingBBGuild.bountiesDB))
+            callback(cast(BountyRepository, callingBBGuild.bountiesDB))
 
         guildResultStr = ((" for '" + callingBBGuild.dcGuild.name + "'.") if callingBBGuild.dcGuild is not None else ".") \
                             if callingBBGuild is not None else " for all guilds."
@@ -206,7 +206,7 @@ class GuildsUtilCog(BasedCog):
         return True
 
 
-    async def operateOverBountyDBsAsync(self, funcName: str, callback: Callable[[BountyDB], Coroutine], operationCompleteStr: str, interaction: Interaction, callingBBGuild: Optional[basedGuild.BasedGuild], sendErrors: bool = True, sendSuccess: bool = True, awaitTasks: bool = True, logCategory: Optional[LogCategory] = None, className: Optional[str] = "GuildsUtilCog", sendErrorsEphemeral: bool = True, sendSuccessEphemeral: bool = True, defer: bool = True) -> bool:
+    async def operateOverBountyDBsAsync(self, funcName: str, callback: Callable[[BountyRepository], Coroutine], operationCompleteStr: str, interaction: Interaction, callingBBGuild: Optional[basedGuild.BasedGuild], sendErrors: bool = True, sendSuccess: bool = True, awaitTasks: bool = True, logCategory: Optional[LogCategory] = None, className: Optional[str] = "GuildsUtilCog", sendErrorsEphemeral: bool = True, sendSuccessEphemeral: bool = True, defer: bool = True) -> bool:
         """Perform some asynchronous operation, with parallelization over the bounty DB(s) of:
         - all guilds if `callingBBGuild` is `None`
         - `callingBBGuild` if it isn't `None`
@@ -214,7 +214,7 @@ class GuildsUtilCog(BasedCog):
         On success, send a followup to `interaction` containing `operationCompleteStr`, with some other stuff.
         """
         dbTasks = lib.discordUtil.BasicScheduler()
-        def doTask(div: BountyDB):
+        def doTask(div: BountyRepository):
             dbTasks.add(lib.discordUtil.scheduleCoroWithLogging(callback(div), logCategory=logCategory, className=className, funcName=funcName))
 
         success = await self.operateOverBountyDBs(doTask, operationCompleteStr=operationCompleteStr, interaction=interaction, callingBBGuild=callingBBGuild, sendErrors=sendErrors, sendSuccess=sendSuccess, sendErrorsEphemeral=sendErrorsEphemeral, sendSuccessEphemeral=sendSuccessEphemeral, defer=defer)
@@ -236,7 +236,7 @@ class GuildsUtilCog(BasedCog):
 
         returns `bool success` = `False` if errors occurred, or `True` otherwise.
         """
-        def doDivs(bountyDB: BountyDB):
+        def doDivs(bountyDB: BountyRepository):
             if allDivs:
                 for div in bountyDB.divisions.values():
                     callback(div)

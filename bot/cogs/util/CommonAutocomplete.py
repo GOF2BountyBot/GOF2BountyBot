@@ -6,19 +6,21 @@ from discord import app_commands
 from discord.app_commands import Transformer, Transform
 import heapq
 
+from ...repositories import bountyRepository
+
 from ...cfg import cfg, bbData
 from ...baseClasses.aliasable import AliasableMixin
 from ... import client, lib
 from ...lib import gameMaths
-from ...users import basedUser
+from ...entities.user import basedUser
 from ...gameObjects.items import gameItem
-from ...lib.stringTyping import stringDifference
-from ...gameObjects.inventories import inventoryListing
+from ...lib.stringUtil import stringDifference
+from ...entities.inventories import inventoryListing
 from ...gameObjects.items.ships.shipItem import Ship
 
 if TYPE_CHECKING:
-    from ...databases import bountyDB, bountyDivision
-    from ...gameObjects.bounties import bounty
+    from ...entities.bounties import bountyDivision
+    from ...entities.bounties import bounty
 
 
 MAX_CHOICES = 25
@@ -181,7 +183,7 @@ class IntListTransformer(Transformer):
         values = []
         for val in value.split(","):
             val = val.strip()
-            if not lib.stringTyping.isInt(val):
+            if not lib.stringUtil.isInt(val):
                 await interaction.response.send_message(f":x: {val} is not a valid number.")
                 raise ValueError(f"Invalid number: {val}")
             values.append(int(val))
@@ -668,7 +670,7 @@ class InventoryItemVerifyTransformer(Transformer):
     async def transform(self, interaction: Interaction, value: str) -> int:
         """`Verify that the given item number is an integer. If it is not, then display an error and raise `ValueError`.
         """
-        if not lib.stringTyping.isInt(value):
+        if not lib.stringUtil.isInt(value):
             await interaction.response.send_message(":x: Unknown item, please select an item from the list, or give an item number.", ephemeral=True)
             raise ValueError(f"Unknown item or item number: {value}")
 
@@ -696,7 +698,7 @@ def anyUserHangerItemAutoComplete_verify(v: str) -> bool:
         category = next(i for i in bbData.ItemCategory if v.startswith(i.value))
     except StopIteration:
         return False
-    return lib.stringTyping.isInt(v[len(category.value):])
+    return lib.stringUtil.isInt(v[len(category.value):])
 
 def _make_anyUserHangerItemAutoComplete(fallbackOnDefaultUser: bool, itemTypes: Optional[List[bbData.ItemCategory]] = None):
     itemTypes = itemTypes or [k for k in bbData.ItemCategory]

@@ -24,7 +24,7 @@ from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     toolAutoComplete, ToolKey, \
                                     medalAutoComplete, MedalKey
 from .util.EmbedEditorUtil import interactionErrorString
-from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
+from ..entities.bounties import bountyBoardChannel
 from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
 from ..baseClasses.embedFillable import EmbedFillableMixin
 from ..gameObjects.gameObject import SerializedLoadedObject

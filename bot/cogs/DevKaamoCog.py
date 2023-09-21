@@ -13,7 +13,7 @@ from ..interactions import basedCommand, basedApp
 from ..gameObjects.items import gameItem
 from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.kaamoShop import KaamoShop
-from ..gameObjects import guildShop
+from ..entities.shops import guildShop
 from ..logging import LogCategory
 from ..views.serializedItemModal import SerializedItemModal
 

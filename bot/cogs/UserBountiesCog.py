@@ -14,8 +14,8 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
 from ..interactions.commandChecks import homeGuildOnly, guildOnly
-from ..users import basedUser
-from ..users.basedUser import BasedUser
+from ..entities.user import basedUser
+from ..entities.user.basedUser import BasedUser
 from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
                                     divisionAutoComplete, DivisionName, \
                                     activeCriminalAutoComplete, CriminalKey, \
@@ -23,11 +23,11 @@ from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
 from ..lib.timeUtil import td_format_noYM
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
-from ..lib.stringTyping import commaSplitNum
+from ..lib.stringUtil import commaSplitNum
 from ..lib.emojis import BasedEmoji
 from ..lib.timeUtil import utcfromtimestamp
-from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
+from ..repositories.bountyRepository import BountyRepository, nameForDivision
+from ..entities.bounties.bounty import CheckResult, RewardsMeta, Bounty
 from ..gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
 from ..gameObjects.items.ships.shipItem import Ship
 from ..gameObjects.items.gameItem import GameItem
@@ -75,7 +75,7 @@ class UserBountiesCog(BasedCog):
         return f
 
 
-    def distributeBountyRewards(self, bounty: Bounty, bountyDB: BountyDB, basedUsers: Dict[int, BasedUser]) -> Tuple[Dict[int, Dict[str, Union[int, bool]]], Dict[int, RewardsMeta]]:
+    def distributeBountyRewards(self, bounty: Bounty, bountyDB: BountyRepository, basedUsers: Dict[int, BasedUser]) -> Tuple[Dict[int, Dict[str, Union[int, bool]]], Dict[int, RewardsMeta]]:
         classicModeUserIDs = set(u.id for u in basedUsers.values() if u.classicModeEnabled)
         nonClassicModeUserIDs = set(u.id for u in basedUsers.values() if u.id not in classicModeUserIDs)
 
@@ -117,7 +117,7 @@ class UserBountiesCog(BasedCog):
         return rewards, rewardsMeta
 
 
-    def handleLevelUps(self, rewards: Dict[int, Dict[str, Union[int, bool]]], rewardsMeta: Dict[int, RewardsMeta], basedUsers: Dict[int, BasedUser], bountyDB: BountyDB) -> Dict[BasedUser, List[GameItem]]:
+    def handleLevelUps(self, rewards: Dict[int, Dict[str, Union[int, bool]]], rewardsMeta: Dict[int, RewardsMeta], basedUsers: Dict[int, BasedUser], bountyDB: BountyRepository) -> Dict[BasedUser, List[GameItem]]:
         leveledUp: Dict[BasedUser, List[GameItem]] = {}
 
         for userID in rewards:
@@ -269,7 +269,7 @@ class UserBountiesCog(BasedCog):
         dcGuild = cast(Guild, interaction.guild)
         callingGuild = self.bot.guildsDB.getGuild(dcGuild.id)
         # Casting here because this command requires the calling guild to have bounties enabled in the guildOnly decorator
-        bountyDB = cast(BountyDB, callingGuild.bountiesDB)
+        bountyDB = cast(BountyRepository, callingGuild.bountiesDB)
 
         if requestedBBUser.classicModeEnabled:
             btyDivision = bountyDB.divisionForName(cfg.classic_divisionName)
@@ -436,7 +436,7 @@ class UserBountiesCog(BasedCog):
         # Casting here because this command is decorated with guildOnly
         callingGuild = self.bot.guildsDB.getGuild(cast(Guild, interaction.guild).id)
         # Casting here because this command is decorated with guildOnly with bountiesEnabled=True
-        bountiesDB = cast(BountyDB, callingGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, callingGuild.bountiesDB)
 
         if division is None:
             if self.bot.usersDB.idExists(interaction.user.id):
@@ -491,7 +491,7 @@ class UserBountiesCog(BasedCog):
         # Casting here because this command is decorated with guildOnly
         callingGuild = self.bot.guildsDB.getGuild(cast(Guild, interaction.guild).id)
         # Casting here because this command is decorated with guildOnly with bountiesEnabled=True
-        bountiesDB = cast(BountyDB, callingGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, callingGuild.bountiesDB)
 
         # The bounty name came from activeCriminalAutoComplete, so it should exist on the board
         bounty = bountiesDB.getBounty(criminal)
@@ -580,7 +580,7 @@ class UserBountiesCog(BasedCog):
         if callingBBUser.hasHomeGuild():
             homeGuild = self.bot.guildsDB.getGuild(callingBBUser.homeGuildID)
             if (member := homeGuild.dcGuild.get_member(interaction.user.id)) and not homeGuild.bountiesDisabled:
-                bountiesDB = cast(BountyDB, homeGuild.bountiesDB)
+                bountiesDB = cast(BountyRepository, homeGuild.bountiesDB)
                 oldDiv = bountiesDB.divisionForLevel(cfg.maxTechLevel)
                 oldDivName = nameForDivision(oldDiv)
                 newDiv = bountiesDB.divisionForLevel(cfg.minTechLevel)
@@ -655,7 +655,7 @@ class UserBountiesCog(BasedCog):
             await interaction.response.send_message(":x: Bounties are disabled in your home server!", ephemeral=True)
             return
 
-        bountiesDB = cast(BountyDB, homeGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, homeGuild.bountiesDB)
         newLevel = userLevel + 1
         newDiv = bountiesDB.divisionForLevel(newLevel)
 
@@ -744,7 +744,7 @@ class UserBountiesCog(BasedCog):
             await interaction.response.send_message(":x: Bounties are disabled in your home server!", ephemeral=True)
             return
 
-        bountiesDB = cast(BountyDB, homeGuild.bountiesDB)
+        bountiesDB = cast(BountyRepository, homeGuild.bountiesDB)
 
         userLevel = calculateUserBountyHuntingLevel(callingBBUser.bountyHuntingXP)
         oldDiv = bountiesDB.divisionForLevel(userLevel)

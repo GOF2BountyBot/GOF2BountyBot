@@ -1,6 +1,6 @@
 from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
 from .... import lib
-from ....lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from ....lib.stringUtil import formattedAdditiveAndOrMultiplierOrNone
 from typing import List, Union
 from typing_extensions import NotRequired
 from ....baseClasses.serializable import SerializesToSchema
@@ -145,9 +145,9 @@ class ModuleItem(GameItem, EmbedFillableMixin, SerializesToSchema[SerializedModu
                             "Cargo": self.cargoMultiplier, "Handling": self.handlingMultiplier}
 
         statsStr = "*"
-        additiveStrs = (statName + ": " + lib.stringTyping.formatAdditive(additiveStats[statName])
+        additiveStrs = (statName + ": " + lib.stringUtil.formatAdditive(additiveStats[statName])
                             for statName in additiveStats if additiveStats[statName] != 0)
-        multiplierStrs = (statName + ": " + lib.stringTyping.formatMultiplier(multiplierStats[statName])
+        multiplierStrs = (statName + ": " + lib.stringUtil.formatMultiplier(multiplierStats[statName])
                             for statName in additiveStats if multiplierStats[statName] != 1)
         statsStr = ", ".join(tuple(additiveStrs) + tuple(multiplierStrs))
 

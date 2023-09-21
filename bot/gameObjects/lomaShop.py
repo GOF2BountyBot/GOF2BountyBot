@@ -3,17 +3,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, cast
 from typing_extensions import TypedDict
 
+from ..entities.shops import guildShop
+
+from ..entities.inventories import inventoryListing
+
 from .items.ships import shipItem,shipBase
 if TYPE_CHECKING:
-    from ..users import basedUser
+    from ..entities.user import basedUser
 
 from .items import moduleItemFactory
 from .items.weapons import primaryWeapon, turretWeapon, weapon
 from .items.modules import moduleItem
-from .inventories import inventory, inventoryListing
+from .inventories import inventoryBase
 from .items.tools import toolItem, toolItemFactory
-from . import guildShop, itemDiscount
-from .inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
+from . import itemDiscount
+from ..entities.inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
 from ..cfg.bbData import ItemCategory
 from .items.gameItem import SerializedGameItemUnion
 
@@ -25,14 +29,14 @@ class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop
     toolsStock: List[inventoryListing.SerializedDiscountableItemListing[toolItem.SerializedToolItemUnion]]
     
 
-ShipInventoryType = inventory.DiscountableInventory[shipItem.Ship, shipBase.SerializedShipUnion]    
-WeaponInventoryType = inventory.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]
-ModuleInventoryType = inventory.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]
-TurretInventoryType = inventory.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]
-ToolInventoryType = inventory.DiscountableInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]
+ShipInventoryType = inventoryBase.DiscountableInventory[shipItem.Ship, shipBase.SerializedShipUnion]    
+WeaponInventoryType = inventoryBase.DiscountableInventory[primaryWeapon.PrimaryWeapon, primaryWeapon.SerializedWeaponUnion]
+ModuleInventoryType = inventoryBase.DiscountableInventory[moduleItem.ModuleItem, moduleItem.SerializedModuleItemUnion]
+TurretInventoryType = inventoryBase.DiscountableInventory[turretWeapon.TurretWeapon, turretWeapon.SerializedWeaponUnion]
+ToolInventoryType = inventoryBase.DiscountableInventory[toolItem.ToolItem, toolItem.SerializedToolItemUnion]
 
 
-class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscountableItemListing], DiscountableItemListing]):
+class LomaShop(guildShop.ShopBase[inventoryBase.SerializedInventory[SerializedDiscountableItemListing], DiscountableItemListing]):
     """A private shop unique to each player, for purchasing special items intended only for that player.
     Items cannot be sold to Loma.
     """
@@ -54,11 +58,11 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         :param toolsStock: The shop's current stock of tools (Default empty inventory.DiscountableInventory)
         :type toolsStock: inventory.DiscountableInventory
         """
-        shipsStock = shipsStock or inventory.DiscountableInventory(shipItem.Ship)
-        weaponsStock = weaponsStock or inventory.DiscountableInventory(primaryWeapon.PrimaryWeapon)
-        modulesStock = modulesStock or inventory.DiscountableInventory(moduleItem.ModuleItem)
-        turretsStock = turretsStock or inventory.DiscountableInventory(turretWeapon.TurretWeapon)
-        toolsStock = toolsStock or inventory.DiscountableInventory(toolItem.ToolItem)
+        shipsStock = shipsStock or inventoryBase.DiscountableInventory(shipItem.Ship)
+        weaponsStock = weaponsStock or inventoryBase.DiscountableInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = modulesStock or inventoryBase.DiscountableInventory(moduleItem.ModuleItem)
+        turretsStock = turretsStock or inventoryBase.DiscountableInventory(turretWeapon.TurretWeapon)
+        toolsStock = toolsStock or inventoryBase.DiscountableInventory(toolItem.ToolItem)
 
         super().__init__(shipsStock=shipsStock, weaponsStock=weaponsStock, modulesStock=modulesStock,
                             turretsStock=turretsStock, toolsStock=toolsStock)
@@ -88,7 +92,7 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         return user.credits >= itemValue
     
     
-    def getStock(self, item: ItemCategory) -> inventory.DiscountableInventory[guildShop.StoredItemType, SerializedGameItemUnion]:
+    def getStock(self, item: ItemCategory) -> inventoryBase.DiscountableInventory[guildShop.StoredItemType, SerializedGameItemUnion]:
         """Get the inventory containing all current stock of the named type.
         This object is mutable and can alter the stock of the shop.
         This method is only on LomaShop to correct the typing of the Inventory returned.
@@ -98,7 +102,7 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         :rtype: inventory
         :raise ValueError: When requesting an unknown item type
         """
-        return cast(inventory.DiscountableInventory, super().getStock(item))
+        return cast(inventoryBase.DiscountableInventory, super().getStock(item))
 
 #region selling
 
@@ -207,11 +211,11 @@ class LomaShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedDiscou
         :return: A new LomaShop object as described by shopDict
         :rtype: LomaShop
         """
-        shipsStock = inventory.DiscountableInventory(shipItem.Ship)
-        weaponsStock = inventory.DiscountableInventory(primaryWeapon.PrimaryWeapon)
-        modulesStock = inventory.DiscountableInventory(moduleItem.ModuleItem)
-        turretsStock = inventory.DiscountableInventory(turretWeapon.TurretWeapon)
-        toolsStock = inventory.DiscountableInventory(toolItem.ToolItem)
+        shipsStock = inventoryBase.DiscountableInventory(shipItem.Ship)
+        weaponsStock = inventoryBase.DiscountableInventory(primaryWeapon.PrimaryWeapon)
+        modulesStock = inventoryBase.DiscountableInventory(moduleItem.ModuleItem)
+        turretsStock = inventoryBase.DiscountableInventory(turretWeapon.TurretWeapon)
+        toolsStock = inventoryBase.DiscountableInventory(toolItem.ToolItem)
 
         for key, stock, deserializer in (("shipsStock", shipsStock, shipItem.Ship),
                                         ("weaponsStock", weaponsStock, primaryWeapon.PrimaryWeapon),
