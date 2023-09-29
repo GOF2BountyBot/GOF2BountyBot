@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import TypeVar
 from carica.models.dataclasses import SerializableDataClass
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, relationship, mapped_column
@@ -14,9 +15,10 @@ from ..users import basedUser
 
 class Base(DeclarativeBase): pass
 
+TSchema = TypeVar("TSchema", bound=SerializedDuelRequest)
 
 @dataclass
-class DuelRequest(Base, SerializableDataClass, SerializesToSchema[SerializedDuelRequest], metaclass=AbcSqlTableMeta):
+class DuelRequest(Base, SerializableDataClass, SerializesToSchema[TSchema], metaclass=AbcSqlTableMeta):
     """A duel challenge for stakes credits, issued by sourceBasedUser to targetBasedUser in sourceBasedGuild,
     and expiring with duelTimeoutTask.
 

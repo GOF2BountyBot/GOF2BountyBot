@@ -8,7 +8,7 @@ from ...database.constants import StoreableItemType
 from ..inventories.inventoryListing import InventoryListing
 from ..inventories.inventoryBase import InventoryBase
 from ..inventories.exceptions import NotStored
-from ..items.base.itemBase import ItemBase
+from ..items.base.item import ItemBase
 from ...lib.exceptions import UnknownItem
 from ..items.itemTransaction import ItemTransactionContext, SupportsItems, SupportsTrading
 from . import shopArea

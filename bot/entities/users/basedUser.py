@@ -13,6 +13,7 @@ from ...database.tables import TableNames
 from ..userProfile.medal import Medal
 from ..inventories.userHangar import UserHangar
 from ..duels.duelRequest import DuelRequest
+from ..items.ship.shipInstance import ShipInstance
 
 
 class Base(DeclarativeBase):

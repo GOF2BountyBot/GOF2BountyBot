@@ -1,13 +1,12 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
-from typing_extensions import TypedDict
+from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast, TypedDict
 from abc import abstractmethod
 import random
 
 if TYPE_CHECKING:
-    from ..entities.user import basedUser
+    from ..users import basedUser
 
 from ...cfg import bbData, cfg
 from ...cfg.bbData import ItemCategory

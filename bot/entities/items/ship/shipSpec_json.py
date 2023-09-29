@@ -1,7 +1,7 @@
 from typing import List, Union, TypedDict
 from typing_extensions import NotRequired
 
-from ..base.itemBase_json import SerializedItemBase, TypedSerializedItemBase
+from ..base.item_json import SerializedItem, TypedSerializedItem
 from ...base.workshopable_json import AnySerializedWorkshopable
 
 
@@ -15,7 +15,7 @@ class SerializedSkinnableRegionRegistration(TypedDict):
     id: int
 
 
-class SerializedShipSpec(AnySerializedWorkshopable, SerializedItemBase):
+class SerializedShipSpec(AnySerializedWorkshopable, SerializedItem):
     armour: int
     cargo: int
     maxSecondaries: int
@@ -28,7 +28,7 @@ class SerializedShipSpec(AnySerializedWorkshopable, SerializedItemBase):
     skinnableTextureRegions: NotRequired[List[SerializedSkinnableRegionRegistration]]
     
 
-class TypedSerializedShipSpec(SerializedShipSpec, TypedSerializedItemBase): pass
+class TypedSerializedShipSpec(SerializedShipSpec, TypedSerializedItem): pass
 
 
 SerializedShipSpecUnion = Union[SerializedShipSpec, TypedSerializedShipSpec]

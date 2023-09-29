@@ -5,7 +5,7 @@ from .... import lib
 from ....baseClasses.aliasable_json import SerializedAliasable
 
 
-class SerializedItemBase(SerializedAliasable):
+class SerializedItem(SerializedAliasable):
     id: int
     value: int
     manufacturer: NotRequired[str]
@@ -15,12 +15,12 @@ class SerializedItemBase(SerializedAliasable):
     techLevel: NotRequired[int]
 
 
-class TypedSerializedItemBase(SerializedItemBase):
+class TypedSerializedItem(SerializedItem):
     type: str
 
 
-class AnySerializedItemBase(SerializedItemBase):
+class AnySerializedItem(SerializedItem):
     type: NotRequired[str]
 
 
-SerializedItemBaseUnion = Union[SerializedItemBase, TypedSerializedItemBase]
+SerializedItemUnion = Union[SerializedItem, TypedSerializedItem]

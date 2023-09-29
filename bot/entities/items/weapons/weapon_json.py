@@ -1,5 +1,5 @@
-from ..base.itemBase_json import AnySerializedItemBase
+from ..base.item_json import AnySerializedItem
 from ...base.workshopable_json import AnySerializedWorkshopable
 
-class SerializedWeapon(AnySerializedWorkshopable, AnySerializedItemBase):
+class SerializedWeapon(AnySerializedWorkshopable, AnySerializedItem):
     dps: int

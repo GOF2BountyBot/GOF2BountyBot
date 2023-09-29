@@ -3,26 +3,67 @@ from typing import Any, Dict, Optional, TypeVar, cast
 from abc import abstractmethod
 
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, composite, mapped_column
+from sqlalchemy import ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from ....database.constants import StoreableItemType
 from ....database.tables import TableNames
 from ....lib.emojis import BasedEmoji
 from ....lib.sql import EmbedFillableSqlTableMeta
 from ....lib.stringUtil import commaSplitNum
-from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField, embedThumbnailUrl, embedColour
 from ....baseClasses.aliasable import AliasableMixin
-from .itemBase_json import SerializedItemBaseUnion, SerializedItemBase, TypedSerializedItemBase
+from ....baseClasses.aliasable_json import SerializedAliasable
+from .item_json import SerializedItemUnion, TypedSerializedItem
 from ....cfg import bbData
 
 
-TSelf = TypeVar("TSelf", bound="ItemBase")
+class ItemDeclarativeBase(DeclarativeBase, AsyncAttrs): pass
 
 
-class Base(DeclarativeBase): pass
+class AnyItem(ItemDeclarativeBase):
+    """Do not inherit from this class. Instead use `Item`.
+    This is the base class in the SQLAlchemy joined table inheritance pattern.
 
-class ItemBase(Base, AliasableMixin, EmbedFillableMixin, SerializesToSchema[SerializedItemBaseUnion], metaclass=EmbedFillableSqlTableMeta):
-    """An in-game item.
+    This class acts as a union over all items in the game. For all items in the game, the table contains:
+    - item ID
+    - item category (StoreableItemType)
+    - concrete class identifier
+    """
+    __tablename__ = TableNames.AllItems.value
+
+    _isStoreableBase = True
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    itemType: Mapped[StoreableItemType]
+    _mappedType: Mapped[str]
+    
+
+    @declared_attr.directive
+    def __mapper_args__(cls) -> Dict[str, Any]:
+        args: Dict[str, Any] = {}
+
+        if cls._isStoreableBase:
+            args["polymorphic_on"] = cls._mappedType
+        else:
+            args["polymorphic_identity"] = cls.__name__
+
+        return args
+    
+
+TSchema = TypeVar("TSchema", bound=SerializedItemUnion)
+
+
+class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=EmbedFillableSqlTableMeta):
+    """Base class for in-game items.
+
+    Subclasses, directly or indirectly, MUST NOT define any primary keys.
+    Direct subclasses MUST:
+    - inherit from ItemWithId, followed by Item
+    - be decorated with item_storeable.itemType
+
+    Subclasses should also not define their own DeclarativeBase.
+
     Items have name and a credits value, and can be stored in an inventory.
     Items can also optionally have a manufacturer, a wiki page, an icon, an emoji, a tech level, and a list of aliases.
     Comes with EmbedFillableMixin, and the following as embed attributes:
@@ -35,52 +76,38 @@ class ItemBase(Base, AliasableMixin, EmbedFillableMixin, SerializesToSchema[Seri
     - name
     - aliases
 
-    Subclasses must be decarated with `itemType`.
-    This is the base class in the SQLAlchemy joined table inheritance pattern.
+    Note that Item does not include a mapped field called `value` - it only defines an abstract method getValue.
+    Note that Item does not include Workshoppable.
+
+    Items each belong to a category defined by the StoreableItemType enum.
+    When an inventory receives an item from the database, it needs to know what type of item it is,
+    in order to keep the item in the correct section of the inventory.
+
+    For this reason, direct Item subclasses must be decarated with `itemType`.
+    Indirect subclasses will inherit the parent's item type, and therefore be categorized the same in inventories.
 
     ```py
-    from .itemBase import ItemBase, itemType
+    from .item import Item, ItemWithId
+    from .item_storeable import itemType
     from ..database.constants import StoreableItemType
 
     @itemType(StoreableItemType.MyItem)
-    class MyItem(ItemBase):
+    class MyItem(ItemWithId, Item):
         __tablename__ = ...
     ```
     """
-    __tablename__ = TableNames.AllItems.value
-
-    _isStoreableBase = True
+    id: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.AllItems.value}.id"), primary_key=True)
     _storeableItemType: StoreableItemType
-    _polymorphicIdentityOverride: Optional[str] = None
-
-    itemType: Mapped[StoreableItemType]
-    id: Mapped[int]
     manufacturer: Mapped[Optional[str]]
     wikiUrl: Mapped[Optional[str]]
-    iconUrl: Mapped[Optional[str]]
+    iconUrl: Mapped[str]
     techLevel: Mapped[Optional[int]]
     _emojiUnicode: Mapped[Optional[str]] = mapped_column()
     _emojiId: Mapped[Optional[int]] = mapped_column()
     
     emoji: Mapped[Optional[BasedEmoji]] = composite(_emojiId, _emojiUnicode)
-    
 
-    @declared_attr.directive
-    def __mapper_args__(cls) -> Dict[str, Any]:
-        args = {}
-
-        if cls._isStoreableBase:
-            args["polymorphic_on"] = cls.itemType
-        else:
-            if cls._polymorphicIdentityOverride is not None:
-                args["polymorphic_identity"] = cls._polymorphicIdentityOverride
-            else:    
-                args["polymorphic_identity"] = cls._storeableItemType.value
-
-        return args
-    
-
-    def __init__(self, name: str, **kw):
+    def __init__(self, name: str, **kw: Any):
         """
         :param str name: The name of the item. Must be unique.
         """
@@ -89,7 +116,7 @@ class ItemBase(Base, AliasableMixin, EmbedFillableMixin, SerializesToSchema[Seri
     
 
     def __init_subclass__(cls) -> None:
-        """Do not overload this method. It is used to enable the ItemBase inheritance heirarchy.
+        """Do not overload this method. It is used to enable the Item inheritance heirarchy.
         Overload _init_subclass instead.
         """
         cls._isStoreableBase = False
@@ -146,29 +173,37 @@ class ItemBase(Base, AliasableMixin, EmbedFillableMixin, SerializesToSchema[Seri
 
 
     @abstractmethod
-    async def serialize(self, saveType: Optional[bool] = False, **kwargs) -> SerializedItemBaseUnion:
+    async def serialize(self, saveType: Optional[bool] = False, **kwargs: Any) -> TSchema:
         """Serialize this item into dictionary format.
-        This base implementation should be used in itemBase implementations, and custom attributes saved into it.
+        This base implementation should be used in item implementations, and custom attributes saved into it.
 
         :param bool saveType: When true, include the string name of the object type in the output.
         :return: A dictionary containing all information needed to reconstruct this item.
         :rtype: dict
         """
-        aliasableData = await super().serialize(**kwargs)
+        aliasableData: SerializedAliasable = await super().serialize(**kwargs)
 
-        data: SerializedItemBaseUnion = {
+        data: SerializedItemUnion = {
             **aliasableData,
             "id": self.id,
             "value": await self.getValue(),
-            "wiki": self.wikiUrl,
-            "manufacturer": self.manufacturer,
-            "iconUrl": self.iconUrl,
-            "emoji": self.emoji.serialize() if self.emoji else None,
-            "techLevel": self.techLevel
+            "iconUrl": self.iconUrl
         }
 
+        if self.manufacturer is not None:
+            data["manufacturer"] = self.manufacturer
+
+        if self.wikiUrl is not None:
+            data["wikiUrl"] = self.wikiUrl
+
+        if self.emoji is not None:
+            data["emoji"] = await self.emoji.serialize()
+
+        if self.techLevel is not None:
+            data["techLevel"] = self.techLevel
+
         if saveType:
-            data = cast(TypedSerializedItemBase, data)
+            data = cast(TypedSerializedItem, data)
             data["type"] = type(self).__name__
 
         return data

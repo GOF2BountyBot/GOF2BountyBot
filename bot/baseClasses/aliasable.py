@@ -1,9 +1,9 @@
 # Typing imports
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Tuple, TypeVar
 
 from abc import abstractmethod
-from diff_match_patch import diff_match_patch
+from diff_match_patch import diff_match_patch # type: ignore[reportMissingTypeStubs]
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, relationship, mapped_column
@@ -31,7 +31,10 @@ class _ObjectAlias(Base):
         self.value = alias
 
 
-class AliasableMixin(Base, EmbedFillableMixin, SerializesToSchema[SerializedAliasable], metaclass=EmbedFillableSqlTableMeta):
+TSchema = TypeVar("TSchema", bound=SerializedAliasable)
+
+
+class AliasableMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metaclass=EmbedFillableSqlTableMeta):
     """An abstract class allowing subtype instances to be identified and compared by any list of names (aliases).
     A great example and common use case is in BountyBot's Criminal class. Criminals are NPCs that each have a unique name.
     These names usually consist of a forename and sirname, for example 'Ganfor Kant'. Providing 'Ganfor' and 'Kant' as aliases
@@ -57,7 +60,7 @@ class AliasableMixin(Base, EmbedFillableMixin, SerializesToSchema[SerializedAlia
     #     return association_proxy(cls._aliasesAssociation.__name__, 'alias')
     
 
-    def __init__(self, name: str, aliases: List[str] = [], *args, forceAllowEmpty: bool = False, _aliases: List[str] = [], **kwargs):
+    def __init__(self, name: str, aliases: List[str] = [], *args: Any, forceAllowEmpty: bool = False, _aliases: List[str] = [], **kwargs: Any):
         """
         :param str name: The main identifier for the object
         :param list[str] aliases: A list of alternative identifiers for the object
@@ -159,13 +162,14 @@ class AliasableMixin(Base, EmbedFillableMixin, SerializesToSchema[SerializedAlia
 
 
     @abstractmethod
-    async def serialize(self, **kwargs: Dict[str, Any]) -> SerializedAliasable:
+    async def serialize(self, **kwargs: Dict[str, Any]) -> TSchema:
         """Serialize this object into dictionary format, to be recreated completely.
 
         :return: A dictionary containing all information needed to recreate this object
         :rtype: dict
         """
-        data: SerializedAliasable = {"name": self.name}
+        data = await super().serialize(**kwargs)
+        data["name"] = self.name
         if self._aliases:
             data["aliases"] = await self.aliases
         return data

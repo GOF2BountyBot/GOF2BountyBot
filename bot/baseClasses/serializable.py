@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union, TypedDict
+from typing import Any, Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union, TypedDict
+from typing_extensions import Self
 from carica import SerializesToType, PrimativeType
 from .defaultable import DefaultableMixin
 from .simpleHash import SimpleHashMixin
@@ -10,8 +11,6 @@ from .simpleHash import SimpleHashMixin
 JsonPrimatives = Optional[Union[int, float, str, bool, datetime, Iterable["JsonPrimatives"], Dict[str, "JsonPrimatives"]]]
 # Make sure it is a dict at its base.
 JsonType = Dict[str, JsonPrimatives]
-
-TSelf = TypeVar("TSelf", bound="Serializable")
 
 class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHashMixin):
     """BountyBot uses DefaultableMixin for shorthanding deserializer implementations in most serializable classes,
@@ -23,7 +22,7 @@ class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHas
     
     @abstractmethod
     @classmethod
-    async def deserialize(cls: Type[TSelf], data: JsonPrimatives, **kwargs) -> TSelf:
+    async def deserialize(cls: Type[Self], data: JsonPrimatives, **kwargs) -> Self:
         raise NotImplementedError()
 
 
@@ -32,19 +31,31 @@ class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHas
 SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
 
 class SerializesToSchema(Serializable, DefaultableMixin, Generic[SerializedSchema]):
-    """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing
-    to/from a Json-compliant TypedDict schema.
+    """Declare a serializable to/from a Json-compliant TypedDict schema.
+    Includes DefaultableMixin to aid in deserializing, and SimpleHashMixin.
+
+    To enable subclassing, your type should be generic in its schema:
+    ```py
+    from typing import TypedDict, TypeVar
+    
+    class SerializedMyType(TypedDict):
+        myField: string
+
+    TSchema = TypeVar("TSchema", bound=SerializedMyType)
+
+    class MyType(SerializesToSchema[TSchema]):
+        ...
+    ```
     """
     @abstractmethod
-    async def serialize(self, **kwargs) -> SerializedSchema: return {}
+    async def serialize(self, **kwargs: Any) -> SerializedSchema: return {}
 
-    @classmethod
     @abstractmethod
-    async def deserialize(cls: Type[TSelf], data: SerializedSchema, **kwargs) -> TSelf: raise NotImplementedError()
+    @classmethod
+    async def deserialize(cls: Type[Self], data: SerializedSchema, **kwargs: Any) -> Self: raise NotImplementedError()
 
 
 SerializesToJson = SerializesToType[JsonType]
-
 
 TDeserialized = TypeVar("TDeserialized", bound=Serializable, covariant=True)
 TSerialized = TypeVar("TSerialized", bound=Union[PrimativeType, TypedDict], contravariant=True)

@@ -1,30 +1,22 @@
 from __future__ import annotations
-from typing import Any, Collection, Dict, List, Optional, Type, Union, cast, TypeVar, cast
-from typing_extensions import NotRequired
+from typing import Collection, List, Optional, Type, Union, cast, TypeVar, cast
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, relationship, mapped_column, composite
-from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from discord import Embed
 
-from ..modules import moduleItem
-from ..gameItem import GameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
-from .. import moduleItemFactory
-from ..modules.moduleItem import SerializedModuleItemUnion
 from ..weapons.primaryWeapon import PrimaryWeapon
 from ..weapons.turretWeapon import TurretWeapon
-from ..weapons.weapon import SerializedWeaponUnion
-from . import shipSkin, shipUpgrade
-from ....cfg import cfg, bbData
+from . import shipSkin
+from ....cfg import bbData
 from ....cfg.bbData import ItemCategory
-from ....lib.emojis import BasedEmoji, SerializedBasedEmoji
+from ....lib.emojis import BasedEmoji
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
 from ....baseClasses.aliasable import AliasableMixin
-from ....baseClasses.aliasable_json import SerializedAliasable
 from ...base.workshopable import Workshopable
-from ...base.workshopable_json import SerializedWorkshopableUnion, AnySerializedWorkshopable
+from ...base.workshopable_json import AnySerializedWorkshopable
 from .shipSpec_json import SerializedShipSpecUnion, TypedSerializedShipSpec
 from ....database.constants import ShipSkinRegion
 from ....database.tables import TableNames
@@ -32,17 +24,6 @@ from ....lib.gameMaths import topThreeItemSpawnRates
 
 TShip = TypeVar("TShip", bound="ShipSpec")
 
-ShipEquippableItemType = Union[
-    moduleItem.ModuleItem,
-    PrimaryWeapon,
-    TurretWeapon
-]
-
-shipEquippableItemTypes = {
-    ItemCategory.module: moduleItem.ModuleItem,
-    ItemCategory.weapon: PrimaryWeapon,
-    ItemCategory.turret: TurretWeapon
-}
 
 class Base(DeclarativeBase, AsyncAttrs):
     pass
@@ -51,6 +32,7 @@ class Base(DeclarativeBase, AsyncAttrs):
 REGIONS_LIST_SEPARATOR: str = ";"
 
 
+# Note that a ShipSpec is *not* an 'item'.
 class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, SerializesToSchema[SerializedShipSpecUnion]):
     """TODO: All of these 'get total' functions could probably be consolidated into a single function,
     # making use of getActives etc

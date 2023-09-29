@@ -6,7 +6,7 @@ from sqlalchemy.sql._typing import _ColumnsClauseArgument
 from sqlalchemy import select, and_
 
 from ..inventories.inventoryListing import InventoryListing
-from ..items.base.itemBase import ItemBase
+from ..items.base.item import ItemBase
 from ..items.itemTransaction import ItemTransactionContext, SupportsItems, SupportsTrading
 from . import shopBase
 

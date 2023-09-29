@@ -1,30 +1,27 @@
-from typing import List
+from typing import List, Union
 from typing_extensions import NotRequired
 
 from .shipSpec_json import SerializedShipSpec
+from ..weapons.weapon_json import SerializedWeapon
+from ..modules.moduleItem_json import SerializedModuleItemUnion
+from .shipUpgrade_json import SerializedShipUpgradeUnion
+from ..base.item_json import TypedSerializedItem
 
 
 class SerializedShipInstance(SerializedShipSpec):
     skin: NotRequired[str]
-    weapons: NotRequired[List[SerializedWeaponUnion]]
+    weapons: NotRequired[List[SerializedWeapon]]
     modules: NotRequired[List[SerializedModuleItemUnion]]
-    turrets: NotRequired[List[SerializedWeaponUnion]]
-    shipUpgrades: NotRequired[List[shipUpgrade.SerializedShipUpgradeUnion]]
+    turrets: NotRequired[List[SerializedWeapon]]
+    shipUpgrades: NotRequired[List[SerializedShipUpgradeUnion]]
     nickname: NotRequired[str]
 
-class SkinnedSerializedShip(SerializedShip):
-    skin: shipSkin.SerializedShipSkinUnion
-    icon: str
 
-class TypedSkinnedBuiltInSerializedShip(SkinnedSerializedShip, TypedSerializedShip): pass
+class TypedSerializedShipInstance(SerializedShipInstance, TypedSerializedItem): pass
 
-# Really this should inherit from TypedCustomSerializedGameItem, but that requires techLevel to be present.
-# Ships are a special case because their techLevel is calculated dynamically based on value
-class TypedCustomSerializedShip(CustomSerializedShip):
-    type: str
 
-class SkinnedCustomSerializedShip(CustomSerializedShip):
-    skin: shipSkin.SerializedShipSkinUnion
-    icon: str
+class AnySerializedShipInstance(SerializedShipInstance):
+    type: NotRequired[str]
 
-class TypedSkinnedCustomSerializedShip(SkinnedCustomSerializedShip, TypedCustomSerializedShip): pass
+
+SerializedShipInstanceUnion = Union[SerializedShipInstance, TypedSerializedShipInstance]

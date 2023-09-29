@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type, TypeVar, Generic, Union, cast, overload, TypedDict
-from typing_extensions import NotRequired
+from typing import Any, Dict, List, Never, Type, TypeVar, Generic, Union, cast, overload
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy import ForeignKey
@@ -12,9 +11,9 @@ from abc import ABC
 from .inventoryListingValueAugment import InventoryListingValueAugment
 from ...database.constants import StoreableItemType
 from ...database.tables import TableNames
-from ..items.base.itemBase import ItemBase
-from ..items.base.itemBase_storeable import StoreableItemTypes
-from ..items.base.itemBase_json import SerializedItemBaseUnion
+from ..items.base.item import Item
+from ..items.base.item_storeable import StoreableItemTypes
+from ..items.base.item_json import SerializedItemUnion
 from ...lib.sql import AbcSqlTableMeta
 from ...baseClasses.serializable import SerializesToSchema
 from .inventoryListing_json import SerializedInventoryListing
@@ -24,8 +23,8 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-TStoredItem = TypeVar("TStoredItem", bound=ItemBase)
-TItemSerialized = TypeVar("TItemSerialized", bound=SerializedItemBaseUnion)
+TStoredItem = TypeVar("TStoredItem", bound=Item[Any])
+TItemSerialized = TypeVar("TItemSerialized", bound=SerializedItemUnion)
 
 
 class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], SerializesToSchema[SerializedInventoryListing[TItemSerialized]], metaclass=AbcSqlTableMeta):
@@ -71,7 +70,7 @@ class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], Seriali
         self._valueAugments = value
     
 
-    async def serialize(self, **kwargs) -> SerializedInventoryListing[TItemSerialized]:
+    async def serialize(self, **kwargs: Any) -> SerializedInventoryListing[TItemSerialized]:
         """Return a dictionary description of this inventory listing.
 
         :return: A dictionary identifying the object stored, and the amount
@@ -79,7 +78,7 @@ class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], Seriali
         """
         # Casting here with the assumption that TItemSerialized is the serialized form of TItem
         serialized = cast(TItemSerialized, await self.item.serialize(**kwargs))
-        data: SerializedInventoryListing = {"item": serialized, "count": self.quantity}
+        data: SerializedInventoryListing[TItemSerialized] = {"item": serialized, "count": self.quantity}
         if len(await self.valueAugments) > 0:
             data["valueAugments"] = [
                 await a.serialize(**kwargs) for a in await self.valueAugments
@@ -88,12 +87,12 @@ class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], Seriali
 
 
     @classmethod
-    def deserialize(cls, listingDict: SerializedInventoryListing[TItemSerialized], **kwargs):
+    def deserialize(cls, data: SerializedInventoryListing[TItemSerialized], **kwargs: Any) -> Never: # type: ignore[reportUnknownParameterType] return type being unknown is fine here
         raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
                                     + "Instead instance InventoryListing with your deserialized item object.")
 
 
-ListingTypes: Dict[Type[ItemBase], Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]] = {}
+ListingTypes: Dict[Type[Item[Any]], Type[InventoryListing[Item[Any], SerializedItemUnion]]] = {}
 
 
 # Dynamically create concrete subclasses for each item type.
@@ -101,21 +100,19 @@ ListingTypes: Dict[Type[ItemBase], Type[InventoryListing[ItemBase, SerializedIte
 # InventoryListing is generic in the stored item type, but SQLAlchemy can only infer the type from the discriminator column,
 # not the generic type parameter. Therefore, we associate each discriminator value with its own non-generic type.
 for itemType, itemTypeClass in StoreableItemTypes.items():
-    @declared_attr.directive
-    def __mapper_args__(cls: Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]) -> Dict[str, Any]:
-        return {
+    __mapper_args__ = {
             "polymorphic_identity": itemType.value,
         }
     
     ListingTypes[itemTypeClass] = type(
         f"{itemTypeClass.__name__}InventoryListing",
-        (InventoryListing[itemTypeClass, SerializedItemBaseUnion],),
+        (InventoryListing[itemTypeClass, SerializedItemUnion],),
         {"__mapper_args__": __mapper_args__}
     )
 
 
 @overload
-def inventoryListingType(storedItemType: Type[TStoredItem]) -> Type[InventoryListing[TStoredItem, SerializedItemBaseUnion]]:
+def inventoryListingType(storedItemType: Type[TStoredItem]) -> Type[InventoryListing[TStoredItem, SerializedItemUnion]]:
     """Given a stored item type `MyItem`, get a concrete, non-generic InventoryListing subclass that stores `MyItem`s.
 
     :param storedItemType: The item type that the listing type should store. This is what would be given as the generic type parameter.
@@ -125,7 +122,7 @@ def inventoryListingType(storedItemType: Type[TStoredItem]) -> Type[InventoryLis
     """
 
 @overload
-def inventoryListingType(storedItemType: StoreableItemType) -> Type[InventoryListing[ItemBase, SerializedItemBaseUnion]]:
+def inventoryListingType(storedItemType: StoreableItemType) -> Type[InventoryListing[Item[Any], SerializedItemUnion]]:
     """Given a stored item type `MyItem`, get a concrete, non-generic InventoryListing subclass that stores `MyItem`s.
     It is recommended to use the generic overload of this function where possible, to enable proper typing.
 
@@ -135,7 +132,7 @@ def inventoryListingType(storedItemType: StoreableItemType) -> Type[InventoryLis
     :rtype: Type[InventoryListing[StoreableItem]]
     """
 
-def inventoryListingType(storedItemType: Union[Type[ItemBase], StoreableItemType]) -> Type[InventoryListing[Any, SerializedItemBaseUnion]]:
+def inventoryListingType(storedItemType: Union[Type[Item[Any]], StoreableItemType]) -> Type[InventoryListing[Any, SerializedItemUnion]]:
     if isinstance(storedItemType, StoreableItemType):
         return ListingTypes[StoreableItemTypes[storedItemType]]
     return ListingTypes[storedItemType]

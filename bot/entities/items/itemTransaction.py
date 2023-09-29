@@ -5,7 +5,7 @@ from typing import Any, Awaitable, List, Optional, Type, TypeVar, Union, Generic
 from contextlib import AbstractAsyncContextManager
 
 from ..inventories.inventoryBase import InventoryBase
-from .itemBase import ItemBase
+from .base.item import Item
 from ...database.constants import StoreableItemType
 
 @runtime_checkable
@@ -23,7 +23,7 @@ class SupportsItems(Protocol):
     def getInventory(self, itemType: StoreableItemType) -> InventoryBase: ...
 
 
-TStoredItem = TypeVar("TStoredItem", bound=ItemBase)
+TStoredItem = TypeVar("TStoredItem", bound=Item[Any])
 TBuyer = TypeVar("TBuyer", bound=Union[SupportsTrading, SupportsItems])
 TSeller = TypeVar("TSeller", bound=Union[SupportsTrading, SupportsItems])
 
@@ -51,7 +51,7 @@ class ItemTransactionState(Enum):
     Cancelled = 3
 
 
-class ItemTransactionContext(AbstractAsyncContextManager, Generic[TStoredItem, TBuyer, TSeller]):
+class ItemTransactionContext(AbstractAsyncContextManager[None], Generic[TStoredItem, TBuyer, TSeller]):
     """TODO: This class is slated for design reconsideration. Why write our own class when we can just use a SQL transaction? The current issue is that opening a transaction on the AsyncSession raises a 'transaction already open' error.
     TODO: Redesign as a database persisted storage entity, with source and target IDs and discriminators, and committed source and target credits/lists of items. Committed: They must be removed from the source in order for the transaction to be created. This design will allow for later reuse in trade requests, and potentially in marketplace seller boxes
     
@@ -130,14 +130,14 @@ class ItemTransactionContext(AbstractAsyncContextManager, Generic[TStoredItem, T
         self.rollbackSteps: List[ItemRollbackStep[TStoredItem, TBuyer, TSeller]] = []
 
         if chargeBuyer:
-            async def _exec(transaction):
+            async def _exec(transaction: ItemTransactionContext[TStoredItem, TBuyer, TSeller]):
                 value = await self.value()
                 if isinstance(self.buyer, SupportsTrading):
                     self.buyer.credits -= value
                 if isinstance(self.seller, SupportsTrading):
                     self.seller.credits += value
 
-            async def _rollback(transaction):
+            async def _rollback(transaction: ItemTransactionContext[TStoredItem, TBuyer, TSeller]):
                 value = await self.value()
                 if isinstance(self.buyer, SupportsTrading):
                     self.buyer.credits += value
@@ -248,7 +248,7 @@ class ItemTransactionContext(AbstractAsyncContextManager, Generic[TStoredItem, T
                 await result
 
 
-    async def __aenter__(self) -> Any:
+    async def __aenter__(self):
         await self._executePreBuySteps()
     
 

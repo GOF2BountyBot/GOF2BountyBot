@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Dict, Optional, Set, Union, TYPE_CHECKING, cast
+from typing import Dict, Optional, Set, TypeVar, Union, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from .bountyDivision import BountyDivision
@@ -60,7 +60,10 @@ class RewardsMeta(Enum):
             return self.value | other
 
 
-class Bounty(SerializesToSchema[SerializedBountyUnion]):
+TSchema = TypeVar("TSchema", bound=SerializedBountyUnion)
+
+
+class Bounty(SerializesToSchema[TSchema]):
     """A bounty listing for a criminal, to be hunted down by players.
 
     :var criminal: The criminal who is being hunted

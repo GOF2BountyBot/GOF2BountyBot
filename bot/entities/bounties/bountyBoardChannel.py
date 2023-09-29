@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Coroutine, List, Tuple
-from typing_extensions import NotRequired, TypedDict
+from typing import TYPE_CHECKING, Coroutine, List, Tuple, TypeVar, TypedDict
+from typing_extensions import NotRequired
 from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
@@ -76,7 +76,10 @@ class SerializedBountyBoardChannel(TypedDict):
     escapedBountiesMsg: int
 
 
-class BountyBoardChannel(SerializesToSchema[SerializedBountyBoardChannel]):
+TSchema = TypeVar("TSchema", bound=SerializedBountyBoardChannel)
+
+
+class BountyBoardChannel(SerializesToSchema[TSchema]):
     """A channel which stores a continuously updating listing message for every active bounty.
 
     Initialisation atts: These attributes are used only when loading in the BBC from dictionary-serialised format.

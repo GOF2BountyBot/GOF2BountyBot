@@ -1,10 +1,9 @@
 import asyncio
-from typing import Any, Awaitable, ClassVar, Dict, List, Optional, Set, Tuple, Type, Union, overload, Protocol
+from typing import Any, ClassVar, Dict, Optional, Set, Tuple, Union, overload, Protocol
 from typing_extensions import Never
 
 from readerwriterlock.rwlock_async import RWLockWrite, Lockable
-from asyncio.events import AbstractEventLoop
-from asyncio import Lock, Task, TimeoutError, Semaphore
+from asyncio import Lock, TimeoutError
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from abc import ABC, abstractmethod
@@ -78,12 +77,12 @@ class AssetLease(ABC):
 
 
     @abstractmethod
-    async def _revokeInternal(self):
+    async def _revokeInternal(self) -> None:
         raise NotImplementedError()
 
 
     @abstractmethod
-    async def _releaseInternal(self):
+    async def _releaseInternal(self) -> None:
         raise NotImplementedError()
 
 

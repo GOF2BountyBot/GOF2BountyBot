@@ -1,7 +1,7 @@
-from abc import abstractmethod
 from types import TracebackType
-from typing import Any, Collection, Generic, Optional, Tuple, Type, TypeVar, Union, Any
+from typing import Any, Collection, Generic, Optional, Tuple, TypeVar, Union
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from contextlib import AbstractAsyncContextManager
@@ -51,7 +51,7 @@ class AssetHolder:
 TLease = TypeVar("TLease", bound=assetManager.AssetLease)
 
 
-class _AssetLeaseContextBase(AbstractAsyncContextManager, Generic[TLease]):
+class _AssetLeaseContextBase(AbstractAsyncContextManager["_AssetLeaseContextBase"], Generic[TLease]):
     def __init__(self, asset: "Asset"):
         self.asset = asset
         self.lease: Optional[TLease] = None

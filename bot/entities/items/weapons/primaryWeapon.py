@@ -1,18 +1,12 @@
-from sqlalchemy.orm import DeclarativeBase
-
 from ....cfg import bbData
 from ....lib.emojis import BasedEmoji
 from ....lib.gameMaths import topThreeItemSpawnRates
 from ....baseClasses.embedFillable import embedField
-from ..base.itemBase_storeable import itemType
+from ..base.item_storeable import itemType
 from ....database.constants import StoreableItemType
-from ..base.itemBase_spawnable import spawnableItem
+from ..base.item_spawnable import spawnableItem
 from .weapon_json import SerializedWeapon
 from .weapon import Weapon
-
-
-class Base(DeclarativeBase):
-    pass
 
 
 @spawnableItem

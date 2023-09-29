@@ -1,7 +1,6 @@
 # Typing imports
 from __future__ import annotations
-from typing import Union, cast
-from typing_extensions import NotRequired
+from typing import Dict, Literal, cast
 
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 
@@ -13,34 +12,10 @@ from ....lib.stringUtil import formattedAdditiveAndOrMultiplierOrNone, formatAdd
 from ...base.workshopable import Workshopable
 from ...base.workshopable_json import AnySerializedWorkshopable
 from ....database.tables import TableNames
+from .shipUpgrade_json import SerializedShipUpgradeUnion, SerializedShipUpgrade
 
-class SerializedShipUpgrade(AnySerializedWorkshopable):
-    vendor: NotRequired[str]
-    shipToUpgradeValueMult: float
-    armour: NotRequired[int]
-    cargo: NotRequired[int]
-    handling: NotRequired[int]
-    maxSecondaries: NotRequired[int]
-    maxPrimaries: NotRequired[int]
-    maxTurrets: NotRequired[int]
-    maxModules: NotRequired[int]
-    armourMultiplier: NotRequired[float]
-    cargoMultiplier: NotRequired[float]
-    handlingMultiplier: NotRequired[float]
-    maxSecondariesMultiplier: NotRequired[float]
-    maxPrimariesMultiplier: NotRequired[float]
-    maxTurretsMultiplier: NotRequired[float]
-    maxModulesMultiplier: NotRequired[float]
-
-class TypedSerializedShipUpgrade(SerializedShipUpgrade):
-    type: str
-
-
-class AnySerializedShipUpgrade(SerializedShipUpgrade):
-    type: NotRequired[type]
-
-
-SerializedShipUpgradeUnion = Union[SerializedShipUpgrade, TypedSerializedShipUpgrade]
+AdditiveModifierName = Literal["armour", "cargo", "handling", "maxSecondaries", "maxPrimaries", "maxTurrets", "maxModules"]
+MultiplicativeModifierName = Literal["armourMultiplier", "cargoMultiplier", "handlingMultiplier", "maxSecondariesMultiplier", "maxPrimariesMultiplier", "maxTurretsMultiplier", "maxModulesMultiplier"]
 
 
 class Base(DeclarativeBase):
@@ -155,36 +130,7 @@ class ShipUpgrade(Base, Workshopable, EmbedFillableMixin, SerializesToSchema[Ser
         return int(ship.value * self.shipToUpgradeValueMult)
 
 
-    async def serialize(self, **kwargs) -> SerializedShipUpgradeUnion:
-        """Serialize this shipUpgrade into a dictionary for saving to file
-        Contains all information needed to reconstruct this upgrade. If the upgrade is builtIn,
-        this includes only the upgrade name.
-
-        :return: A dictionary-serialized representation of this upgrade
-        :rtype: dict
-        """
-
-        baseData: AnySerializedWorkshopable = cast(AnySerializedWorkshopable, await super().serialize(**kwargs))
-
-        data: SerializedShipUpgrade = {
-            **baseData,
-            "shipToUpgradeValueMult": self.shipToUpgradeValueMult
-        }
-
-        data["shipToUpgradeValueMult"] = self.shipToUpgradeValueMult
-
-        for k, v in self._additiveStats().items():
-            if v != 0:
-                data[k] = v
-
-        for k, v in self._multiplierStats().items():
-            if v != 1:
-                data[k] = v
-
-        return data
-
-
-    def _multiplierStats(self):
+    def _multiplierStats(self) -> Dict[MultiplicativeModifierName, float]:
         return {
             "armourMultiplier": self.armourMultiplier, "cargoMultiplier": self.cargoMultiplier,
             "handlingMultiplier": self.handlingMultiplier,
@@ -194,7 +140,7 @@ class ShipUpgrade(Base, Workshopable, EmbedFillableMixin, SerializesToSchema[Ser
         }
 
 
-    def _additiveStats(self):
+    def _additiveStats(self) -> Dict[AdditiveModifierName, int]:
         return {
             "armour": self.armour, "cargo": self.cargo, "handling": self.handling,
             "maxSecondaries": self.maxSecondaries, "maxPrimaries": self.maxPrimaries,
@@ -213,6 +159,35 @@ class ShipUpgrade(Base, Workshopable, EmbedFillableMixin, SerializesToSchema[Ser
         
         return f'*{ ", ".join(tuple(additiveStrs + multiplierStrs)) }*' \
             if (additiveStrs or multiplierStrs) else "*No effect*"
+    
+
+    async def serialize(self, **kwargs) -> SerializedShipUpgradeUnion:
+        """Serialize this shipUpgrade into a dictionary for saving to file
+        Contains all information needed to reconstruct this upgrade. If the upgrade is builtIn,
+        this includes only the upgrade name.
+
+        :return: A dictionary-serialized representation of this upgrade
+        :rtype: dict
+        """
+
+        baseData = cast(AnySerializedWorkshopable, await super().serialize(**kwargs))
+
+        data: SerializedShipUpgrade = {
+            **baseData,
+            "shipToUpgradeValueMult": self.shipToUpgradeValueMult
+        }
+
+        data["shipToUpgradeValueMult"] = self.shipToUpgradeValueMult
+
+        for k, v in self._additiveStats().items():
+            if v != 0:
+                data[k] = v
+
+        for k, v in self._multiplierStats().items():
+            if v != 1:
+                data[k] = v
+
+        return data
 
 
     @classmethod

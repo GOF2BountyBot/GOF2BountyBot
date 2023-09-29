@@ -1,9 +1,9 @@
-from typing import Optional, cast
+from typing import Any, Optional, TypeVar
 from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from ...baseClasses.serializable import SerializesToSchema
-from .workshopable_json import SerializedWorkshopableUnion, SerializedUserSubmittedWorkshopable, SerializedBuiltInWorkshopable, AnySerializedWorkshopable
+from .workshopable_json import SerializedWorkshopableUnion, SerializedUserSubmittedWorkshopable, SerializedBuiltInWorkshopable
 from ...lib.sql import EmbedFillableSqlTableMeta
 from ...baseClasses.embedFillable import EmbedFillableMixin, embedTitle, embedField
 from ...lib.discordUtil import ZWSP
@@ -12,8 +12,9 @@ from ...lib.discordUtil import ZWSP
 class Base(DeclarativeBase):
     pass
 
+TSchema = TypeVar("TSchema", bound=SerializedWorkshopableUnion)
 
-class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[SerializedWorkshopableUnion], metaclass=EmbedFillableSqlTableMeta):
+class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metaclass=EmbedFillableSqlTableMeta):
     name: Mapped[str]
     workshopListingId: Mapped[int]# = mapped_column(ForeignKey(TableNames.WorkshopListing))
 
@@ -34,7 +35,7 @@ class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[SerializedWorksh
         return f"*Workshop listing #{self.workshopListingId}*" if self.fromWorkshop else None
     
 
-    async def serialize(self, **kwargs) -> SerializedWorkshopableUnion:
+    async def serialize(self, **kwargs: Any) -> TSchema:
         data = await super().serialize(**kwargs)
 
         if self.fromWorkshop:

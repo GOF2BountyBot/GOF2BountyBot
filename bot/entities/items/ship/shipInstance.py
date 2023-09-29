@@ -1,39 +1,37 @@
 from typing import List, Optional, Type, cast
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Table, Column, Integer, Enum, and_
-from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from discord import Embed
 
 from ....database.tables import TableNames
 from ....database.constants import StoreableItemType, ShipInstanceEquippedItemType
-from ..base.itemBase import ItemBase
-from ..base.itemBase_storeable import itemType
+from ..base.item import ItemBase, ItemWithId, ItemDeclarativeBase
+from ..base.item_storeable import itemType
+from ..base.item_spawnable import spawnableItem
 from . import shipSkin, shipSpec, shipUpgrade
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from ....baseClasses.embedFillable import embedField
 from ....lib.gameMaths import topThreeItemSpawnRates
 from ....cfg import bbData, cfg
 from ..weapons.primaryWeapon import PrimaryWeapon
 from ..weapons.turretWeapon import TurretWeapon
-
-
-class Base(DeclarativeBase, AsyncAttrs):
-    pass
+from ..modules.moduleItem import ModuleItem
 
 
 ShipInstanceHasItemEquipped = Table(
     TableNames.UserHasMedal.value,
-    Base.metadata,
+    ItemDeclarativeBase.metadata,
     Column("shipInstanceId", Integer, ForeignKey(f"{TableNames.ShipInstance.value}.id"), primary_key=True),
     Column("itemId", Integer, primary_key=True),
     Column("itemType", Enum(ShipInstanceEquippedItemType))
 )
 
 
+@spawnableItem
 @itemType(StoreableItemType.ship)
-class ShipInstance(Base, ItemBase, EmbedFillableMixin):
+class ShipInstance(ItemWithId, ItemBase):
     __tablename__ = TableNames.ShipInstance.value
 
     nickname: Mapped[str]
@@ -63,7 +61,7 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.turret),
         lazy="joined")
     
-    modules: Mapped[List["moduleItem.ModuleItem"]] = relationship(
+    modules: Mapped[List["ModuleItem"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
         primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == ItemBase.id,
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.module),
@@ -283,7 +281,7 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
         return True
 
 
-    def getModuleAtIndex(self, index: int) -> moduleItem.ModuleItem:
+    def getModuleAtIndex(self, index: int) -> ModuleItem:
         """Fetch the moduleItem object reference that is equipped at the given index
 
         :param int index: The index of the module to fetch
@@ -320,7 +318,6 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
         for turret in self.turrets:
             total += turret.dps
         for module in self.modules:
-            total += module.dps
             multiplier *= module.dpsMultiplier
 
         return total * multiplier
@@ -546,7 +543,7 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
         return self.name if not self.hasNickname else f"{self.nickname}  ({self.name})"
 
 
-    def getActives(self, itemType: bbData.ShipEquippableItemCategoryType) -> List[shipSpec.ShipEquippableItemType]:
+    def getActives(self, itemType: bbData.ShipEquippableItemCategoryType):
         """Get the all of the ship's equipped items of the given type.
         The given list is mutable, and can alter the ship's equipped items.
 
@@ -557,11 +554,11 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
         """
         #TODO: Casting here because I can't convince pyright that the types match
         if itemType == bbData.ItemCategory.weapon:
-            return cast(List[shipSpec.ShipEquippableItemType], self.weapons)
+            return self.weapons
         if itemType == bbData.ItemCategory.module:
-            return cast(List[shipSpec.ShipEquippableItemType], self.modules)
+            return self.modules
         if itemType == bbData.ItemCategory.turret:
-            return cast(List[shipSpec.ShipEquippableItemType], self.turrets)
+            return self.turrets
         raise NotImplementedError("Unrecognised item type: " + itemType.value)
 
 
@@ -647,10 +644,11 @@ class ShipInstance(Base, ItemBase, EmbedFillableMixin):
                                         + str(maxEquip) + "*",
                                     inline=False)
                 for itemNum in range(1, len(equipped) + 1):
-                    baseEmbed.add_field(name=str(itemNum) + ". " + equipped[itemNum - 1].name,
-                                        value=(equipped[itemNum - 1].emoji.sendable \
-                                                if equipped[itemNum - 1].hasEmoji else "") \
-                                            + equipped[itemNum - 1].statsStringShort(),
+                    item = equipped[itemNum - 1]
+                    baseEmbed.add_field(name=str(itemNum) + ". " + item.name,
+                                        value=(item.emoji.sendable \
+                                                if item.emoji is not None else "") \
+                                            + item.statsStringShort(),
                                         inline=True)
 
         return baseEmbed

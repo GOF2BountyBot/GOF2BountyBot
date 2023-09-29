@@ -1,5 +1,4 @@
-from typing import Dict, List, Literal, Union, cast, TypedDict, Collection
-from typing_extensions import NotRequired, TypeGuard
+from typing import Dict, List, cast, Collection
 
 import os
 from os.path import join
@@ -10,61 +9,18 @@ from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column,
 from sqlalchemy import Table, Column, ForeignKey, String
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
-from ....lib.ids import guid
 from ....lib.tempFolder import TempFolder
 from ....baseClasses.hasRarity import HasRarityMixin
-from ....baseClasses.hasRarity_json import SerializedWithRarity
-from ....baseClasses.serializable import JsonType, SerializesToSchema
-from ....baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle, EmbedFillableMixin
+from ....baseClasses.serializable import SerializesToSchema
+from ....baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
 from ....cfg import bbData, cfg
 from ....shipRenderer import shipRenderer
 from ...base.workshopable import Workshopable
-from ...base.workshopable_json import AnySerializedWorkshopable
 from . import shipSpec
 from ....database.tables import TableNames
 from ....database.constants import ShipSkinRegion, ShipSkinMethod
 from ....assetManager import AssetType, Asset
-
-
-class SerializedAutoskinConfiguration(TypedDict):
-    skinnedRegions: List[str]
-    disabledRegions: NotRequired[List[str]]
-
-
-class SerializedBaseClasses(AnySerializedWorkshopable, SerializedWithRarity):
-    pass
-
-
-class SerializedShipSkinBase(SerializedBaseClasses):
-    diffuse: SerializedAutoskinConfiguration
-    # normalSpecular: Optional[SerializedAutoskinConfiguration]
-    method: str
-
-
-class SerializedAllShipsShipSkin(SerializedShipSkinBase):
-    allShips: Literal[True]
-
-
-class SerializedNotAllShipsShipSkin(SerializedShipSkinBase):
-    allShips: Literal[False]
-    compatibleShips: List[int]
-
-
-class TypedSerializedAllShipsShipSkin(SerializedAllShipsShipSkin):
-    type: str
-
-
-class TypedSerializedNotAllShipsShipSkin(SerializedNotAllShipsShipSkin):
-    type: str
-
-
-class AnySerializedShipSkin(SerializedShipSkinBase):
-    type: NotRequired[str]
-    allShips: bool
-    compatibleShips: NotRequired[List[int]]
-
-
-SerializedShipSkinUnion = Union[SerializedAllShipsShipSkin, SerializedNotAllShipsShipSkin, TypedSerializedAllShipsShipSkin, TypedSerializedNotAllShipsShipSkin]
+from .shipSkin_json import SerializedShipSkinUnion, SerializedBaseClasses, AnySerializedShipSkin
 
 
 class Base(DeclarativeBase, AsyncAttrs):

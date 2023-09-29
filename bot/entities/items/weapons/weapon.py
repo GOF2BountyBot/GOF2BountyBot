@@ -1,23 +1,18 @@
 from __future__ import annotations
 from typing import cast
 
-from sqlalchemy.orm import DeclarativeBase, Mapped
+from sqlalchemy.orm import Mapped
 
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import embedField
 from ...base.workshopable import Workshopable
-from ..base.itemBase import ItemBase
-from ..base.itemBase_json import AnySerializedItemBase
+from ..base.item import ItemBase, ItemWithId
+from ..base.item_json import AnySerializedItem
 from ...base.workshopable_json import AnySerializedWorkshopable
 from .weapon_json import SerializedWeapon
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-
-class Weapon(Base, ItemBase, Workshopable, SerializesToSchema[SerializedWeapon]):
+class Weapon(ItemWithId, ItemBase, Workshopable, SerializesToSchema[SerializedWeapon]):
     """An abstract class representing weapons that can be equipped onto a ship for use in duels.
 
     :var dps: The weapon's damage per second to a target ship.
@@ -52,7 +47,7 @@ class Weapon(Base, ItemBase, Workshopable, SerializesToSchema[SerializedWeapon])
                     If the weapon is builtIn, this is only its name.
         :rtype: dict
         """
-        baseData = cast(AnySerializedItemBase, await ItemBase.serialize(self, **kwargs))
+        baseData = cast(AnySerializedItem, await ItemBase.serialize(self, **kwargs))
         workshopableData = cast(AnySerializedWorkshopable, await Workshopable.serialize(self, **kwargs))
 
         data: SerializedWeapon = {
