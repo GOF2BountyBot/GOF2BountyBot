@@ -1,5 +1,4 @@
 from typing import Literal, TypedDict, Union
-from typing_extensions import NotRequired
 
 
 class SerializedBuiltInWorkshopable(TypedDict):
@@ -10,12 +9,6 @@ class SerializedBuiltInWorkshopable(TypedDict):
 class SerializedUserSubmittedWorkshopable(TypedDict):
     fromWorkshop: Literal[True]
     workshopListingId: int
-    name: str
-
-
-class AnySerializedWorkshopable(TypedDict):
-    fromWorkshop: bool
-    workshopListingId: NotRequired[int]
     name: str
 
 

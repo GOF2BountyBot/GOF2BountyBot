@@ -1,4 +1,5 @@
 from typing import Any, Optional, TypeVar
+
 from sqlalchemy.orm import DeclarativeBase, Mapped
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -46,3 +47,5 @@ class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metacl
             data.update(builtInData) # type: ignore[reportGeneralTypeIssues]
         
         return data
+
+AnyWorkshoppable = Workshopable[SerializedWorkshopableUnion]

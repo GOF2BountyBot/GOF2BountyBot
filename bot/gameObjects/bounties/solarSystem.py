@@ -75,7 +75,7 @@ class SolarSystem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, Se
         self.faction = faction
         self.neighbours = neighbours
         self.security = security
-        self.coordinates = tuple(coordinates)
+        self.coordinates = coordinates
 
         self.techLevel = techLevel
         self.hasTechLevel = techLevel != -1

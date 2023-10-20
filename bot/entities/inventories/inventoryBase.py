@@ -37,8 +37,12 @@ class InventoryBase(Base):
         self._allListings = value
 
 
-    async def isEmpty(self) -> bool:
-        return len(await self.allListings) == 0
+    async def isEmpty(self, session: AsyncSession) -> bool:
+        query = select(inventoryListing.InventoryListing) \
+            .where(inventoryListing.InventoryListing.inventoryId == self.id) \
+            .with_only_columns(inventoryListing.InventoryListing.id)
+        result = await session.execute(query)
+        return result.one_or_none() is None
 
     
     async def add(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> "inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]":

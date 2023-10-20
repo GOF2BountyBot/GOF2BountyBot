@@ -675,6 +675,8 @@ moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 # The number of snowball icons that can be picked from for ThrowSnowballTool
 numSnowballs = 6
 
+wikiEntityUrlTemplate = "https://duckduckgo.com/?q=!ducky+{searchTerm}+site%3Agalaxyonfire.wiki.gg"
+
 def validateConfig():
     for _, basicAccessLevel in basicAccessLevels._fieldItems():
         if basicAccessLevel not in userAccessLevels:

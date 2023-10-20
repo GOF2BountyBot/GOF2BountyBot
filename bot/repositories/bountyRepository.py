@@ -125,7 +125,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
     def getBountyByCrim(self, crim: Criminal, level: Optional[int] = None) -> bounty.Bounty:
         """Get the bounty object for a given criminal name object
         This process is much more efficient when given the difficulty level of the criminal's bounty.
-
+        
         :param Criminal crim: The criminal whose bounty is to be fetched.
         :param str level: The difficulty level of the criminal's bounty. Give None if this is not known,
                             to search all difficulties. (default None)

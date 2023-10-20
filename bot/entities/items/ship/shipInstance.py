@@ -1,4 +1,4 @@
-from typing import List, Optional, Type, cast
+from typing import List, Optional, Type, TypeVar, cast
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Table, Column, Integer, Enum, and_
@@ -8,10 +8,11 @@ from discord import Embed
 
 from ....database.tables import TableNames
 from ....database.constants import StoreableItemType, ShipInstanceEquippedItemType
-from ..base.item import ItemBase, ItemWithId, ItemDeclarativeBase
+from ..base.item import Item, ItemDeclarativeBase
 from ..base.item_storeable import itemType
 from ..base.item_spawnable import spawnableItem
 from . import shipSkin, shipSpec, shipUpgrade
+from .shipInstance_json import SerializedShipInstanceUnion
 from ....baseClasses.embedFillable import embedField
 from ....lib.gameMaths import topThreeItemSpawnRates
 from ....cfg import bbData, cfg
@@ -28,10 +29,11 @@ ShipInstanceHasItemEquipped = Table(
     Column("itemType", Enum(ShipInstanceEquippedItemType))
 )
 
+TSchema = TypeVar("TSchema", bound=SerializedShipInstanceUnion)
 
 @spawnableItem
 @itemType(StoreableItemType.ship)
-class ShipInstance(ItemWithId, ItemBase):
+class ShipInstance(Item[TSchema]):
     __tablename__ = TableNames.ShipInstance.value
 
     nickname: Mapped[str]
@@ -45,25 +47,25 @@ class ShipInstance(ItemWithId, ItemBase):
     # Eager loading means this can be accessed synchronously
     upgradesApplied: Mapped[List["shipUpgrade.ShipUpgrade"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
-        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == ItemBase.id,
+        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == Item.id,
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.shipUpgrade),
         lazy="joined")
     
     weapons: Mapped[List["PrimaryWeapon"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
-        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == ItemBase.id,
+        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == Item.id,
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.primaryWeapon),
         lazy="joined")
     
     turrets: Mapped[List["TurretWeapon"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
-        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == ItemBase.id,
+        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == Item.id,
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.turret),
         lazy="joined")
     
     modules: Mapped[List["ModuleItem"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
-        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == ItemBase.id,
+        primaryjoin=and_(ShipInstanceHasItemEquipped.c.shipInstanceId == Item.id,
                          ShipInstanceHasItemEquipped.c.itemType == ShipInstanceEquippedItemType.module),
         lazy="joined")
     
@@ -653,3 +655,5 @@ class ShipInstance(ItemWithId, ItemBase):
 
         return baseEmbed
     
+
+AnyShipInstance = ShipInstance[SerializedShipInstanceUnion]

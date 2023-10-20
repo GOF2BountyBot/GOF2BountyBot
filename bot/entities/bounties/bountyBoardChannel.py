@@ -8,6 +8,7 @@ from io import BytesIO
 
 from . import bounty
 from ...baseClasses.serializable import SerializesToSchema
+from .bountyBoardChannel_json import SerializedBountyBoardChannel
 
 if TYPE_CHECKING:
     from .bountyDivision import BountyDivision
@@ -67,13 +68,6 @@ async def deleteMessageWithRetry(message: Message, meta: str, *args, **kwargs):
     """
     return await lib.discordUtil.discordOperationWithRetry(message.delete, "delete message", LogCategory.bountyBoards,
                                                         "BBC", meta, *args, **kwargs)
-
-
-class SerializedBountyBoardChannel(TypedDict):
-    listings: Dict[int, criminal.SerializedCriminalUnion]
-    channel: int
-    noBountiesMsg: int
-    escapedBountiesMsg: int
 
 
 TSchema = TypeVar("TSchema", bound=SerializedBountyBoardChannel)
@@ -696,3 +690,6 @@ class BountyBoardChannel(SerializesToSchema[TSchema]):
         return BountyBoardChannel(division, BBCDict["channel"], BBCDict["listings"],
                                     BBCDict.get("noBountiesMsg", -1),
                                     BBCDict.get("escapedBountiesMsg", -1))
+
+
+AnyBountyBoardChannel = BountyBoardChannel[SerializedBountyBoardChannel]

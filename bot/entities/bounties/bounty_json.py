@@ -1,10 +1,8 @@
-
-
 from typing import Dict, List, TypedDict, Union
 from typing_extensions import NotRequired
 
-from .criminal_json import SerializedCriminalUnion
-from ..items.ship_json import SerializedShipUnion
+from .criminal_json import SerializedCriminal
+from ..items.ship.shipInstance_json import SerializedShipInstanceUnion
 
 
 class SerializedBounty(TypedDict):
@@ -16,10 +14,10 @@ class SerializedBounty(TypedDict):
     issueTime: float
     endTime: float
     isEscaped: bool
-    criminal: SerializedCriminalUnion
+    criminal: SerializedCriminal
     rewardPerSys: int
     techLevel: int
-    activeShip: NotRequired[SerializedShipUnion]
+    activeShip: NotRequired[SerializedShipInstanceUnion]
 
 
 class SerializedEscapedBounty(SerializedBounty):

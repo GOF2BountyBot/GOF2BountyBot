@@ -1,6 +1,6 @@
 from typing import Any, Awaitable, Dict, Generic, List, Optional, Protocol, Set, Tuple, Type, TypeVar, Union, cast
 from abc import ABC, ABCMeta, abstractmethod
-from inspect import signature, _empty
+from inspect import signature, _empty # type: ignore[reportPrivateUsage]
 from PIL import Image
 from ..lib.discordUtil import ZWSP, ImageFile
 from ..lib.asyncUtil import BasicScheduler

@@ -1,18 +1,7 @@
+from ...baseClasses.aliasable_json import SerializedAliasable
 
-
-class BuiltInSerializedCriminal(aliasable.SerializedAliasable, SerializedLoadedObject): pass
-
-class TypedBuiltInSerializedCriminal(BuiltInSerializedCriminal):
-    type: str
-
-class CustomSerializedCriminal(BuiltInSerializedCriminal):
+class SerializedCriminal(SerializedAliasable):
+    id: int
     isPlayer: bool
-    icon: str
+    iconUrl: str
     faction: str
-    aliases: List[str]
-
-class TypedCustomSerializedCriminal(CustomSerializedCriminal, TypedBuiltInSerializedCriminal): pass
-
-BuiltInSerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal]
-CustomSerializedCriminalUnion = Union[CustomSerializedCriminal, TypedCustomSerializedCriminal]
-SerializedCriminalUnion = Union[BuiltInSerializedCriminal, TypedBuiltInSerializedCriminal, CustomSerializedCriminal, TypedCustomSerializedCriminal]
