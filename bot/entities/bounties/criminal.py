@@ -1,19 +1,24 @@
-# Typing imports
-from __future__ import annotations
-from typing import Any, TypeVar, cast
+from typing import Any, Generic, List, Optional, TypeVar, cast
 
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import Mapped, DeclarativeBase
+
+from discord import User
 
 from .criminal_json import SerializedCriminal
 from ...cfg import bbData
 from ...baseClasses.aliasable import AliasableMixin
 from ...baseClasses.aliasable_json import SerializedAliasable
-from ...baseClasses.wikiEntity import NamedWikiEntity
+from ...baseClasses.wikiEntity import SqlNamedWikiEntity
 from ...baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour
+from ...lib.discordUtil import ZWSP
+
+class Base(DeclarativeBase):
+    pass
+
 
 TSchema = TypeVar("TSchema", bound=SerializedCriminal)
 
-class Criminal(AliasableMixin[TSchema], NamedWikiEntity):
+class Criminal(Base, AliasableMixin[TSchema], SqlNamedWikiEntity, Generic[TSchema]):
     """A criminal to be wanted in bounties.
 
     :var int id: The id of the criminal
@@ -24,9 +29,20 @@ class Criminal(AliasableMixin[TSchema], NamedWikiEntity):
     :var bool isPlayer: Whether this criminal represents a real player, rather than an NPC
     """
     id: Mapped[int]
+    name: Mapped[str]
     isPlayer: Mapped[bool]
     faction: Mapped[str]
     iconUrl: Mapped[str]
+
+    def __init__(self, name: str, aliases: Optional[List[str]] = None, isPlayer: bool = False, id: Optional[int] = None, *args: Any, forceAllowEmpty: bool = False, **kwargs: Any):
+        if isPlayer:
+            if id is None:
+                raise ValueError("id is required for player criminals")
+            idStr = str(id)
+            if not aliases or idStr not in aliases:
+                aliases = (aliases or []) + [idStr]
+
+        super().__init__(name, aliases or [], *args, forceAllowEmpty=forceAllowEmpty, **kwargs)
 
 
     @embedThumbnailUrl
@@ -41,6 +57,14 @@ class Criminal(AliasableMixin[TSchema], NamedWikiEntity):
 
     @embedColour
     def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+
+
+    @embedField(fieldName=ZWSP, showInline=False, showLast=True, hideWhenNone=True, uniqueFieldName=False)
+    @property
+    def wikiNamedHyperlink(self) -> Optional[str]:
+        """Override the wiki embed field to remove it for players (they have no wiki)
+        """
+        return None if self.isPlayer else super().wikiNamedHyperlink
 
 
     async def serialize(self, **kwargs: Any) -> TSchema:
@@ -59,7 +83,7 @@ class Criminal(AliasableMixin[TSchema], NamedWikiEntity):
 
 
     @classmethod
-    async def deserialize(cls, data: TSchema, **kwargs: Any) -> Criminal[TSchema]:
+    async def deserialize(cls, data: TSchema, **kwargs: Any) -> "Criminal[TSchema]":
         """Factory function that will construct a new criminal object from the provided data.
 
         :param dict crimDict: A dictionary containing all data necessary to construct the desired criminal.
@@ -67,3 +91,11 @@ class Criminal(AliasableMixin[TSchema], NamedWikiEntity):
         :rtype: criminal
         """
         return Criminal(**cls._makeDefaults(data, ("type",),))
+    
+
+    @classmethod
+    def forUser(cls, dcUser: User, faction: str):
+        return AnyCriminal(name=dcUser.name, id=dcUser.id, isPlayer=True, faction=faction, iconUrl=dcUser.display_avatar.url)
+
+
+AnyCriminal = Criminal[SerializedCriminal]

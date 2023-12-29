@@ -1,8 +1,8 @@
 from .aliasable import AliasableMixin
-from typing import List, Dict, TypeVar
+from typing import Any, List, Dict, TypeVar
 
 
-TKey = TypeVar("TKey", bound=AliasableMixin)
+TKey = TypeVar("TKey", bound=AliasableMixin[Any])
 TValue = TypeVar("TValue")
 class AliasableDict(Dict[TKey, TValue]):
     """A dictionary where keys are guaranteed to be Aliasable subclasses.
@@ -55,7 +55,7 @@ class AliasableDict(Dict[TKey, TValue]):
                 raise TypeError(f"Names must be str, but got type '{type(name).__name__}' for name '{name!s}'")
             
         toFind = set(names)
-        results = {}
+        results: Dict[str, TKey] = {}
         for k in self:
             for name in toFind:
                 if await k.isCalled(name):

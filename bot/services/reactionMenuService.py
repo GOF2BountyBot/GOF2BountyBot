@@ -1,0 +1,2 @@
+class ReactionMenuService():
+    pass

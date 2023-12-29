@@ -277,3 +277,5 @@ gitHubIssueTypeIds: Dict[GitHubIssueType, int] = {v: k for k, v in gitHubIssueId
 
 def gitHubIssueTypeLabelsDict() -> Dict[GitHubIssueType, List[str]]:
     return {"Bug report": [], "Feature request": [], "New item alias": []}
+
+BountyDelayGeneratorType = Literal["fixed", "random", "fixed-routeScale", "random-routeScale", "random-routeScale-tempScale"]

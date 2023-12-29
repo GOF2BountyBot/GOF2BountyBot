@@ -38,3 +38,9 @@ class ShipSkinRegion(BasedEnum):
 class ShipSkinMethod(BasedEnum):
     direct = 0
     autoskin = 1
+
+
+class BountyDivisionTier(BasedEnum):
+    bronze = 1
+    silver = 2
+    gold = 3

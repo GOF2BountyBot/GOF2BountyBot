@@ -1,0 +1,2 @@
+class ShipSkinService():
+    pass

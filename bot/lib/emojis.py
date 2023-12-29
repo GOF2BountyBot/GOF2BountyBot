@@ -1,19 +1,18 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Literal, Optional, Protocol, Type, TypeVar, Union, cast, ClassVar, TypedDict
+from typing import Literal, Optional, Protocol, Type, TypeVar, Union, cast, ClassVar, TypedDict, Any
 from typing_extensions import TypeGuard, NotRequired
 
 import emoji
 import traceback
 from abc import ABC, abstractmethod
 import random
-from carica import SerializesToType
 
 from discord import PartialEmoji, Emoji
 
 from .. import botState
 from . import exceptions, stringUtil
-from ..baseClasses.serializable import SerializesToSchema
+from ..baseClasses.serializable import SerializesToSchema, SerializesToSchemaProtocol
 from ..baseClasses.simpleHash import simpleHash
 from ..cfg import cfg
 
@@ -83,7 +82,7 @@ SerializedBasedEmoji = Union[SerializedUnicodeBasedEmoji, SerializedCustomBasedE
 T = TypeVar("T")
 TSelf = TypeVar("TSelf")
 
-class IBasedEmoji(SerializesToType[SerializedBasedEmoji], Protocol):
+class IBasedEmoji(SerializesToSchemaProtocol[SerializedBasedEmoji], Protocol):
     id: Optional[int]
     unicode: Optional[str]
 
@@ -375,7 +374,7 @@ class BasedEmoji(IBasedEmoji, SerializesToSchema[SerializedBasedEmoji]):
     
 
     @classmethod
-    async def deserialize(cls, emojiDict: SerializedBasedEmoji, raiseOnInvalid: bool = False, **kwargs) -> BasedEmoji:
+    async def deserialize(cls, emojiDict: SerializedBasedEmoji, raiseOnInvalid: bool = False, **kwargs: Any) -> BasedEmoji:
         """Construct a BasedEmoji object from its dictionary representation.
         If both an ID and a unicode representation are provided, the emoji ID will be used.
 

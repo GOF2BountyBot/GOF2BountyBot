@@ -1,4 +1,4 @@
-from typing import List, Optional, Type, TypeVar, cast
+from typing import Any, List, Optional, Type, TypeVar
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Table, Column, Integer, Enum, and_
@@ -19,6 +19,7 @@ from ....cfg import bbData, cfg
 from ..weapons.primaryWeapon import PrimaryWeapon
 from ..weapons.turretWeapon import TurretWeapon
 from ..modules.moduleItem import ModuleItem
+from ....serialization.jsonSerializer import JsonSerializer
 
 
 ShipInstanceHasItemEquipped = Table(
@@ -39,11 +40,17 @@ class ShipInstance(Item[TSchema]):
     nickname: Mapped[str]
 
     shipId: Mapped[int] = mapped_column(ForeignKey(TableNames.ShipSpec.value))
-    spec: Mapped["shipSpec.ShipSpec"] = relationship()
+    # Eager loading means this can be accessed synchronously
+    spec: Mapped["shipSpec.AnyShipSpec"] = relationship(lazy="joined")
     
     skinId: Mapped[Optional[int]] = mapped_column(ForeignKey(TableNames.ShipSkin.value))
-    skin: Mapped[Optional["shipSkin.ShipSkin"]]
+    _skin: Mapped[Optional["shipSkin.ShipSkin"]] = relationship()
+
+    @property
+    async def skin(self) -> "Optional[shipSkin.ShipSkin]":
+        return await self.awaitable_attrs._skin
     
+
     # Eager loading means this can be accessed synchronously
     upgradesApplied: Mapped[List["shipUpgrade.ShipUpgrade"]] = relationship(
         secondary=ShipInstanceHasItemEquipped,
@@ -76,7 +83,7 @@ class ShipInstance(Item[TSchema]):
     
     @hybrid_property
     def isSkinned(self):
-        return self.skin is not None
+        return self.skinId is not None
 
 #region embed fields
     # upgraded and unupgraded are separated here to fake dynamic field names
@@ -190,6 +197,33 @@ class ShipInstance(Item[TSchema]):
         :rtype: bool
         """
         return self.equippedWeaponsCount() < self.getMaxPrimaries()
+    
+
+    def equipWeapon(self, weapon: PrimaryWeapon):
+        """Equip a primary weapon.
+
+        :param weapon: The weapon to equip
+        :type weapon: PrimaryWeapon
+        :throws OverflowError: If no more primary weapons will fit on the ship
+        """
+        if not self.canEquipMoreWeapons():
+            raise OverflowError("Ship primary weapons are already at capacity")
+        self.weapons.append(weapon)
+
+
+    def unequipWeapon(self, weapon: PrimaryWeapon):
+        """Unquip a primary weapon.
+
+        :param weapon: The weapon to unequip
+        :type weapon: PrimaryWeapon
+        :throws KeyError: If `weapon` is not equipped on this ship
+        """
+        try:
+            i = next(i for i, w in enumerate(self.weapons) if w.id == weapon.id)
+        except StopIteration:
+            raise OverflowError("The weapon is not equipped on this ship")
+        
+        self.weapons.pop(i)
 
 
     def equippedModulesCount(self) -> int:
@@ -210,6 +244,33 @@ class ShipInstance(Item[TSchema]):
         return self.equippedModulesCount() < self.getMaxModules()
 
 
+    def equipModule(self, module: ModuleItem[Any]):
+        """Equip a primary module.
+
+        :param module: The module to equip
+        :type module: ModuleItem[Any]
+        :throws OverflowError: If no more primary modules will fit on the ship
+        """
+        if not self.canEquipMoreModules():
+            raise OverflowError("Ship primary modules are already at capacity")
+        self.modules.append(module)
+
+
+    def unequipModule(self, module: ModuleItem[Any]):
+        """Unquip a primary module.
+
+        :param module: The module to unequip
+        :type module: ModuleItem[Any]
+        :throws KeyError: If `module` is not equipped on this ship
+        """
+        try:
+            i = next(i for i, m in enumerate(self.modules) if m.id == module.id)
+        except StopIteration:
+            raise OverflowError("The module is not equipped on this ship")
+        
+        self.modules.pop(i)
+
+
     def equippedTurretsCount(self) -> int:
         """Fetch the number of turrets this ship currently has equipped
 
@@ -226,6 +287,33 @@ class ShipInstance(Item[TSchema]):
         :rtype: bool
         """
         return self.equippedTurretsCount() < self.getMaxTurrets()
+
+
+    def equipTurret(self, turret: TurretWeapon):
+        """Equip a turret.
+
+        :param turret: The turret to equip
+        :type turret: TurretWeapon
+        :throws OverflowError: If no more turrets will fit on the ship
+        """
+        if not self.canEquipMoreTurrets():
+            raise OverflowError("Ship turrets are already at capacity")
+        self.turrets.append(turret)
+
+
+    def unequipTurret(self, turret: TurretWeapon):
+        """Unquip a turret.
+
+        :param turret: The turret to unequip
+        :type turret: TurretWeapon
+        :throws KeyError: If `turret` is not equipped on this ship
+        """
+        try:
+            i = next(i for i, w in enumerate(self.turrets) if w.id == turret.id)
+        except StopIteration:
+            raise OverflowError("The turret is not equipped on this ship")
+        
+        self.turrets.pop(i)
 
 
     def equippedPrimariesCount(self) -> bool:
@@ -265,7 +353,7 @@ class ShipInstance(Item[TSchema]):
         return self.weapons[index]
 
 
-    def canEquipModuleType(self, moduleType: Type[ModuleItem]) -> bool:
+    def canEquipModuleType(self, moduleType: Type[ModuleItem[Any]]) -> bool:
         """Decide whether or not the ship has space for a module of the given type.
         This also accounts for module type limits, for example only allowing players to equip one shield module at a time.
 
@@ -305,11 +393,8 @@ class ShipInstance(Item[TSchema]):
 
     def getDPS(self) -> float:
         """Get the total DPS provided by the equipped items and upgrades.
-        If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
-        This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part of the
-        ship once applied.
 
-        :return: The ship's total DPS, including bonuses/penalties from ship upgrades (and potentially equipped items)
+        :return: The ship's total DPS
         :rtype: int
         """
         total = 0
@@ -327,11 +412,8 @@ class ShipInstance(Item[TSchema]):
 
     def getShield(self) -> int:
         """Get the total Shield provided by the equipped items and upgrades.
-        If shipUpgradesOnly is given as True, then only applied shipUpgrades will be included in the calculation.
-        This is used to give a 'base' measurement, as ship upgrades cannot be removed and are considered part
-        of the ship once applied.
 
-        :return: The ship's total Shield, including bonuses/penalties from ship upgrades (and potentially equipped items)
+        :return: The ship's total Shield
         :rtype: int
         """
         total = 0
@@ -431,9 +513,11 @@ class ShipInstance(Item[TSchema]):
         total = self.spec.maxSecondaries
         multiplier = 1
 
-        for upgrade in self.upgradesApplied:
-            total += upgrade.maxSecondaries
-            multiplier *= upgrade.maxSecondariesMultiplier
+        if not shipUpgradesOnly:
+            for upgrade in self.upgradesApplied:
+                total += upgrade.maxSecondaries
+                multiplier *= upgrade.maxSecondariesMultiplier
+
         return int(total * multiplier)
 
 
@@ -452,9 +536,11 @@ class ShipInstance(Item[TSchema]):
         total = self.spec.maxPrimaries
         multiplier = 1
 
-        for upgrade in self.upgradesApplied:
-            total += upgrade.maxPrimaries
-            multiplier *= upgrade.maxPrimariesMultiplier
+        if not shipUpgradesOnly:
+            for upgrade in self.upgradesApplied:
+                total += upgrade.maxPrimaries
+                multiplier *= upgrade.maxPrimariesMultiplier
+
         return int(total * multiplier)
 
 
@@ -473,9 +559,11 @@ class ShipInstance(Item[TSchema]):
         total = self.spec.maxTurrets
         multiplier = 1
 
-        for upgrade in self.upgradesApplied:
-            total += upgrade.maxTurrets
-            multiplier *= upgrade.maxTurretsMultiplier
+        if not shipUpgradesOnly:
+            for upgrade in self.upgradesApplied:
+                total += upgrade.maxTurrets
+                multiplier *= upgrade.maxTurretsMultiplier
+
         return int(total * multiplier)
 
 
@@ -493,9 +581,11 @@ class ShipInstance(Item[TSchema]):
         total = self.spec.maxModules
         multiplier = 1
 
-        for upgrade in self.upgradesApplied:
-            total += upgrade.maxModules
-            multiplier *= upgrade.maxModulesMultiplier
+        if not shipUpgradesOnly:
+            for upgrade in self.upgradesApplied:
+                total += upgrade.maxModules
+                multiplier *= upgrade.maxModulesMultiplier
+        
         return int(total * multiplier)
 
 
@@ -519,6 +609,7 @@ class ShipInstance(Item[TSchema]):
                 total += await weapon.getValue()
             for turret in self.turrets:
                 total += await turret.getValue()
+
         for upgrade in self.upgradesApplied:
             total += upgrade.valueForShip(self.spec)
 
@@ -542,7 +633,7 @@ class ShipInstance(Item[TSchema]):
                     The ship name on its own otherwise.
         :rtype: str
         """
-        return self.name if not self.hasNickname else f"{self.nickname}  ({self.name})"
+        return self.name if not self.hasNickname else f"{self.nickname} ({self.name})"
 
 
     def getActives(self, itemType: bbData.ShipEquippableItemCategoryType):
@@ -564,7 +655,7 @@ class ShipInstance(Item[TSchema]):
         raise NotImplementedError("Unrecognised item type: " + itemType.value)
 
 
-    def statsStringShort(self) -> str:
+    async def statsStringShort(self) -> str:
         """Summarise all of the ship's statistics as a string, including equipped item names.
 
         :return: A summary of all of the ship's attributes and equipped items
@@ -572,9 +663,10 @@ class ShipInstance(Item[TSchema]):
         """
         stats = ""
         if self.isSkinned:
-            # Casting here because self.skin being None is checked for with the isSkinned check
-            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[cast(shipSkin.ShipSkin, self.skin).rarityLevel]}').sendable
-            stats += f"> {rarityEmoji}`Ship Skin: {cast(shipSkin.ShipSkin, self.skin).name.title()}`\n"
+            skin = await self.skin
+            if skin is None: raise ValueError("ship instance has a skin id but no skin. Perhaps the skin with this ID was deleted?")
+
+            stats += f"> {skin.rarityLevelEmoji} `Ship Skin: {skin.name.title()}`\n"
         stats += "• *Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.spec.armour else "") + "*\n"
         # stats += "Cargo hold: " + str(self.cargo) + ", "
@@ -604,7 +696,7 @@ class ShipInstance(Item[TSchema]):
         return stats
 
 
-    def statsStringNoItems(self) -> str:
+    async def statsStringNoItems(self) -> str:
         """Return a shorter summary of the ship's statistics, ignoring any equipped items.
 
         :return: A string summary of the ship's statistics, ignoring any equipped items.
@@ -612,9 +704,10 @@ class ShipInstance(Item[TSchema]):
         """
         stats = ""
         if self.isSkinned:
-            # Casting here because self.skin being None is checked for with the isSkinned check
-            rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{cfg.itemRarities[cast(shipSkin.ShipSkin, self.skin).rarityLevel]}').sendable
-            stats += f"> {rarityEmoji}`Ship Skin: {cast(shipSkin.ShipSkin, self.skin).name.title()}`\n"
+            skin = await self.skin
+            if skin is None: raise ValueError("ship instance has a skin id but no skin. Perhaps the skin with this ID was deleted?")
+
+            stats += f"> {skin.rarityLevelEmoji} `Ship Skin: {skin.name.title()}`\n"
         stats += "*Armour: " + str(self.getArmour(shipUpgradesOnly=True)) + ("(+)" \
                                 if self.getArmour(shipUpgradesOnly=True) > self.spec.armour else "") + ", "
         stats += "Cargo hold: " + str(self.getCargo(shipUpgradesOnly=True)) + ("(+)" \
@@ -654,6 +747,11 @@ class ShipInstance(Item[TSchema]):
                                         inline=True)
 
         return baseEmbed
+    
+
+    async def copy(self, serializer: JsonSerializer):
+        serialized = await serializer.serialize(self)
+        return await serializer.deserialize(ShipInstance[TSchema], serialized)
     
 
 AnyShipInstance = ShipInstance[SerializedShipInstanceUnion]

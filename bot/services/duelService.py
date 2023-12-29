@@ -1,0 +1,2 @@
+class DuelService():
+    pass

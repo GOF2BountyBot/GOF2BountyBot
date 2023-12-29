@@ -1,6 +1,6 @@
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
-from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict
+from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict, BountyDelayGeneratorType
 from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -445,7 +445,7 @@ kaamoMaxCapacity = 70
 maxBountiesPerDivision = 5
 
 # can be "fixed" or "random"
-newBountyDelayType = "random-routeScale"
+newBountyDelayType: BountyDelayGeneratorType = "random-routeScale"
 
 ### routeScale config
 newBountyDelayRouteScaleCoefficient = 1
@@ -461,7 +461,7 @@ closeBountyThreshold = 4
 shipValueRewardPercentage = 0.01
 
 # The probability of a criminal equipping a turret or primary weapon that deals zero damage (e.g plasma collectors)
-criminalEquipDamagelessWeaponChance = 20
+criminalEquipDamagelessWeaponChance = 10
 
 # The maximum number of levels a criminal's gear may be above their difficulty rating
 criminalMaxGearUpgrade = 1

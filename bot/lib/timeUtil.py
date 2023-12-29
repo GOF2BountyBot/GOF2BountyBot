@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, Optional, TypedDict
 import random
 from discord.utils import utcnow
 
@@ -38,7 +38,12 @@ def td_format_noYM(td_object: timedelta) -> str:
     return ", ".join(strings) + (" ago" if past else "")
 
 
-def getRandomDelay(minmaxDict: Dict[str, timedelta]) -> timedelta:
+class MinMaxDict(TypedDict):
+    min: timedelta
+    max: timedelta
+
+
+def getRandomDelay(minmaxDict: MinMaxDict) -> timedelta:
     """Generate a random timedelta between the given minimum and maximum timedeltas, inclusive.
     minMaxDict must contain keys "min" and "max" (case sensitive), with values of timedeltas representing
     the minimium and maximum delays this function can generate (inclusive)

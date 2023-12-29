@@ -649,7 +649,7 @@ class DevBountiesCog(basedApp.BasedCog):
             except KeyError:
                 pass
             else:
-                if not bounty.isEscaped():
+                if not bounty.isEscapedOld():
                     bounty.escape()
                     if bounty.division.bountyBoardChannel is not None:
                         await db.owningBasedGuild.updateBountyBoardChannel(bounty, bountyComplete=True)

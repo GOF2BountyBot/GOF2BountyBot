@@ -258,6 +258,4 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
 
     @classmethod
     def deserialize(cls, skinDict: SerializedShipSkinUnion, **kwargs):
-        if skinDict.get("builtIn", False):
-            return bbData.builtInShipSkins[skinDict["name"]]
         return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict.get("ships", {})))

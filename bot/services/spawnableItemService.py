@@ -1,0 +1,2 @@
+class SpawnableItemService():
+    pass

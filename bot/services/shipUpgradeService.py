@@ -1,0 +1,2 @@
+class ShipUpgradeService():
+    pass

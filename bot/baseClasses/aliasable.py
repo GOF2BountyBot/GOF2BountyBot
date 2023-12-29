@@ -24,7 +24,7 @@ class Base(DeclarativeBase, AsyncAttrs): pass
 
 
 class _ObjectAlias(Base):
-    __tablename__ = TableNames.ObjectAlias
+    __tablename__ = TableNames.ObjectAlias.value
     alias: Mapped[str] = mapped_column(primary_key=True)
     objectAliasesId: Mapped[int] = mapped_column(ForeignKey(f'{TableNames.ObjectAliases}.id'))
     def __init__(self, alias: str):
@@ -47,6 +47,8 @@ class AliasableMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], meta
     :var aliases: A list of alternative identifiers for the object
     :vartype aliases: list[str]
     """
+    __tablename__ = TableNames.ObjectAliases.value
+    
     name: Mapped[str]
     objectAliasesId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.ObjectAliases}.id"))
 

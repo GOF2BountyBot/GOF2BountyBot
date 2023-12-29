@@ -113,18 +113,21 @@ def logExceptionsOnTask(task: Task, logCategory: Optional[LogCategory] = None, c
                         noPrintEvent=noPrintEvent, noPrint=noPrint)
 
 
+TResult = TypeVar("TResult")
+
+
 class BasicScheduler:
     """A very basic handler for parallelizing coroutine executions and handling their exceptions.
     """
     def __init__(self) -> None:
-        self.tasks: Set[Task] = set()
+        self.tasks: Set[Task[Any]] = set()
 
 
     def any(self) -> bool:
         return bool(self.tasks)
 
 
-    def add(self, coro: Union[Coroutine, Task]) -> Task:
+    def add(self, coro: Union[Coroutine[Any, Any, Any], Task[TResult]]) -> Task[TResult]:
         """Schedule a coroutine execution onto the event loop.
         Pass a normal parenthesized call to a coroutine, but without awaiting it.
         Execution begins immediately.

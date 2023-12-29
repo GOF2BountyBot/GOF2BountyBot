@@ -1164,7 +1164,7 @@ class DevMiscCog(BasedCog):
             f"Wiki: {b.criminal.wiki}",
             f"Is Player: {b.criminal.isPlayer}",
             f"Built-In: {b.criminal.builtIn}",
-            f"Is escaped: {b.isEscaped()}"
+            f"Is escaped: {b.isEscapedOld()}"
         ]))
 
         embed.add_field(name="Stats", value=f"Faction: {b.faction}\nTech level/Difficulty: {b.techLevel}\n" \
@@ -1440,7 +1440,7 @@ class DevMiscCog(BasedCog):
                     if b.division.bountyBoardChannel is not None and b.division.bountyBoardChannel.hasMessageForBounty(b):
                         await b.division.bountyBoardChannel.removeBounty(b)
                     
-                    if b.isEscaped():
+                    if b.isEscapedOld():
                         b.division.removeEscapedBountyObj(b)
                         b.techLevel = newLevel
                         newDiv._addEscapedBounty(b)
@@ -1479,7 +1479,7 @@ class DevMiscCog(BasedCog):
                                             expiryFunction=b._respawn,
                                             rescheduleOnExpiryFuncFailure=True)
 
-            if not b.isEscaped():
+            if not b.isEscapedOld():
                 b.escape()
                 if b.division.bountyBoardChannel is not None:
                     await bGuild.updateBountyBoardChannel(b, bountyComplete=True)
@@ -1494,7 +1494,7 @@ class DevMiscCog(BasedCog):
 
         await interaction.followup.send("Success!", ephemeral=True)
         if update_bountyboards and b.division.bountyBoardChannel is not None:
-            if b.isEscaped():
+            if b.isEscapedOld():
                 await b.division.bountyBoardChannel.updateEscapedBountiesMessage()
                 if b.division.bountyBoardChannel.hasMessageForBounty(b):
                     await b.division.bountyBoardChannel.removeBounty(b)

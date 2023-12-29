@@ -1,20 +1,15 @@
 from __future__ import annotations
-from typing import Collection, List, Optional, Type, Union, cast, TypeVar, cast
+from typing import Any, Collection, Generic, List, Optional, Type, TypeVar, cast
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, relationship, mapped_column, composite
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
-from discord import Embed
-
-from ..weapons.primaryWeapon import PrimaryWeapon
-from ..weapons.turretWeapon import TurretWeapon
 from . import shipSkin
 from ....cfg import bbData
-from ....cfg.bbData import ItemCategory
 from ....lib.emojis import BasedEmoji
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from ....baseClasses.embedFillable import embedField
 from ....baseClasses.aliasable import AliasableMixin
+from ....baseClasses.wikiEntity import SqlNamedWikiEntity
 from ...base.workshopable import Workshopable
 from ...base.workshopable_json import AnySerializedWorkshopable
 from .shipSpec_json import SerializedShipSpecUnion, TypedSerializedShipSpec
@@ -22,7 +17,8 @@ from ....database.constants import ShipSkinRegion
 from ....database.tables import TableNames
 from ....lib.gameMaths import topThreeItemSpawnRates
 
-TShip = TypeVar("TShip", bound="ShipSpec")
+TShip = TypeVar("TShip", bound="ShipSpec[Any]")
+TSchema = TypeVar("TSchema", bound=SerializedShipSpecUnion)
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -32,8 +28,8 @@ class Base(DeclarativeBase, AsyncAttrs):
 REGIONS_LIST_SEPARATOR: str = ";"
 
 
-# Note that a ShipSpec is *not* an 'item'.
-class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, SerializesToSchema[SerializedShipSpecUnion]):
+# Note that while ShipSpec is in the entities.items namespace, a ShipSpec is *not* an 'item'.
+class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWikiEntity, Generic[TSchema]):
     """TODO: All of these 'get total' functions could probably be consolidated into a single function,
     # making use of getActives etc
 
@@ -75,7 +71,6 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
     __tablename__ = TableNames.ShipSpec.value
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    wiki: Mapped[Optional[str]]
     value: Mapped[int]
     manufacturer: Mapped[Optional[str]]
     iconUrl: Mapped[str]
@@ -112,13 +107,14 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
     def set_skinnableTextureRegions(self, value: Collection[ShipSkinRegion]):
         self._skinnableTextureRegions = REGIONS_LIST_SEPARATOR.join(str(i) for i in value)
 
-    def __init__(self, name: str, shopSpawnRate: float = 0, *args):
+
+    def __init__(self, name: str, shopSpawnRate: float = 0, **kwargs: Any):
         """
         :param str name: A name to uniquely identify this model of ship.
         :param float shopSpawnRate: A pre-calculated float indicating the highest spawn rate of this ship
                                     (i.e its spawn probability for a shop of the same techLevel) (Default 0)
         """
-        super().__init__(name, *args)
+        super().__init__(name, **kwargs)
         self.shopSpawnRate = shopSpawnRate
 
 
@@ -149,7 +145,7 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
     def formattedMaxModules(self): return self.maxModules
 
     @embedField("BB Shop Spawn Rate", hideWhenNone=True)
-    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self.techLevel, bbData.shipKeysByTL)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self.techLevel, bbData.shipKeysByTL) # TODO
     
     @embedField("Compatible Skins", showInline=False)
     async def compatibleSkinsStr(self):
@@ -166,7 +162,7 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
 #endregion
 
 
-    async def serialize(self, **kwargs) -> SerializedShipSpecUnion:
+    async def serialize(self, **kwargs: Any) -> TSchema:
         """Serialize this shipItem into dictionary format, for saving to file. Includes all equiped items and upgrades
 
         :param bool saveType: When true, include the string name of the object type in the output.
@@ -174,8 +170,8 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
                     several statistics are omitted to save space.
         :rtype: dict
         """
-        aliasableData = await AliasableMixin.serialize(self, **kwargs)
-        workshoppableData = cast(AnySerializedWorkshopable, await Workshopable.serialize(self, **kwargs))
+        aliasableData = await AliasableMixin[TSchema].serialize(self, **kwargs)
+        workshoppableData = cast(AnySerializedWorkshopable, await Workshopable[TSchema].serialize(self, **kwargs))
 
         data: SerializedShipSpecUnion = {
             **workshoppableData,
@@ -199,9 +195,6 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
         if self.manufacturer:
             data["manufacturer"] = self.manufacturer
 
-        if self.wiki:
-            data["wikiUrl"] = self.wiki
-
         if self.emoji is not None:
             data["emoji"] = await self.emoji.serialize(**kwargs)
 
@@ -212,7 +205,7 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
 
 
     @classmethod
-    async def deserialize(cls: Type[TShip], data: SerializedShipSpecUnion, **kwargs) -> TShip:
+    async def deserialize(cls: Type[TShip], data: SerializedShipSpecUnion, **kwargs: Any) -> TShip:
         """Factory function constructing a new shipItem object from the given dictionary representation -
         the opposite of shipItem.serialize
         As with most other item deserialize functions, all missing information for builtIn ships is replaced
@@ -239,10 +232,13 @@ class ShipSpec(Base, AliasableMixin, Workshopable, EmbedFillableMixin, Serialize
                 skinnableTextureRegions.append(ShipSkinRegion(region["id"]))
 
         if emojiData := data.get("emoji", None):
-            emoji = await BasedEmoji.deserialize(emojiData)
+            emoji = await BasedEmoji.deserialize(emojiData, **kwargs)
         else:
             emoji = BasedEmoji.EMPTY
 
         return cls(**cls._makeDefaults(data, ignoredData,
                                         emoji=emoji, compatibleSkins=compatibleSkins,
                                         skinnableTextureRegions=skinnableTextureRegions))
+
+
+AnyShipSpec = ShipSpec[SerializedShipSpecUnion]

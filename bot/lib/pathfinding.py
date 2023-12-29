@@ -1,7 +1,7 @@
 # TODO: Look into third party library
 # TODO: Add failed route lookups to logger
 from __future__ import annotations
-from ..gameObjects.bounties import solarSystem
+from ..entities.bounties import solarSystem
 import math
 from ..cfg import bbData
 from typing import Dict, List, Union, cast
@@ -79,8 +79,7 @@ class PathfindingError(Enum):
     NO_ROUTE_FOUND = 2
 
 
-def bbAStar(start: str, end: str,
-        graph: Dict[str, solarSystem.SolarSystem]) -> Union[List[str], PathfindingError]:
+def bbAStar(start: solarSystem.AnySolarSystem, end: solarSystem.AnySolarSystem) -> Union[List[int], PathfindingError]:
     """Find the shortest path from the given start solarSystem to the end solarSystem, using the given graph for edges.
     If no route can be found, the string "! " + start + " -> " + end is returned.
     If the max route length (50) is reached, "#" is returned.

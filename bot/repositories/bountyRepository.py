@@ -1,249 +1,168 @@
-from __future__ import annotations
-from typing import Dict, Optional, cast, TYPE_CHECKING
-from typing_extensions import NotRequired, TypedDict
+from typing import Dict, Optional, Tuple, Union, cast, TYPE_CHECKING, List, Any
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_, or_, func
 
 from ..entities.bounties.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
-from ..entities.bounties import bounty
-from ..gameObjects.bounties.criminal import Criminal
-from typing import List
+from ..entities.bounties import bounty, criminal
+from ..entities.guilds import basedGuild
 from ..cfg import cfg
 from ..entities.bounties.bountyDivision import BountyDivision
 from ..baseClasses.serializable import SerializesToSchema
-
-if TYPE_CHECKING:
-    from ..entities.guild import basedGuild
-
-
-def nameForDivision(div: BountyDivision) -> str:
-    """Get the name for the given BountyDivision, as specified in cfg.bountyDivisionNames.
-
-    :param BountyDivison div: The division to get the name of
-    :return: The name for the given division
-    :rtype: str
-    :raise KeyError: When no name is found for the given division
-    """
-    try:
-        return next(k for i, k in enumerate(cfg.bountyDivisionNames) if div.minLevel == cfg.bountyDivisionLevels[i][0])
-    except KeyError:
-        raise KeyError(f"The given division is non-standard, no name found: {div} range: {div.minLevel} - {div.maxLevel}")
+from .snowflakeRepository import SnowflakeRepository
+from ..baseClasses.aliasable import _ObjectAlias
+from ..lib.sql import count, SqlColumnExpression
 
 
-def divisionNameForLevel(tl: int) -> str:
-    """Get the name of the division which players and bounties of the given techlevel belong to.
-
-    :param int tl: The techlevel whose division name to find
-    :return: The name for divisions responsible for bounties of the given level
-    :rtype: str
-    :raise KeyError: When no division is found for bounties of the given level
-    """
-    try:
-        return next(k for i, k in enumerate(cfg.bountyDivisionNames) \
-                    if cfg.bountyDivisionLevels[i][0] <= tl <= cfg.bountyDivisionLevels[i][1])
-    except StopIteration:
-        raise KeyError(f"No division found for bounties of TL {tl}")
+class BountyRepository(SnowflakeRepository["bounty.Bounty[Any]"]):
+    def __init__(self, session: AsyncSession):
+        super().__init__(bounty.Bounty[Any], session)
 
 
-class SerializedBountyDB(TypedDict):
-    active: List[bounty.SerializedBounty]
-    escaped: List[bounty.SerializedEscapedBounty]
-    temperatures: Dict[int, float]
-    bountyBoardChannels: NotRequired[Dict[int, SerializedBountyBoardChannel]]
-    alertRoleIDs: NotRequired[Dict[int, int]]
-
-
-class BountyRepository(SerializesToSchema[SerializedBountyDB]):
-    """A database of Bounty.
-    Bounty criminal names must be unique within the database.
-    Faction names are case sensitive.
-
-    :var divisions: Dictionary of tech level range to bounty division
-    :vartype divisions: Dict[range, BountyDivision]
-    :var owningBasedGuild: The BasedGuild where this DB's bounties are active
-    :vartype owningBasedGuild: BasedGuild
-    """
-
-    def __init__(self, owningBasedGuild: "basedGuild.BasedGuild", dummy: bool = False):
-        """
-        :param BasedGuild owningBasedGuild: The guild that owns this bountyDB
-        :param bool dummy: Whether this db is to be functional or only a placeholder (Default False)
-        """
-        if not dummy:
-            self.divisions: Dict[range, BountyDivision] = {}
-            for minLevel, maxLevel in cfg.bountyDivisionLevels:
-                self.divisions[range(minLevel, maxLevel+1)] = BountyDivision(self, minLevel, maxLevel)
-            self.orderedDivs: List[BountyDivision] = []
-            self.owningBasedGuild = owningBasedGuild
-
-
-    def divisionForLevel(self, tl: int) -> BountyDivision:
-        """Get the stored BountyDivision which handles bounties of the given level.
-
-        :param int tl: The techlevel whose division to find
-        :return: The BountyDivison responsible for bounties of the given level
-        :rtype: BountyDivision
-        :raise KeyError: When no division is found for bounties of the given level
-        """
-        try:
-            return next(self.divisions[tlRange] for tlRange in self.divisions if tl in tlRange)
-        except StopIteration:
-            raise KeyError(f"No BountyDivision is registered for bounties of TL {tl}")
-
-
-    def divisionForName(self, name: str) -> BountyDivision:
-        """Get the stored BountyDivision for the given division name, as specified in cfg.bountyDivisionNames.
-
-        :param str name: The name of the division to get
-        :return: The BountyDivison of the given name
-        :rtype: BountyDivision
-        :raise KeyError: When no division is found for the given name
-        """
-        try:
-            divID = cfg.bountyDivisionNames.index(name)
-        except ValueError:
-            raise KeyError(f"No BountyDivision with the given name: {name}")
-        
-        return self.divisionForLevel(cfg.bountyDivisionLevels[divID][0])
-
-
-    async def clearAllBounties(self, includeEscaped=True):
-        """Clear all bounties, for all factions in the DB
-        If any division was full before, restart its new bounty spawner
-
-        :param bool includeEscaped: Whether to also clear escaped criminals (Default True)
-        """
-        for div in self.divisions.values():
-            await div.clear(includeEscaped=includeEscaped)
-
-
-    def resetAllNewBountyTTs(self):
-        """Reset all new bounty TimedTasks, immediately triggering the spawning of one bounty per division
-        """
-        for div in self.divisions.values():
-            div.resetNewBountyCool()
-
-
-    def getBountyByCrim(self, crim: Criminal, level: Optional[int] = None) -> bounty.Bounty:
+    async def getBountyByCrim(self, guildId: int, crim: Union[int, criminal.Criminal[Any]], level: Optional[int] = None, allowEscaped: bool = False, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> bounty.AnyBounty:
         """Get the bounty object for a given criminal name object
-        This process is much more efficient when given the difficulty level of the criminal's bounty.
         
-        :param Criminal crim: The criminal whose bounty is to be fetched.
-        :param str level: The difficulty level of the criminal's bounty. Give None if this is not known,
-                            to search all difficulties. (default None)
-
+        :param crim: The criminal, or criminal id, whose bounty is to be fetched.
+        :type crim: Union[int, Criminal]
+        :param str level: The difficulty level of the criminal's bounty, if known (Default None)
         :return: the bounty object tracking crim
         :rtype: Bounty
-        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :raise KeyError: If the requested criminal does not exist in this DB
         """
-        # If the criminal's level is known
+        crimId = crim if isinstance(crim, int) else crim.id
+
+        query = select(bounty.Bounty[Any]).join(BountyDivision[Any]).where(and_(
+            BountyDivision.guildId == guildId,
+            bounty.Bounty.criminalId == crimId
+        ))
+
         if level is not None:
-            try:
-                return self.divisionForLevel(level).bounties[level][crim]
-            except KeyError:
-                pass
+            query = query.where(bounty.Bounty.techLevel == level)
 
-        # If the criminal's level is not known, search all levels
-        else:
-            for div in self.divisions.values():
-                for tl in range(div.minLevel, div.maxLevel + 1):
-                    try:
-                        return div.bounties[tl][crim]
-                    except KeyError:
-                        pass
+        if not allowEscaped:
+            query = query.where(bounty.Bounty.isEscaped == False)
         
-        raise KeyError(f"No bounty found for criminal: '{crim.name}'" + ("" if level is None else f" and level: {level}"))
+        if withOnlyFields:
+            query = query.with_only_columns(*withOnlyFields)
+
+        result = await self.session.execute(query)
+        row = result.one_or_none()
+        if row is None:
+            raise KeyError(f"No bounty found for criminal: {crimId}" + ("" if level is None else f" and level: {level}"))
+        
+        return row.t[0]
 
 
-    def getEscapedBountyByCrim(self, crim: Criminal, level: Optional[int] = None) -> bounty.Bounty:
+    async def getEscapedBountyByCrim(self, guildId: int, crim: Union[int, criminal.Criminal[Any]], level: Optional[int] = None, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> bounty.Bounty:
         """Get the escaped bounty object for a given criminal object.
         This process is much more efficient when given the difficulty level of the criminal's bounty.
 
-        :param Criminal crim: The criminal whose escaped bounty is to be fetched.
-        :param str level: The difficulty level of the criminal's bounty. Give None if this is not known,
-                            to search all difficulties. (default None)
-
+        :param crim: The criminal, or criminal id, whose escaped bounty is to be fetched.
+        :type crim: Union[int, Criminal]
+        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :return: the escaped bounty object tracking crim
         :rtype: Bounty
-        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :raise KeyError: If the requested criminal does not exist in this DB
         """
-        # If the criminal's level is known
+        crimId = crim if isinstance(crim, int) else crim.id
+
+        query = select(bounty.Bounty[Any]).join(BountyDivision[Any]).where(and_(
+            BountyDivision.guildId == guildId,
+            bounty.Bounty.criminalId == crimId,
+            bounty.Bounty.isEscaped == True
+        ))
+
         if level is not None:
-            try:
-                return self.divisionForLevel(level).escapedBounties[level][crim]
-            except KeyError:
-                pass
-
-        # If the criminal's level is not known, search all levels
-        else:
-            for div in self.divisions.values():
-                for tl in range(div.minLevel, div.maxLevel + 1):
-                    try:
-                        return div.escapedBounties[tl][crim]
-                    except KeyError:
-                        pass
+            query = query.where(bounty.Bounty.techLevel == level)
         
-        raise KeyError(f"No escaped bounty found for criminal: '{crim.name}'" + ("" if level is None else f" and level: {level}"))
+        if withOnlyFields:
+            query = query.with_only_columns(*withOnlyFields)
+
+        result = await self.session.execute(query)
+        row = result.one_or_none()
+        if row is None:
+            raise KeyError(f"No escaped bounty found for criminal: {crimId}" + ("" if level is None else f" and level: {level}"))
+        
+        return row.t[0]
 
 
-    def getBounty(self, name: str, level: Optional[int] = None) -> bounty.Bounty:
+    async def getBountyByAlias(self, guildId: int, name: str, level: Optional[int] = None, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> bounty.Bounty:
         """Get the bounty object for a given criminal name or alias.
-        This process is much more efficient when given the difficulty level of the criminal's bounty.
-
+        This method implementation currently joins FOUR tables! If possible, always use the get by criminal ID method instead!
+        As of writing, SqlAlchemy will raise MultipleResultsFound if more than one bounty matches this alias.
+        
         :param str name: A name or alias for the criminal whose bounty is to be fetched.
-        :param str level: The difficulty level of the criminal's bounty. Give None if this is not known,
-                            to search all difficulties. (default None)
-
+        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :return: the bounty object tracking the named criminal
         :rtype: Bounty
         :raise KeyError: If the requested criminal name does not exist in this DB
         """
-        # If the criminal's level is known
+        # This is an unfortunate number of joins...
+        query = select(bounty.Bounty[Any]) \
+            .join(criminal.Criminal[Any], criminal.Criminal.id == bounty.Bounty.criminalId) \
+            .join(BountyDivision[Any], BountyDivision.id == bounty.Bounty.divisionId) \
+            .join(_ObjectAlias, _ObjectAlias.objectAliasesId == criminal.Criminal.id).where(and_(
+                BountyDivision.guildId == guildId,
+                bounty.Bounty.isEscaped == False,
+                or_(
+                    criminal.Criminal.name.ilike(name),
+                    _ObjectAlias.alias.ilike(name),
+                )
+            ))
+
         if level is not None:
-            return self.divisionForLevel(level).bounties[level].getValueForKeyNamed(name)
-
-        # If the criminal's level is not known, search all levels
-        else:
-            for div in self.divisions.values():
-                for tl in range(div.minLevel, div.maxLevel + 1):
-                    try:
-                        return div.bounties[tl].getValueForKeyNamed(name)
-                    except KeyError:
-                        pass
+            query = query.where(bounty.Bounty.techLevel == level)
         
-        raise KeyError("No bounty found for name: '" + name + ("'" if level is None else "' and level: " + str(level)))
+        if withOnlyFields:
+            query = query.with_only_columns(*withOnlyFields)
+
+        result = await self.session.execute(query)
+        row = result.one_or_none()
+        if row is None:
+            raise KeyError(f"No bounty found for name: {name}'" + ("'" if level is None else f"' and level: {level}"))
+        
+        return row.t[0]
 
 
-    def getEscapedBounty(self, name: str, level: Optional[int] = None) -> bounty.Bounty:
+    async def getEscapedBountyByAlias(self, guildId: int, name: str, level: Optional[int] = None, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> bounty.Bounty:
         """Get the escaped bounty object for a given criminal name or alias.
-        This process is much more efficient when given the difficulty level of the criminal's bounty.
-
+        This method implementation currently joins FOUR tables! If possible, always use the get by criminal ID method instead!
+        As of writing, SqlAlchemy will raise MultipleResultsFound if more than one bounty matches this alias.
+        
         :param str name: A name or alias for the criminal whose escaped bounty is to be fetched.
-        :param str level: The difficulty level of the criminal's bounty. Give None if this is not known,
-                            to search all difficulties. (default None)
-
+        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :return: the escaped bounty object tracking the named criminal
         :rtype: Bounty
-        :param int level: The difficulty level of the criminal's bounty, if known (Default None)
         :raise KeyError: If the requested criminal name does not exist in this DB
         """
-        # If the criminal's level is known
+        # This is an unfortunate number of joins...
+        query = select(bounty.Bounty[Any]) \
+            .join(criminal.Criminal[Any], criminal.Criminal.id == bounty.Bounty.criminalId) \
+            .join(BountyDivision[Any], BountyDivision.id == bounty.Bounty.divisionId) \
+            .join(_ObjectAlias, _ObjectAlias.objectAliasesId == criminal.Criminal.id).where(and_(
+                BountyDivision.guildId == guildId,
+                bounty.Bounty.isEscaped == True,
+                or_(
+                    criminal.Criminal.name.ilike(name),
+                    _ObjectAlias.alias.ilike(name),
+                )
+            ))
+
         if level is not None:
-            return self.divisionForLevel(level).escapedBounties[level].getValueForKeyNamed(name)
-
-        # If the criminal's level is not known, search all levels
-        else:
-            for div in self.divisions.values():
-                for tl in range(div.minLevel, div.maxLevel + 1):
-                    try:
-                        return div.escapedBounties[tl].getValueForKeyNamed(name)
-                    except KeyError:
-                        pass
+            query = query.where(bounty.Bounty.techLevel == level)
         
-        raise KeyError(f"No escaped bounty found for name: '{name}'" + ("" if level is None else " and level: " + str(level)))
+        if withOnlyFields:
+            query = query.with_only_columns(*withOnlyFields)
+
+        result = await self.session.execute(query)
+        row = result.one_or_none()
+        if row is None:
+            raise KeyError(f"No escaped bounty found for name: {name}'" + ("'" if level is None else f"' and level: {level}"))
+        
+        return row.t[0]
 
 
-    def totalBounties(self, includeEscaped: bool = True) -> int:
+    async def totalBounties(self, guildId: int, includeEscaped: bool = True) -> int:
         """Decide the total number of bounties currently stored across all divisions.
         If includeEscaped is given as true, escaped bounties will also be counted.
 
@@ -251,10 +170,15 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         :return: The number of bounties stored in the DB across all divisions
         :rtype: int
         """
-        return sum(div.getNumBounties(includeEscaped=includeEscaped) for div in self.divisions.values())
+        query = count(bounty.Bounty[Any]).join(BountyDivision[Any]).where(BountyDivision.guildId == guildId)
+
+        if not includeEscaped:
+            query = query.where(bounty.Bounty.isEscaped == False)
+
+        return await self.session.scalar(query)
 
 
-    def canMakeBounty(self) -> bool:
+    def canMakeBounty(self, guildId: int) -> bool:
         """Check whether this DB has space for more bounties
 
         :return: True if at least one division is not at capacity, False if all divisions' bounties are full
@@ -263,7 +187,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         return any((not div.isFull() or not div.hasMinTLBounty()) for div in self.divisions.values())
 
 
-    def bountyNameExists(self, name: str, level: Optional[int] = None, noEscapedCrim: bool = True) -> bool:
+    def bountyNameExists(self, guildId: int, name: str, level: Optional[int] = None, noEscapedCrim: bool = True) -> bool:
         """Check whether a criminal with the given name or alias exists in the DB
         The process is much more efficient if the level of the criminal is known.
 
@@ -289,30 +213,9 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
             else:
                 return False
         return True
-    
-
-    def divisionObjExists(self, div: BountyDivision) -> bool:
-        """Decide whether this DB owns the given division.
-
-        :param BountyDivision div: The division to check for ownership
-        :return: True if div is one of this DB's divisions, False otherwise
-        :rtype: bool
-        """
-        return div in self.divisions.values()
 
 
-    def bountyObjExists(self, bounty: bounty.Bounty) -> bool:
-        """Check whether a given bounty object exists in the DB.
-        Existence is checked for the bounty's criminal, at the given techLevel
-
-        :param Bounty bounty: The bounty object to check for existence in the DB
-        :return: True if the given bounty's criminal is in the DB at the given techLevel, False otherwise
-        :rtype: bool
-        """
-        return self.divisionForLevel(bounty.techLevel).bountyObjExists(bounty)
-
-
-    def criminalObjExists(self, crim: Criminal, noEscapedCrim=True) -> bool:
+    def criminalObjExists(self, guildId: int, crim: criminal.Criminal[Any], noEscapedCrim=True) -> bool:
         """Check whether a given criminal object exists in the DB.
         Existence is checked across all divisions and levels.
 
@@ -328,7 +231,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         return activeExists or escapedExists
 
 
-    def addBounty(self, bounty: bounty.Bounty, dbReload=False, isRespawn=False):
+    def addBounty(self, guildId: int, bounty: bounty.Bounty, dbReload=False, isRespawn=False):
         """Add a given bounty object to the database.
         Bounties cannot be added if the division for its level does not have space for more bounties.
         Bounties cannot be added if a bounty already exists for the same criminal in this DB.
@@ -354,10 +257,9 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
 
         # Add the bounty to the database
         div._addBounty(bounty, dbReload=dbReload, isRespawn=isRespawn)
-        
 
 
-    def escapedCriminalExists(self, crim):
+    def escapedCriminalExists(self, guildId: int, crim):
         """Decide whether a criminal is recorded in the escaped criminals database.
 
         :param criminal crim: The criminal to check for existence
@@ -367,7 +269,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         return any(div.escapedCriminalExists(crim) for div in self.divisions.values())
 
 
-    def addEscapedBounty(self, bounty: bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
+    def addEscapedBounty(self, guildId: int, bounty: bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
         """Add a given bounty object to the escaped bounties database.
         Bounties cannot be added if the object or name already exists in the database.
 
@@ -402,7 +304,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         div._addEscapedBounty(bounty, dbReload=dbReload, ignoreFull=ignoreFull)
 
 
-    def removeEscapedBountyObj(self, bounty: bounty.Bounty):
+    def removeEscapedBountyObj(self, guildId: int, bounty: bounty.Bounty):
         """Remove a given escaped bounty object from the database.
         the bounty must already be recorded in the escaped criminals database.
         This does not perform respawning of the bounty.
@@ -414,7 +316,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         self.divisionForLevel(bounty.techLevel).removeEscapedBountyObj(bounty)
 
 
-    def removeEscapedCriminal(self, crim):
+    def removeEscapedCriminal(self, guildId: int, crim):
         """Remove a criminal from the record of escaped criminals.
         crim must already be recorded in the escaped criminals database.
         This does not perform respawning of the bounty.
@@ -428,7 +330,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         # print(f"removed escaped criminal {bounty.criminal.name} from div {nameForDivision(self.divisionForLevel(bounty.techLevel))}, level {bounty.techLevel}")
 
 
-    def removeBountyObj(self, bounty: bounty.Bounty):
+    def removeBountyObj(self, guildId: int, bounty: bounty.Bounty):
         """Remove a given bounty object from the database.
         If the division was full before, restart the new bounty spawner
 
@@ -437,7 +339,7 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         self.divisionForLevel(bounty.techLevel).removeBountyObj(bounty)
 
 
-    def removeBountyName(self, name: str, faction: Optional[str] = None):
+    def removeBountyName(self, guildId: int, name: str, faction: Optional[str] = None):
         """Find the bounty associated with the given criminal name or alias, and remove it from the database.
         This process is much more efficient if the faction under which the bounty is wanted is given.
 
@@ -448,83 +350,10 @@ class BountyRepository(SerializesToSchema[SerializedBountyDB]):
         self.removeBountyObj(self.getBounty(name))
 
 
-    def hasBounties(self) -> bool:
+    def hasBounties(self, guildId: int) -> bool:
         """Check whether any division has bounties stored.
 
         :return: True if at least one bounty is stored in this DB, False otherwise
         :rtype: bool
         """
         return any(not div.isEmpty() for div in self.divisions.values())
-
-
-    def serialize(self, **kwargs) -> SerializedBountyDB:
-        """Serialise the bountyDB and all of its divisions into dictionary format.
-
-        :return: A dictionary containing all data needed to recreate this bountyDB.
-        :rtype: dict
-        """
-        data: SerializedBountyDB = {"active": [], "escaped": [], "temperatures": {}}
-        for div in self.divisions.values():
-            data["temperatures"][div.minLevel] = div.temperature
-            for tlBounties in div.bounties.values():
-                for bty in tlBounties.values():
-                    data["active"].append(bty.serialize(**kwargs))
-            for tlBounties in div.escapedBounties.values():
-                for bty in tlBounties.values():
-                    # Casting here because we know the bounty si escaped
-                    serialized = cast(bounty.SerializedEscapedBounty, bty.serialize(**kwargs))
-                    data["escaped"].append(serialized)
-        
-        if next(i for i in self.divisions.values()).bountyBoardChannel is not None:
-            # Casting here div.bountyBoardChannel can be None, but this is only the case if all divisions have None bountyBoardChannel.
-            # If any division in the DB has a bountyBoardChannel, they all must have one.
-            data["bountyBoardChannels"] = {div.minLevel: cast(BountyBoardChannel, div.bountyBoardChannel).serialize(**kwargs) for div in self.divisions.values()}
-        
-        if next(i for i in self.divisions.values()).alertRoleID != -1:
-            data["alertRoleIDs"] = {div.minLevel: div.alertRoleID for div in self.divisions.values()}
-
-        return data
-
-
-    @classmethod
-    def deserialize(cls, bountyDBDict: SerializedBountyDB, owningBasedGuild: Optional["basedGuild.BasedGuild"] = None, dbReload: bool = False, **kwargs) -> BountyRepository:
-        """Build a bountyDB object from a serialised dictionary format - the reverse of bountyDB.serialize.
-
-        :param dict bountyDBDict: a dictionary representation of the bountyDB, to convert to an object
-        :param bool dbReload: Whether or not this bountyDB is being created during the initial database loading
-                                phase of bountybot. This is used to toggle name checking in bounty contruction.
-        :param basedGuild.BasedGuild owningBasedGuild: The guild that owns this bountyDB. Required argument.
-        :return: The new bountyDB object
-        :rtype: bountyDB
-        """
-        if owningBasedGuild is None:
-            raise ValueError("missing required kwarg: owningBasedGuild")
-
-        escapedBountiesData = bountyDBDict.get("escaped", [])
-        activeBountiesData = bountyDBDict.get("active", [])
-        temps = bountyDBDict.get("temperatures", {})
-
-        # Instanciate a new bountyDB
-        newDB = BountyRepository(owningBasedGuild)
-
-        for minLevel, divTemp in temps.items():
-            newDB.divisionForLevel(int(minLevel)).setTemp(divTemp)
-
-        for bountyDict in activeBountiesData:
-            newDB.addBounty(bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB, makeExpiryTT=False),
-                            dbReload=dbReload)
-        for bountyDict in escapedBountiesData:
-            # Adding escaped bounties to DB is done during Bounty.deserialize
-            # TODO: Should probably change that
-            bounty.Bounty.deserialize(bountyDict, dbReload=dbReload, owningDB=newDB)
-
-        if "bountyBoardChannels" in bountyDBDict:
-            for minLevel, bbcDict in bountyDBDict["bountyBoardChannels"].items():
-                div = newDB.divisionForLevel(int(minLevel))
-                div.bountyBoardChannel = BountyBoardChannel.deserialize(bbcDict, division=div)
-
-        if "alertRoleIDs" in bountyDBDict:
-            for minLevel, roleID in bountyDBDict["alertRoleIDs"].items():
-                newDB.divisionForLevel(int(minLevel)).alertRoleID = roleID
-
-        return newDB

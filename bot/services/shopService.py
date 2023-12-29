@@ -1,0 +1,2 @@
+class ShopService():
+    pass

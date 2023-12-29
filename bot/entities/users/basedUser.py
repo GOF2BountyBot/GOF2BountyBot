@@ -4,16 +4,18 @@ from typing import List, MutableSet, Optional
 from datetime import datetime
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import Column, Table, ForeignKey
+from sqlalchemy import Column, Table, ForeignKey, Integer
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from ...baseClasses.serializable import SerializesToSchema
 from .basedUser_json import SerializedBasedUser
 from ...lib.sql import AbcSqlTableMeta
+from ...lib.gameMaths import calculateUserBountyHuntingLevel
 from ...database.tables import TableNames
 from ..userProfile.medal import Medal
 from ..inventories.userHangar import UserHangar
 from ..duels.duelRequest import DuelRequest
-from ..items.ship.shipInstance import ShipInstance
+from ..items.ship.shipInstance import ShipInstance, AnyShipInstance
 
 
 class Base(DeclarativeBase):
@@ -23,8 +25,8 @@ class Base(DeclarativeBase):
 UserHasMedal = Table(
     TableNames.UserHasMedal.value,
     Base.metadata,
-    Column("userId", ForeignKey(f"{TableNames.User.value}.id"), primary_key=True),
-    Column("medalId", ForeignKey(f"{TableNames.Medal.value}.id"), primary_key=True),
+    Column("userId", Integer, ForeignKey(f"{TableNames.User.value}.id"), primary_key=True),
+    Column("medalId", Integer, ForeignKey(f"{TableNames.Medal.value}.id"), primary_key=True),
 )
 
 
@@ -57,7 +59,7 @@ class BasedUser(Base, SerializesToSchema[SerializedBasedUser], metaclass=AbcSqlT
     kaamo: Mapped[KaamoShop] = relationship(back_populates="user")
     loma: Mapped[LomaShop] = relationship(back_populates="user")
     hangar: Mapped[UserHangar] = relationship(back_populates="user")
-    activeShip: Mapped[ShipInstance] = relationship()
+    activeShip: Mapped[AnyShipInstance] = relationship()
     medals: Mapped[MutableSet[Medal]] = relationship(secondary=UserHasMedal)
     sentDuelRequests: Mapped[List[DuelRequest]] = relationship(back_populates="sourceUser")
     receivedDuelRequests: Mapped[List[DuelRequest]] = relationship(back_populates="targetUser")
@@ -73,9 +75,14 @@ class BasedUser(Base, SerializesToSchema[SerializedBasedUser], metaclass=AbcSqlT
         self.activeShip = activeShip
 
 
+    @hybrid_property
+    def bountyHuntingLevel(self):
+        return 1 if self.classicModeEnabled else calculateUserBountyHuntingLevel(self.bountyHuntingXP)
+
+
     @classmethod
     def defaultUser(cls, id: int):
-        newUser = BasedUser(id)
+        return BasedUser(id)
 
 
     def __str__(self) -> str:

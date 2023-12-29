@@ -42,7 +42,7 @@ class InventoryBase(Base):
             .where(inventoryListing.InventoryListing.inventoryId == self.id) \
             .with_only_columns(inventoryListing.InventoryListing.id)
         result = await session.execute(query)
-        return result.one_or_none() is None
+        return result.first() is None
 
     
     async def add(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> "inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]":

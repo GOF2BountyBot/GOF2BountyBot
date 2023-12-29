@@ -6,13 +6,14 @@ from sqlalchemy.orm import Mapped
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import embedField
 from ...base.workshopable import Workshopable
-from ..base.item import ItemBase, ItemWithId
+from ..base.item import Item, ItemWithId
 from ..base.item_json import AnySerializedItem
 from ...base.workshopable_json import AnySerializedWorkshopable
 from .weapon_json import SerializedWeapon
 
 
-class Weapon(ItemWithId, ItemBase, Workshopable, SerializesToSchema[SerializedWeapon]):
+# TODO
+class Weapon(ItemWithId, Item, Workshopable, SerializesToSchema[SerializedWeapon]):
     """An abstract class representing weapons that can be equipped onto a ship for use in duels.
 
     :var dps: The weapon's damage per second to a target ship.

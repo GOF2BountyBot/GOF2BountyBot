@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Coroutine, List, Tuple, TypeVar, TypedDict
+from typing import TYPE_CHECKING, Any, Coroutine, List, Tuple, TypeVar, TypedDict
 from typing_extensions import NotRequired
 from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
@@ -521,7 +521,7 @@ class BountyBoardChannel(SerializesToSchema[TSchema]):
             self.postInitTasks = None
 
     
-    def addPostInitTask(self, coro: Coroutine):
+    def addPostInitTask(self, coro: Coroutine[Any, Any, Any]):
         if self.postInitTasks is None:
             self.postInitTasks = {coro}
         else:

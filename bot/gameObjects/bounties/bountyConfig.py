@@ -235,7 +235,7 @@ class BountyConfig:
         self.techLevel = techLevel
 
 
-    def generate(self, division: bountyDivision.BountyDivision, noCriminal: bool = True, forceKeepChecked: bool = False,
+    def generate(self, division: bountyDivision.BountyDivision[Any], noCriminal: bool = True, forceKeepChecked: bool = False,
                     forceNoDBCheck: bool = False) -> BountyConfig:
         """Validate all given config data, and randomly generate missing data.
 

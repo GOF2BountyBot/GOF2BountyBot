@@ -1,20 +1,19 @@
 from typing import Dict, List, TypedDict, Union
 from typing_extensions import NotRequired
 
-from .criminal_json import SerializedCriminal
 from ..items.ship.shipInstance_json import SerializedShipInstanceUnion
 
 
 class SerializedBounty(TypedDict):
     faction: str
-    route: List[str]
-    answer: str
-    checked: Dict[str, int]
+    route: List[int]
+    answer: int
+    checked: Dict[int, int]
     reward: int
     issueTime: float
     endTime: float
     isEscaped: bool
-    criminal: SerializedCriminal
+    criminal: int
     rewardPerSys: int
     techLevel: int
     activeShip: NotRequired[SerializedShipInstanceUnion]

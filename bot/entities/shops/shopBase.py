@@ -1,8 +1,7 @@
 from typing import Any, List, Optional, Tuple, Type, TypedDict, Union, overload, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql._typing import _ColumnsClauseArgument # type: ignore[reportPrivateUsage]
-from sqlalchemy import select, and_
+from sqlalchemy import Select, select, and_
 
 from ...database.constants import StoreableItemType
 from ..inventories.inventoryListing import InventoryListing
@@ -12,6 +11,7 @@ from ..inventories.exceptions import NotStored
 from ..items.base.item import Item
 from ..items.base.item_json import SerializedItemUnion
 from ...lib.exceptions import UnknownItem
+from ...lib.sql import SqlColumnExpression
 from ..items.itemTransaction import ItemTransactionContext, SupportsItems, SupportsTrading
 from . import shopArea
 from ..items.ship.shipInstance import AnyShipInstance
@@ -33,15 +33,15 @@ TSelf = TypeVar("TSelf", bound="ShopBase")
 _INVENTORYLISTING_FIELDS_FOR_ITEM = (InventoryListing.inventoryId, InventoryListing.item, InventoryListing.itemId, InventoryListing.itemType)
 _INVENTORYLISTING_FIELDS_FOR_ITEM_WITH_QUANTITY = _INVENTORYLISTING_FIELDS_FOR_ITEM + (InventoryListing.quantity,)
 
-def mergeListingFieldsForItemSelect(withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[TStoredItem, TSerializedItem]], ...]], quantity: bool = False) -> Tuple[_ColumnsClauseArgument[InventoryListing[TStoredItem, TSerializedItem]], ...]:
+def mergeListingFieldsForItemSelect(withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]], quantity: bool = False) -> Tuple[SqlColumnExpression[Any], ...]:
     """Extend an optional list of column specifiers such that it also includes all fields necessary to retrieve the item in an InventoryListing.
 
     :param withOnlyFields: The base column specifiers
-    :type withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[TStoredItem], ...]]
+    :type withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]]
     :param quantity: Include the listing quantity in the select, defaults to False
     :type quantity: bool
     :return: A list of the InventoryListing columns that are necessary to retrieve its item, plus any specified in `withOnlyFields`
-    :rtype: Tuple[_ColumnsClauseArgument[TStoredItem], ...]
+    :rtype: Tuple[SqlColumnExpression[Any], ...]
     """
     requiredFields = _INVENTORYLISTING_FIELDS_FOR_ITEM_WITH_QUANTITY if quantity else _INVENTORYLISTING_FIELDS_FOR_ITEM
     if not withOnlyFields:
@@ -113,7 +113,7 @@ class ShopBase(InventoryBase, SupportsItems):
 
 
     @overload
-    async def getItem(self, session: AsyncSession, id: int, *, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[Item], ...]] = None) -> Optional[Item]:
+    async def getItem(self, session: AsyncSession, id: int, *, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[Item]:
         """Get an item that is in the shop, by id.
 
         :param session: The database session from which to look up the item
@@ -121,13 +121,13 @@ class ShopBase(InventoryBase, SupportsItems):
         :param id: The item id
         :type id: int
         :param withOnlyFields: The InventoryListing fields to select, defaults to all fields
-        :type withOnlyFields: Tuple[_ColumnsClauseArgument[Item], ...], optional
+        :type withOnlyFields: Tuple[SqlColumnExpression[Any], ...], optional
         :return: The item stored in this shop, if it was found
         :rtype: Optional[Item]
         """
     
     @overload
-    async def getItem(self, session: AsyncSession, id: int, type: Type[TStoredItem], withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[TStoredItem], ...]] = None) -> Optional[TStoredItem]:
+    async def getItem(self, session: AsyncSession, id: int, type: Type[TStoredItem], withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[TStoredItem]:
         """Get an item that is in the shop, by id.
 
         :param session: The database session from which to look up the item
@@ -137,18 +137,18 @@ class ShopBase(InventoryBase, SupportsItems):
         :param type: The item subclass to select as
         :type type: Type[TStoredItem], optional
         :param withOnlyFields: The item fields to select, defaults to all fields
-        :type withOnlyFields: Tuple[_ColumnsClauseArgument[TStoredItem], ...], optional
+        :type withOnlyFields: Tuple[SqlColumnExpression[Any], ...], optional
         :return: The item stored in this shop, if it was found
         :rtype: Optional[TStoredItem]
         """
 
-    async def getItem(self, session: AsyncSession, id: int, type: Optional[Type[Item]] = None, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[Item], ...]] = None) -> Optional[Item]:
+    async def getItem(self, session: AsyncSession, id: int, type: Optional[Type[Item[Any]]] = None, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[Item[Any]]:
         """There are two implementations
         """
-        itemType = Item if type is None else type
+        itemType = Item[Any] if type is None else type
         
-        query = select(itemType) \
-            .join(InventoryListing[itemType].item, InventoryListing[itemType].itemId == itemType.id) \
+        query: Select[Tuple[Item[Any]]] = select(itemType) \
+            .join(InventoryListing[itemType, Any].item, InventoryListing[itemType, Any].itemId == itemType.id) \
             .where(and_(InventoryListing.inventoryId == self.id, InventoryListing.item.id == id)) \
             .with_only_columns(*withOnlyFields)
 
@@ -159,7 +159,7 @@ class ShopBase(InventoryBase, SupportsItems):
     
 
     @overload
-    async def getListing(self, session: AsyncSession, id: int, *, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[Item]], ...]] = None) -> Optional[InventoryListing[Item]]:
+    async def getListing(self, session: AsyncSession, id: int, *, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[InventoryListing[Item]]:
         """Get the inventory listing for an item that is in the shop, by item id.
 
         :param session: The database session from which to look up the item
@@ -167,13 +167,13 @@ class ShopBase(InventoryBase, SupportsItems):
         :param id: The item id
         :type id: int
         :param withOnlyFields: The InventoryListing fields to select, defaults to all fields
-        :type withOnlyFields: Tuple[_ColumnsClauseArgument[Item], ...], optional
+        :type withOnlyFields: Tuple[SqlColumnExpression[Any], ...], optional
         :return: The inventory listing for the item stored in this shop, if it was found
         :rtype: Optional[InventoryListing[Item]]
         """
     
     @overload
-    async def getListing(self, session: AsyncSession, id: int, type: Type[TStoredItem], withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[TStoredItem]], ...]] = None) -> Optional[InventoryListing[TStoredItem]]:
+    async def getListing(self, session: AsyncSession, id: int, type: Type[TStoredItem], withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[InventoryListing[TStoredItem]]:
         """Get the inventory listing for an item that is in the shop, by item id.
 
         :param session: The database session from which to look up the item
@@ -183,12 +183,12 @@ class ShopBase(InventoryBase, SupportsItems):
         :param type: The item subclass to select as
         :type type: Type[TStoredItem], optional
         :param withOnlyFields: The InventoryListing fields to select, defaults to all fields
-        :type withOnlyFields: Tuple[_ColumnsClauseArgument[TStoredItem], ...], optional
+        :type withOnlyFields: Tuple[SqlColumnExpression[Any], ...], optional
         :return: The inventory listing for the item stored in this shop, if it was found
         :rtype: Optional[TStoredItem]
         """
 
-    async def getListing(self, session: AsyncSession, id: int, type: Optional[Type[TStoredItem]] = None, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[Item]], ...]] = None) -> Optional[InventoryListing[TStoredItem]]:
+    async def getListing(self, session: AsyncSession, id: int, type: Optional[Type[TStoredItem]] = None, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> Optional[InventoryListing[TStoredItem]]:
         itemType = Item if type is None else type
 
         query = select(InventoryListing[itemType]) \
@@ -300,7 +300,7 @@ class ShopBase(InventoryBase, SupportsItems):
         return buyTransaction
         
 
-    async def beginBuyUntyped(self: TSelf, session: AsyncSession, buyer: TBuyer, id: int, *, quantity: int = 1, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[Item]], ...]] = None) -> ItemTransactionContext[Item, TBuyer, TSelf]:
+    async def beginBuyUntyped(self: TSelf, session: AsyncSession, buyer: TBuyer, id: int, *, quantity: int = 1, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> ItemTransactionContext[Item, TBuyer, TSelf]:
         """The generic version of this method is recommended where possible. See: `beginBuy`
         
         Begin an item-buying transaction.
@@ -322,7 +322,7 @@ class ShopBase(InventoryBase, SupportsItems):
         :param quantity: The amount of the item to buy, defaults to 1
         :type quantity: int, optional
         :param withOnlyFields: Limit the inventory listing SELECT to these fields only, defaults to None
-        :type withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[Item]], ...]], optional
+        :type withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]], optional
         :raises NotStored: If not enough of the item is found in the inventory
         :return: A context in which you should move the item to `buyer`'s inventory.
         :rtype: ItemTransactionContext[Item, TBuyer, TSelf]
@@ -335,7 +335,7 @@ class ShopBase(InventoryBase, SupportsItems):
         return await self._beginBuyItemFromListing(session, buyer, id, quantity, listing)
 
 
-    async def beginBuy(self: TSelf, session: AsyncSession, buyer: TBuyer, id: int, type: Type[TStoredItem], quantity: int = 1, withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[TStoredItem]], ...]] = None) -> ItemTransactionContext[TStoredItem, TBuyer, TSelf]:
+    async def beginBuy(self: TSelf, session: AsyncSession, buyer: TBuyer, id: int, type: Type[TStoredItem], quantity: int = 1, withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]] = None) -> ItemTransactionContext[TStoredItem, TBuyer, TSelf]:
         """Begin an item-buying transaction.
         This transaction will remove the appropriate amount of credits from `buyer`, if supported.
         The transaction will not move the item into `buyer`'s inventory.
@@ -357,7 +357,7 @@ class ShopBase(InventoryBase, SupportsItems):
         :param quantity: The amount of the item to buy, defaults to 1
         :type quantity: int, optional
         :param withOnlyFields: Limit the inventory listing SELECT to these fields only, defaults to None
-        :type withOnlyFields: Optional[Tuple[_ColumnsClauseArgument[InventoryListing[TStoredItem]], ...]], optional
+        :type withOnlyFields: Optional[Tuple[SqlColumnExpression[Any], ...]], optional
         :raises NotStored: If not enough of the item is found in the inventory
         :return: A context in which you should move the item to `buyer`'s inventory.
         :rtype: ItemTransactionContext[TStoredItem, TBuyer, TSelf]

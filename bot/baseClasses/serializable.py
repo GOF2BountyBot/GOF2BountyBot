@@ -55,6 +55,13 @@ class SerializesToSchema(Serializable, DefaultableMixin, Generic[SerializedSchem
     async def deserialize(cls: Type[Self], data: SerializedSchema, **kwargs: Any) -> Self: raise NotImplementedError()
 
 
+class SerializesToSchemaProtocol(Protocol, Generic[SerializedSchema]):
+    async def serialize(self, **kwargs: Any) -> SerializedSchema: ...
+
+    @classmethod
+    async def deserialize(cls: Type[Self], data: SerializedSchema, **kwargs: Any) -> Self: ...
+
+
 SerializesToJson = SerializesToType[JsonType]
 
 TDeserialized = TypeVar("TDeserialized", bound=Serializable, covariant=True)

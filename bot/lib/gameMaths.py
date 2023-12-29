@@ -172,7 +172,7 @@ BHLd = 13.55
 
 
 "NEW MANUAL BOUNDARIES BASED METHOD"
-def bountyHuntingXPForLevel(level):
+def bountyHuntingXPForLevel(level: int):
     return cfg.bountyXPLevelBoundaries[level]
     
 def calculateUserBountyHuntingLevel(xp: Optional[int]):

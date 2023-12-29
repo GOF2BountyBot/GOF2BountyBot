@@ -27,14 +27,27 @@ class HasRarityMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], meta
     
     @embedField("Rarity")
     @property
-    def rarityLevelName(self):
-        """The name of this object's rarity level
+    def rarityLevelStr(self) -> str:
+        """The emoji, follow by the name, of this object's rarity level
         """
-        rarityName = cfg.itemRarities[self.rarityLevel]
-        rarityEmoji = getattr(cfg.defaultEmojis, f'rarity_{rarityName}').sendable
-        return f"{rarityEmoji} {rarityName.title()}"
+        return f"{self.rarityLevelEmoji} {self.rarityLevelName.title()}"
+    
+
+    @property
+    def rarityLevelName(self) -> str:
+        """The name of this object's rarity level, as defined in cfg
+        """
+        return cfg.itemRarities[self.rarityLevel]
+
+        
+    @property
+    def rarityLevelEmoji(self) -> str:
+        """The emoji for this object's rarity level, as defined in cfg
+        """
+        return getattr(cfg.defaultEmojis, f'rarity_{self.rarityLevelName}').sendable
     
 
     async def serialize(self, **kwargs: Any) -> TSchema:
         data = await super().serialize()
-        return {**data, "rarityLevel": self.rarityLevel}
+        data["rarityLevel"] = self.rarityLevel
+        return data

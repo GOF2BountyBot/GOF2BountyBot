@@ -69,7 +69,7 @@ def bountyResultsFieldKwargs(place: int, userID: int, userRewards: Dict[str, Uni
     return kwargs
 
 
-def makeBountyExpiredEmbed(b: bounty.Bounty) -> Embed:
+def makeBountyExpiredEmbed(b: bounty.AnyBounty) -> Embed:
     """Build an embed representing the expiry of a bounty.
     The bounty's expiry time is assumed to be now.
 

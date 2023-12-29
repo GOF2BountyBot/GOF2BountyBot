@@ -18,4 +18,5 @@ class _BasedEnumMeta(EnumMeta):
 
 
 class BasedEnum(Enum, metaclass=_BasedEnumMeta):
-    pass
+    def __str__(self) -> str:
+        return str(self.value)
