@@ -132,6 +132,11 @@ class BountyDivision(Base, SerializesToSchema[TSchema]):
     
 
     @hybrid_property
+    def levelRange(self) -> Collection[int]:
+        return range(self.minLevel, self.maxLevel + 1)
+    
+
+    @hybrid_property
     def maxLevel(self) -> int:
         return cfg.bountyDivisionLevels[cast(int, self.tier.value) - 1][1]
     

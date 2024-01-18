@@ -1,7 +1,7 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, TypeVar, cast
+from typing import Any, Collection, Dict, Optional, TypeVar, cast
 
 from datetime import datetime
 from enum import Enum
@@ -11,10 +11,9 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from . import criminal
-from .bountyConfig import BountyConfig
+from .bountyConfig import BountyConfigBase, GeneratedBountyConfigBase
 from ...baseClasses.serializable import SerializesToSchema
 from ..items.ship.shipInstance import ShipInstance
-# from ...lib.timeUtil import utcfromtimestamp
 from .bounty_json import SerializedBountyUnion, SerializedEscapedBounty
 from .bountyRouteEntry import BountyRouteEntry
 from ...database.tables import TableNames
@@ -111,7 +110,30 @@ class Bounty(Base, SerializesToSchema[TSchema]):
         return await self.awaitable_attrs._ship
     
 
-    def __init__(self, config: BountyConfig, **kwargs: Any):
+    @property
+    def orderedRoute(self) -> Collection[BountyRouteEntry]:
+        return sorted(self.route.values(), key=lambda e: e.index)
+    
+
+    def __init__(self, config: Optional[BountyConfigBase] = None, **kwargs: Any):
+        if config is not None:
+            if not isinstance(config, GeneratedBountyConfigBase):
+                raise ValueError("Provided bounty config has not been generated")
+            
+            c = cast(GeneratedBountyConfigBase, config)
+            self.techLevel = c.techLevel
+            self.criminalId = c.criminal.id
+            self.shipId = c.activeShip.id
+            self.isPlayer = c.isPlayer
+            self.faction = c.faction
+            self.answerSystemId = c.answer
+            self.reward = c.reward
+            self.issueTime = c.issueTime
+            self.endTime = c.endTime
+            self.rewardPerSys = c.rewardPerSys
+            self.route = {s: BountyRouteEntry(index=i, bountyId=self.id, systemId=s, checkedByUserId=None)
+                          for i, s in enumerate(c.route)}
+            
         super().__init__(**kwargs)
 
 

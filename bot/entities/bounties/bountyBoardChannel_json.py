@@ -1,10 +1,8 @@
 from typing import Dict, TypedDict
 
-from .criminal_json import SerializedCriminal
-
-
 class SerializedBountyBoardChannel(TypedDict):
-    listings: Dict[int, SerializedCriminal]
+    listings: Dict[int, int]
+    division: int
     channel: int
     noBountiesMsg: int
     escapedBountiesMsg: int

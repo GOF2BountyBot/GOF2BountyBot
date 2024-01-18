@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Awaitable, Callable, Optional, Protocol, Type, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing import Any, Awaitable, Callable, Optional, Protocol, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast, overload
 from enum import Enum
 
 from ..entities.guild import basedGuild
@@ -11,10 +11,11 @@ if TYPE_CHECKING:
 
 import discord
 from discord.errors import NotFound
-from discord import Interaction, PartialMessageable, User, Member, ClientUser, Guild, Message
+from discord import Interaction, PartialMessageable, User, Member, ClientUser, Guild, Message, PartialMessage, Client, VoiceChannel, Thread
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent
 from discord import DMChannel, GroupChannel, TextChannel
-from discord.abc import Messageable
+from discord.abc import Messageable, Snowflake
+from discord.enums import ChannelType
 
 from . import emojis, exceptions, graphics, stringUtil
 from .. import botState
@@ -29,6 +30,7 @@ from enum import Enum
 from datetime import datetime
 from PIL.Image import Image
 from io import BytesIO
+from contextlib import AbstractAsyncContextManager
 
 from ..logging import LogCategory
 from ..baseClasses.serializable import Serializable
@@ -473,8 +475,10 @@ def messageDescriptor(m: Message) -> str:
     return f"m:{m.id} g:{m.channel.guild.name}#{m.channel.guild.id} c:{m.channel.name}#{m.channel.id}"
 
 
-async def discordOperationWithRetry(f: Callable[..., Awaitable], opName: str, logCategory: LogCategory, className: str, meta: str,
-                                    *fArgs, **fKwargs) -> Optional[Message]:
+TResult = TypeVar("TResult")
+
+async def discordOperationWithRetry(f: Callable[..., Awaitable[TResult]], opName: str, logCategory: LogCategory, className: str, meta: str,
+                                    *fArgs: Any, **fKwargs: Any) -> Optional[TResult]:
     """Perform an asynchronous operation with a fixed retry, as defined in cfg.
 
     :param f: The coroutine to execute
@@ -489,7 +493,7 @@ async def discordOperationWithRetry(f: Callable[..., Awaitable], opName: str, lo
     :param fArgs: All positional arguments to pass to f
     :param fKwargs: All keyword arguments to pass to f
     :type meta: str
-    :return: The message if it was created, None if an error occurred
+    :return: The result of the operation, None if an error occurred
     :rtype: Optional[Message]
     """
     camelFName = opName.title()
@@ -509,12 +513,12 @@ async def discordOperationWithRetry(f: Callable[..., Awaitable], opName: str, lo
     except HTTPException as e:
         for tryNum in range(cfg.httpErrRetries):
             try:
-                msg = await f(*fArgs, **fKwargs)
+                result = await f(*fArgs, **fKwargs)
                 botState.client.logger.log(className, camelFName,
                                     f"{opName} successful, but only after " \
                                         + f"{tryNum} retr{'y' if tryNum == 1 else 'ies'}. Meta: " + meta,
                                     category=logCategory, eventType="RETRY-SUCCESS")
-                return msg
+                return result
             except HTTPException:
                 await asyncio.sleep(cfg.httpErrRetryDelaySeconds)
 
@@ -651,3 +655,48 @@ async def interactionSend(interaction: Interaction, respond: bool, followup: boo
 
 class ApiError(Enum):
     unknown_emoji = 10014
+
+
+class LazyChannel():
+    @overload
+    def __init__(self, client: Client, channelId: int, /, guildId: Optional[int] = None, type: Optional[ChannelType] = None) -> None: ...
+    
+    @overload
+    def __init__(self, client: Client, partialChannel: PartialMessageable, /) -> None: ...
+    
+    def __init__(self, client: Client, channelIdOrPartial: Union[int, PartialMessageable], guildId: Optional[int] = None, type: Optional[ChannelType] = None) -> None:
+        self.client = client
+        if isinstance(channelIdOrPartial, PartialMessageable):
+            self.partial: Union[VoiceChannel, Thread, PartialMessageable, TextChannel] = channelIdOrPartial
+        else:
+            self.partial = client.get_partial_messageable(channelIdOrPartial, guild_id=guildId, type=type)
+
+    
+    async def fetch(self):
+        if isinstance(self.partial, PartialMessageable):
+            self.partial = await self._fetch()
+        return self.partial
+    
+
+    async def _fetch(self):
+        c = self.client.get_channel(self.partial.id) or await self.client.fetch_channel(self.partial.id)
+        if not isinstance(c, Messageable):
+            raise exceptions.NoLongerExists(self.partial.id)
+        return c
+
+
+    async def call(self, f: Callable[[Messageable], Awaitable[TResult]]) -> TResult:
+        try:
+            return await f(self.partial)
+        except NotFound:
+            c = await self._fetch()
+            v = await f(c)
+            self.partial = c
+            return v
+        
+
+    def withRetry(self, f: Callable[[Messageable], Awaitable[TResult]],
+                  opName: str, logCategory: LogCategory, className: str, meta: str,
+                  *fArgs: Any, **fKwargs: Any) -> Awaitable[Optional[TResult]]:
+        return discordOperationWithRetry(lambda: self.call(f), opName, logCategory, className, meta,
+                                         *fArgs, **fKwargs)

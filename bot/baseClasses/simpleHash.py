@@ -1,9 +1,9 @@
-from typing import TypeVar
+from typing import Any, TypeVar
 
 class SimpleHashMixin():
     """A class mixin that adds a minimal hash implementation.
     """
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
 

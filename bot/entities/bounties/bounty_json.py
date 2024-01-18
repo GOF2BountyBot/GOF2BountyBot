@@ -1,4 +1,4 @@
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 
 from ..items.ship.shipInstance_json import SerializedShipInstanceUnion
@@ -8,7 +8,7 @@ class SerializedBounty(TypedDict):
     faction: str
     route: List[int]
     answer: int
-    checked: Dict[int, int]
+    checked: Dict[int, Optional[int]]
     reward: int
     issueTime: float
     endTime: float

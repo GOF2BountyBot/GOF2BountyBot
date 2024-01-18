@@ -4,7 +4,6 @@ from typing_extensions import Never
 
 from readerwriterlock.rwlock_async import RWLockWrite, Lockable
 from asyncio import Lock, TimeoutError
-from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from abc import ABC, abstractmethod
 
@@ -18,7 +17,7 @@ class PermanentLeaseReleaseCompleteCallback(Protocol):
         """
 
 
-class PermanentLeaseReaquireCallback(Protocol):
+class StaticPermanentLeaseReaquireCallback(Protocol):
     async def __call__(self, aquireTimeoutMs: Optional[int] = None) -> None:
         """Re-aquire a permanent asset lease, following a forced lease release.
 
@@ -28,6 +27,20 @@ class PermanentLeaseReaquireCallback(Protocol):
         :rtype: AssetLock
         :raises asyncio.TimeoutError: When `aquireTimeoutMs` is not `None`, and was exceeded whilst waiting for a lease
         """
+
+
+class InstancePermanentLeaseReaquireCallback(Protocol):
+    async def __call__(cbSelf, self, aquireTimeoutMs: Optional[int] = None) -> None: # type: ignore[reportSelfClsParameterName]
+        """Re-aquire a permanent asset lease, following a forced lease release.
+
+        :param aquireTimeoutMs: An optional timeout for waiting for the lease, defaults to None
+        :type aquireTimeoutMs: Optional[int], optional
+        :return: A lease granting read access to the requested asset permanently
+        :rtype: AssetLock
+        :raises asyncio.TimeoutError: When `aquireTimeoutMs` is not `None`, and was exceeded whilst waiting for a lease
+        """
+
+PermanentLeaseReaquireCallback = Union[StaticPermanentLeaseReaquireCallback, InstancePermanentLeaseReaquireCallback]
 
 
 class PermanentLeaseReleaseCallback(Protocol):
@@ -219,7 +232,7 @@ class AssetLeases:
         }
         
         await asyncio.wait(leaseTasks.keys(), timeout=deadlineMs)
-        await asyncio.wait((lease for lease in leaseTasks.keys() if lease not in self.permanentReads))
+        await asyncio.wait((releaseTask for releaseTask, lease in leaseTasks.items() if lease not in self.permanentReads))
         self.permanentReads.clear()
 
 
@@ -248,11 +261,11 @@ class AssetLeases:
 
 
     async def _dispose(self):
-        await AssetManager._leaseHolderExpired(self)
+        await AssetManager._leaseHolderExpired(self) # type: ignore[reportPrivateUsage]
 
 
 
-class AssetManager(AbstractAsyncContextManager):
+class AssetManager:
     """Static class guaranteeing access to on-disk resources with a leases mechanism, to ensure that
     an asset is not simultaneously read from and written to.
 

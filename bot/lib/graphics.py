@@ -1,25 +1,29 @@
+from typing import Dict, Optional, Union, Tuple, List, cast, Protocol
+from typing_extensions import TypeGuard
+
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageChops, ImageFilter
-from typing import Dict, Optional, Union, Tuple, List, cast
-from typing_extensions import TypeGuard
-from ..cfg import cfg
 import atexit
 import random
 import os
 
-# Typing here because, assuming correct usage of this module, the image will always be loaded in as part of _init
-MISSING_TEXTURE = cast(Image.Image, None)
-EMPTY_DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
+from sqlalchemy.ext.hybrid import hybrid_property
 
-XP_BAR_SILHOUETTE: Optional[Image.Image] = None
-USR_PROF_BACKGROUND: Optional[Image.Image] = None
-XP_BAR_FILLS: Dict[str, Image.Image] = {}
+from ..cfg import cfg
 
-DUEL_RESULTS_BACKGROUNDS: List[Image.Image] = []
-DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
-DUEL_WINNER_OVERLAYS: Dict[str, Image.Image] = {}
+# Casting here because, assuming correct usage of this module, the image will always be loaded in as part of _init
+_Missing_Texture = cast(Image.Image, None)
+_Empty_DUEL_RESULTS_OVERLAY: Optional[Image.Image] = None
 
-MAP_IMAGE: Optional[Image.Image] = None
+_Xp_Bar_Silhoutte: Optional[Image.Image] = None
+_Usr_Prof_Background: Optional[Image.Image] = None
+_Xp_Bar_Fills: Dict[str, Image.Image] = {}
+
+_Duel_Results_Backgrounds: List[Image.Image] = []
+_Duel_Results_Overlay: Optional[Image.Image] = None
+_Duel_Winner_Overlays: Dict[str, Image.Image] = {}
+
+_Map_Image: Optional[Image.Image] = None
 
 ColourTuple = Union[
     Tuple[int, int, int],       # RGB
@@ -44,17 +48,15 @@ def imageIsOpen(asset: Optional[Image.Image]) -> TypeGuard[Image.Image]:
 def _init():
     """graphics initialization. Loading critical assets that must be present, unlike optional/lazily loaded ones.
     """
-    global MISSING_TEXTURE, EMPTY_DUEL_RESULTS_OVERLAY, XP_BAR_SILHOUETTE, USR_PROF_BACKGROUND, DUEL_RESULTS_OVERLAY
-    MISSING_TEXTURE = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
-    EMPTY_DUEL_RESULTS_OVERLAY = None
-    XP_BAR_SILHOUETTE = None
-    USR_PROF_BACKGROUND = None
-    XP_BAR_FILLS.clear()
-    DUEL_RESULTS_BACKGROUNDS.clear()
-    DUEL_RESULTS_OVERLAY = None
-    DUEL_WINNER_OVERLAYS.clear()
-
-MAP_IMAGE: Optional[Image.Image] = None
+    global _Missing_Texture, _Empty_DUEL_RESULTS_OVERLAY, _Xp_Bar_Silhoutte, _Usr_Prof_Background, _Duel_Results_Overlay
+    _Missing_Texture = Image.open("resources/MISSING_TEXTURE.jpg").convert("RGBA")
+    _Empty_DUEL_RESULTS_OVERLAY = None
+    _Xp_Bar_Silhoutte = None
+    _Usr_Prof_Background = None
+    _Xp_Bar_Fills.clear()
+    _Duel_Results_Backgrounds.clear()
+    _Duel_Results_Overlay = None
+    _Duel_Winner_Overlays.clear()
 
 
 _init()
@@ -64,29 +66,43 @@ def _closeAll():
     """Only use this function on shutdown. This function is automatically called on module unimport.
     Close all active graphics.
     """
-    if imageIsOpen(XP_BAR_SILHOUETTE):
-        XP_BAR_SILHOUETTE.close()
-    if imageIsOpen(USR_PROF_BACKGROUND):
-        USR_PROF_BACKGROUND.close()
-    for im in XP_BAR_FILLS.values():
+    if imageIsOpen(_Xp_Bar_Silhoutte):
+        _Xp_Bar_Silhoutte.close()
+    if imageIsOpen(_Usr_Prof_Background):
+        _Usr_Prof_Background.close()
+    for im in _Xp_Bar_Fills.values():
         if imageIsOpen(im):
             im.close()
 
-    for im in DUEL_RESULTS_BACKGROUNDS:
+    for im in _Duel_Results_Backgrounds:
         if imageIsOpen(im):
             im.close()
-    if imageIsOpen(DUEL_RESULTS_OVERLAY):
-        DUEL_RESULTS_OVERLAY.close()
-    for im in DUEL_WINNER_OVERLAYS.values():
+    if imageIsOpen(_Duel_Results_Overlay):
+        _Duel_Results_Overlay.close()
+    for im in _Duel_Winner_Overlays.values():
         if imageIsOpen(im):
             im.close()
 
-    if imageIsOpen(MAP_IMAGE):
-        MAP_IMAGE.close()
+    if imageIsOpen(_Map_Image):
+        _Map_Image.close()
 
 
 # Automatically close all images when the module is unimported
 atexit.register(_closeAll)
+
+
+class _AttrPoint2D(Protocol):
+    coordinates: Tuple[int, int]
+
+class _ProtoPoint2D(Protocol):
+    @property
+    def coordinates(self) -> Tuple[int, int]: ...
+
+class _SqlProtoPoint2D(Protocol):
+    @hybrid_property
+    def coordinates(self) -> Tuple[int, int]: ...
+
+Point2D = Union[_AttrPoint2D, _ProtoPoint2D, _SqlProtoPoint2D]
 
 
 def paddedScale(baseImage: Image.Image, w: int, h: int, fill: AnyColour,
@@ -269,10 +285,10 @@ def copyXPBarSilhouette() -> Image.Image:
     :return: An image containing a full progress bar silhouette, to be pasted behind an XP progress bar.
     :rtype: Image.Image
     """
-    global XP_BAR_SILHOUETTE
-    if XP_BAR_SILHOUETTE is None:
-        XP_BAR_SILHOUETTE = progressBar(cfg.xpBarWidth, cfg.xpBarHeight, 1, "RGBA", 0, cfg.xpBarSilhouetteColour)
-    return XP_BAR_SILHOUETTE.copy()
+    global _Xp_Bar_Silhoutte
+    if _Xp_Bar_Silhoutte is None:
+        _Xp_Bar_Silhoutte = progressBar(cfg.xpBarWidth, cfg.xpBarHeight, 1, "RGBA", 0, cfg.xpBarSilhouetteColour)
+    return _Xp_Bar_Silhoutte.copy()
 
 
 def copyXPBarFill(divName: str) -> Image.Image:
@@ -283,22 +299,22 @@ def copyXPBarFill(divName: str) -> Image.Image:
     :return: An image containing the file referenced in cfg for the named division, but scaled to the correct dimensions.
     :rtype: Image.Image
     """
-    global XP_BAR_FILLS
-    if XP_BAR_FILLS == {}:
+    global _Xp_Bar_Fills
+    if _Xp_Bar_Fills == {}:
         pathsDone: Dict[str, Image.Image] = {}
         for i, div in enumerate(cfg.bountyDivisionNames):
             fillPath = cfg.xpBarFillsByDivision[i]
             if fillPath in pathsDone:
-                XP_BAR_FILLS[div] = pathsDone[fillPath]
+                _Xp_Bar_Fills[div] = pathsDone[fillPath]
             else:
                 if not os.path.isfile(fillPath):
-                    XP_BAR_FILLS[div] = MISSING_TEXTURE
+                    _Xp_Bar_Fills[div] = _Missing_Texture
                 else:
-                    XP_BAR_FILLS[div] = Image.open(fillPath)
-                XP_BAR_FILLS[div] = XP_BAR_FILLS[div].resize((cfg.xpBarWidth, cfg.xpBarHeight))
-                pathsDone[div] = XP_BAR_FILLS[div]
+                    _Xp_Bar_Fills[div] = Image.open(fillPath)
+                _Xp_Bar_Fills[div] = _Xp_Bar_Fills[div].resize((cfg.xpBarWidth, cfg.xpBarHeight))
+                pathsDone[div] = _Xp_Bar_Fills[div]
 
-    return XP_BAR_FILLS[divName].copy()
+    return _Xp_Bar_Fills[divName].copy()
 
 
 def copyUserProfileBackground() -> Image.Image:
@@ -308,15 +324,15 @@ def copyUserProfileBackground() -> Image.Image:
     :return: An image to use as a user profile background.
     :rtype: Image.Image
     """
-    global USR_PROF_BACKGROUND
-    if USR_PROF_BACKGROUND is None:
+    global _Usr_Prof_Background
+    if _Usr_Prof_Background is None:
         if not os.path.isfile(cfg.paths.userProfileBackground):
-            USR_PROF_BACKGROUND = MISSING_TEXTURE
+            _Usr_Prof_Background = _Missing_Texture
         else:
-            USR_PROF_BACKGROUND = Image.open(cfg.paths.userProfileBackground)
-        USR_PROF_BACKGROUND = USR_PROF_BACKGROUND.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
+            _Usr_Prof_Background = Image.open(cfg.paths.userProfileBackground)
+        _Usr_Prof_Background = _Usr_Prof_Background.resize((cfg.userProfileImgWidth, cfg.userProfileImgHeight))
 
-    return USR_PROF_BACKGROUND.copy()
+    return _Usr_Prof_Background.copy()
 
 
 def copyRandomDuelResultsBackground() -> Image.Image:
@@ -327,10 +343,10 @@ def copyRandomDuelResultsBackground() -> Image.Image:
     :return: A random image selected from cfg.paths.duelResultsBackgrounds, but scaled to the right dimensions
     :rtype: Image.Image
     """
-    global DUEL_RESULTS_BACKGROUNDS
-    if DUEL_RESULTS_BACKGROUNDS == []:
+    global _Duel_Results_Backgrounds
+    if _Duel_Results_Backgrounds == []:
         if not cfg.paths.duelResultsBackgrounds:
-            return MISSING_TEXTURE.resize(cfg.duelResultsImageDims)
+            return _Missing_Texture.resize(cfg.duelResultsImageDims)
 
         if os.path.isfile(cfg.paths.duelResultsUnderlay):
             underlayImg = cropAndScale(Image.open(cfg.paths.duelResultsUnderlay), cfg.duelResultsImageDims[0],
@@ -341,19 +357,19 @@ def copyRandomDuelResultsBackground() -> Image.Image:
         pathsDone: Dict[Union[str, Path], Image.Image] = {}
         for imgPath in cfg.paths.duelResultsBackgrounds:
             if imgPath in pathsDone:
-                DUEL_RESULTS_BACKGROUNDS.append(pathsDone[imgPath])
+                _Duel_Results_Backgrounds.append(pathsDone[imgPath])
             else:
                 if not os.path.isfile(imgPath):
-                    DUEL_RESULTS_BACKGROUNDS.append(MISSING_TEXTURE.resize(cfg.duelResultsImageDims))
+                    _Duel_Results_Backgrounds.append(_Missing_Texture.resize(cfg.duelResultsImageDims))
                 else:
-                    DUEL_RESULTS_BACKGROUNDS.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
+                    _Duel_Results_Backgrounds.append(cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0],
                                                                     cfg.duelResultsImageDims[1]).convert("RGBA"))
                 if underlayImg is not None:
-                    DUEL_RESULTS_BACKGROUNDS[-1] = Image.composite(underlayImg, DUEL_RESULTS_BACKGROUNDS[-1],
+                    _Duel_Results_Backgrounds[-1] = Image.composite(underlayImg, _Duel_Results_Backgrounds[-1],
                                                                     underlayImg)
-                pathsDone[imgPath] = DUEL_RESULTS_BACKGROUNDS[-1]
+                pathsDone[imgPath] = _Duel_Results_Backgrounds[-1]
 
-    return random.choice(DUEL_RESULTS_BACKGROUNDS).copy()
+    return random.choice(_Duel_Results_Backgrounds).copy()
 
 
 def copyDuelResultsOverlay() -> Image.Image:
@@ -363,19 +379,19 @@ def copyDuelResultsOverlay() -> Image.Image:
     :return: An image to use as the overlay for duel results.
     :rtype: Image.Image
     """
-    global DUEL_RESULTS_OVERLAY
-    global EMPTY_DUEL_RESULTS_OVERLAY
-    if DUEL_RESULTS_OVERLAY is None:
+    global _Duel_Results_Overlay
+    global _Empty_DUEL_RESULTS_OVERLAY
+    if _Duel_Results_Overlay is None:
         if not os.path.isfile(cfg.paths.duelResultsOverlay):
-            if EMPTY_DUEL_RESULTS_OVERLAY is None:
-                EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
-            DUEL_RESULTS_OVERLAY = EMPTY_DUEL_RESULTS_OVERLAY
+            if _Empty_DUEL_RESULTS_OVERLAY is None:
+                _Empty_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+            _Duel_Results_Overlay = _Empty_DUEL_RESULTS_OVERLAY
         else:
-            DUEL_RESULTS_OVERLAY = Image.open(cfg.paths.duelResultsOverlay)
-        DUEL_RESULTS_OVERLAY = cropAndScale(DUEL_RESULTS_OVERLAY, cfg.duelResultsImageDims[0],
+            _Duel_Results_Overlay = Image.open(cfg.paths.duelResultsOverlay)
+        _Duel_Results_Overlay = cropAndScale(_Duel_Results_Overlay, cfg.duelResultsImageDims[0],
                                             cfg.duelResultsImageDims[1])
 
-    return DUEL_RESULTS_OVERLAY.copy()
+    return _Duel_Results_Overlay.copy()
 
 
 def copyDuelWinnerOverlay(winner: str) -> Image.Image:
@@ -386,23 +402,27 @@ def copyDuelWinnerOverlay(winner: str) -> Image.Image:
     :return: An image containing the file referenced in cfg for the named winner, but scaled to the correct dimensions.
     :rtype: Image.Image
     """
-    global DUEL_WINNER_OVERLAYS
-    global EMPTY_DUEL_RESULTS_OVERLAY
-    if DUEL_WINNER_OVERLAYS == {}:
-        pathsDone: Dict[str, Image.Image] = {}
-        for side, imgPath in (("left", cfg.paths.duelResultsLeftWinner), ("right", cfg.paths.duelResultsRightWinner), ("draw", cfg.paths.duelResultsDraw)):
-            if imgPath in pathsDone:
-                DUEL_WINNER_OVERLAYS[side] = pathsDone[imgPath]
-            else:
-                if not os.path.isfile(imgPath):
-                    if EMPTY_DUEL_RESULTS_OVERLAY is None:
-                        EMPTY_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
-                    DUEL_WINNER_OVERLAYS[side] = EMPTY_DUEL_RESULTS_OVERLAY
-                else:
-                    DUEL_WINNER_OVERLAYS[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
-                pathsDone[side] = DUEL_WINNER_OVERLAYS[side]
+    global _Duel_Winner_Overlays
+    global _Empty_DUEL_RESULTS_OVERLAY
+    
+    if _Duel_Winner_Overlays != {}:
+        return _Duel_Winner_Overlays[winner].copy()
+    
+    pathsDone: Dict[str, Image.Image] = {}
 
-    return DUEL_WINNER_OVERLAYS[winner].copy()
+    for side, imgPath in (("left", cfg.paths.duelResultsLeftWinner), ("right", cfg.paths.duelResultsRightWinner), ("draw", cfg.paths.duelResultsDraw)):
+        if side in pathsDone:
+            _Duel_Winner_Overlays[side] = pathsDone[side]
+        else:
+            if not os.path.isfile(imgPath):
+                if _Empty_DUEL_RESULTS_OVERLAY is None:
+                    _Empty_DUEL_RESULTS_OVERLAY = Image.new("RGBA", (cfg.duelResultsImageDims), (0, 0, 0, 0))
+                _Duel_Winner_Overlays[side] = _Empty_DUEL_RESULTS_OVERLAY
+            else:
+                _Duel_Winner_Overlays[side] = cropAndScale(Image.open(imgPath), cfg.duelResultsImageDims[0], cfg.duelResultsImageDims[1])
+            pathsDone[side] = _Duel_Winner_Overlays[side]
+
+    return _Duel_Winner_Overlays[winner].copy()
 
 
 def padImage(pil_img: Image.Image, top: int, right: int, bottom: int, left: int,
@@ -432,16 +452,16 @@ def copyStarMap() -> Image.Image:
     :return: A copy of the galactic map image specified in `cfg.paths.mapImage`
     :rtype: Image.Image
     """
-    global MAP_IMAGE
-    if MAP_IMAGE is None:
+    global _Map_Image
+    if _Map_Image is None:
         if os.path.isfile(cfg.paths.mapImage):
-            MAP_IMAGE = Image.open(cfg.paths.mapImage)
+            _Map_Image = Image.open(cfg.paths.mapImage)
         else:
-            MAP_IMAGE = MISSING_TEXTURE
-        if MAP_IMAGE.mode != "RGBA":
-            MAP_IMAGE = MAP_IMAGE.convert("RGBA")
+            _Map_Image = _Missing_Texture
+        if _Map_Image.mode != "RGBA":
+            _Map_Image = _Map_Image.convert("RGBA")
 
-    return MAP_IMAGE.copy()
+    return _Map_Image.copy()
 
 
 def circleBoundingBox(centre: Tuple[int, int], radius: int) -> Tuple[Tuple[int, int], Tuple[int, int]]:
@@ -455,3 +475,35 @@ def circleBoundingBox(centre: Tuple[int, int], radius: int) -> Tuple[Tuple[int, 
     """
     return ((centre[0] - radius, centre[1] - radius),
             (centre[0] + radius, centre[1] + radius))
+
+
+def renderRouteMap(route: List[Point2D], background: Optional[Image.Image] = None) -> Optional[Image.Image]:
+    """Render a route through the galaxy onto the map image.
+
+    :param List[SolarSystem] route: List of systems in the route, in order.
+    :param Optional[Image] background: The background image. If unspecified, `cfg.paths.mapImage` is used.
+    :return: `background` with `route` rendered over it. `null` if the render failed or `route` is empty.
+    """
+    if not route:
+        return None
+
+    background = background or copyStarMap()
+    mapDraw = ImageDraw.Draw(background)
+
+    if len(route) == 1:
+        system = route[0]
+        mapDraw.ellipse(circleBoundingBox(system.coordinates, cfg.bbcRouteImageSingleSystemRadius),
+                        fill=None, outline=cfg.bbcRouteImageLineColour,
+                        width=cfg.bbcRouteImageLineWidth)
+    else:
+        for systemNum, system in enumerate(route[:-1]):
+            nextSystem = route[systemNum+1]
+            mapDraw.line((system.coordinates, nextSystem.coordinates),
+                            fill=cfg.bbcRouteImageLineColour,
+                            width=cfg.bbcRouteImageLineWidth)
+
+        for system in route:
+            mapDraw.ellipse(circleBoundingBox(system.coordinates, cfg.bbcRouteImageNodeRadius),
+                            fill=cfg.bbcRouteImageNodeColour, width=0)
+
+    return background

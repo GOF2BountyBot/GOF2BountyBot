@@ -58,7 +58,7 @@ class SolarSystem(Base, AliasableMixin[TSchema], SqlNamedWikiEntity, Generic[TSc
 
 
     @hybrid_property
-    def coordinates(self) -> Tuple[float, float]:
+    def coordinates(self) -> Tuple[int, int]:
         return (self.gridXCoordinate, self.gridYCoordinate)
 
 

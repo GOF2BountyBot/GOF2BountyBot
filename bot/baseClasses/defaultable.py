@@ -2,7 +2,7 @@ import inspect
 from typing import Callable, Dict, Any, Optional, Tuple, List, Mapping
 
 
-def get_default_args(func: Callable) -> Dict[str, Any]:
+def get_default_args(func: Callable[..., Any]) -> Dict[str, Any]:
     """Get a dictionary of the default kwarg values for a given function.
     https://stackoverflow.com/a/12627202
 
@@ -29,7 +29,7 @@ class DefaultableMixin:
     """
     _defaults: Optional[Dict[str, Any]] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
 

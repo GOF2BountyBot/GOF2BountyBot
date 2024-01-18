@@ -20,7 +20,7 @@ class HasRarityMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], meta
     """
     rarityLevel: Mapped[int]
 
-    def __init__(self, rarityLevel: int, *args, **kwargs):
+    def __init__(self, rarityLevel: int, *args: Any, **kwargs: Any):
         self.rarityLevel = rarityLevel
         super().__init__(*args, **kwargs)
 

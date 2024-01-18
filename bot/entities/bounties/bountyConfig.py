@@ -2,7 +2,7 @@ from typing import List, Dict, Optional, Any, Protocol, cast, overload, TypeVar,
 
 from dataclasses import dataclass, field
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 
 from discord.utils import utcnow
@@ -26,6 +26,7 @@ from . import bountyDivision
 from ...serialization.jsonSerializer import JsonSerializer
 from ..items.ship.shipInstanceFactory import ShipInstanceFactory
 
+@runtime_checkable
 class GeneratedBountyConfigBase(Protocol):
     """Data class describing all attributes needed for a bounty.
 
@@ -40,8 +41,8 @@ class GeneratedBountyConfigBase(Protocol):
                     or -1 if the system is unchecked.
     :vartype checked: dict[str, int]
     :var int reward: Prize pool of credits to award to contributing users
-    :var float issueTime: A utc timestamp representing the time at which the bounty was issued
-    :var float endTime: A utc timestamp representing the time at which the bounty should automatically expire
+    :var datetime issueTime: A utc timestamp representing the time at which the bounty was issued
+    :var datetime endTime: A utc timestamp representing the time at which the bounty should automatically expire
     :var str icon: A URL directly linking to an image to use as the criminal's icon
     :var List[str] aliases: Aliases that can be used to refer to this criminal
     :var str wiki: The page to link to as the criminal's wiki, in their info embed
@@ -51,7 +52,7 @@ class GeneratedBountyConfigBase(Protocol):
     :var bool generated: Whether or not this config has been populated yet by the config factory
     """
     isPlayer: bool
-    criminal: Optional["criminal.AnyCriminal"]
+    criminal: "criminal.AnyCriminal"
     faction: str
     route: List[int]
     start: int
@@ -59,8 +60,8 @@ class GeneratedBountyConfigBase(Protocol):
     answer: int
     checked: Dict[int, int]
     reward: int
-    issueTime: float
-    endTime: float
+    issueTime: datetime
+    endTime: datetime
     icon: str
     aliases: List[str]
     wiki: str
@@ -69,14 +70,45 @@ class GeneratedBountyConfigBase(Protocol):
     rewardPerSys: int
     generated: bool = True
 
+    def __instancecheck__(self, __instance: Any) -> bool:
+        return isinstance(__instance, BountyConfigBase) \
+            and __instance.generated == True \
+            and isinstance(__instance.criminal, criminal.Criminal) \
+            and isinstance(__instance.faction, str) \
+            and isinstance(__instance.route, list) and len(__instance.route) != 0 \
+            and isinstance(__instance.start, int) \
+            and isinstance(__instance.end, int) \
+            and isinstance(__instance.answer, int) \
+            and len(__instance.checked) != 0 \
+            and isinstance(__instance.reward, int) \
+            and isinstance(__instance.issueTime, float) \
+            and isinstance(__instance.endTime, float) \
+            and isinstance(__instance.icon, str) \
+            and isinstance(__instance.aliases, list) \
+            and isinstance(__instance.wiki, str) \
+            and isinstance(__instance.activeShip, shipInstance.ShipInstance) \
+            and isinstance(__instance.techLevel, int) \
+            and isinstance(__instance.rewardPerSys, int)
 
+
+@runtime_checkable
 class GeneratedPlayerBountyConfig(GeneratedBountyConfigBase, Protocol):
     isPlayer: bool = True
     playerId: int
 
+    def __instancecheck__(self, __instance: Any) -> bool:
+        return isinstance(__instance, GeneratedBountyConfigBase) \
+            and __instance.isPlayer == True \
+            and hasattr(__instance, "playerId") and isinstance(getattr(__instance, "playerId"), int)
 
+
+@runtime_checkable
 class GeneratedNpcBountyConfig(GeneratedBountyConfigBase, Protocol):
     isPlayer: bool = False
+
+    def __instancecheck__(self, __instance: Any) -> bool:
+        return isinstance(__instance, GeneratedBountyConfigBase) \
+            and __instance.isPlayer == False
 
 
 @runtime_checkable
@@ -105,8 +137,8 @@ class BountyConfigBase(ABC):
                     or -1 if the system is unchecked.
     :vartype checked: Optional[dict[str, int]]
     :var Optional[int] reward: Prize pool of credits to award to contributing users
-    :var Optional[float] issueTime: A utc timestamp representing the time at which the bounty was issued
-    :var Optional[float] endTime: A utc timestamp representing the time at which the bounty should automatically expire
+    :var Optional[datetime] issueTime: A utc timestamp representing the time at which the bounty was issued
+    :var Optional[datetime] endTime: A utc timestamp representing the time at which the bounty should automatically expire
     :var Optional[str] icon: A URL directly linking to an image to use as the criminal's icon
     :var Optional[List[str]] aliases: Aliases that can be used to refer to this criminal
     :var Optional[str] wiki: The page to link to as the criminal's wiki, in their info embed
@@ -124,8 +156,8 @@ class BountyConfigBase(ABC):
     answer: Optional[int] = None
     checked: Dict[int, int] = field(default_factory=lambda: {})
     reward: Optional[int] = None
-    issueTime: Optional[float] = None
-    endTime: Optional[float] = None
+    issueTime: Optional[datetime] = None
+    endTime: Optional[datetime] = None
     icon: Optional[str] = None
     aliases: Optional[List[str]] = None
     wiki: Optional[str] = None
@@ -275,9 +307,9 @@ class BountyConfigFactory:
             raise ValueError(f"Invalid reward requested {config.reward}")
         
         if config.issueTime is None or config.issueTime == -1.0:
-            config.issueTime = utcnow().replace(microsecond=0).timestamp()
+            config.issueTime = utcnow().replace(microsecond=0)
         if config.endTime == -1.0:
-            config.endTime = (utcfromtimestamp(config.issueTime) + timedelta(days=len(config.route))).timestamp()
+            config.endTime = (config.issueTime + timedelta(days=len(config.route)))
 
         if not forceKeepChecked:
             config.checked = {}

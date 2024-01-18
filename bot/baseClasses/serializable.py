@@ -17,12 +17,12 @@ class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHas
     and SimpleHashMixin for using game objects as dict keys, so just include both by default.
     """
     @abstractmethod
-    async def serialize(self, **kwargs) -> JsonPrimatives:
+    async def serialize(self, **kwargs: Any) -> JsonPrimatives:
         return {}
     
     @abstractmethod
     @classmethod
-    async def deserialize(cls: Type[Self], data: JsonPrimatives, **kwargs) -> Self:
+    async def deserialize(cls: Type[Self], data: JsonPrimatives, **kwargs: Any) -> Self:
         raise NotImplementedError()
 
 
@@ -82,4 +82,4 @@ class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     """
     @classmethod
     @abstractmethod
-    async def deserialize(cls, data: TSerialized, **kwargs) -> TDeserialized: ...
+    async def deserialize(cls, data: TSerialized, **kwargs: Any) -> TDeserialized: ...
