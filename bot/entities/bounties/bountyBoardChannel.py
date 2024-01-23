@@ -4,8 +4,9 @@ from discord import Embed, Message, Colour, PartialMessage
 from discord.message import MessageReference
 from discord.enums import ChannelType
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, attribute_keyed_dict
 from sqlalchemy import ForeignKey
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from . import bounty, bountyDivision
 from ...baseClasses.serializable import SerializesToSchema
@@ -39,8 +40,15 @@ async def deleteMessageWithRetry(message: Union[Message, PartialMessage], meta: 
 TSchema = TypeVar("TSchema", bound=SerializedBountyBoardChannel)
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase, AsyncAttrs):
     pass
+
+
+class BountyBoardChannelListing(Base):
+    __tablename__ = TableNames.BountyBoardChannelListing.value
+    bountyBoardChannelId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.BountyBoardChannel}.id"), primary_key=True)
+    messageId: Mapped[int]
+    criminalId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.Criminal}.id"), primary_key=True)
 
 
 class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
@@ -60,11 +68,26 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
     noBountiesMessageId: Mapped[Optional[int]]
     escapedBountiesMessageId: Mapped[Optional[int]]
     channelId: Mapped[int]
-    listings: Mapped[Dict[int, int]]
+    _listings: Mapped[Dict[int, BountyBoardChannelListing]] = relationship(
+        collection_class=attribute_keyed_dict("messageId"))
 
     def __init__(self, **kw: Any):
         self._cachedChannel: Optional[LazyChannel] = None
         super().__init__(**kw)
+
+
+    @property
+    async def listings(self) -> Dict[int, BountyBoardChannelListing]:
+        return await self.awaitable_attrs._listings
+    
+
+    def makeListing(self, msg: Union[int, PartialMessage], crim: Union["criminal.AnyCriminal", int, "bounty.AnyBounty"]) -> BountyBoardChannelListing:
+        c = crim if isinstance(crim, int) else crim.id if isinstance(crim, criminal.Criminal) else crim.criminalId
+        return BountyBoardChannelListing(
+            bountyBoardChannelId=self.channelId,
+            messageId=msg if isinstance(msg, int) else msg.id,
+            criminalId=c
+        ) 
 
 
     def _c(self, client: "client.BasedClient") -> LazyChannel:
@@ -330,7 +353,7 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
                                               "",
                                               embed=await self.makeBountyEmbed(client, b))
         if msg is not None:
-            self.listings[b.criminalId] = msg.id
+            (await self.listings)[b.criminalId] = self.makeListing(msg, b)
         
         return msg
 
@@ -354,10 +377,10 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
                 self.noBountiesMsgRef(client),
                 self.prependJumpUrl(self.noBountiesMessageId, logUrls, "no bounties")))
 
-        for crim, msgId in self.listings.items():
+        for crim, listing in (await self.listings).items():
             tasks.add(deleteMessageWithRetry(
-                self.messageRef(client, msgId),
-                self.prependJumpUrl(msgId, logUrls, f"bounty listing for {crim}")))
+                self.messageRef(client, listing.messageId),
+                self.prependJumpUrl(listing.messageId, logUrls, f"bounty listing for {crim}")))
 
         await tasks.wait()
         tasks.logExceptions(LogCategory.bountyBoards)
@@ -384,12 +407,12 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         tasks.logExceptions(LogCategory.bountyBoards)
 
         if divEmpty:
-            self.listings.clear()
+            (await self.listings).clear()
         elif self.noBountiesMessageId is not None:
             self.noBountiesMessageId = None
 
 
-    def hasMessageForCriminal(self, criminal: Union[criminal.AnyCriminal, int]) -> bool:
+    async def hasMessageForCriminal(self, criminal: Union[criminal.AnyCriminal, int]) -> bool:
         """Decide whether this BBC stores a listing for the given criminal 
 
         :param criminal: The criminal, or the id of the criminal, to check for listing existence
@@ -397,36 +420,36 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         :return: True if this BBC stores a listing for criminal, False otherwise
         :rtype: bool
         """
-        return (criminal if isinstance(criminal, int) else criminal.id) in self.listings
+        return (criminal if isinstance(criminal, int) else criminal.id) in (await self.listings)
 
 
-    def hasMessageForBounty(self, bounty: bounty.AnyBounty) -> bool:
+    async def hasMessageForBounty(self, bounty: bounty.AnyBounty) -> bool:
         """Decide whether this BBC stores a listing for the criminal wanted by the given bounty
 
         :param Bounty bounty: The bounty whose criminal to check for listing existence
         :return: True if this BBC stores a listing for bounty's criminal, False otherwise
         :rtype: bool
         """
-        return self.hasMessageForCriminal(bounty.criminalId)
+        return await self.hasMessageForCriminal(bounty.criminalId)
 
 
-    def getMessageForBounty(self, client: "client.BasedClient", bounty: bounty.AnyBounty) -> PartialMessage:
+    async def getMessageForBounty(self, client: "client.BasedClient", bounty: bounty.AnyBounty) -> PartialMessage:
         """Get a reference to the message acting as a listing for the given bounty's criminal
 
         :param Bounty bounty: The bounty whose criminal to fetch a listing for
         :return: This BBC's message listing the bounty for the given bounty's criminal
         :rtype: discord.PartialMessage
         """
-        return self._c(client).partial.get_partial_message(self.listings[bounty.criminalId])
+        return self._c(client).partial.get_partial_message((await self.listings)[bounty.criminalId].messageId)
 
 
-    def isEmpty(self) -> bool:
+    async def isEmpty(self) -> bool:
         """Decide whether this BBC stores any bounty listings
 
         :return: False if this BBC stores any bounty listings, True otherwise
         :rtype: bool
         """
-        return not bool(self.listings)
+        return not bool(await self.listings)
 
 
     async def addBounty(self, client: "client.BasedClient", bounty: bounty.AnyBounty, message: Message, logUrls: bool = True):
@@ -440,13 +463,13 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         :param logUrls: Whether to generate a jump URL, or prepend the ID instead
         """
         removeMsg = False
-        if self.isEmpty():
+        if await self.isEmpty():
             removeMsg = True
 
-        if self.hasMessageForBounty(bounty):
+        if await self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-ADD-BNTY_EXSTS: Attempted to add a bounty to a bountyboardchannel, " \
                             + "but the bounty is already listed")
-        self.listings[bounty.criminalId] = message.id
+        (await self.listings)[bounty.criminalId] = self.makeListing(message, bounty)
 
         if removeMsg and self.noBountiesMessageId is not None:
             await deleteMessageWithRetry(self.noBountiesMsgRef(client),
@@ -464,15 +487,15 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         :param Criminal criminal: The criminal whose listing should be removed from the database
         :raise KeyError: If the database does not store a listing for the given criminal
         """
-        if not self.hasMessageForCriminal(criminal):
+        if not await self.hasMessageForCriminal(criminal):
             raise KeyError("BNTY_BRD_CH-REM-BNTY_NOT_EXST: Attempted to remove a criminal from a bountyboardchannel, " \
                             + "but the criminal is not listed")
         
         crimId = criminal if isinstance(criminal, int) else criminal.id
-        await deleteMessageWithRetry(self.messageRef(client, self.listings[crimId]), f"crimil: {crimId}")
-        del self.listings[crimId]
+        await deleteMessageWithRetry(self.messageRef(client, (await self.listings)[crimId].messageId), f"crimil: {crimId}")
+        del (await self.listings)[crimId]
 
-        if self.isEmpty():
+        if await self.isEmpty():
             await self._sendNoBountiesMessage(client)
 
 
@@ -498,11 +521,11 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         :param Bounty bounty: The bounty whose listing should be updated
         :raise KeyError: If the database does not store a listing for the given bounty
         """
-        if not self.hasMessageForBounty(bounty):
+        if not await self.hasMessageForBounty(bounty):
             raise KeyError("BNTY_BRD_CH-UPD-BNTY_NOT_EXST: " \
                             + "Attempted to update a BBC message for a criminal that is not listed")
 
-        m = await self.messageRef(client, self.listings[bounty.criminalId]).fetch()
+        m = await self.messageRef(client, (await self.listings)[bounty.criminalId].messageId).fetch()
         await self.editMessageWithRetry(m, f"bounty: {bounty.criminalId}",
                                         content=m.content, embed=await self.makeBountyEmbed(client, bounty))
 
@@ -511,7 +534,7 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         """Clear all bounty listings on the board.
         """
         clearTasks = asyncUtil.BasicScheduler()
-        for crimId in self.listings.keys():
+        for crimId in (await self.listings).keys():
             clearTasks.add(self.removeCriminal(client, crimId))
         if clearTasks:
             await clearTasks.wait()
@@ -526,7 +549,7 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
         :rtype: dict
         """
         # dict of message id: criminal dict
-        listings = {msg: crim for crim, msg in self.listings.items()}
+        listings = {msg.messageId: crim for crim, msg in (await self.listings).items()}
         data: SerializedBountyBoardChannel = {"channel": self.channelId, "listings": listings,
                 "division": self.divisionId,
                 "noBountiesMsg": self.noBountiesMessageId if self.noBountiesMessageId is not None else -1,

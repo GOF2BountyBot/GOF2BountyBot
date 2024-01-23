@@ -1,4 +1,4 @@
-from typing import Dict, List, cast, Collection
+from typing import Any, Dict, Generic, List, TypeVar, cast, Collection
 
 import os
 from os.path import join
@@ -6,14 +6,13 @@ from os.path import join
 from discord import Colour, File, TextChannel
 
 from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column, attribute_keyed_dict
-from sqlalchemy import Table, Column, ForeignKey, String
+from sqlalchemy import Table, Column, ForeignKey, Integer
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from ....lib.tempFolder import TempFolder
 from ....baseClasses.hasRarity import HasRarityMixin
-from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
-from ....cfg import bbData, cfg
+from ....cfg import cfg
 from ....shipRenderer import shipRenderer
 from ...base.workshopable import Workshopable
 from . import shipSpec
@@ -30,37 +29,36 @@ class Base(DeclarativeBase, AsyncAttrs):
 shipHasCompatibleSkin = Table(
     TableNames.ShipHasCompatibleSkin.value,
     Base.metadata,
-    Column(ForeignKey(f"{TableNames.ShipSpec.value}.id")),
-    Column(ForeignKey(f"{TableNames.ShipSkin.value}.id")),
+    Column("shipSpecId", Integer, ForeignKey(f"{TableNames.ShipSpec.value}.id")),
+    Column("shipSkinId", Integer, ForeignKey(f"{TableNames.ShipSkin.value}.id")),
 )
 
 
 REGIONS_LIST_SEPARATOR: str = ";"
 
 
-ShipSkinRenderMessage = Table(
-    TableNames.HostedShipSkinRenderOutput.value,
-    Base.metadata,
-    Column("shipInstanceId", ForeignKey(f"{TableNames.ShipInstance.value}.id"), primary_key=True),
-    Column("shipSkinId", ForeignKey(f"{TableNames.ShipSkin.value}.id"), primary_key=True),
-    Column("url", String)
-)
+class ShipSkinRenderMessage(Base):
+    __tablename__ = TableNames.HostedShipSkinRenderOutput.value
+    shipSpecId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.ShipSpec.value}.id"))
+    shipSkinId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.ShipSkin.value}.id"))
+    url: Mapped[str]
 
 
-class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, SerializesToSchema[SerializedShipSkinUnion]):
+TSchema = TypeVar("TSchema", bound=SerializedShipSkinUnion)
+
+class ShipSkin(Base, HasRarityMixin[TSchema], Workshopable[TSchema], EmbedFillableMixin, Generic[TSchema]):
     id: Mapped[int]
     allShips: Mapped[bool]
-    _compatibleShips: Mapped[List["shipSpec.ShipSpec"]] = relationship(secondary=shipHasCompatibleSkin, back_populates="_compatibleSkins")
+    _compatibleShips: Mapped[List["shipSpec.AnyShipSpec"]] = relationship(secondary=shipHasCompatibleSkin, back_populates="_compatibleSkins")
     method: Mapped[ShipSkinMethod]
     _diffuseSkinnedRegions: Mapped[str] = mapped_column("diffuseSkinnedRegions")
     _diffuseDisabledRegions: Mapped[str] = mapped_column("diffuseDisabledRegions")
 
-    _hostedRenders: Mapped[Dict[int, str]] = relationship(
-        secondary=ShipSkinRenderMessage,
-        collection_class=attribute_keyed_dict("shipInstanceId"))
+    _hostedRenders: Mapped[Dict[int, ShipSkinRenderMessage]] = relationship(
+        collection_class=attribute_keyed_dict("shipSpecId"))
     
     @property
-    async def hostedRenders(self) -> Dict[int, str]:
+    async def hostedRenders(self) -> Dict[int, ShipSkinRenderMessage]:
         return await self.awaitable_attrs._hostedRenders
 
 
@@ -97,12 +95,12 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
 
 
     @property
-    async def compatibleShips(self) -> List["shipSpec.ShipSpec"]:
+    async def compatibleShips(self) -> List["shipSpec.AnyShipSpec"]:
         return await self.awaitable_attrs._compatibleShips
     
 
     @compatibleShips.setter
-    def setCompatibleShips(self, value: List["shipSpec.ShipSpec"]):
+    def setCompatibleShips(self, value: List["shipSpec.AnyShipSpec"]):
         self._compatibleShips = value
 
     
@@ -111,8 +109,8 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         if self.allShips:
             return "All skinnable ships"
 
-        compatibleShipStrs = []
-        ships: List["shipSpec.ShipSpec"] = await self.compatibleShips
+        compatibleShipStrs: List[str] = []
+        ships: List["shipSpec.AnyShipSpec"] = await self.compatibleShips
         for ship in ships:
             if ship.emoji is not None and ship.emoji.verifyCustom():
                 currentStr = ship.emoji.sendable
@@ -159,7 +157,7 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         return f"{self.id}.png"
 
 
-    async def serialize(self, **kwargs) -> SerializedShipSkinUnion:
+    async def serialize(self, **kwargs: Any) -> TSchema:
         """Serialize this ship skin to dictionary.
 
         :return: A dictionary which can be deserialized into a copy of this ShipSkin object
@@ -181,10 +179,10 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         if self.method is ShipSkinMethod.autoskin:
             data["diffuse"]["disabledRegions"] =  [i.name for i in self.diffuseDisabledRegions]
 
-        return cast(SerializedShipSkinUnion, data)
+        return cast(TSchema, data)
 
     
-    async def compatibleWithShip(self, ship: "shipSpec.ShipSpec") -> bool:
+    async def compatibleWithShip(self, ship: "shipSpec.AnyShipSpec") -> bool:
         """Decide whether this skin is compatible with a given ship.
 
         :param ship: The ship to check for compatibility
@@ -199,11 +197,11 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         return self.allShips or any(i.id == ship.id for i in compatibleShips)
 
 
-    async def addShip(self, ship: "shipSpec.ShipSpec", rendersChannel: TextChannel):
+    async def addShip(self, ship: "shipSpec.AnyShipSpec", rendersChannel: TextChannel):
         if not ship.skinnable:
             raise ValueError(f"Attempted to render a skin onto an non-skinnable ship: '{ship.name}' ({ship.id})")
         
-        if self.compatibleWithShip(ship):
+        if await self.compatibleWithShip(ship):
             raise ValueError(f"Ship '{ship.name}' ({ship.id}) is already compatible with this skin '{self.name}' ({self.id})")
         
         textureOutput = f"{ship.id}-{self.id}.jpg"
@@ -236,13 +234,16 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         async with newRenderAsset.enterTransientRead():
             with open(newRenderAsset.path, "rb") as f:
                 renderMsg = await rendersChannel.send(ship.name + " +" + self.name, file=File(f))
-                # If saving emoji renders of skins, also save the emoji in here: str(newEmoji)
-                self._hostedRenders[ship.id] = renderMsg.attachments[0].url
+                (await self.hostedRenders)[ship.id] = ShipSkinRenderMessage(
+                    shipSpecId=ship.id,
+                    shipSkinId=self.id,
+                    url=renderMsg.attachments[0].url
+                )
 
-        self._compatibleShips.append(ship)
+        (await self.compatibleShips).append(ship)
 
 
-    async def removeShip(self, ship: "shipSpec.ShipSpec", rendersChannel: TextChannel):
+    async def removeShip(self, ship: "shipSpec.AnyShipSpec", rendersChannel: TextChannel):
         if not ship in await self.compatibleShips:
             raise KeyError(f"Ship {ship.name} ({ship.id}) is not compatible with skin {self.name} ({self.id})")
         
@@ -250,12 +251,12 @@ class ShipSkin(Base, HasRarityMixin, Workshopable, EmbedFillableMixin, Serialize
         async with renderAsset.enterTransientReadWrite(lifetimeMs=1000):
             os.remove(renderAsset.path)
 
-        self._compatibleShips.remove(ship)
-        self._hostedRenders.pop(ship.id)
+        (await self.compatibleShips).remove(ship)
+        (await self.hostedRenders).pop(ship.id)
         # renderMsg = await rendersChannel.fetch_message((await self.hostedRenders)[ship.id])[0]
         # await renderMsg.delete()
 
 
     @classmethod
-    def deserialize(cls, skinDict: SerializedShipSkinUnion, **kwargs):
-        return ShipSkin(**cls._makeDefaults(skinDict, ignores=("ships", "type"), shipRenders=skinDict.get("ships", {})))
+    async def deserialize(cls, data: TSchema, **kwargs: Any) -> "ShipSkin[TSchema]":
+        return ShipSkin(**cls._makeDefaults(data, ignores=("ships", "type"), shipRenders=data.get("ships", {})))
