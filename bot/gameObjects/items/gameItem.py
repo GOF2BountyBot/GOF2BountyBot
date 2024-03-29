@@ -128,7 +128,7 @@ class GameItem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, seria
     def formattedTechLevel(self): return self.techLevel if self.hasTechLevel else None
 
     @embedColour
-    def manufacturerColour(self): return bbData.factionColours.get(self.manufacturer, bbData.factionColours["neutral"])
+    def manufacturerColour(self): return cfg.factionColourOrDefault(self.manufacturer)
 
 #endregion
 

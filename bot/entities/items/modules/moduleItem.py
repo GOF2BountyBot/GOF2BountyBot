@@ -1,4 +1,4 @@
-from typing import Dict, Literal, TypeVar, Union, cast
+from typing import Any, Dict, Literal, TypeVar, cast
 
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -62,7 +62,7 @@ class ModuleItem(Item[TSchema], Workshopable[TSchema]):
     def formattedShield(self): return formattedAdditiveAndOrMultiplierOrNone(self.shield, self.shieldMultiplier)
 
     @embedField("DPS", hideWhenNone=True)
-    def formattedDPS(self): return None if self.dpsMultiplier is None else formatMultiplier(self.dpsMultiplier)
+    def formattedDPS(self): return None if self.dpsMultiplier == 1 else formatMultiplier(self.dpsMultiplier)
 
     @embedField("Cargo", hideWhenNone=True)
     def formattedCargo(self): return formattedAdditiveAndOrMultiplierOrNone(self.cargo, self.cargoMultiplier)
@@ -71,7 +71,7 @@ class ModuleItem(Item[TSchema], Workshopable[TSchema]):
     def formattedHandling(self): return formattedAdditiveAndOrMultiplierOrNone(self.handling, self.handlingMultiplier)
     
     @embedField("BB Shop Spawn Rate", hideWhenNone=True)
-    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self.techLevel, bbData.moduleObjsByTL)
+    def formattedShopSpawnRate(self): return topThreeItemSpawnRates(self.techLevel, bbData.moduleObjsByTL) # TODo
 
 #endregion
 
@@ -98,7 +98,7 @@ class ModuleItem(Item[TSchema], Workshopable[TSchema]):
         return self.value
     
 
-    def statsStringShort(self) -> str:
+    async def statsStringShort(self) -> str:
         """Summarise all effects of this module as a string.
         This method should be overriden in any modules that implement custom behaviour, outside of simple stat boosts.
 
@@ -119,7 +119,7 @@ class ModuleItem(Item[TSchema], Workshopable[TSchema]):
         return statsStr if len(statsStr) > 1 else "*No effect*"
 
 
-    async def serialize(self, saveType: bool = True, **kwargs) -> SerializedModuleItemUnion:
+    async def serialize(self, saveType: bool = True, **kwargs: Any) -> TSchema:
         """Serialize this moduleItem into dictionary format, for saving to file.
         This method should be overriden and used as a base in any modules that implement
         custom behaviour, outside of simple stat boosts.
@@ -143,22 +143,25 @@ class ModuleItem(Item[TSchema], Workshopable[TSchema]):
             if stat != 1:
                 itemDict[statName] = stat
 
-        return itemDict
+        return cast(TSchema, itemDict)
 
 
     @classmethod
-    async def deserialize(cls, moduleDict: SerializedModuleItemUnion, **kwargs):
+    async def deserialize(cls, data: TSchema, **kwargs: Any) -> "ModuleItem[TSchema]":
         """Factory function constructing a new moduleItem object from a dictionary serialised
         representation - the opposite of moduleItem.serialize. This generic module factory function is unlikely
         to ever be called, your module type-specific deserialize should be used instead. Except of course, in the
         case of custom-spawned, custom-typed modules which do not correspond to a BountyBot-known module type.
 
-        :param dict moduleDict: A dictionary containing all information needed to construct the desired moduleItem
-        :return: A new moduleItem object as described in moduleDict
+        :param dict data: A dictionary containing all information needed to construct the desired moduleItem
+        :return: A new moduleItem object as described in data
         :rtype: moduleItem
         """
-        if "emoji" in moduleDict:
-            e = await lib.emojis.BasedEmoji.deserialize(moduleDict["emoji"])
+        if serializedEmoji := data.get("emoji", None):
+            e = await lib.emojis.BasedEmoji.deserialize(serializedEmoji)
         else:
             e = lib.emojis.BasedEmoji.EMPTY
-        return cls(**cls._makeDefaults(moduleDict, ignores=("type",), emoji=e))
+            
+        return cls(**cls._makeDefaults(data, ignores=("type",), emoji=e))
+
+AnyModuleItem = ModuleItem[SerializedModuleItemUnion]

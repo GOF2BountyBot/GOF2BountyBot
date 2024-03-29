@@ -355,7 +355,7 @@ class DevMiscCog(BasedCog):
         if nextExpiry:
             ttStrParts.append(f"Next expiry: {'null' if tt.expiryTime is None else tt.expiryTime.strftime('%d/%m/%Y, %H:%M:%S')}")
         if expiryDelta:
-            ttStrParts.append(f"Expiry delta: {'null' if tt.expiryDelta is None else lib.timeUtil.td_format_noYM(tt.expiryDelta)}")
+            ttStrParts.append(f"Expiry delta: {'null' if tt.expiryDelta is None else lib.timeUtil.formatTimeDelta(tt.expiryDelta)}")
         if autoReschedule:
             ttStrParts.append(f"Auto-reschedule: {tt.autoReschedule}")
         if expiryFunc:
@@ -856,7 +856,7 @@ class DevMiscCog(BasedCog):
         embed.add_field(name="New Bounty Fixed Delta Changed",  value=botState.newBountyFixedDeltaChanged)
 
         embed.add_field(name="Current Renders",     value=", ".join(botState.currentRenders) if botState.currentRenders else 'Empty')
-        embed.add_field(name="System UTC Offset",   value=lib.timeUtil.td_format_noYM(botState.utcOffset) if botState.utcOffset else 'No offset')
+        embed.add_field(name="System UTC Offset",   value=lib.timeUtil.formatTimeDelta(botState.utcOffset) if botState.utcOffset else 'No offset')
                     
         embed.add_field(name="$premium Cooldown End",
                         value='Null TT' if botState.premiumCooldownEnd is None else \

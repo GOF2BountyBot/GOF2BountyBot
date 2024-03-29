@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import List, Optional, Union
 
-from ...cfg import bbData
+from ...cfg import bbData, cfg
 from ...baseClasses import aliasable
 from ..gameObject import LoadedObject, SerializedLoadedObject
 from ...baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour, embedFooterUrl
@@ -80,7 +80,7 @@ class Criminal(aliasable.AliasableMixin, LoadedObject, SerializesToSchema[Serial
 
 
     @embedColour
-    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+    def filledEmbedColour(self): return cfg.factionColourOrDefault(self.faction)
 
 
     def serialize(self, **kwargs) -> SerializedCriminalUnion:

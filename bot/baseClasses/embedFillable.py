@@ -3,7 +3,7 @@ from abc import ABC, ABCMeta, abstractmethod
 from inspect import signature, _empty # type: ignore[reportPrivateUsage]
 from PIL import Image
 from ..lib.discordUtil import ZWSP, ImageFile
-from ..lib.asyncUtil import BasicScheduler
+from ..lib.asyncUtil import Parallel
 
 from discord import Colour, Embed
 
@@ -1090,7 +1090,7 @@ class EmbedFillableMixin(metaclass=_EmbedFillableMeta):
             
             # If there are lots of fields with this name, read them in parallel
             result = []
-            tasks = BasicScheduler()
+            tasks = Parallel()
 
             async def wait(f: _BaseEmbedField):
                 result.append(await f.getValue(self))
@@ -1132,7 +1132,7 @@ class EmbedFillableMixin(metaclass=_EmbedFillableMeta):
 
             # If there are lots of attributes, invoke them in parallel
             else:
-                tasks = BasicScheduler()
+                tasks = Parallel()
 
                 async def wait(att: _BaseEmbedAttribute):
                     f = await att.fillEmbed(self, embed)

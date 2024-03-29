@@ -20,7 +20,7 @@ from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
                                     divisionAutoComplete, DivisionName, \
                                     activeCriminalAutoComplete, CriminalKey, \
                                     inventoryItemNumberAutoComplete, InventoryItemNumber
-from ..lib.timeUtil import td_format_noYM
+from ..lib.timeUtil import formatTimeDelta
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
 from ..lib.stringUtil import commaSplitNum
@@ -262,7 +262,7 @@ class UserBountiesCog(BasedCog):
         if utcnow() < utcfromtimestamp(requestedBBUser.bountyCooldownEnd):
             diff = utcfromtimestamp(requestedBBUser.bountyCooldownEnd) - utcnow()
             await interaction.response.send_message(":stopwatch: Your *Khador Drive* is still charging!" \
-                                                    + f" please wait **{td_format_noYM(diff)}.**")
+                                                    + f" please wait **{formatTimeDelta(diff)}.**")
             return
 
         # Casting here because this command uses the guildOnly decorator
@@ -476,7 +476,7 @@ class UserBountiesCog(BasedCog):
                 msgEmbed.add_field(name=factionEmoji + criminalNameOrDiscrim(crim),
                                     value=f"• {int(bounty.reward)} Credits\n"
                                         + f"• {len(bounty.route)} possible systems\n" \
-                                        + f"• Ending in {td_format_noYM(timeLeft)}")
+                                        + f"• Ending in {formatTimeDelta(timeLeft)}")
         
         await interaction.response.send_message(embed=msgEmbed)
 

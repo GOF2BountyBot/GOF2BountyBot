@@ -1,8 +1,9 @@
-from typing import List, Union, TypedDict
+from typing import List, TypedDict
 from typing_extensions import NotRequired
 
-from ..base.item_json import SerializedItem, TypedSerializedItem
 from ...base.workshopable_json import AnySerializedWorkshopable
+from ....lib.emojis import SerializedBasedEmoji
+from ....baseClasses.aliasable_json import SerializedAliasable
 
 
 class SerializedCompatibleSkinRegistration(TypedDict):
@@ -15,7 +16,13 @@ class SerializedSkinnableRegionRegistration(TypedDict):
     id: int
 
 
-class SerializedShipSpec(AnySerializedWorkshopable, SerializedItem):
+class SerializedShipSpec(AnySerializedWorkshopable, SerializedAliasable):
+    id: int
+    value: int
+    manufacturer: NotRequired[str]
+    iconUrl: str
+    emoji: NotRequired[SerializedBasedEmoji]
+    techLevel: NotRequired[int]
     armour: int
     cargo: int
     maxSecondaries: int
@@ -26,9 +33,3 @@ class SerializedShipSpec(AnySerializedWorkshopable, SerializedItem):
     skinnable: bool
     compatibleSkins: NotRequired[List[SerializedCompatibleSkinRegistration]]
     skinnableTextureRegions: NotRequired[List[SerializedSkinnableRegionRegistration]]
-    
-
-class TypedSerializedShipSpec(SerializedShipSpec, TypedSerializedItem): pass
-
-
-SerializedShipSpecUnion = Union[SerializedShipSpec, TypedSerializedShipSpec]

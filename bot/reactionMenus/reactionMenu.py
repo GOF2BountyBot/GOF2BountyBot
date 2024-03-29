@@ -447,7 +447,7 @@ class ReactionMenu(SerializesToSchema[SerializedReactionMenu], Generic[TMenuOpti
         """
         menuEmbed = Embed(title=self.titleTxt, description=self.desc, colour=self.col)
         if self.timeout is not None:
-            menuEmbed.set_footer(text=f"{self.msg.id}|This menu will expire in {lib.timeUtil.td_format_noYM(self.timeout.expiryDelta)}.")
+            menuEmbed.set_footer(text=f"{self.msg.id}|This menu will expire in {lib.timeUtil.formatTimeDelta(self.timeout.expiryDelta)}.")
         else:
             menuEmbed.set_footer(text=f"Menu ID: {self.msg.id}")
         menuEmbed.set_image(url=self.img)

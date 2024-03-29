@@ -269,7 +269,7 @@ class BountyRepository(SnowflakeRepository["bounty.Bounty[Any]"]):
         return any(div.escapedCriminalExists(crim) for div in self.divisions.values())
 
 
-    def addEscapedBounty(self, guildId: int, bounty: bounty.Bounty, dbReload: bool = False, ignoreFull: bool = False):
+    async def addEscapedBounty(self, guildId: int, bounty: bounty.AnyBounty, dbReload: bool = False, ignoreFull: bool = False):
         """Add a given bounty object to the escaped bounties database.
         Bounties cannot be added if the object or name already exists in the database.
 
@@ -304,7 +304,7 @@ class BountyRepository(SnowflakeRepository["bounty.Bounty[Any]"]):
         div._addEscapedBounty(bounty, dbReload=dbReload, ignoreFull=ignoreFull)
 
 
-    def removeEscapedBountyObj(self, guildId: int, bounty: bounty.Bounty):
+    async def removeEscapedBountyObj(self, guildId: int, bounty: bounty.AnyBounty):
         """Remove a given escaped bounty object from the database.
         the bounty must already be recorded in the escaped criminals database.
         This does not perform respawning of the bounty.
@@ -316,7 +316,7 @@ class BountyRepository(SnowflakeRepository["bounty.Bounty[Any]"]):
         self.divisionForLevel(bounty.techLevel).removeEscapedBountyObj(bounty)
 
 
-    def removeEscapedCriminal(self, guildId: int, crim):
+    async def removeEscapedCriminal(self, guildId: int, crim):
         """Remove a criminal from the record of escaped criminals.
         crim must already be recorded in the escaped criminals database.
         This does not perform respawning of the bounty.
@@ -330,7 +330,7 @@ class BountyRepository(SnowflakeRepository["bounty.Bounty[Any]"]):
         # print(f"removed escaped criminal {bounty.criminal.name} from div {nameForDivision(self.divisionForLevel(bounty.techLevel))}, level {bounty.techLevel}")
 
 
-    def removeBountyObj(self, guildId: int, bounty: bounty.Bounty):
+    async def removeBountyObj(self, guildId: int, bounty: bounty.AnyBounty):
         """Remove a given bounty object from the database.
         If the division was full before, restart the new bounty spawner
 

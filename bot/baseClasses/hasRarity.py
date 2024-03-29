@@ -1,7 +1,7 @@
 from typing import Any, TypeVar
 from sqlalchemy.orm import DeclarativeBase, Mapped
 
-from .embedFillable import EmbedFillableMixin, embedField
+from .embedFillable import EmbedFillableMixin, embedField, embedColour
 from ..cfg import cfg
 from ..lib.sql import EmbedFillableSqlTableMeta
 from .hasRarity_json import SerializedWithRarity
@@ -16,7 +16,7 @@ TSchema = TypeVar("TSchema", bound=SerializedWithRarity)
 
 class HasRarityMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metaclass=EmbedFillableSqlTableMeta):
     """A mixin that simply ensures the existence of the `rarityLevel` column.
-    Also comes with EmbedFillableMixin, and `rarityLevel` as a field.
+    Also comes with EmbedFillableMixin, with `rarityLevel` as a field and the embed colour.
     """
     rarityLevel: Mapped[int]
 
@@ -31,6 +31,10 @@ class HasRarityMixin(Base, EmbedFillableMixin, SerializesToSchema[TSchema], meta
         """The emoji, follow by the name, of this object's rarity level
         """
         return f"{self.rarityLevelEmoji} {self.rarityLevelName.title()}"
+    
+
+    @embedColour
+    def rarityColour(self): return cfg.itemRarityColourOrDefault(self.rarityLevel)
     
 
     @property

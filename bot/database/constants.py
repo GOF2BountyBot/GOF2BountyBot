@@ -22,6 +22,12 @@ class GuildRoleUserAlertType(BasedEnum):
     botAnnouncements = 3
 
 
+class GameChannelType(BasedEnum):
+    BountyPlay = 0
+    Announcements = 1
+    Renders = 2
+
+
 class StateUserAlertFlag(BasedEnum):
    duelsIncomingNew = 0x01
    duelsIncomingCancelled = 0x10

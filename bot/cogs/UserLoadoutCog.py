@@ -56,7 +56,7 @@ class UserLoadoutCog(BasedCog):
                 firstPlace = 1
 
             hangarEmbed = makeEmbed(titleTxt="Hangar", desc=interaction.user.mention,
-                                    col=bbData.factionColours["neutral"],
+                                    col=cfg.factionColourOrDefault("neutral"),
                                     footerTxt=("All items" if item_type == ItemCategoryOrAll.all else f"{item_type.value.title()}s") \
                                             + " - page " + str(page),
                                     thumb=interaction.user.display_avatar.with_size(64).url)
@@ -108,7 +108,7 @@ class UserLoadoutCog(BasedCog):
 
             itemName = "All item" if item_type is ItemCategoryOrAll.all else item_type.value.rstrip("s").title()
             hangarEmbed = makeEmbed(titleTxt="Hangar", desc=interaction.user.mention,
-                                    col=bbData.factionColours["neutral"],
+                                    col=cfg.factionColourOrDefault("neutral"),
                                     footerTxt=f"{itemName}s - page {page}/{maxPage}",
                                     thumb=interaction.user.display_avatar.with_size(64).url)
 
@@ -210,9 +210,7 @@ class UserLoadoutCog(BasedCog):
         if not self.bot.usersDB.idExists(user.id):
             activeShip = Ship.deserialize(basedUser.defaultShipLoadoutDict)
             loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout", desc=user.mention,
-                                                        col=bbData.factionColours[activeShip.manufacturer] \
-                                                            if activeShip.manufacturer in bbData.factionColours \
-                                                            else bbData.factionColours["neutral"],
+                                                        col=cfg.factionColourOrDefault(activeShip.manufacturer),
                                                         thumb=activeShip.icon if activeShip.hasIcon \
                                                             else user.display_avatar.with_size(64).url)
 
@@ -222,9 +220,7 @@ class UserLoadoutCog(BasedCog):
         requestedBBUser = self.bot.usersDB.getUser(user.id)
         activeShip = requestedBBUser.activeShip
         loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout", desc=user.mention,
-                                                    col=bbData.factionColours[activeShip.manufacturer] if \
-                                                        activeShip.manufacturer in bbData.factionColours else \
-                                                        bbData.factionColours["neutral"],
+                                                    col=cfg.factionColourOrDefault(activeShip.manufacturer),
                                                     thumb=activeShip.icon if activeShip.hasIcon else \
                                                         user.display_avatar.with_size(64).url)
 
@@ -273,9 +269,7 @@ class UserLoadoutCog(BasedCog):
         loadoutEmbed = lib.discordUtil.makeEmbed(titleTxt="Loadout",
                                                     desc=criminalObj.name.title() + "\n`Difficulty: " \
                                                         + str(bountyObj.techLevel) + "`",
-                                                    col=bbData.factionColours[criminalObj.faction] \
-                                                        if criminalObj.faction in bbData.factionColours \
-                                                        else bbData.factionColours["neutral"],
+                                                    col=cfg.factionColourOrDefault(criminalObj.faction),
                                                     thumb=criminalObj.icon)
         loadoutEmbed = activeShip.fillLoadoutEmbed(loadoutEmbed, shipEmoji=True)
 

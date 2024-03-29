@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Type, TypeVar
+from typing import Any, List, Optional, Type, TypeVar, Generic, cast
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Table, Column, Integer, Enum, and_
@@ -9,10 +9,11 @@ from discord import Embed
 from ....database.tables import TableNames
 from ....database.constants import StoreableItemType, ShipInstanceEquippedItemType
 from ..base.item import Item, ItemDeclarativeBase
+from ..base.item_json import SerializedItemUnion
 from ..base.item_storeable import itemType
 from ..base.item_spawnable import spawnableItem
 from . import shipSkin, shipSpec, shipUpgrade
-from .shipInstance_json import SerializedShipInstanceUnion
+from .shipInstance_json import SerializedShipInstanceUnion, SerializedShipInstance
 from ....baseClasses.embedFillable import embedField
 from ....lib.gameMaths import topThreeItemSpawnRates
 from ....cfg import bbData, cfg
@@ -34,7 +35,7 @@ TSchema = TypeVar("TSchema", bound=SerializedShipInstanceUnion)
 
 @spawnableItem
 @itemType(StoreableItemType.ship)
-class ShipInstance(Item[TSchema]):
+class ShipInstance(Item[TSchema], Generic[TSchema]):
     __tablename__ = TableNames.ShipInstance.value
 
     nickname: Mapped[str]
@@ -44,10 +45,10 @@ class ShipInstance(Item[TSchema]):
     spec: Mapped["shipSpec.AnyShipSpec"] = relationship(lazy="joined")
     
     skinId: Mapped[Optional[int]] = mapped_column(ForeignKey(TableNames.ShipSkin.value))
-    _skin: Mapped[Optional["shipSkin.ShipSkin"]] = relationship()
+    _skin: Mapped[Optional["shipSkin.AnyShipSkin"]] = relationship()
 
     @property
-    async def skin(self) -> "Optional[shipSkin.ShipSkin]":
+    async def skin(self) -> "Optional[shipSkin.AnyShipSkin]":
         return await self.awaitable_attrs._skin
     
 
@@ -79,7 +80,7 @@ class ShipInstance(Item[TSchema]):
     
     @hybrid_property
     def hasNickname(self):
-        return self.nickname is not None
+        return self.nickname == ""
     
     @hybrid_property
     def isSkinned(self):
@@ -752,6 +753,40 @@ class ShipInstance(Item[TSchema]):
     async def copy(self, serializer: JsonSerializer):
         serialized = await serializer.serialize(self)
         return await serializer.deserialize(ShipInstance[TSchema], serialized)
+    
+
+    async def serialize(self, **kwargs: Any) -> "TSchema":
+        baseData: SerializedItemUnion = await super().serialize(**kwargs)
+        shipSpecData = await self.spec.serialize(**kwargs)
+
+        data: SerializedShipInstance = {
+            **baseData,
+            **shipSpecData,
+            "weapons": [await w.serialize(**kwargs) for w in self.weapons],
+            "modules": [await m.serialize(**kwargs) for m in self.modules],
+            "turrets": [await t.serialize(**kwargs) for t in self.turrets],
+            "shipUpgrades": [await u.serialize(**kwargs) for u in self.upgradesApplied],
+            "nickname": self.nickname,
+            "shipSpecId": self.shipId,
+        }
+        data["id"] = self.id
+
+        if self.skinId is not None:
+            data["skin"] = self.skinId
+
+        return cast(TSchema, data)
+
+
+    @classmethod
+    async def deserialize(cls, data: TSchema, **kwargs: Any) -> "ShipInstance[TSchema]":
+        weapons = [await PrimaryWeapon.deserialize(w, **kwargs) for w in data.get("weapons", [])]
+        modules = [await ModuleItem.deserialize(m, **kwargs) for m in data.get("modules", [])]
+        turrets = [await TurretWeapon.deserialize(t, **kwargs) for t in data.get("turrets", [])]
+        shipUpgrades = [await shipUpgrade.ShipUpgrade.deserialize(u, **kwargs) for u in data.get("shipUpgrades", [])]
+
+        return ShipInstance(data["name"], **ShipInstance._makeDefaults(data, ("shipSpecId", "skin"),
+                            weapons=weapons, modules=modules, turrets=turrets, upgradesApplied=shipUpgrades,
+                            shipId=data["shipSpecId"], skinId=data.get("skin", None)))
     
 
 AnyShipInstance = ShipInstance[SerializedShipInstanceUnion]

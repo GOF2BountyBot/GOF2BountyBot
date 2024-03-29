@@ -1,7 +1,7 @@
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Optional, TypeVar, Tuple
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, Select
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
 from ...database.tables import TableNames
@@ -33,7 +33,7 @@ class InventoryBase(Base):
     
 
     @allListings.setter
-    def setAllListings(self, value: List["inventoryListing.InventoryListing[Item[SerializedItemUnion], SerializedItemUnion]"]):
+    def allListings(self, value: List["inventoryListing.InventoryListing[Item[SerializedItemUnion], SerializedItemUnion]"]):
         self._allListings = value
 
 
@@ -46,7 +46,8 @@ class InventoryBase(Base):
 
     
     async def add(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> "inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]":
-        query = select(inventoryListing.InventoryListing[type(item), Any]) \
+        query: Select[Tuple[inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]]] = \
+            select(inventoryListing.InventoryListing[type(item), Any]) \
             .where(and_(
                 inventoryListing.InventoryListing.inventoryId == self.id,
                 inventoryListing.InventoryListing.itemId == item.id)
@@ -75,7 +76,8 @@ class InventoryBase(Base):
     
 
     async def remove(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> Optional["inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]"]:
-        query = select(inventoryListing.InventoryListing[type(item), Any]) \
+        query: Select[Tuple[inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]]] = \
+            select(inventoryListing.InventoryListing[type(item), Any]) \
             .where(and_(
                 inventoryListing.InventoryListing.inventoryId == self.id,
                 inventoryListing.InventoryListing.itemId == item.id)

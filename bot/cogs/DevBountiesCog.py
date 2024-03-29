@@ -552,7 +552,7 @@ class DevBountiesCog(basedApp.BasedCog):
             else:
                 msgEmbed.add_field(name=nameForDivision(div),
                                     # Casting here because division.newBountyTT is guaranteed if the division is not full
-                                    value=lib.timeUtil.td_format_noYM(cast(timedTask.TimedTask, div.newBountyTT).expiryDelta)
+                                    value=lib.timeUtil.formatTimeDelta(cast(timedTask.TimedTask, div.newBountyTT).expiryDelta)
                                             + "\nExpiring " + cast(timedTask.TimedTask, div.newBountyTT).expiryTime.strftime("%B %d %H %M %S"))
 
         await self.GuildsUtilCog.operateOverDivisions(callback, "", division, interaction, callingBBGuild, division == "all", sendSuccess=False)

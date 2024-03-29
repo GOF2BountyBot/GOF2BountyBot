@@ -3,7 +3,7 @@ from typing import Any, Dict, Generic, List, TypeVar, cast, Collection
 import os
 from os.path import join
 
-from discord import Colour, File, TextChannel
+from discord import File, TextChannel
 
 from sqlalchemy.orm import Mapped, DeclarativeBase, relationship, mapped_column, attribute_keyed_dict
 from sqlalchemy import Table, Column, ForeignKey, Integer
@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from ....lib.tempFolder import TempFolder
 from ....baseClasses.hasRarity import HasRarityMixin
-from ....baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
+from ....baseClasses.embedFillable import embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
 from ....cfg import cfg
 from ....shipRenderer import shipRenderer
 from ...base.workshopable import Workshopable
@@ -103,6 +103,11 @@ class ShipSkin(Base, HasRarityMixin[TSchema], Workshopable[TSchema], EmbedFillab
     def setCompatibleShips(self, value: List["shipSpec.AnyShipSpec"]):
         self._compatibleShips = value
 
+    @property
+    def renderFileName(self):
+        return f"{self.id}.png"
+
+    #region embed fields
     
     @embedField("Compatible Ships")
     async def compatibleShipsEmojisOrNames(self):
@@ -147,39 +152,7 @@ class ShipSkin(Base, HasRarityMixin[TSchema], Workshopable[TSchema], EmbedFillab
     @property
     def embedFooter(self): return ("Preview this skin with the /showme command.", None)
 
-    
-    @embedColour
-    def embedColour(self): return Colour(cfg.itemRarityColours[self.rarityLevel])
-
-
-    @property
-    def renderFileName(self):
-        return f"{self.id}.png"
-
-
-    async def serialize(self, **kwargs: Any) -> TSchema:
-        """Serialize this ship skin to dictionary.
-
-        :return: A dictionary which can be deserialized into a copy of this ShipSkin object
-        :rtype: dict
-        """
-        baseData = cast(SerializedBaseClasses, await super().serialize(**kwargs))
-
-        data: AnySerializedShipSkin = {
-            **baseData,
-            "allShips": self.allShips,
-            "diffuse": {"skinnedRegions": [i.name for i in self.diffuseSkinnedRegions]},
-            "method": self.method.name
-        }
-
-        if not self.allShips:
-            compatibleShips = await self.compatibleShips
-            data["compatibleShips"] = [s.id for s in compatibleShips]
-
-        if self.method is ShipSkinMethod.autoskin:
-            data["diffuse"]["disabledRegions"] =  [i.name for i in self.diffuseDisabledRegions]
-
-        return cast(TSchema, data)
+    #endregion embed fields
 
     
     async def compatibleWithShip(self, ship: "shipSpec.AnyShipSpec") -> bool:
@@ -257,6 +230,34 @@ class ShipSkin(Base, HasRarityMixin[TSchema], Workshopable[TSchema], EmbedFillab
         # await renderMsg.delete()
 
 
+    async def serialize(self, **kwargs: Any) -> TSchema:
+        """Serialize this ship skin to dictionary.
+
+        :return: A dictionary which can be deserialized into a copy of this ShipSkin object
+        :rtype: dict
+        """
+        baseData = cast(SerializedBaseClasses, await super().serialize(**kwargs))
+
+        data: AnySerializedShipSkin = {
+            **baseData,
+            "allShips": self.allShips,
+            "diffuse": {"skinnedRegions": [i.name for i in self.diffuseSkinnedRegions]},
+            "method": self.method.name
+        }
+
+        if not self.allShips:
+            compatibleShips = await self.compatibleShips
+            data["compatibleShips"] = [s.id for s in compatibleShips]
+
+        if self.method is ShipSkinMethod.autoskin:
+            data["diffuse"]["disabledRegions"] =  [i.name for i in self.diffuseDisabledRegions]
+
+        return cast(TSchema, data)
+
+
     @classmethod
     async def deserialize(cls, data: TSchema, **kwargs: Any) -> "ShipSkin[TSchema]":
         return ShipSkin(**cls._makeDefaults(data, ignores=("ships", "type"), shipRenders=data.get("ships", {})))
+
+
+AnyShipSkin = ShipSkin[SerializedShipSkinUnion]

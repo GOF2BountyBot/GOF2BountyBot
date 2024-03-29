@@ -21,7 +21,7 @@ from ...repositories.primaryWeaponRepository import PrimaryWeaponRepository
 from ...repositories.userRepository import UserRepository
 from ...repositories.discordUserRepository import DiscordUserRepository
 from ...repositories.itemRepository import ItemRepository
-from ..bounties import criminal
+from ..bounties import criminal, bounty
 from . import bountyDivision
 from ...serialization.jsonSerializer import JsonSerializer
 from ..items.ship.shipInstanceFactory import ShipInstanceFactory
@@ -85,7 +85,6 @@ class GeneratedBountyConfigBase(Protocol):
             and isinstance(__instance.endTime, float) \
             and isinstance(__instance.icon, str) \
             and isinstance(__instance.aliases, list) \
-            and isinstance(__instance.wiki, str) \
             and isinstance(__instance.activeShip, shipInstance.ShipInstance) \
             and isinstance(__instance.techLevel, int) \
             and isinstance(__instance.rewardPerSys, int)
@@ -160,7 +159,6 @@ class BountyConfigBase(ABC):
     endTime: Optional[datetime] = None
     icon: Optional[str] = None
     aliases: Optional[List[str]] = None
-    wiki: Optional[str] = None
     activeShip: Optional[shipInstance.AnyShipInstance] = None
     techLevel: Optional[int] = None
     rewardPerSys: Optional[int] = None
@@ -319,6 +317,39 @@ class BountyConfigFactory:
 
         config.generated = True
         return cast(GeneratedBountyConfigBase, config)
+
+
+    async def getRespawnConfig(self, bounty: "bounty.AnyBounty") -> BountyConfigBase:
+        """Create a new, partially configured, ungenerated BountyConfig object, to be used in the respawning of this bounty.
+
+        :return: A new BountyConfig with the right attributes left ungenerated, to be populated on bounty respawn
+        :rtype: BountyConfig
+        """
+        crim = await bounty.criminal
+        
+        if bounty.isPlayer:
+            return PlayerBountyConfig(
+                playerId=crim.playerId,
+                criminal=crim,
+                faction=bounty.faction,
+                endTime=bounty.endTime,
+                issueTime=bounty.issueTime,
+                icon=crim.iconUrl,
+                aliases=await crim.aliases,
+                activeShip=await bounty.ship,
+                techLevel=bounty.techLevel
+            )
+        
+        return NpcBountyConfig(
+            criminal=crim,
+            faction=bounty.faction,
+            endTime=bounty.endTime,
+            issueTime=bounty.issueTime,
+            icon=crim.iconUrl,
+            aliases=await crim.aliases,
+            activeShip=await bounty.ship,
+            techLevel=bounty.techLevel
+        )
     
     
     async def _generatePlayerCriminal(self, config: PlayerBountyConfig, division: "bountyDivision.BountyDivision[Any]", doDbCheck: bool):

@@ -458,7 +458,7 @@ class AdminMiscCog(basedApp.BasedCog):
                                 disabledNoSelects.remove_item(c)
 
                     await interaction.response.edit_message(view=disabledNoSelects)
-                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}", wait=True)
+                    reactMsg = await interaction.followup.send(f"React with your new emoji, within {lib.timeUtil.formatTimeDelta(cfg.timeouts.menuInteractionDefault)}", wait=True)
 
                     def check(reaction: Reaction, user: Union[Member, User]) -> bool:
                         return reaction.message.id == reactMsg.id and user.id == int(userId)
@@ -466,7 +466,7 @@ class AdminMiscCog(basedApp.BasedCog):
                     try:
                         reaction, _ = await self.bot.wait_for("reaction_add", check=check, timeout=int(cfg.timeouts.menuInteractionDefault.total_seconds()))
                     except TimeoutError:
-                        await interaction.edit_original_response(content=f"~~React with your new emoji, within {lib.timeUtil.td_format_noYM(cfg.timeouts.menuInteractionDefault)}~~\nOut of time!")
+                        await interaction.edit_original_response(content=f"~~React with your new emoji, within {lib.timeUtil.formatTimeDelta(cfg.timeouts.menuInteractionDefault)}~~\nOut of time!")
                     else:
                         try:
                             newEmoji = lib.emojis.BasedEmoji.fromReaction(reaction.emoji, rejectInvalid=True)

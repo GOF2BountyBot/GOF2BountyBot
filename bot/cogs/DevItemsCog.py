@@ -86,7 +86,7 @@ class DevItemsCog(BasedCog):
 
         if isinstance(requestedItem, shipItem.Ship):
             itemName = requestedItem.getNameAndNick()
-            itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours.get(requestedItem.manufacturer, bbData.factionColours["neutral"]),
+            itemEmbed = lib.discordUtil.makeEmbed(col=cfg.factionColourOrDefault(requestedItem.manufacturer)),
                                                     thumb=requestedItem.icon if requestedItem.hasIcon else "")
 
             if requestedItem is None:
@@ -124,7 +124,7 @@ class DevItemsCog(BasedCog):
 
         if isinstance(requestedItem, shipItem.Ship):
             itemName = requestedItem.getNameAndNick()
-            itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours.get(requestedItem.manufacturer, bbData.factionColours["neutral"]),
+            itemEmbed = lib.discordUtil.makeEmbed(col=cfg.factionColourOrDefault(requestedItem.manufacturer),
                                                     thumb=requestedItem.icon if requestedItem.hasIcon else "")
 
             if requestedItem is None:
@@ -226,7 +226,7 @@ class DevItemsCog(BasedCog):
         for page in range(1, maxPage + 1):
 
             hangarEmbed = lib.discordUtil.makeEmbed(titleTxt="Hangar", desc=userMention,
-                                                    col=bbData.factionColours["neutral"],
+                                                    col=cfg.factionColourOrDefault("neutral"),
                                                     footerTxt="All items - page " + str(page) + "/" \
                                                         + str(requestedBBUser.numInventoryPages(ItemCategoryOrAll.all, maxPerPage)),
                                                     thumb=userProfile)

@@ -26,7 +26,7 @@ async def dev_cmd_timed_showme_ship(message: discord.Message, args: str, isDM: b
     """
     now = utcnow()
     await cmd_showme_ship(message, args, isDM)
-    await message.reply(f"This command took: {lib.timeUtil.td_format_noYM(utcnow() - now)}", mention_author=False)
+    await message.reply(f"This command took: {lib.timeUtil.formatTimeDelta(utcnow() - now)}", mention_author=False)
     
 
 textCommandsDB.register("timed-showme-ship", dev_cmd_timed_showme_ship, 3, helpSection="skins", useDoc=True)

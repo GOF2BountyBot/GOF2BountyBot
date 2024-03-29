@@ -4,7 +4,7 @@ from typing_extensions import NotRequired
 from ..items.ship.shipInstance_json import SerializedShipInstanceUnion
 
 
-class SerializedBounty(TypedDict):
+class SerializedActiveBounty(TypedDict):
     faction: str
     route: List[int]
     answer: int
@@ -19,8 +19,8 @@ class SerializedBounty(TypedDict):
     activeShip: NotRequired[SerializedShipInstanceUnion]
 
 
-class SerializedEscapedBounty(SerializedBounty):
+class SerializedEscapedBounty(SerializedActiveBounty):
     respawnTime: float
 
 
-SerializedBountyUnion = Union[SerializedBounty, SerializedEscapedBounty]
+SerializedBountyUnion = Union[SerializedActiveBounty, SerializedEscapedBounty]

@@ -1,34 +1,37 @@
 # Typing imports
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Type, TypeVar, Union, cast, TypedDict
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union, cast, TypedDict
 from abc import abstractmethod
 import random
 
-if TYPE_CHECKING:
-    from ..users import basedUser
+from sqlalchemy.orm import Mapped, DeclarativeBase
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
+from ..users import basedUser
 from ...cfg import bbData, cfg
 from ...cfg.bbData import ItemCategory
-from ...gameObjects.items.ships.shipItem import Ship
-from ...gameObjects.items.ships.shipBase import SerializedShipUnion
-from ...gameObjects.items.weapons.weapon import SerializedWeaponUnion
-from ...gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
-from ...gameObjects.items.weapons.turretWeapon import TurretWeapon
-from ...gameObjects.items import moduleItemFactory, gameItem
-from ...gameObjects.items.modules import moduleItem
-from ...gameObjects.items.tools import toolItem, toolItemFactory
-from ...gameObjects.inventories.inventoryBase import Inventory, _InventoryBase, SerializedInventory
-from ..inventories.inventoryListing import InventoryListing, SerializedInventoryListing
+from ..items.ship.shipInstance import AnyShipInstance
+from ..items.ship.shipInstance_json import SerializedShipInstanceUnion
+from ..items.weapons.weapon_json import SerializedWeapon
+from ..items.weapons.primaryWeapon import PrimaryWeapon
+from ..items.weapons.turretWeapon import TurretWeapon
+from ..items import moduleItemFactory
+from ..items.base.item import Item
+from ..items.modules import moduleItem
+from ..items.tools import toolItem, toolItemFactory
+from ..inventories.inventoryBase import InventoryBase
+from ..inventories.inventoryBase_jsom import SerializedInventory
+from ..inventories.inventoryListing import InventoryListing, SerializedInventoryListing, AnyInventoryListing
 from ... import botState
 from ...lib import gameMaths
 from ...logging import LogCategory
 from ...baseClasses.serializable import JsonType, SerializesToSchema
 
-StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
-StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)
+StoredItemType = Union[AnyShipInstance, PrimaryWeapon, moduleItem.AnyModuleItem, TurretWeapon, toolItem.ToolItem]
+StoredItemTypesTuple = (AnyShipInstance, PrimaryWeapon, moduleItem.AnyModuleItem, TurretWeapon, toolItem.ToolItem)
 itemCategoriesStoredItemTypes = {
-    ItemCategory.ship: Ship,
+    ItemCategory.ship: AnyShipInstance,
     ItemCategory.weapon: PrimaryWeapon,
     ItemCategory.module: moduleItem.ModuleItem,
     ItemCategory.turret: TurretWeapon,
@@ -36,7 +39,7 @@ itemCategoriesStoredItemTypes = {
 }
 
 TSerializedInventory = TypeVar("TSerializedInventory", bound=SerializedInventory)
-TListingType = TypeVar("TListingType", bound="InventoryListing")
+TListingType = TypeVar("TListingType", bound="AnyInventoryListing")
 TItemType = TypeVar("TItemType", bound=StoredItemType)
 TSelf = TypeVar("TSelf", bound="ShopBase")
 
@@ -48,7 +51,12 @@ class SerializedShopBase(TypedDict):
     toolsStock: List[SerializedInventoryListing[toolItem.SerializedToolItemUnion]]
 
 
-class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInventory, TListingType]):
+class Base(DeclarativeBase, AsyncAttrs):
+    pass
+
+
+class ShopBase(Base, SerializesToSchema[SerializedShopBase], Generic[TSerializedInventory, TListingType]):
+    divisionId: Mapped[int]
     """A shop containing a selection of items which players can buy.
     Items can be sold to the shop to the shop's inventory and listed for sale.
 
@@ -63,11 +71,11 @@ class ShopBase(SerializesToSchema[SerializedShopBase], Generic[TSerializedInvent
     :var toolsStock: A inventory containing the shop's stock of tools
     :vartype toolsStock: inventory
     """
-    def __init__(self, shipsStock: _InventoryBase[TSerializedInventory, TListingType, Ship],
-                    weaponsStock: _InventoryBase[TSerializedInventory, TListingType, PrimaryWeapon],
-                    modulesStock: _InventoryBase[TSerializedInventory, TListingType, moduleItem.ModuleItem],
-                    turretsStock: _InventoryBase[TSerializedInventory, TListingType, TurretWeapon],
-                    toolsStock: _InventoryBase[TSerializedInventory, TListingType, toolItem.ToolItem]):
+    def __init__(self, shipsStock: InventoryBase,
+                    weaponsStock: InventoryBase,
+                    modulesStock: InventoryBase,
+                    turretsStock: InventoryBase,
+                    toolsStock: InventoryBase):
         """
         :param Inventory shipsStock: The shop's current stock of ships
         :param Inventory weaponsStock: The shop's current stock of weapons
@@ -760,7 +768,7 @@ class TechLeveledShop(ShopBase[SerializedInventory, InventoryListing]):
                 self.shipsStock.addItem(newShip)
 
 
-    def serialize(self, **kwargs) -> SerializedTechLeveledShop:
+    async def serialize(self, **kwargs: Any) -> SerializedTechLeveledShop:
         """Get a dictionary containing all information needed to reconstruct this shop instance.
         This includes maximum item counts, current tech level, and current stocks.
 
@@ -776,7 +784,7 @@ class TechLeveledShop(ShopBase[SerializedInventory, InventoryListing]):
 
 
     @classmethod
-    def deserialize(cls, shopDict: SerializedTechLeveledShop, **kwargs) -> TechLeveledShop:
+    async def deserialize(cls, shopDict: SerializedTechLeveledShop, **kwargs: Any) -> TechLeveledShop:
         """Recreate a TechLeveledShop instance from its dictionary-serialized representation - the opposite of TechLeveledShop.serialize
         
         :param dict shopDict: A dictionary containing all information needed to construct the shop

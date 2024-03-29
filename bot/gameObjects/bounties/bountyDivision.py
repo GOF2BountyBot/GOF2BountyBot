@@ -436,7 +436,7 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
                                 (f"latest criminal: '{self.latestBounty.criminal.name}' Route {len(self.latestBounty.route)}")
             botState.client.logger.log("Main", "routeScaleBntyDelayFixed",
                                 f"New bounty delay generated, {latestCriminal}" \
-                                    + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
+                                    + f"\nDelay picked: {lib.timeUtil.formatTimeDelta(delay)}",
                                 category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
         return delay
@@ -464,8 +464,8 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
             botState.client.logger.log("Main", "routeScaleBntyDelayRand",
                                 f"New bounty delay generated, {latestCriminal}" \
                                     + f"\nRange: " \
-                                        + f"{lib.timeUtil.td_format_noYM(minTime)} - {lib.timeUtil.td_format_noYM(maxTime)}" \
-                                    + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
+                                        + f"{lib.timeUtil.formatTimeDelta(minTime)} - {lib.timeUtil.formatTimeDelta(maxTime)}" \
+                                    + f"\nDelay picked: {lib.timeUtil.formatTimeDelta(delay)}",
                                 category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
 
@@ -497,8 +497,8 @@ class BountyDivision(SerializesToSchema[SerializedBountyDivision]):
                                 f"New bounty delay generated, temp {self.temperature} -> scale {tempScale:.2f}" \
                                     + f"\n{latestCriminal}"
                                     + f"\nRange: " \
-                                        + f"{lib.timeUtil.td_format_noYM(minTime)} - {lib.timeUtil.td_format_noYM(maxTime)}" \
-                                    + f"\nDelay picked: {lib.timeUtil.td_format_noYM(delay)}",
+                                        + f"{lib.timeUtil.formatTimeDelta(minTime)} - {lib.timeUtil.formatTimeDelta(maxTime)}" \
+                                    + f"\nDelay picked: {lib.timeUtil.formatTimeDelta(delay)}",
                                 category=LogCategory.newBounties,
                                 eventType="NONE_BTY" if self.latestBounty is None else "DELAY_GEN", noPrint=True)
         return delay

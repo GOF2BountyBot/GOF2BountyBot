@@ -4,7 +4,7 @@ from typing import Dict, Literal, cast
 
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 
-from .shipSpec import ShipSpec
+from .shipSpec import AnyShipSpec
 from ....baseClasses.serializable import SerializesToSchema
 from ....baseClasses.simpleHash import simpleHash
 from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
@@ -120,7 +120,7 @@ class ShipUpgrade(Base, Workshopable, EmbedFillableMixin, SerializesToSchema[Ser
         return type(self) == type(other) and self.name == other.name
 
 
-    def valueForShip(self, ship: ShipSpec) -> int:
+    def valueForShip(self, ship: AnyShipSpec) -> int:
         """Calculate the value of this ship upgrade, when it is to be applied to the given ship
 
         :param ShipSpec ship: The ship that the upgrade is to be applied to

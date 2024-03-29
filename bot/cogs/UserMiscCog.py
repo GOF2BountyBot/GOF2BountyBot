@@ -544,7 +544,7 @@ class UserMiscCog(basedApp.BasedCog):
                                             footerTxt="Bot Source",
                                             footerIcon="https://i.imgur.com/7SMgF0t.png")
         srcEmbed.add_field(name="Uptime",
-                            value=lib.timeUtil.td_format_noYM(utcnow() - self.bot.launchTime))
+                            value=lib.timeUtil.formatTimeDelta(utcnow() - self.bot.launchTime))
         srcEmbed.add_field(name="Author",
                             value="Trimatix#2244")
         srcEmbed.add_field(name="Library",
@@ -611,7 +611,7 @@ class UserMiscCog(basedApp.BasedCog):
         if not (requestedUser := await self.UsersUtilCog.targetUserOrAuthor(interaction, user, user_id)): return
 
         # create the stats embed
-        statsEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours["neutral"],
+        statsEmbed = lib.discordUtil.makeEmbed(col=cfg.factionColourOrDefault("neutral"),
                                                 titleTxt=lib.discordUtil.userOrMemberName(requestedUser, interaction.guild),
                                                 footerTxt="Pilot number #" + requestedUser.discriminator,
                                                 thumb=requestedUser.display_avatar.with_size(64).url)
@@ -867,7 +867,7 @@ class UserMiscCog(basedApp.BasedCog):
 
         # build the leaderboard embed
         leaderboardEmbed = lib.discordUtil.makeEmbed(titleTxt=settings.boardTitle, authorName=boardScope,
-                                                        icon=bbData.winIcon, col=bbData.factionColours["neutral"], desc=boardDesc)
+                                                        icon=bbData.winIcon, col=cfg.factionColourOrDefault("neutral"), desc=boardDesc)
 
         if userStats:
             # sort users by the stat

@@ -11,7 +11,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
 from . import criminal
-from .bountyConfig import BountyConfigBase, GeneratedBountyConfigBase
+from .bountyConfig import GeneratedBountyConfigBase
 from ...baseClasses.serializable import SerializesToSchema
 from ..items.ship.shipInstance import ShipInstance
 from .bounty_json import SerializedBountyUnion, SerializedEscapedBounty
@@ -91,7 +91,7 @@ class Bounty(Base, SerializesToSchema[TSchema]):
     route: Mapped[Dict[int, BountyRouteEntry]] = relationship(
         lazy="joined", collection_class=attribute_keyed_dict("systemId")
     )
-    _division: Mapped["bountyDivision.BountyDivision[Any]"] = relationship()
+    _division: Mapped["bountyDivision.BountyDivision[Any]"] = relationship(back_populates="_allBounties")
     _criminal: Mapped["criminal.Criminal[Any]"] = relationship()
     _ship: Mapped["ShipInstance[Any]"] = relationship()
 
@@ -115,24 +115,20 @@ class Bounty(Base, SerializesToSchema[TSchema]):
         return sorted(self.route.values(), key=lambda e: e.index)
     
 
-    def __init__(self, config: Optional[BountyConfigBase] = None, **kwargs: Any):
+    def __init__(self, config: Optional[GeneratedBountyConfigBase] = None, **kwargs: Any):
         if config is not None:
-            if not isinstance(config, GeneratedBountyConfigBase):
-                raise ValueError("Provided bounty config has not been generated")
-            
-            c = cast(GeneratedBountyConfigBase, config)
-            self.techLevel = c.techLevel
-            self.criminalId = c.criminal.id
-            self.shipId = c.activeShip.id
-            self.isPlayer = c.isPlayer
-            self.faction = c.faction
-            self.answerSystemId = c.answer
-            self.reward = c.reward
-            self.issueTime = c.issueTime
-            self.endTime = c.endTime
-            self.rewardPerSys = c.rewardPerSys
+            self.techLevel = config.techLevel
+            self.criminalId = config.criminal.id
+            self.shipId = config.activeShip.id
+            self.isPlayer = config.isPlayer
+            self.faction = config.faction
+            self.answerSystemId = config.answer
+            self.reward = config.reward
+            self.issueTime = config.issueTime
+            self.endTime = config.endTime
+            self.rewardPerSys = config.rewardPerSys
             self.route = {s: BountyRouteEntry(index=i, bountyId=self.id, systemId=s, checkedByUserId=None)
-                          for i, s in enumerate(c.route)}
+                          for i, s in enumerate(config.route)}
             
         super().__init__(**kwargs)
 
@@ -197,57 +193,40 @@ class Bounty(Base, SerializesToSchema[TSchema]):
     
     @classmethod
     async def deserialize(cls, data: TSchema, **kwargs: Any) -> Bounty[TSchema]:
-        raise NotImplementedError()
+        """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
 
-    # @classmethod
-    # async def deserialize(cls, data: TSchema, owningDB: Optional[BountyRepository] = None, dbReload: bool = False, **kwargs: Any) -> Bounty[TSchema]:
-    #     """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
+        :param dict bounty: Dictionary containing all information needed to construct the desired bounty
+        :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
+                                This currently toggles whether the passed bounty is checked for existence or not.
+                                (Default False)
+        """
+        activeShip = await ShipInstance.deserialize(data["activeShip"])
 
-    #     :param dict bounty: Dictionary containing all information needed to construct the desired bounty
-    #     :param bool dbReload: Give True if this bounty is being created during bot bootup, False otherwise.
-    #                             This currently toggles whether the passed bounty is checked for existence or not.
-    #                             (Default False)
-    #     """
-    #     if type(data) != dict:
-    #         raise ValueError(str(data))
-    #     if owningDB is None:
-    #         raise ValueError("missing required argument: owningDB")
+        if (techLevel := data.get("techLevel", None)) is None:
+            techLevel = activeShip.techLevel
 
-    #     if "activeShip" in data:
-    #         activeShip = ShipInstance.deserialize(data["activeShip"])
-    #     else:
-    #         activeShip = None
-
-    #     if "techLevel" in data:
-    #         techLevel = data["techLevel"]
-    #     elif activeShip is not None:
-    #         techLevel = activeShip.techLevel
-    #     else:
-    #         raise ValueError(f"Missing required data: Bounty tech level. Data: {str(data)}")
-    #         # techLevel = -1
-
-    #     newCfg = BountyConfig(faction=data["faction"], route=data["route"],
-    #                             answer=data["answer"], checked=data["checked"], reward=data["reward"],
-    #                             issueTime=data["issueTime"], endTime=data["endTime"],
-    #                             rewardPerSys=data["rewardPerSys"], activeShip=activeShip,
-    #                             techLevel=techLevel)
+        newCfg = BountyConfig(faction=data["faction"], route=data["route"],
+                                answer=data["answer"], checked=data["checked"], reward=data["reward"],
+                                issueTime=data["issueTime"], endTime=data["endTime"],
+                                rewardPerSys=data["rewardPerSys"], activeShip=activeShip,
+                                techLevel=techLevel)
                                             
-    #     newBounty: Bounty[SerializedBountyUnion] = \
-    #         Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
-    #                 criminalObj=criminal.Criminal.deserialize(data["criminal"]))
+        newBounty: Bounty[SerializedBountyUnion] = \
+            Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),
+                    criminalObj=criminal.Criminal.deserialize(data["criminal"]))
 
-    #     if data.get("isEscaped", False):
-    #         # casting because we know the bounty is escaped
-    #         data = cast(SerializedEscapedBounty, data)
-    #         if "respawnTime" not in data:
-    #             raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
+        if data.get("isEscaped", False):
+            # casting because we know the bounty is escaped
+            data = cast(SerializedEscapedBounty, data)
+            if "respawnTime" not in data:
+                raise ValueError("Not given respawnTime for escaped criminal " + data["criminal"]["name"])
 
-    #         respawnTT = TimedTask(issueTime=utcfromtimestamp(data["issueTime"]),
-    #                                 expiryTime=utcfromtimestamp(data["respawnTime"]), 
-    #                                 expiryFunction=newBounty._respawn,
-    #                                 rescheduleOnExpiryFuncFailure=True)
-    #         newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
+            respawnTT = TimedTask(issueTime=utcfromtimestamp(data["issueTime"]),
+                                    expiryTime=utcfromtimestamp(data["respawnTime"]), 
+                                    expiryFunction=newBounty._respawn,
+                                    rescheduleOnExpiryFuncFailure=True)
+            newBounty.escape(respawnTT=respawnTT, dbReload=dbReload)
 
-    #     return newBounty
+        return newBounty
 
 AnyBounty = Bounty[SerializedBountyUnion]

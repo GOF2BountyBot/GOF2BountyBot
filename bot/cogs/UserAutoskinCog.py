@@ -14,7 +14,7 @@ from contextlib import nullcontext
 from .. import client, botState, lib
 from ..lib.discordUtil import textChannel
 from ..lib import AEPi
-from ..lib.timeUtil import td_format_noYM
+from ..lib.timeUtil import formatTimeDelta
 from ..lib.tempFolder import TempFolder
 from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
@@ -455,14 +455,14 @@ class UserAutoskinCog(BasedCog):
         if isinstance(trigger, Interaction):
             try:
                 await trigger.response.send_message(f"Please send your image for {friendlyName}," \
-                                                    + f" within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.",
+                                                    + f" within {formatTimeDelta(cfg.timeouts.menuInteractionDefault)}.",
                                                     view=view)
             except Exception as e:
                 raise e
             imgRequestMessage = None
         else:
             imgRequestMessage = await trigger.reply(f"Please send your image for {friendlyName}," \
-                                                    + f" within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.",
+                                                    + f" within {formatTimeDelta(cfg.timeouts.menuInteractionDefault)}.",
                                                     view=view, mention_author=False)
 
         def textureUploadCheck(response: Union[Message, Interaction]) -> bool:

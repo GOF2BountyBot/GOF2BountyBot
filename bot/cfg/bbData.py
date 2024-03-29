@@ -107,13 +107,6 @@ errorIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/1
 winIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/248/trophy_1f3c6.png"
 rocketIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/248/rocket_1f680.png"
 
-# colours to use in faction-related embed strips
-factionColours = {  "terran": Colour.gold(),
-                    "vossk": Colour.dark_green(),
-                    "midorian": Colour.dark_red(),
-                    "nivelian": Colour.dark_blue(),
-                    "neutral": Colour.purple()}
-
 drinkMessages = [
     "An Aquila Cocktail, just for you. <:Aquila:925539224445407324>",
     "Augmenta Fizz good enough? <:Augmenta:925539224793513994>",

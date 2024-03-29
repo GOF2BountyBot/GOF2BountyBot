@@ -1,7 +1,10 @@
+from typing import Dict, List, Optional, Tuple, cast, TYPE_CHECKING
+
+from discord import Colour
+
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from ..lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict, BountyDelayGeneratorType
-from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..gameObjects.items.ships import shipBase
@@ -304,7 +307,7 @@ maxTechLevel = 10
 bountyDivisionNames = ["bronze", "silver", "gold"]
 
 # Tech-level boundaries, for players and bounties, for each division, in the same order as bountyDivisionNames
-bountyDivisionLevels = [(0, 3), (4, 7), (8, 10)]
+bountyDivisionLevels: List[Tuple[int, int]] = [(0, 3), (4, 7), (8, 10)]
 
 
 def divisionNameForPlayerLevel(l: int) -> str:
@@ -514,6 +517,17 @@ bbcRouteImageSingleSystemRadius = 20
 # The channel must be in `cfg.mediaServer`.
 bbcRouteImageChannel = 934909288495861931
 
+# colours to use in faction-related embed strips
+factionColours = {  "terran": "0xf1c40f",
+                    "vossk": "0x1f8b4c",
+                    "midorian": "0x992d22",
+                    "nivelian": "0x206694",
+                    "neutral": "0x9b59b6"
+}
+
+def factionColourOrDefault(faction: Optional[str]) -> Colour:
+    return Colour.from_str(factionColours.get(faction or "neutral", factionColours["neutral"]))
+
 
 
 ##### CLASSIC MODE #####
@@ -613,7 +627,10 @@ crateTypes = ("levelUp", "special", "christmas")
 itemRarities = ("common", "uncommon", "rare", "epic")
 
 # Hex colours of item rarities. Must be in ascending order of rarity as above.
-itemRarityColours = (0x783f32, 0x828282, 0xccb031, 0x6934bf)
+itemRarityColours = ("0x783f32", "0x828282", "0xccb031", "0x6934bf")
+
+def itemRarityColourOrDefault(rarity: int) -> Colour:
+    return Colour.from_str(itemRarityColours[rarity] if 0 <= rarity < len(itemRarities) else "0")
 
 # Probability distribution of an event occurring involving an item of a given rarity. E.g crate drop rates. Must be integers.
 itemRaritiesDistribution = (45, 28, 15, 7)

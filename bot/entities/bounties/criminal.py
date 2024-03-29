@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, DeclarativeBase
 from discord import User
 
 from .criminal_json import SerializedCriminal
-from ...cfg import bbData
+from ...cfg import cfg
 from ...baseClasses.aliasable import AliasableMixin
 from ...baseClasses.aliasable_json import SerializedAliasable
 from ...baseClasses.wikiEntity import SqlNamedWikiEntity
@@ -33,12 +33,13 @@ class Criminal(Base, AliasableMixin[TSchema], SqlNamedWikiEntity, Generic[TSchem
     isPlayer: Mapped[bool]
     faction: Mapped[str]
     iconUrl: Mapped[str]
+    playerId: Mapped[int]
 
-    def __init__(self, name: str, aliases: Optional[List[str]] = None, isPlayer: bool = False, id: Optional[int] = None, *args: Any, forceAllowEmpty: bool = False, **kwargs: Any):
+    def __init__(self, name: str, aliases: Optional[List[str]] = None, isPlayer: bool = False, playerId: Optional[int] = None, *args: Any, forceAllowEmpty: bool = False, **kwargs: Any):
         if isPlayer:
-            if id is None:
-                raise ValueError("id is required for player criminals")
-            idStr = str(id)
+            if playerId is None:
+                raise ValueError("playerId is required for player criminals")
+            idStr = str(playerId)
             if not aliases or idStr not in aliases:
                 aliases = (aliases or []) + [idStr]
 
@@ -56,7 +57,7 @@ class Criminal(Base, AliasableMixin[TSchema], SqlNamedWikiEntity, Generic[TSchem
 
 
     @embedColour
-    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+    def filledEmbedColour(self): return cfg.factionColourOrDefault(self.faction)
 
 
     @embedField(fieldName=ZWSP, showInline=False, showLast=True, hideWhenNone=True, uniqueFieldName=False)

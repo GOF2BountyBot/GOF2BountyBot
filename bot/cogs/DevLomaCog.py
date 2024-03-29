@@ -215,7 +215,7 @@ class DevLomaCog(basedApp.BasedCog):
             itemName = f"Unexpected item type: {type(requestedItem).__name__}"
         elif isinstance(requestedItem, Ship):
             itemName = requestedItem.getNameAndNick()
-            itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours.get(requestedItem.manufacturer, bbData.factionColours["neutral"]),
+            itemEmbed = lib.discordUtil.makeEmbed(col=cfg.factionColourOrDefault(requestedItem.manufacturer),
                                                     thumb=requestedItem.icon if requestedItem.hasIcon else "")
 
             itemEmbed.add_field(name="Item:", inline=False,
@@ -283,7 +283,7 @@ class DevLomaCog(basedApp.BasedCog):
             itemName = f"Unexpected item type: {type(requestedItem).__name__}"
         elif isinstance(requestedItem, Ship):
             itemName = requestedItem.getNameAndNick()
-            itemEmbed = lib.discordUtil.makeEmbed(col=bbData.factionColours.get(requestedItem.manufacturer, bbData.factionColours["neutral"]),
+            itemEmbed = lib.discordUtil.makeEmbed(col=cfg.factionColourOrDefault(requestedItem.manufacturer),
                                                     thumb=requestedItem.icon if requestedItem.hasIcon else "")
 
             itemEmbed.add_field(name="Item:", inline=False,

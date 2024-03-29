@@ -2,7 +2,7 @@ from typing import cast
 from discord import Guild, app_commands, Interaction
 
 from .. import client
-from ..lib.timeUtil import td_format_noYM
+from ..lib.timeUtil import formatTimeDelta
 from ..lib.discordUtil import timestamp, TimeStampStyle
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
@@ -36,7 +36,7 @@ class UserHomeGuildsCog(BasedCog):
         else:
             view = ConfirmView(timeout=cfg.timeouts.homeGuildTransferCooldown.total_seconds())
             await interaction.response.send_message(f"Move your home server to '{guild.name}'?\n" \
-                                                    + f"This command has a cooldown of **{td_format_noYM(cfg.timeouts.homeGuildTransferCooldown)}**.",
+                                                    + f"This command has a cooldown of **{formatTimeDelta(cfg.timeouts.homeGuildTransferCooldown)}**.",
                                                     view=view)
             
             view.disableAll()

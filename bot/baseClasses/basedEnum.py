@@ -1,9 +1,13 @@
-from enum import Enum, EnumMeta
-from typing import Any
+from enum import Enum
+from typing import Any, Optional, Type, TypeVar
 
-class _BasedEnumMeta(EnumMeta):
-    """This metaclass should only be applied to enums, or it will break.
-    """
+TSelf = TypeVar("TSelf", bound="BasedEnum")
+
+
+class BasedEnum(Enum):
+    def __str__(self) -> str:
+        return str(self.value)
+    
     @classmethod
     def hasValue(cls, value: Any) -> bool:
         """Decide whether this enum has a member with the given value
@@ -13,10 +17,15 @@ class _BasedEnumMeta(EnumMeta):
         :return: `True` if at least one member with value `value`, `False` otherwise
         :rtype: bool
         """
-        # Ignoring a warning: Enums do have __iter__
-        return any(i.value == value for i in cls) # type: ignore[reportGeneralTypeIssues]
-
-
-class BasedEnum(Enum, metaclass=_BasedEnumMeta):
-    def __str__(self) -> str:
-        return str(self.value)
+        return any(i.value == value for i in cls)
+    
+    @classmethod
+    def fromStr(cls: Type[TSelf], name: str) -> Optional[TSelf]:
+        """Try to find a member of this enum with the given name, returning `None` if none exists.
+        
+        :param name: The name of the enum member to find
+        :type name: str
+        :return: The enum member if it exists, `None` otherwise
+        :rtype: Optional[TSelf]
+        """
+        return cls[name] if name in cls else None

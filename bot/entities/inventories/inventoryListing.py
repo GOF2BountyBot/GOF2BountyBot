@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Never, Type, TypeVar, Generic, Union, cast, overload
+from typing import Any, Dict, List, Type, TypeVar, Generic, Union, cast, overload
+from typing_extensions import Never
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy import ForeignKey
@@ -91,6 +92,8 @@ class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], Seriali
         raise NotImplementedError("Cannot deserialize on InventoryListing in the general case. " \
                                     + "Instead instance InventoryListing with your deserialized item object.")
 
+
+AnyInventoryListing = InventoryListing[Item[Any], SerializedItemUnion]
 
 ListingTypes: Dict[Type[Item[Any]], Type[InventoryListing[Item[Any], SerializedItemUnion]]] = {}
 

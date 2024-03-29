@@ -11,7 +11,7 @@ from ...baseClasses.aliasable import AliasableMixin
 from ...baseClasses.wikiEntity import SqlNamedWikiEntity
 from .solarSystem_json import SerializedSolarSystem
 from ...baseClasses.embedFillable import embedColour, embedField, embedFooterUrl
-from ...cfg import bbData
+from ...cfg import cfg
 
 class Base(DeclarativeBase):
     pass
@@ -77,7 +77,7 @@ class SolarSystem(Base, AliasableMixin[TSchema], SqlNamedWikiEntity, Generic[TSc
 
 
     @embedColour
-    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+    def filledEmbedColour(self): return cfg.factionColourOrDefault(self.faction)
 
 
     # @embedThumbnailUrl

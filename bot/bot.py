@@ -277,7 +277,7 @@ async def on_guild_remove(guild: discord.Guild):
 @botState.client.event
 async def on_ready():
     botState.utcOffset = datetime.now() - datetime.utcnow()
-    print(f"System time UTC offset measured at: {lib.timeUtil.td_format_noYM(botState.utcOffset) or 'None'}")
+    print(f"System time UTC offset measured at: {lib.timeUtil.formatTimeDelta(botState.utcOffset) or 'None'}")
 
 
     ##### SCHEDULING #####

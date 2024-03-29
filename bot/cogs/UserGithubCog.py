@@ -16,7 +16,7 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..lib.discordUtil import ZWSP, messageDescriptor
 from ..lib import ids
-from ..lib.timeUtil import td_format_noYM
+from ..lib.timeUtil import formatTimeDelta
 from .util.transformers import BoolYesNo
 from ..views.issues.bugReportModal import BugReportModal
 from ..views.issues.issueReportModalBase import IssueReportModalBase
@@ -208,7 +208,7 @@ class UserGithubCog(BasedCog):
 
         uploadView = CancelView()
         attachmentsRequestMessage = await message.channel.send(
-            f"{interaction.user.mention} Send one message in this channel with your attachments, within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.\n" 
+            f"{interaction.user.mention} Send one message in this channel with your attachments, within {formatTimeDelta(cfg.timeouts.menuInteractionDefault)}.\n" 
             + "If you need to add more attachments, you can simply press this button again.\n" \
             + "Your attachments will be used in your GitHub issue, so please do not delete your message later!",
             view=uploadView)
@@ -226,7 +226,7 @@ class UserGithubCog(BasedCog):
                 await self.bot.multiWaitFor(["message", "interaction"], check=check,
                                             timeout=cfg.timeouts.menuInteractionDefault.total_seconds())
         except TimeoutError:
-            await attachmentsRequestMessage.edit(content=f"~~Send one message in this channel with your attachments, within {td_format_noYM(cfg.timeouts.menuInteractionDefault)}.~~\nOut of time! Please try this button again.")
+            await attachmentsRequestMessage.edit(content=f"~~Send one message in this channel with your attachments, within {formatTimeDelta(cfg.timeouts.menuInteractionDefault)}.~~\nOut of time! Please try this button again.")
             await interaction.edit_original_response(view=view)
             return
 

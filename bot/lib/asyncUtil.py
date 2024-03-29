@@ -1,6 +1,6 @@
 from __future__ import annotations
 from types import TracebackType
-from typing import Any, Awaitable, Callable, Coroutine, Optional, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast
+from typing import Any, Awaitable, Callable, Coroutine, Optional, Set, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast, Iterable
 from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
@@ -116,11 +116,13 @@ def logExceptionsOnTask(task: Task, logCategory: Optional[LogCategory] = None, c
 TResult = TypeVar("TResult")
 
 
-class BasicScheduler:
+class Parallel:
     """A very basic handler for parallelizing coroutine executions and handling their exceptions.
     """
-    def __init__(self) -> None:
+    def __init__(self, tasks: Optional[Iterable[Union[Coroutine[Any, Any, Any], Task[Any]]]] = None) -> None:
         self.tasks: Set[Task[Any]] = set()
+        for t in tasks or []:
+            self.add(t)
 
 
     def any(self) -> bool:

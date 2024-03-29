@@ -9,16 +9,17 @@ from ....cfg import bbData
 from ....lib.emojis import BasedEmoji
 from ....baseClasses.embedFillable import embedField
 from ....baseClasses.aliasable import AliasableMixin
+from ....baseClasses.aliasable_json import SerializedAliasable
 from ....baseClasses.wikiEntity import SqlNamedWikiEntity
 from ...base.workshopable import Workshopable
 from ...base.workshopable_json import AnySerializedWorkshopable
-from .shipSpec_json import SerializedShipSpecUnion, TypedSerializedShipSpec
+from .shipSpec_json import SerializedShipSpec
 from ....database.constants import ShipSkinRegion
 from ....database.tables import TableNames
 from ....lib.gameMaths import topThreeItemSpawnRates
 
 TShip = TypeVar("TShip", bound="ShipSpec[Any]")
-TSchema = TypeVar("TSchema", bound=SerializedShipSpecUnion)
+TSchema = TypeVar("TSchema", bound=SerializedShipSpec)
 
 
 class Base(DeclarativeBase, AsyncAttrs):
@@ -90,7 +91,7 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
     
     emoji: Mapped[Optional[BasedEmoji]] = composite(_emojiId, _emojiUnicode)
 
-    _compatibleSkins: Mapped[List["shipSkin.ShipSkin"]] = relationship()
+    _compatibleSkins: Mapped[List["shipSkin.AnyShipSkin"]] = relationship()
 
     @property
     def skinnableTextureRegions(self) -> Collection[ShipSkinRegion]:
@@ -119,7 +120,7 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
 
 
     @property
-    async def compatibleSkins(self) -> Collection["shipSkin.ShipSkin"]:
+    async def compatibleSkins(self) -> Collection["shipSkin.AnyShipSkin"]:
         return await self.awaitable_attrs._compatibleSkins
 
 #region embed fields
@@ -170,10 +171,10 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
                     several statistics are omitted to save space.
         :rtype: dict
         """
-        aliasableData = await AliasableMixin[TSchema].serialize(self, **kwargs)
-        workshoppableData = cast(AnySerializedWorkshopable, await Workshopable[TSchema].serialize(self, **kwargs))
+        aliasableData: SerializedAliasable = await AliasableMixin[TSchema].serialize(self, **kwargs)
+        workshoppableData: AnySerializedWorkshopable = await Workshopable[TSchema].serialize(self, **kwargs)
 
-        data: SerializedShipSpecUnion = {
+        data: SerializedShipSpec = {
             **workshoppableData,
             **aliasableData,
             "armour": self.armour,
@@ -198,14 +199,11 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
         if self.emoji is not None:
             data["emoji"] = await self.emoji.serialize(**kwargs)
 
-        if kwargs.get("saveType", False):
-            cast(TypedSerializedShipSpec, data)["type"] = type(self).__name__
-
-        return data
+        return cast(TSchema, data)
 
 
     @classmethod
-    async def deserialize(cls: Type[TShip], data: SerializedShipSpecUnion, **kwargs: Any) -> TShip:
+    async def deserialize(cls, data: TSchema, **kwargs: Any) -> ShipSpec[TSchema]:
         """Factory function constructing a new shipItem object from the given dictionary representation -
         the opposite of shipItem.serialize
         As with most other item deserialize functions, all missing information for builtIn ships is replaced
@@ -220,11 +218,11 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
                         "weapons", "modules", "turrets", "shipUpgrades", "emoji",
                         "numSecondaries", "skin")
         
-        compatibleSkins: List[shipSkin.ShipSkin] = []
+        compatibleSkins: List[shipSkin.AnyShipSkin] = []
         skinnableTextureRegions: List[ShipSkinRegion] = []
 
-        if "compatibleSkins" in data:
-            for serializedSkin in data["compatibleSkins"]:
+        if serializedSkins := data.get("compatibleSkins", None):
+            for serializedSkin in serializedSkins:
                 compatibleSkins.append(shipSkin.ShipSkin(-1, id=serializedSkin["id"]))
 
         if regionsData := data.get("skinnableTextureRegions", None):
@@ -241,4 +239,4 @@ class ShipSpec(Base, AliasableMixin[TSchema], Workshopable[TSchema], SqlNamedWik
                                         skinnableTextureRegions=skinnableTextureRegions))
 
 
-AnyShipSpec = ShipSpec[SerializedShipSpecUnion]
+AnyShipSpec = ShipSpec[SerializedShipSpec]

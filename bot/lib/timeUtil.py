@@ -7,7 +7,7 @@ def utcfromtimestamp(timestamp: float):
     return datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
-def td_format_noYM(td_object: timedelta) -> str:
+def formatTimeDelta(td_object: timedelta) -> str:
     """Create a string describing the attributes of a given datetime.timedelta object, in a
     human reader-friendly format.
     This function does not create 'week', 'month' or 'year' strings, its highest time denominator is 'day'.

@@ -786,7 +786,7 @@ class BasedUser(Base, SerializesToSchema[SerializedBasedUser]):
         now = utcnow()
         if not self.canTransferGuild(now=now):
             raise ValueError("This user cannot transfer guild again yet (" \
-                                + lib.timeUtil.td_format_noYM(now - self.guildTransferCooldownEnd) + " remaining)")
+                                + lib.timeUtil.formatTimeDelta(now - self.guildTransferCooldownEnd) + " remaining)")
         if not (newGuild.get_member(self.id) or await newGuild.fetch_member(self.id)):
             raise NameError("This user is not a member of the given guild '" + newGuild.name + "#" + str(newGuild.id) + "'")
 

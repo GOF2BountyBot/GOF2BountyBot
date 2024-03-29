@@ -15,7 +15,7 @@ from ....baseClasses.embedFillable import EmbedFillableMixin, embedField, embedT
 from ....baseClasses.aliasable import AliasableMixin
 from ....baseClasses.aliasable_json import SerializedAliasable
 from .item_json import SerializedItemUnion, TypedSerializedItem
-from ....cfg import bbData
+from ....cfg import cfg
 
 
 class ItemDeclarativeBase(DeclarativeBase, AsyncAttrs): pass
@@ -57,12 +57,12 @@ TSchema = TypeVar("TSchema", bound=SerializedItemUnion)
 class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=EmbedFillableSqlTableMeta):
     """Base class for in-game items.
 
-    Subclasses, directly or indirectly, MUST NOT define any primary keys.
-    Direct subclasses MUST:
-    - inherit from ItemWithId, followed by Item
-    - be decorated with item_storeable.itemType
+    Direct `Item` subclasses MUST:
+    - be decorated with `item_storeable.itemType`
 
-    Subclasses should also not define their own DeclarativeBase.
+    Direct or indirect `Item` subclasses MUST:
+    - NOT define any primary keys.
+    - NOT define their own `DeclarativeBase`.
 
     Items have name and a credits value, and can be stored in an inventory.
     Items can also optionally have a manufacturer, a wiki page, an icon, an emoji, a tech level, and a list of aliases.
@@ -87,13 +87,26 @@ class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=Embed
     Indirect subclasses will inherit the parent's item type, and therefore be categorized the same in inventories.
 
     ```py
-    from .item import Item, ItemWithId
+    from .item import Item
     from .item_storeable import itemType
     from ..database.constants import StoreableItemType
+    from .myItem_json import SerializedMyItem
+    
+    TSchema = TypeVar("TSchema", bound=SerializedMyItem)
 
     @itemType(StoreableItemType.MyItem)
-    class MyItem(ItemWithId, Item):
+    class MyItem(Item[TSchema]):
         __tablename__ = ...
+
+        async def getValue(self) -> int:
+            ...
+
+        async def statsStringShort(self) -> str:
+            return super().statsStringShort()
+
+        async def serialize(self, **kwargs: Any) -> MyItem[TSchema]:
+            data = await super().serialize(**kwargs)
+            ...
     ```
     """
     id: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.AllItems.value}.id"), primary_key=True)
@@ -157,13 +170,13 @@ class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=Embed
     def formattedTechLevel(self): return self.techLevel
 
     @embedColour
-    def manufacturerColour(self): return bbData.factionColours.get(self.manufacturer or "", bbData.factionColours["neutral"])
+    def manufacturerColour(self): return cfg.factionColourOrDefault(self.manufacturer)
 
 #endregion
 
 
     @abstractmethod
-    def statsStringShort(self) -> str:
+    async def statsStringShort(self) -> str:
         """Summarise all the statistics and functionality of this item as a string.
 
         :return: A string summarising the statistics and functionality of this item
@@ -173,7 +186,7 @@ class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=Embed
 
 
     @abstractmethod
-    async def serialize(self, saveType: Optional[bool] = False, **kwargs: Any) -> TSchema:
+    async def serialize(self, **kwargs: Any) -> TSchema:
         """Serialize this item into dictionary format.
         This base implementation should be used in item implementations, and custom attributes saved into it.
 
@@ -202,7 +215,7 @@ class Item(AnyItem, AliasableMixin[TSchema], EmbedFillableMixin, metaclass=Embed
         if self.techLevel is not None:
             data["techLevel"] = self.techLevel
 
-        if saveType:
+        if kwargs.get("saveType", False):
             data = cast(TypedSerializedItem, data)
             data["type"] = type(self).__name__
 

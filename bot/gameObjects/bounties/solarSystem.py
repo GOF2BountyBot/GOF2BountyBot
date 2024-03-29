@@ -8,7 +8,7 @@ from ..gameObject import LoadedObject, SerializedLoadedObject
 from ...baseClasses import aliasable
 from ...baseClasses.serializable import SerializesToSchema
 from ...baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
-from ...cfg import bbData
+from ...cfg import bbData, cfg
 
 class BuiltInSerializedSolarSystem(aliasable.SerializedAliasable, SerializedLoadedObject): pass
 
@@ -96,7 +96,7 @@ class SolarSystem(aliasable.AliasableMixin, LoadedObject, EmbedFillableMixin, Se
 
 
     @embedColour
-    def filledEmbedColour(self): return bbData.factionColours.get(self.faction, None)
+    def filledEmbedColour(self): return cfg.factionColourOrDefault(self.faction)
 
 
     # @embedThumbnailUrl
