@@ -1,29 +1,36 @@
 from typing import Any, Optional, Type, TypeVar, TypedDict
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..baseClasses.serializable import SerializesToSchema
-from ..lib.sql import SessionSharer, SessionFactory
+from ..baseClasses.serializable import SerializesToSchema, JsonType
+from ..database.unitOfWorkFactory import UnitOfWorkFactory, UnitOfWork
+from .jsonConverter import getConverter
 
 TSerialized = TypeVar("TSerialized", bound=TypedDict)
-TDeserialized = TypeVar("TDeserialized", bound=SerializesToSchema[Any])
+TDeserialized = TypeVar("TDeserialized")
 
 class JsonSerializer:
-    def __init__(self, sessionFactory: SessionFactory) -> None:
-        self.sessionFactory = sessionFactory
+    def __init__(self, unitOfWorkFactory: UnitOfWorkFactory) -> None:
+        self.unitOfWorkFactory = unitOfWorkFactory
 
 
-    async def serialize(self, o: SerializesToSchema[TSerialized], session: Optional[AsyncSession] = None, **kwargs: Any) -> TSerialized:
-        if "session" in kwargs:
-            return await o.serialize(**kwargs)
+    async def serialize(self, o: SerializesToSchema[TSerialized], unitOfWork: Optional[UnitOfWork] = None, **kwargs: Any) -> TSerialized:
+        converter = getConverter(type(o))
+        if converter is None:
+            raise ValueError(f"No json converter is registered for type {type(o).__name__}")
         
-        async with SessionSharer(session, self.sessionFactory) as s:
-            return await o.serialize(session = s.session, **kwargs)
-
-
-    async def deserialize(self, T: Type[TDeserialized], data: TypedDict, session: Optional[AsyncSession] = None, **kwargs: Any) -> TDeserialized:
-        if "session" in kwargs:
-            return await T.deserialize(data, **kwargs)
+        if unitOfWork is not None:
+            return await o.serialize(unitOfWork=unitOfWork, **kwargs)
         
-        async with SessionSharer(session, self.sessionFactory) as s:
-            return await T.deserialize(data, session = s.session, **kwargs)
+        async with self.unitOfWorkFactory.begin() as newUOW:
+            return await o.serialize(unitOfWork=newUOW, **kwargs)
+
+
+    async def deserialize(self, T: Type[TDeserialized], data: JsonType, unitOfWork: Optional[UnitOfWork] = None, **kwargs: Any) -> TDeserialized:
+        converter = getConverter(T)
+        if converter is None:
+            raise ValueError(f"No json converter is registered for type {T.__name__}")
+        
+        if unitOfWork is not None:
+            return await converter.deserialize(data, unitOfWork=unitOfWork, **kwargs)
+        
+        async with self.unitOfWorkFactory.begin() as newUOW:
+            return await converter.deserialize(data, unitOfWork=newUOW, **kwargs)

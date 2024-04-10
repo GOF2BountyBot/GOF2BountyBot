@@ -1,10 +1,10 @@
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from .unitOfWork import UnitOfWork
 
 
 class UnitOfWorkFactory:
-    def __init__(self, sessionMaker: async_sessionmaker) -> None:
+    def __init__(self, sessionMaker: async_sessionmaker[AsyncSession]) -> None:
         self.sessionMaker = sessionMaker
 
 

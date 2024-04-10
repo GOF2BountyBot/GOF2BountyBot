@@ -19,6 +19,9 @@ class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metacl
     name: Mapped[str]
     workshopListingId: Mapped[int]# = mapped_column(ForeignKey(TableNames.WorkshopListing))
 
+    def __init__(self, name: Optional[str] = None, workshopListingId: Optional[int] = None, **kw: Any):
+        super().__init__(name=name, workshopListingId=workshopListingId, **kw)
+
 
     @hybrid_property
     def fromWorkshop(self):

@@ -8,7 +8,7 @@ from enum import Enum
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, relationship, mapped_column, attribute_keyed_dict
 from sqlalchemy import ForeignKey
-from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
 from . import criminal
 from .bountyConfig import GeneratedBountyConfigBase
@@ -89,7 +89,7 @@ class Bounty(Base, SerializesToSchema[TSchema]):
 
     # This attribute is loaded eagerly, so no need for asyncAttrs
     route: Mapped[Dict[int, BountyRouteEntry]] = relationship(
-        lazy="joined", collection_class=attribute_keyed_dict("systemId")
+        lazy="joined", collection_class=attribute_keyed_dict("systemId") # type: ignore[reportUnknownArgumentType]
     )
     _division: Mapped["bountyDivision.BountyDivision[Any]"] = relationship(back_populates="_allBounties")
     _criminal: Mapped["criminal.Criminal[Any]"] = relationship()
@@ -115,7 +115,13 @@ class Bounty(Base, SerializesToSchema[TSchema]):
         return sorted(self.route.values(), key=lambda e: e.index)
     
 
-    def __init__(self, config: Optional[GeneratedBountyConfigBase] = None, **kwargs: Any):
+    def __init__(self,
+                 config: Optional[GeneratedBountyConfigBase] = None,
+                 route: Optional[Dict[int, BountyRouteEntry]] = None,
+                 division: Optional["bountyDivision.BountyDivision[Any]"] = None,
+                 criminal: Optional["criminal.Criminal[Any]"] = None,
+                 ship: Optional["ShipInstance[Any]"] = None,
+                 **kwargs: Any):
         if config is not None:
             self.techLevel = config.techLevel
             self.criminalId = config.criminal.id
@@ -130,7 +136,7 @@ class Bounty(Base, SerializesToSchema[TSchema]):
             self.route = {s: BountyRouteEntry(index=i, bountyId=self.id, systemId=s, checkedByUserId=None)
                           for i, s in enumerate(config.route)}
             
-        super().__init__(**kwargs)
+        super().__init__(route=route, _division=division, _criminal=criminal, _ship=ship, **kwargs)
 
 
     def check(self, systemId: int, userID: int) -> CheckResult:
@@ -192,7 +198,7 @@ class Bounty(Base, SerializesToSchema[TSchema]):
 
     
     @classmethod
-    async def deserialize(cls, data: TSchema, **kwargs: Any) -> Bounty[TSchema]:
+    async def deserialize(cls, data: TSchema, session: Optional[AsyncSession] = None, **kwargs: Any) -> Bounty[TSchema]:
         """Factory function constructing a new bounty from a dictionary serialized description - the opposite of bounty.serialize
 
         :param dict bounty: Dictionary containing all information needed to construct the desired bounty
@@ -200,16 +206,19 @@ class Bounty(Base, SerializesToSchema[TSchema]):
                                 This currently toggles whether the passed bounty is checked for existence or not.
                                 (Default False)
         """
+        if session is None:
+            raise ValueError(f"Cannot deserialize {cls.__name__} without database session access")
+        
         activeShip = await ShipInstance.deserialize(data["activeShip"])
 
-        if (techLevel := data.get("techLevel", None)) is None:
-            techLevel = activeShip.techLevel
+        crim = await criminal.AnyCriminal.deserialize()
 
+        if data["criminal"]["isPlayer"]
         newCfg = BountyConfig(faction=data["faction"], route=data["route"],
-                                answer=data["answer"], checked=data["checked"], reward=data["reward"],
-                                issueTime=data["issueTime"], endTime=data["endTime"],
-                                rewardPerSys=data["rewardPerSys"], activeShip=activeShip,
-                                techLevel=techLevel)
+                              answer=data["answer"], checked=data["checked"], reward=data["reward"],
+                              issueTime=data["issueTime"], endTime=data["endTime"],
+                              rewardPerSys=data["rewardPerSys"], activeShip=activeShip,
+                              techLevel=techLevel)
                                             
         newBounty: Bounty[SerializedBountyUnion] = \
             Bounty(dbReload=dbReload, config=newCfg, division=owningDB.divisionForLevel(techLevel),

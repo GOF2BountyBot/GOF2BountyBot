@@ -59,7 +59,3 @@ class CriminalRepository(SnowflakeRepository[AnyCriminal]):
             )
         
         return row.t[0]
-
-    
-    async def x(self):
-        return super().get(1, (AnyBountyDivision.id,))

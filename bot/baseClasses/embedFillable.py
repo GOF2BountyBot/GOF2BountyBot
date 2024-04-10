@@ -994,6 +994,7 @@ class _EmbedFillableMeta(ABCMeta):
         if numFileEmbedAttributes > MAX_MESSAGE_ATTACHMENTS:
             raise ValueError(f"A maximum of {MAX_MESSAGE_ATTACHMENTS} attachments can be sent with a message, but {clsname} has {numFileEmbedAttributes} embed attributes that would require attachments. Consider using url-based image decorators instead of file-based image decorators.")
 
+        # TODO: surely this should be Type["EmbedFillableMixin"] ?
         o = cast("EmbedFillableMixin", super().__new__(cls, clsname, bases, attrs))
         
         for base in bases:

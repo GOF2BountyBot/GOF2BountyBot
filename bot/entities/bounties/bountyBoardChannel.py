@@ -27,7 +27,7 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
     :var int escapedBountiesMsgId: The id of the message listing all escaped bounties, if one exists
     :var int divisionId: The division to which this channel belongs
     """
-    __table__ = TableNames.BountyBoardChannel.value
+    __tablename__ = TableNames.BountyBoardChannel.value
 
     divisionId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.BountyDivision}.id"))
     _division: Mapped["bountyDivision.AnyBountyDivision"] = relationship()
@@ -35,6 +35,16 @@ class BountyBoardChannel(Base, SerializesToSchema[TSchema]):
     escapedBountiesMessageId: Mapped[Optional[int]]
     channelId: Mapped[int]
     _listings: Mapped[Dict[int, bountyBoardChannelListing.BountyBoardChannelListing]] = relationship(collection_class=attribute_keyed_dict("messageId"))
+
+    def __init__(self,
+                 divisionId: Optional[int] = None,
+                 division: Optional["bountyDivision.BountyDivision[Any]"] = None,
+                 noBountiesMessageId: Optional[int] = None,
+                 escapedBountiesMessageId: Optional[int] = None,
+                 channelId: Optional[int] = None,
+                 listings: Optional[Dict[int, bountyBoardChannelListing.BountyBoardChannelListing]] = None,
+                 **kwargs: Any):
+        super().__init__(divisionId=divisionId, division=division, noBountiesMessageId=noBountiesMessageId, escapedBountiesMessageId=escapedBountiesMessageId, channelId=channelId, listings=listings, **kwargs)
 
 
     @property

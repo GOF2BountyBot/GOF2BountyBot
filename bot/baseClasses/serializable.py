@@ -62,12 +62,27 @@ class SerializesToSchemaProtocol(Protocol, Generic[SerializedSchema]):
     async def deserialize(cls: Type[Self], data: SerializedSchema, **kwargs: Any) -> Self: ...
 
 
+TDeserialized = TypeVar("TDeserialized")
+
+
+class JsonConverterProtocol(Protocol, Generic[TDeserialized, SerializedSchema]):
+    async def serialize(self, o: TDeserialized, **kwargs: Any) -> SerializedSchema: ...
+
+    async def deserialize(self, data: SerializedSchema, **kwargs: Any) -> TDeserialized: ...
+
+
+class JsonConverterWithUnitOfWorkProtocol(Protocol, Generic[TDeserialized, SerializedSchema]):
+    async def serialize(self, o: TDeserialized, **kwargs: Any) -> SerializedSchema: ...
+
+    async def deserialize(self, data: SerializedSchema, **kwargs: Any) -> TDeserialized: ...
+
+
 SerializesToJson = SerializesToType[JsonType]
 
-TDeserialized = TypeVar("TDeserialized", bound=Serializable, covariant=True)
-TSerialized = TypeVar("TSerialized", bound=Union[PrimativeType, TypedDict], contravariant=True)
+TJsonDeserialized = TypeVar("TJsonDeserialized", bound=Serializable, covariant=True)
+TJsonSerialized = TypeVar("TJsonSerialized", bound=Union[PrimativeType, TypedDict], contravariant=True)
 
-class Factory(Protocol, Generic[TSerialized, TDeserialized]):
+class Factory(Protocol, Generic[TJsonSerialized, TJsonDeserialized]):
     """Any class that can be deserialized, but cannot be serialized.
     The typical use case for this type is to hint for 'factory' classes - classes whose
     job is to instance other classes.
@@ -82,4 +97,4 @@ class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     """
     @classmethod
     @abstractmethod
-    async def deserialize(cls, data: TSerialized, **kwargs: Any) -> TDeserialized: ...
+    async def deserialize(cls, data: TJsonSerialized, **kwargs: Any) -> TJsonDeserialized: ...

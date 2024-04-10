@@ -71,6 +71,7 @@ class GeneratedBountyConfigBase(Protocol):
     generated: bool = True
 
     def __instancecheck__(self, __instance: Any) -> bool:
+        getattr()
         return isinstance(__instance, BountyConfigBase) \
             and __instance.generated == True \
             and isinstance(__instance.criminal, criminal.Criminal) \

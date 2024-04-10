@@ -1,7 +1,7 @@
-from typing import Any, List, Optional, TypeVar, Tuple
+from typing import Any, Generic, List, Optional, TypeVar
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import select, and_, Select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 
 from ...database.tables import TableNames
@@ -16,16 +16,17 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 
 TStoredItem = TypeVar("TStoredItem", bound=Item[Any])
+TSerializedItem = TypeVar("TSerializedItem", bound=SerializedItemUnion)
 
 
-class InventoryBase(Base):
+class InventoryBase(Base, Generic[TStoredItem, TSerializedItem]):
     __tablename__ = TableNames.Inventory.value
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    _allListings: Mapped[List["inventoryListing.InventoryListing[Item[SerializedItemUnion], SerializedItemUnion]"]] = relationship()
+    _allListings: "Mapped[List[inventoryListing.InventoryListing[TStoredItem, TSerializedItem]]]" = relationship()
 
     @property
-    async def allListings(self) -> List["inventoryListing.InventoryListing[Item[SerializedItemUnion], SerializedItemUnion]"]:
+    async def allListings(self) -> List["inventoryListing.InventoryListing[TStoredItem, TSerializedItem]"]:
         """All item listings in the inventory, of any type.
         This property must be awaited.
         """
@@ -33,7 +34,7 @@ class InventoryBase(Base):
     
 
     @allListings.setter
-    def allListings(self, value: List["inventoryListing.InventoryListing[Item[SerializedItemUnion], SerializedItemUnion]"]):
+    def allListings(self, value: List["inventoryListing.InventoryListing[TStoredItem, TSerializedItem]"]):
         self._allListings = value
 
 
@@ -45,9 +46,9 @@ class InventoryBase(Base):
         return result.first() is None
 
     
-    async def add(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> "inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]":
-        query: Select[Tuple[inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]]] = \
-            select(inventoryListing.InventoryListing[type(item), Any]) \
+    async def add(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> "inventoryListing.InventoryListing[TStoredItem, TSerializedItem]":
+        query = \
+            select(inventoryListing.InventoryListing[type(item), TSerializedItem]) \
             .where(and_(
                 inventoryListing.InventoryListing.inventoryId == self.id,
                 inventoryListing.InventoryListing.itemId == item.id)
@@ -58,11 +59,11 @@ class InventoryBase(Base):
         row = result.one_or_none()
 
         if row is not None:
-            listing: inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion] = row[0]
+            listing = row.t[0]
             listing.quantity += quantity
         
         else:
-            listing = inventoryListing.InventoryListing(
+            listing = inventoryListing.InventoryListing[TStoredItem, TSerializedItem](
                 inventoryId=self.id,
                 quantity=quantity,
                 itemType=item._storeableItemType, # type: ignore[reportPrivateUsage]
@@ -76,8 +77,7 @@ class InventoryBase(Base):
     
 
     async def remove(self, session: AsyncSession, item: TStoredItem, quantity: int = 1) -> Optional["inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]"]:
-        query: Select[Tuple[inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion]]] = \
-            select(inventoryListing.InventoryListing[type(item), Any]) \
+        query = select(inventoryListing.InventoryListing[type(item), TSerializedItem]) \
             .where(and_(
                 inventoryListing.InventoryListing.inventoryId == self.id,
                 inventoryListing.InventoryListing.itemId == item.id)
@@ -90,7 +90,7 @@ class InventoryBase(Base):
         if row is None:
             raise NotStored(self.id, item.id, quantity, 0)
 
-        listing: inventoryListing.InventoryListing[TStoredItem, SerializedItemUnion] = row[0]
+        listing = row.t[0]
 
         if listing.quantity < quantity:
             raise NotStored(self.id, item.id, quantity, listing.quantity)

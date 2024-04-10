@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type, TypeVar, Generic, Union, cast, overload
+from typing import Any, Dict, List, Optional, Type, TypeVar, Generic, Union, cast, overload
 from typing_extensions import Never
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
@@ -69,6 +69,17 @@ class InventoryListing(Base, ABC, Generic[TStoredItem, TItemSerialized], Seriali
     @valueAugments.setter
     def setValueAugments(self, value: List[InventoryListingValueAugment]):
         self._valueAugments = value
+
+
+    def __init__(self,
+                 inventoryId: Optional[int],
+                 quantity: Optional[int],
+                 itemType: Optional[StoreableItemType],
+                 itemId: Optional[int],
+                 item: Optional[TStoredItem],
+                 **kw: Any):
+        
+        super().__init__(inventoryId=inventoryId, quantity=quantity, itemType=itemType, itemId=itemId, item=item, **kw)
     
 
     async def serialize(self, **kwargs: Any) -> SerializedInventoryListing[TItemSerialized]:
