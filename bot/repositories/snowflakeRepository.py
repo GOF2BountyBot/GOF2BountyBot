@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generic, Optional, Tuple, Type, TypeVar, List
+from typing import Any, Dict, Generic, Optional, Tuple, Type, TypeVar, List, cast, get_origin, get_args
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, update
@@ -17,7 +17,6 @@ def idField(identifier: Type[DbSnowflake]) -> InstrumentedAttribute[int]:
     """This method exists to isolate the `type: ignore` required for accessing the record's `~TRecord.id`:attr:.
     """
     return identifier.id # type: ignore[reportGeneralTypeIssues]
-
 
 class SnowflakeRepository(Generic[TRecord]):
     """Helper for performing CRUD operations on the records database.
