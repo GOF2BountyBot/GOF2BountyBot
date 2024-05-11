@@ -1,7 +1,9 @@
 from typing import Any, Dict, Type, TypeVar, cast
 
+import asyncio
+
 from ..database.unitOfWork import UnitOfWork
-from .serializable import SerializableMixin, isPolymorphicBase, getPolymorphicChild, deconstructDeserializedType
+from .serializable import _SerializableMixinBase, isPolymorphicBase, getPolymorphicChild, deconstructDeserializedType, _JsonField # type: ignore[reportPrivateUsage]
 
 T = TypeVar("T")
 TField = TypeVar("TField", bound=property)
@@ -9,16 +11,18 @@ TClass = TypeVar("TClass", bound=Type["SerializableMixin"])
 TDeserialized = TypeVar("TDeserialized", bound="SerializableMixin")
 
 class JsonSerializer:
-    def serialize(self, o: SerializableMixin) -> Dict[str, Any]:
+    async def serialize(self, o: _SerializableMixinBase) -> Dict[str, Any]:
         data: Dict[str, Any] = {}
         if o._jsonFields.get("serializePrimaryKeysOnly", False): # type: ignore[reportPrivateUsage]
             fields = (f for f in o._jsonFields.values() if f.isPrimaryKey) # type: ignore[reportPrivateUsage]
         else:
             fields = o._jsonFields.values() # type: ignore[reportPrivateUsage]
 
-        for field in (f for f in fields if not f.serializeIgnore):
-            v = field.getter(o)
+        async def handleField(field: _JsonField[Any]):
+            v = await field.getValue(o)
             data[field.name] = self._serializeValue(field.deserializedType, v)
+
+        await asyncio.wait((handleField(f) for f in fields if not f.serializeIgnore))
 
         return data
 
@@ -36,7 +40,9 @@ class JsonSerializer:
         if not any(v is None for v in pks.values()):
             for field, fieldData in pks.items():
                 params[field.name] = self._deserializeValue(field.deserializedType, fieldData, unitOfWork)
-            existing = unitOfWork.repo.get(impl, **params)
+
+            # todo: impl should intersect SerializableMixin and DbSnowflake
+            existing = unitOfWork.repository(impl).get(**params)
             if existing is not None:
                 return existing
 
@@ -56,7 +62,7 @@ class JsonSerializer:
     def _serializeValue(self, deserializedType: type, o: Any) -> Any:
         implType, isOptional, genericParams = deconstructDeserializedType(deserializedType)
 
-        if issubclass(implType, SerializableMixin):
+        if issubclass(implType, _SerializableMixinBase):
             return cast(Any, self.serialize(o))
         
         if isOptional:
@@ -92,7 +98,7 @@ class JsonSerializer:
     def _deserializeValue(self, T: Type[T], data: Any, unitOfWork: UnitOfWork) -> T:
         implType, isOptional, genericParams = deconstructDeserializedType(T)
 
-        if issubclass(implType, SerializableMixin):
+        if issubclass(implType, _SerializableMixinBase):
             return cast(T, self.deserialize(implType, data, unitOfWork))
         
         if isOptional:

@@ -13,6 +13,7 @@ from sqlalchemy.sql._typing import _ColumnsClauseArgument, _TypedColumnClauseArg
 
 from ..baseClasses.embedFillable import _EmbedFillableMeta # type: ignore[reportPrivateUsage]
 from ..baseClasses.declarativeBaseProtocol import DeclarativeBaseProtocol
+from ..serialization.serializable import _SerializableSqlMeta # type: ignore[reportPrivateUsage]
 
 TRecord = TypeVar("TRecord", bound=DeclarativeBaseProtocol)
 TColumn = TypeVar("TColumn", bound=Any)
@@ -27,6 +28,12 @@ class AbcSqlTableMeta(ABCMeta, DeclarativeAttributeIntercept):
 class EmbedFillableSqlTableMeta(_EmbedFillableMeta, DeclarativeAttributeIntercept):
     """Metaclass intersecting the sqlalchemy declarative base and EmbedFillable metaclasses.
     """
+
+
+class EmbedFillableSerializableSqlTableMeta(_EmbedFillableMeta, _SerializableSqlMeta):
+    """Metaclass intersecting the BASED serializable sqlalchemy declarative base and EmbedFillable metaclasses.
+    """
+
 
 def getSession(instance: object) -> AsyncSession:
     """Get the database session in which `instance` was created.

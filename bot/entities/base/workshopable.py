@@ -1,23 +1,26 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional
 
-from sqlalchemy.orm import DeclarativeBase, Mapped
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from ...baseClasses.serializable import SerializesToSchema
-from .workshopable_json import SerializedWorkshopableUnion, SerializedUserSubmittedWorkshopable, SerializedBuiltInWorkshopable
-from ...lib.sql import EmbedFillableSqlTableMeta
+from ...lib.sql import EmbedFillableSerializableSqlTableMeta
 from ...baseClasses.embedFillable import EmbedFillableMixin, embedTitle, embedField
 from ...lib.discordUtil import ZWSP
+from ...serialization.serializable import SqlSerializableMixin, JsonSchema
 
 
 class Base(DeclarativeBase):
     pass
 
-TSchema = TypeVar("TSchema", bound=SerializedWorkshopableUnion)
 
-class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metaclass=EmbedFillableSqlTableMeta):
-    name: Mapped[str]
-    workshopListingId: Mapped[int]# = mapped_column(ForeignKey(TableNames.WorkshopListing))
+json = JsonSchema()
+class Workshopable(Base, EmbedFillableMixin, SqlSerializableMixin, metaclass=EmbedFillableSerializableSqlTableMeta):
+    _jsonSchema = json
+    name: Mapped[str] = mapped_column()
+    json.field(name)
+
+    workshopListingId: Mapped[int] = mapped_column() # = mapped_column(ForeignKey(TableNames.WorkshopListing))
+    json.field(workshopListingId)
 
     def __init__(self, name: Optional[str] = None, workshopListingId: Optional[int] = None, **kw: Any):
         super().__init__(name=name, workshopListingId=workshopListingId, **kw)
@@ -37,18 +40,3 @@ class Workshopable(Base, EmbedFillableMixin, SerializesToSchema[TSchema], metacl
     @property
     def formattedWorkshopListing(self) -> Optional[str]:
         return f"*Workshop listing #{self.workshopListingId}*" if self.fromWorkshop else None
-    
-
-    async def serialize(self, **kwargs: Any) -> TSchema:
-        data = await super().serialize(**kwargs)
-
-        if self.fromWorkshop:
-            workshopData: SerializedUserSubmittedWorkshopable = {"name": self.name, "fromWorkshop": True, "workshopListingId": self.workshopListingId}
-            data.update(workshopData) # type: ignore[reportGeneralTypeIssues]
-        else:
-            builtInData: SerializedBuiltInWorkshopable = {"name": self.name, "fromWorkshop": False}
-            data.update(builtInData) # type: ignore[reportGeneralTypeIssues]
-        
-        return data
-
-AnyWorkshoppable = Workshopable[SerializedWorkshopableUnion]

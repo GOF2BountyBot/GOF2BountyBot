@@ -1,32 +1,62 @@
-from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, TypedDict
+from abc import ABC, abstractmethod
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, TypedDict, Awaitable, overload
 from typing_extensions import NotRequired
-from sqlmock import UnitOfWork
+
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import MappedColumn
+from sqlalchemy.orm.decl_api import DeclarativeAttributeIntercept
+
+from ..lib.typingUtil import getPropertyType
 
 T = TypeVar("T")
-TField = TypeVar("TField", bound=property)
-TClass = TypeVar("TClass", bound=Type["SerializableMixin"])
-TDeserialized = TypeVar("TDeserialized", bound="SerializableMixin")
+TFieldValue = TypeVar("TFieldValue", bound=Any)
+TField = TypeVar("TField", bound=Union[property, hybrid_property[Any], MappedColumn[Any]])
+TClass = TypeVar("TClass", bound=Type["_SerializableMixinBase"])
+TDeserialized = TypeVar("TDeserialized", bound="_SerializableMixinBase")
 
-class _JsonField:
+
+class _JsonField(Generic[TFieldValue]):
     "Replaced by SerializableMixin at run time with the underlying property"
     def __init__(self,
-                 underlying: property,
+                 underlying: Union[property, hybrid_property[TFieldValue], MappedColumn[TFieldValue]],
                  serialize: bool,
                  deserialize: bool,
                  primaryKey: bool,
                  polymorphicKey: bool,
-                 deserializedType: Type[Any]) -> None:
-        getter = underlying.fget
-        if getter is None:
-            raise ValueError()
-        self.getter = getter
+                 deserializedType: Type[TFieldValue],
+                 name: Optional[str] = None) -> None:
+        
+        if name is not None:
+            self.name = name
+        elif isinstance(underlying, MappedColumn):
+            self.name = underlying.name
+
+        if isinstance(underlying, (property, hybrid_property)):
+            if underlying.fget is None:
+                raise ValueError()
+        
+            if name is None:
+                self.name = (underlying.__name__
+                    if isinstance(underlying, hybrid_property)
+                    else underlying.fget.__name__)
+                
         self.underlying = underlying
-        self.name = getter.__name__
         self.serializeIgnore = not serialize
         self.deserializeIgnore = not deserialize
         self.isPrimaryKey = primaryKey
         self.isPolymorphicKey = polymorphicKey
         self.deserializedType = deserializedType
+        # This needs to be set lazily by _SerializableMeta because _JsonField will always be
+        # created as part of class creation
+        self.ownerClass: Optional[type] = None
+
+
+    async def getValue(self, modelSelf: Any) -> Any:
+        v: Union[Any, Awaitable[Any]] = self.underlying.__get__(modelSelf, self.ownerClass or type(modelSelf))
+        
+        if isinstance(v, Awaitable):
+            return await v
+        return v
 
 
 class _JsonOptions(TypedDict):
@@ -36,16 +66,16 @@ class _JsonOptions(TypedDict):
 
 # Dictionary of base class to:
 #     Dictionary of polymorphic key value to associated child class
-POLYMORPHIC_HEIRARCHY: Dict[Type["SerializableMixin"], Dict[Any, Type["SerializableMixin"]]] = {}
+POLYMORPHIC_HEIRARCHY: Dict[Type["_SerializableMixinBase"], Dict[Any, Type["_SerializableMixinBase"]]] = {}
 
 
-def _setPolymorphicBase(baseClass: Type["SerializableMixin"]) -> None:
+def _setPolymorphicBase(baseClass: Type["_SerializableMixinBase"]) -> None:
     if baseClass in POLYMORPHIC_HEIRARCHY:
         raise ValueError(f"Class {baseClass.__name__} is already a polymorphic base")
     POLYMORPHIC_HEIRARCHY[baseClass] = {}
 
 
-def _setPolymorphicChild(impl: Type["SerializableMixin"], polymorphicKey: Any) -> None:
+def _setPolymorphicChild(impl: Type["_SerializableMixinBase"], polymorphicKey: Any) -> None:
     for base in impl.mro():
         heirarchy = POLYMORPHIC_HEIRARCHY.get(base, None)
         if heirarchy is None:
@@ -64,7 +94,7 @@ def getPolymorphicChild(base: Type[TDeserialized], polymorphicKey: Any) -> Type[
     heirarchy = POLYMORPHIC_HEIRARCHY.get(base, None)
     if heirarchy is None:
         raise ValueError(f"{base.__name__} is not a polymorphic base class. Decorate the field which "
-                       + f"will contain your key value using @{jsonField.__name__}(polymorphicKey=True)")
+                       + f"will contain your key value using @{JsonSchema.__name__}.{JsonSchema.field.__name__}(polymorphicKey=True)")
 
     impl = heirarchy.get(polymorphicKey, None)
     if impl is None:
@@ -74,7 +104,7 @@ def getPolymorphicChild(base: Type[TDeserialized], polymorphicKey: Any) -> Type[
     return cast(Type[TDeserialized], impl)
 
 
-def isPolymorphicBase(base: Type["SerializableMixin"]) -> bool:
+def isPolymorphicBase(base: Type["_SerializableMixinBase"]) -> bool:
     return base in POLYMORPHIC_HEIRARCHY
 
 
@@ -96,55 +126,79 @@ def deconstructDeserializedType(deserializedType: type) -> Tuple[Union[Type[Opti
     return origin, isSingleLevelOptional, genericArgs
 
 
-class _SerializableMeta(type):
-    def __new__(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]) -> Type["SerializableMixin"]:
-        jsonFields: Dict[str, _JsonField] = {}
-        polymorphicKeyField: Optional[_JsonField] = None
-        inherited: Dict[_JsonField, Type["SerializableMixin"]] = {}
+class _SerializableMetaBase(ABC, type):
+    @abstractmethod
+    def makeClass(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]) -> Type["_SerializableMixinBase"]:
+        ...
+
+
+    def SetUpSerializable(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]) -> Type["_SerializableMixinBase"]:
+        jsonFields: Dict[str, _JsonField[Any]] = {}
+        polymorphicKeyField: Optional[_JsonField[Any]] = None
+        inheritedFields: Dict[_JsonField[Any], Type["_SerializableMixinBase"]] = {}
         isPolymorphicBase = False
 
         # Bubble up unoverridden fields from base classes
-        for base in (b for b in bases if issubclass(b, SerializableMixin)):
-            for name, field in base._jsonFields.items(): # type: ignore[reportPrivateUsage]    
+        for base in (b for b in bases if issubclass(b, _SerializableMixinBase)):
+            for name, field in base._jsonFields.items(): # type: ignore[reportPrivateUsage]
                 jsonFields[name] = field
-                inherited[field] = base
+                inheritedFields[field] = base
                 if field.isPolymorphicKey:
                     polymorphicKeyField = field
 
-        for name, field in ((n, f) for n, f in attrs.items() if isinstance(f, _JsonField)):
-            # Ensure uniqueness
-            if field.name in jsonFields:
-                inheritedFrom = inherited.get(field, None)
-                if inheritedFrom is None:
-                    raise ValueError(f"Class {clsname} defines two json fields with the same name: {field.name}")
-
-                raise ValueError(f"Class {clsname} defines json field {field.name}, "
-                               + f"which conflicts with one inherited from the parent "
-                               + f"class {inheritedFrom.__name__}: {field.name}")
-            
-            jsonFields[field.name] = field
-
-            # Take note of the polymorphic key
-            if field.isPolymorphicKey:
-                if polymorphicKeyField is not None:
-                    inheritedFrom = inherited.get(field, None)
+        schema = attrs.get("_jsonSchema", None)
+        if schema is not None and not isinstance(schema, JsonSchema):
+            raise TypeError(f"_jsonSchema must be of type {JsonSchema.__name__}")
+        
+        isInheritedSchema = schema._ownerClass is not None # type: ignore[reportPrivateUsage]
+        previousSchemaFieldCount = None if isInheritedSchema else \
+            len(schema._currentClassFields) # type: ignore[reportPrivateUsage]
+        
+        # current class did not define a new json schema, don't bother validating fields
+        if schema is None or isInheritedSchema:
+            field: _JsonField[Any]
+            for field in schema._currentClassFields: # type: ignore[reportPrivateUsage]  
+                # Ensure uniqueness
+                if field.name in jsonFields:
+                    inheritedFrom = inheritedFields.get(field, None)
                     if inheritedFrom is None:
-                        raise ValueError(f"Class {clsname} has more than one json polymorphic key field: "
-                                       + f"{polymorphicKeyField.name}, {field.name}")
-                    
-                    raise ValueError(f"Class {clsname} defines a json polymorphic key field: "
-                                    + f"{field.name}, which conflicts with one inherited from "
-                                    + f"the parent class {inheritedFrom.__name__}: {polymorphicKeyField.name}")
+                        raise ValueError(f"Class {clsname} defines two json fields with the same name: {field.name}")
+
+                    raise ValueError(f"Class {clsname} defines json field {field.name}, "
+                                + f"which conflicts with one inherited from the parent "
+                                + f"class {inheritedFrom.__name__}: {field.name}")
                 
-                polymorphicKeyField = field
-                isPolymorphicBase = True
+                jsonFields[field.name] = field
 
-            # Unwrap the JsonFieldMarker, replacing the field on the object with the underlying property
-            attrs[name] = field.underlying
+                # Take note of the polymorphic key
+                if field.isPolymorphicKey:
+                    if polymorphicKeyField is not None:
+                        inheritedFrom = inheritedFields.get(field, None)
+                        if inheritedFrom is None:
+                            raise ValueError(f"Class {clsname} has more than one json polymorphic key field: "
+                                        + f"{polymorphicKeyField.name}, {field.name}")
+                        
+                        raise ValueError(f"Class {clsname} defines a json polymorphic key field: "
+                                        + f"{field.name}, which conflicts with one inherited from "
+                                        + f"the parent class {inheritedFrom.__name__}: {polymorphicKeyField.name}")
+                    
+                    polymorphicKeyField = field
+                    isPolymorphicBase = True
 
-        o = cast(Type["SerializableMixin"], super().__new__(cls, clsname, bases, attrs))
+        o = cls.makeClass(clsname, bases, attrs)
         if isPolymorphicBase:
             _setPolymorphicBase(o)
+
+        if previousSchemaFieldCount is not None \
+                and len(schema._currentClassFields) != previousSchemaFieldCount: # type: ignore[reportPrivateUsage]
+            raise ValueError(f"Illegal operation: Child class {type(o).__name__} modified the json schema of "
+                            + "parent class. This probably means that you reused the inherited _jsonSchema. "
+                            + "Make sure that your child class defines a new value for _jsonSchema.")
+        
+        if not isInheritedSchema:
+            schema._ownerClass = type(o) # type: ignore[reportPrivateUsage]
+            for field in schema._currentClassFields: # type: ignore[reportPrivateUsage]
+                field.ownerClass = type(o)
 
         o._jsonFields = jsonFields # type: ignore[reportPrivateUsage]
         o._jsonOptions = {} # type: ignore[reportPrivateUsage]
@@ -152,18 +206,116 @@ class _SerializableMeta(type):
 
         return o
 
-class SerializableMixin(metaclass=_SerializableMeta):
-    _jsonFields: ClassVar[Dict[str, _JsonField]] = {}
+
+class _SerializableMeta(_SerializableMetaBase):
+    def makeClass(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]) -> type["_SerializableMixinBase"]:
+        return type.__new__(cls, clsname, bases, attrs)
+    
+    def __new__(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]):
+        return cls.SetUpSerializable(cls, clsname, bases, attrs) # type: ignore[reportArgumentType]
+
+
+class _SerializableSqlMeta(_SerializableMetaBase, DeclarativeAttributeIntercept):
+    def makeClass(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]) -> type["_SerializableMixinBase"]:
+        return DeclarativeAttributeIntercept.__new__(cls, clsname, bases, attrs) # type: ignore[reportArgumentType]
+    
+    def __new__(cls, clsname: str, bases: Tuple[type], attrs: Dict[str, Any]):
+        return cls.SetUpSerializable(cls, clsname, bases, attrs) # type: ignore[reportArgumentType]
+    
+
+class _SerializableMixinBase:
+    _jsonFields: ClassVar[Dict[str, _JsonField[Any]]] = {}
     _jsonOptions: ClassVar[_JsonOptions] = {}
-    _jsonPolymorphicKey: ClassVar[Optional[_JsonField]] = None
+    _jsonPolymorphicKey: ClassVar[Optional[_JsonField[Any]]] = None
+    _jsonSchema: ClassVar[Optional["JsonSchema"]] = None
 
 
-def jsonField(deserializedType: Type[Any], serialize: bool = True, deserialize: bool = True, primaryKey: bool = False, polymorphicKey: bool = False):
-    def decorator(field: TField) -> TField:
-        # Validate deserialized type can be handled
-        deconstructDeserializedType(deserializedType)
-        return cast(TField, _JsonField(field, serialize, deserialize, primaryKey, polymorphicKey, deserializedType))
-    return decorator
+class SerializableMixin(metaclass=_SerializableMeta):
+    pass
+
+
+class SqlSerializableMixin(metaclass=_SerializableSqlMeta):
+    pass
+
+
+class JsonSchema:
+    def __init__(self) -> None:
+        self._currentClassFields: List[_JsonField[Any]] = []
+        # This must be set lazily, as JsonSchema is created during construction of the owning class
+        self._ownerClass: Optional[type] = None
+
+
+    @overload
+    def field(self, field: Union[property, hybrid_property[Any], MappedColumn[Any]], /, *, serialize: bool = True, deserialize: bool = True, primaryKey: bool = False, polymorphicKey: bool = False, name: Optional[str] = None) -> None:
+        """Mark a property or mapped SQL column as a json field.
+
+        :param field: The property or mapped SQL column
+        :type field: Union[property, hybrid_property[Any], MappedColumn[Any]]
+        :param serialize: Include this field during serialization, defaults to True
+        :type serialize: bool, optional
+        :param deserialize: Include this field during deserialization, defaults to True
+        :type deserialize: bool, optional
+        :param primaryKey: The class instance can be identified using only this field, along with all other primary keys, defaults to False
+        :type primaryKey: bool, optional
+        :param polymorphicKey: This field gives the value for the class's polymorphic key, defaults to False
+        :type polymorphicKey: bool, optional
+        :param name: Optional json field name override, defaults to None
+        :type name: Optional[str], optional
+        """
+
+    @overload
+    def field(self, *, serialize: bool = True, deserialize: bool = True, primaryKey: bool = False, polymorphicKey: bool = False, name: Optional[str] = None) -> Callable[[TField], TField]:
+        """A decorator marking a property or hybrid property as a json field.
+
+        :param serialize: Include this field during serialization, defaults to True
+        :type serialize: bool, optional
+        :param deserialize: Include this field during deserialization, defaults to True
+        :type deserialize: bool, optional
+        :param primaryKey: The class instance can be identified using only this field, along with all other primary keys, defaults to False
+        :type primaryKey: bool, optional
+        :param polymorphicKey: This field gives the value for the class's polymorphic key, defaults to False
+        :type polymorphicKey: bool, optional
+        :param name: Optional json field name override, defaults to None
+        :type name: Optional[str], optional
+        """
+
+    def field(self, maybeField: Optional[TField] = None, *, serialize: bool = True, deserialize: bool = True, primaryKey: bool = False, polymorphicKey: bool = False, name: Optional[str] = None) -> Optional[Callable[[TField], TField]]:
+        def makeJsonField(field: Union[property, hybrid_property[Any], MappedColumn[Any]]):
+            if isinstance(field, (property, hybrid_property)):
+                if field.fget is None:
+                    raise ValueError("Json field properties must have a getter method. Make sure @jsonField is at the end of your decorator chain")
+                
+                propertyType = getPropertyType(field)
+                if propertyType is None:
+                    fieldName = field.__name__ if isinstance(field, hybrid_property) else field.fget.__name__
+                    raise ValueError(f"The type for property-mapped json field '{fieldName}' could not be determined. Make sure that your method has an appropriate type hint")
+                
+                deserializedType = propertyType
+
+            else:
+                if not hasattr(field, "type"):
+                    raise ValueError(f"The type for SQL-mapped json field '{field.name}' could not be determined. Only directly mapped columns are supported by jsonField currently, please use a property for more complex json field mappings")
+                
+                deserializedType: Any = getattr(field, "type").python_type
+
+            # Validate deserialized type can be handled
+            deconstructDeserializedType(deserializedType)
+            return _JsonField(field, serialize, deserialize, primaryKey, polymorphicKey, deserializedType, name=name)
+        
+        def decorator(field: TField, /) -> TField:
+            fieldMeta = makeJsonField(field)
+            self._currentClassFields.append(fieldMeta)
+            return field
+        
+        # If we were not given the field, then the method is being used as a decorator
+        if maybeField is None:
+            return decorator
+        
+        # If we were given the field, use it directly
+        fieldMeta = makeJsonField(maybeField)
+        self._currentClassFields.append(fieldMeta)
+
+        return None
 
 
 def jsonOptions(serializePksOnly: bool = False, polymorphicKey: Any = None):
@@ -177,7 +329,7 @@ def jsonOptions(serializePksOnly: bool = False, polymorphicKey: Any = None):
         if t._jsonPolymorphicKey is None: # type: ignore[reportPrivateUsage]
             raise ValueError(f"Class {t.__name__} has a polymorphic key value, but no polymorphic "
                            + f"key field. Decorate the field which will contain your key value using "
-                           + f"@{jsonField.__name__}(polymorphicKey=True)")
+                           + f"@{JsonSchema.__name__}.{JsonSchema.field.__name__}(polymorphicKey=True)")
         
         t._jsonOptions["polymorphicKeyValue"] = polymorphicKey # type: ignore[reportPrivateUsage]
         _setPolymorphicChild(t, polymorphicKey)

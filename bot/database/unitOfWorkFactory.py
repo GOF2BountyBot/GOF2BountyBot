@@ -44,14 +44,14 @@ def getDefaultMoidRepositoryType(T: Type[TMoid]) -> Optional[Type[SnowflakeRepos
 class UnitOfWorkFactory:
     """A simple factory for `UnitOfWork`
     """
-    def __init__(self, sessionMaker: async_sessionmaker[AsyncSession], moidRepositoryMaker: Callable[[Type[TMoid]], SnowflakeRepository[TMoid]]) -> None:
+    def __init__(self, sessionMaker: async_sessionmaker[AsyncSession], moidRepositoryFactory: Callable[[Type[TMoid]], SnowflakeRepository[TMoid]]) -> None:
         self.sessionMaker = sessionMaker
-        self.moidRepositoryMaker = moidRepositoryMaker
+        self.moidRepositoryFactory = moidRepositoryFactory
 
 
     def begin(self):
         session = self.sessionMaker()
-        return UnitOfWork(session)
+        return UnitOfWork(session, self.moidRepositoryFactory)
     
 
 class DefaultUnitOfWorkFactory(UnitOfWorkFactory):

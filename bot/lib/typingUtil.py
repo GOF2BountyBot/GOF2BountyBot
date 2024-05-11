@@ -1,4 +1,7 @@
-from typing import Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union, cast, get_args, Protocol, overload, runtime_checkable, get_origin
+from typing import Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union, cast, get_args, Protocol, overload, runtime_checkable, get_origin, get_type_hints, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.hybrid import hybrid_property
 
 @runtime_checkable
 class ParameterlessConstructorProto(Protocol):
@@ -247,4 +250,39 @@ def genericParamValue(root: Type[TRoot], rootParamOrType: Union[TypeVar, TParam]
         rootParamIndex = params.index(recordTypeArg)
         recordTypeParameterIndices[base] = rootParamIndex
 
+    return None
+
+
+def getPropertyType(prop: Union[property, "hybrid_property[Any]"], globalns: Optional[Dict[str, Any]] = None, localns: Optional[Dict[str, Any]] = None) -> Optional[type]:
+    """Get the type of a property, by reading its type hints. This is a pretty dirty workaround for generic properties.
+
+    * Returns `None` if the property does not have any type hints, or if neither `fget` nor `fset` are defined.
+    * Returns `Type[NoneType]` (aka `type(None)`) if the property is typed as `None`.
+    * Forward declarations typed using strings will not be recognised and will return `None` unless
+    `globalns`/`localns` are supplied (see below).
+
+    This function uses `typing.get_type_hints` internally. if `globalns`/`localns` are supplied, they will be forwarded
+    to `get_type_hints`. They will be used to resolve forward declarations typed using strings.
+
+    :param prop: The property to read
+    :type prop: property
+    :param globalns: See above and `typing.get_type_hints`, defaults to None
+    :type globalns: Optional[Dict[str, Any]], optional
+    :param localns: See above and `typing.get_type_hints`, defaults to None
+    :type localns: Optional[Dict[str, Any]], optional
+    :return: The type that `prop` is type hinted with, if any. `None` otherwise
+    :rtype: Optional[type]
+    """
+    if prop.fget is not None:
+        returnHint = get_type_hints(prop.fget, globalns=globalns, localns=localns).get("return", None)
+        if isinstance(returnHint, type):
+            return returnHint
+        
+    if prop.fset is not None:
+        for k, v in reversed(get_type_hints(prop.fget, globalns=globalns, localns=localns).items()):
+            if k == "return": continue
+            if isinstance(v, type):
+                return v
+            break
+        
     return None

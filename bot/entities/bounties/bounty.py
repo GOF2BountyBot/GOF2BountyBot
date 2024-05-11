@@ -18,6 +18,7 @@ from .bounty_json import SerializedBountyUnion, SerializedEscapedBounty
 from .bountyRouteEntry import BountyRouteEntry
 from ...database.tables import TableNames
 from . import bountyDivision
+from ...serialization.serializable import SqlSerializableMixin, JsonSchema
 
 
 TSchema = TypeVar("TSchema", bound=SerializedBountyUnion)
@@ -41,7 +42,8 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-class Bounty(Base, SerializesToSchema[TSchema]):
+json = JsonSchema()
+class Bounty(Base, SqlSerializableMixin):
     """A bounty listing for a criminal, to be hunted down by players.
 
     :var criminal: The criminal who is being hunted
@@ -71,6 +73,7 @@ class Bounty(Base, SerializesToSchema[TSchema]):
     :vartype expiryTT: TimedTask
     """
     __tablename__ = TableNames.Bounty.value
+    _jsonSchema = json
 
     id: Mapped[int]
     divisionId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.BountyDivision}.id"))

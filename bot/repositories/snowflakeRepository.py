@@ -9,7 +9,7 @@ from sqlalchemy.orm import InstrumentedAttribute
 from ..baseClasses.dbSnowflake import DbSnowflake
 from ..lib.sql import count, randomRows, SqlColumnExpression
 
-TRecord = TypeVar("TRecord", bound=DbSnowflake)
+TRecord = TypeVar("TRecord", bound=DbSnowflake, covariant=True)
 TField = TypeVar("TField", bound=Any)
 
 
