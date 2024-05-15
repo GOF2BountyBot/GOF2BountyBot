@@ -11,8 +11,8 @@ from ..lib.typingUtil import getPropertyType
 T = TypeVar("T")
 TFieldValue = TypeVar("TFieldValue", bound=Any)
 TField = TypeVar("TField", bound=Union[property, hybrid_property[Any], MappedColumn[Any]])
-TClass = TypeVar("TClass", bound=Type["_SerializableMixinBase"])
-TDeserialized = TypeVar("TDeserialized", bound="_SerializableMixinBase")
+TClass = TypeVar("TClass", bound=Type["SqlSerializableMixin"])
+TDeserialized = TypeVar("TDeserialized", bound="SqlSerializableMixin")
 
 
 class _JsonField(Generic[TFieldValue]):
@@ -66,16 +66,16 @@ class _JsonOptions(TypedDict):
 
 # Dictionary of base class to:
 #     Dictionary of polymorphic key value to associated child class
-POLYMORPHIC_HEIRARCHY: Dict[Type["_SerializableMixinBase"], Dict[Any, Type["_SerializableMixinBase"]]] = {}
+POLYMORPHIC_HEIRARCHY: Dict[Type["SqlSerializableMixin"], Dict[Any, Type["SqlSerializableMixin"]]] = {}
 
 
-def _setPolymorphicBase(baseClass: Type["_SerializableMixinBase"]) -> None:
+def _setPolymorphicBase(baseClass: Type["SqlSerializableMixin"]) -> None:
     if baseClass in POLYMORPHIC_HEIRARCHY:
         raise ValueError(f"Class {baseClass.__name__} is already a polymorphic base")
     POLYMORPHIC_HEIRARCHY[baseClass] = {}
 
 
-def _setPolymorphicChild(impl: Type["_SerializableMixinBase"], polymorphicKey: Any) -> None:
+def _setPolymorphicChild(impl: Type["SqlSerializableMixin"], polymorphicKey: Any) -> None:
     for base in impl.mro():
         heirarchy = POLYMORPHIC_HEIRARCHY.get(base, None)
         if heirarchy is None:
@@ -104,7 +104,7 @@ def getPolymorphicChild(base: Type[TDeserialized], polymorphicKey: Any) -> Type[
     return cast(Type[TDeserialized], impl)
 
 
-def isPolymorphicBase(base: Type["_SerializableMixinBase"]) -> bool:
+def isPolymorphicBase(base: Type["SqlSerializableMixin"]) -> bool:
     return base in POLYMORPHIC_HEIRARCHY
 
 
@@ -230,11 +230,11 @@ class _SerializableMixinBase:
     _jsonSchema: ClassVar[Optional["JsonSchema"]] = None
 
 
-class SerializableMixin(metaclass=_SerializableMeta):
+class SerializableMixin(_SerializableMixinBase, metaclass=_SerializableMeta):
     pass
 
 
-class SqlSerializableMixin(metaclass=_SerializableSqlMeta):
+class SqlSerializableMixin(_SerializableMixinBase, metaclass=_SerializableSqlMeta):
     pass
 
 

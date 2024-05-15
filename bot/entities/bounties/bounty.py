@@ -77,23 +77,32 @@ class Bounty(Base, SqlSerializableMixin):
 
     id: Mapped[int]
     divisionId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.BountyDivision}.id"))
-    techLevel: Mapped[int]
-    isEscaped: Mapped[bool]
+    techLevel: Mapped[int] = mapped_column()
+    isEscaped: Mapped[bool] = mapped_column()
     criminalId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.Criminal}.id"))
     shipId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.ShipInstance}.id"))
-    isPlayer: Mapped[bool]
-    faction: Mapped[str]
+    isPlayer: Mapped[bool] = mapped_column()
+
+    faction: Mapped[str] = mapped_column()
+    json.field(faction)
+    
     answerSystemId: Mapped[int] = mapped_column(ForeignKey(f"{TableNames.SolarSystem}.id"))
-    reward: Mapped[int]
-    issueTime: Mapped[datetime]
-    endTime: Mapped[datetime]
-    rewardPerSys: Mapped[int]
-    respawnTime: Mapped[Optional[datetime]]
+    reward: Mapped[int] = mapped_column()
+    issueTime: Mapped[datetime] = mapped_column()
+    endTime: Mapped[datetime] = mapped_column()
+    rewardPerSys: Mapped[int] = mapped_column()
+    respawnTime: Mapped[Optional[datetime]] = mapped_column()
 
     # This attribute is loaded eagerly, so no need for asyncAttrs
     route: Mapped[Dict[int, BountyRouteEntry]] = relationship(
         lazy="joined", collection_class=attribute_keyed_dict("systemId") # type: ignore[reportUnknownArgumentType]
     )
+
+    @json.field()
+    @property
+    def _route_json(self):
+        return [e.system.id for e in self.route.values()]
+
     _division: Mapped["bountyDivision.BountyDivision[Any]"] = relationship(back_populates="_allBounties")
     _criminal: Mapped["criminal.Criminal[Any]"] = relationship()
     _ship: Mapped["ShipInstance[Any]"] = relationship()

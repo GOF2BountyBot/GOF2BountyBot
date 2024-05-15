@@ -3,15 +3,15 @@ from typing import Any, Dict, Type, TypeVar, cast
 import asyncio
 
 from ..database.unitOfWork import UnitOfWork
-from .serializable import _SerializableMixinBase, isPolymorphicBase, getPolymorphicChild, deconstructDeserializedType, _JsonField # type: ignore[reportPrivateUsage]
+from .serializable import SqlSerializableMixin, isPolymorphicBase, getPolymorphicChild, deconstructDeserializedType, _JsonField # type: ignore[reportPrivateUsage]
 
 T = TypeVar("T")
 TField = TypeVar("TField", bound=property)
-TClass = TypeVar("TClass", bound=Type["SerializableMixin"])
-TDeserialized = TypeVar("TDeserialized", bound="SerializableMixin")
+TClass = TypeVar("TClass", bound=Type["SqlSerializableMixin"])
+TDeserialized = TypeVar("TDeserialized", bound="SqlSerializableMixin")
 
 class JsonSerializer:
-    async def serialize(self, o: _SerializableMixinBase) -> Dict[str, Any]:
+    async def serialize(self, o: SqlSerializableMixin) -> Dict[str, Any]:
         data: Dict[str, Any] = {}
         if o._jsonFields.get("serializePrimaryKeysOnly", False): # type: ignore[reportPrivateUsage]
             fields = (f for f in o._jsonFields.values() if f.isPrimaryKey) # type: ignore[reportPrivateUsage]
@@ -62,7 +62,7 @@ class JsonSerializer:
     def _serializeValue(self, deserializedType: type, o: Any) -> Any:
         implType, isOptional, genericParams = deconstructDeserializedType(deserializedType)
 
-        if issubclass(implType, _SerializableMixinBase):
+        if issubclass(implType, SqlSerializableMixin):
             return cast(Any, self.serialize(o))
         
         if isOptional:
@@ -98,7 +98,7 @@ class JsonSerializer:
     def _deserializeValue(self, T: Type[T], data: Any, unitOfWork: UnitOfWork) -> T:
         implType, isOptional, genericParams = deconstructDeserializedType(T)
 
-        if issubclass(implType, _SerializableMixinBase):
+        if issubclass(implType, SqlSerializableMixin):
             return cast(T, self.deserialize(implType, data, unitOfWork))
         
         if isOptional:
