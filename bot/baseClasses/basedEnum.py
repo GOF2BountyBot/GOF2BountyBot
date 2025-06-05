@@ -1,10 +1,22 @@
+import sys
 from enum import Enum
 from typing import Any, Optional, Type, TypeVar
 
 TSelf = TypeVar("TSelf", bound="BasedEnum")
 
+# Handle Python version compatibility
+if sys.version_info >= (3, 11):
+    try:
+        from enum import EnumType
+        _EnumMetaBase = EnumType
+    except ImportError:
+        from enum import EnumMeta
+        _EnumMetaBase = EnumMeta
+else:
+    from enum import EnumMeta
+    _EnumMetaBase = EnumMeta
 
-class BasedEnum(Enum):
+class BasedEnumMeta(_EnumMetaBase):
     def __str__(self) -> str:
         return str(self.value)
     

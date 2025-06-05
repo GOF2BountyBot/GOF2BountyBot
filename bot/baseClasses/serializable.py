@@ -30,7 +30,7 @@ class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHas
 # https://github.com/microsoft/pyright/issues/3870
 SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
 
-class SerializesToSchema(Serializable, DefaultableMixin, Generic[SerializedSchema]):
+class SerializesToSchema(DefaultableMixin, Generic[SerializedSchema]):
     """Declare a serializable to/from a Json-compliant TypedDict schema.
     Includes DefaultableMixin to aid in deserializing, and SimpleHashMixin.
 

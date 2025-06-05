@@ -4,7 +4,7 @@ from discord import Colour
 from datetime import timedelta
 from enum import Enum
 
-from ..baseClasses.basedEnum import _BasedEnumMeta
+from ..baseClasses.basedEnum import BasedEnum
 if TYPE_CHECKING:
     from ..gameObjects.bounties import solarSystem
     from ..gameObjects.items.tools import toolItem
@@ -21,11 +21,11 @@ if TYPE_CHECKING:
     from ..gameObjects.items.tools import crateTool
     from ..gameObjects.items.tools import shipSkinTool
 
-class _ItemCategoryBase(Enum, metaclass=_BasedEnumMeta):
+class _ItemCategoryBase(BasedEnum, Enum):
     def orAll(self):
         return ItemCategoryOrAll(self.value)
 
-class _ItemCategoryOrAllBase(Enum, metaclass=_BasedEnumMeta):
+class _ItemCategoryOrAllBase(BasedEnum, Enum):
     def noAll(self):
         return ItemCategory(self.value)
 
