@@ -20,8 +20,8 @@ class Serializable(SerializesToType[JsonPrimatives], DefaultableMixin, SimpleHas
     async def serialize(self, **kwargs: Any) -> JsonPrimatives:
         return {}
     
-    @abstractmethod
     @classmethod
+    @abstractmethod
     async def deserialize(cls: Type[Self], data: JsonPrimatives, **kwargs: Any) -> Self:
         raise NotImplementedError()
 
@@ -50,8 +50,8 @@ class SerializesToSchema(Serializable, DefaultableMixin, Generic[SerializedSchem
     @abstractmethod
     async def serialize(self, **kwargs: Any) -> SerializedSchema: return {}
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     async def deserialize(cls: Type[Self], data: SerializedSchema, **kwargs: Any) -> Self: raise NotImplementedError()
 
 

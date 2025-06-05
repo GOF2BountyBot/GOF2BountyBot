@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable, Optional, Protocol, Type, TypeVar, Union, TYPE_CHECKING, Tuple, Dict, cast, overload
 from enum import Enum
 
-from ..entities.guild import basedGuild
+from ..entities.guilds import basedGuild
 
 if TYPE_CHECKING:
     from ..entities.user import basedUser
