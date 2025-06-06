@@ -9,13 +9,16 @@ import sys
 # - The json serializable models implementation uses typing.get_origin and typing.get_args, which were added in 3.8
 # Require below python 3.12 because:
 # - The json serializable models implementation looks explicitly for a typing.Generic base class, it does not yet support class type parameter syntax
-MIN_PYTHON = (3, 7)
-MAX_PYTHON = (3, 11)
-if sys.version_info < MIN_PYTHON:
-    sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
+AT_LEAST_PYTHON = (3, 11, 0)
+BELOW_PYTHON = (3, 12, 0)
 
-if sys.version_info > MAX_PYTHON:
-    sys.exit("Python %s.%s or earlier is required.\n" % MAX_PYTHON)
+hostPython = (sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
+
+if sys.version_info < AT_LEAST_PYTHON:
+    sys.exit(f"BountyBot requires at least Python {'.'.join(str(i) for i in AT_LEAST_PYTHON)}. See main.py for more information.\nExiting.")
+
+if not sys.version_info < BELOW_PYTHON:
+    sys.exit(f"BountyBot requires a Python version below {'.'.join(str(i) for i in BELOW_PYTHON)}. See main.py for more information.\nExiting.")
 
 from bot.cfg import cfg
 import carica
