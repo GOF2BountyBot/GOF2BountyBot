@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from datetime import datetime
-from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union
+from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, Union, cast
 from typing_extensions import TypedDict
 import carica
 from carica import ISerializable, SerializesToType, PrimativeType
@@ -22,17 +22,20 @@ class Serializable(ISerializable, DefaultableMixin, SimpleHashMixin):
     def serialize(self, **kwargs) -> JsonPrimatives:
         return {}
 
+# https://stackoverflow.com/a/78520322
+class AnyTypedDict(TypedDict):
+    pass
 
 # TODO: Really SerializedSchema should be bound to JsonType, but this isn't supported:
 # https://github.com/microsoft/pyright/issues/3870
-SerializedSchema = TypeVar("SerializedSchema", bound=TypedDict)
+SerializedSchema = TypeVar("SerializedSchema", bound=AnyTypedDict)
 TSelf = TypeVar("TSelf", bound="Serializable")
 
 class SerializesToSchema(Serializable, Generic[SerializedSchema]):
     """Helper to declare a Serializable, including DefaultableMixin and SimpleHashMixin, as serializing to/from a Json-compliant TypedDict schema.
     """
     @abstractmethod
-    def serialize(self, **kwargs) -> SerializedSchema: return {}
+    def serialize(self, **kwargs) -> SerializedSchema: return cast(SerializedSchema, {})
 
     @classmethod
     @abstractmethod
@@ -42,7 +45,7 @@ SerializesToJson = SerializesToType[JsonType]
 
 
 TDeserialized = TypeVar("TDeserialized", bound=Serializable, covariant=True)
-TSerialized = TypeVar("TSerialized", bound=Union[PrimativeType, TypedDict], contravariant=True)
+TSerialized = TypeVar("TSerialized", bound=Union[PrimativeType, AnyTypedDict], contravariant=True)
 
 class Factory(Protocol, Generic[TSerialized, TDeserialized]):
     """Any class that can be deserialized, but cannot be serialized.
