@@ -327,6 +327,20 @@ async def on_message(message: discord.Message):
     # ignore messages sent by bots
     if message.author.bot:
         return
+    
+    # if message.author.id in cfg.developers and message.content.lower() == "$bbinitslashcommandsync":
+    #     if not cfg.developmentGuilds:
+    #         await message.reply("No development guilds are configured.")
+    #         return
+        
+    #     await message.reply(f"performing initial app commands sync in {len(cfg.developmentGuilds)} development guilds...")
+    #     for guild in cfg.developmentGuilds:
+    #         try:
+    #             syncedCommands = await botState.client.tree.sync(guild=guild)
+    #         except discord.DiscordException as ex:
+    #             await message.reply(f"Failed to sync to guild {guild.id}: {type(ex).__name__} \"{ex}\"")
+    #         else:
+    #             await message.reply(f"{len(syncedCommands)} commands synced to guild {guild.id}")
 
     # React to messages containing or mentioning bountybot
     try:
