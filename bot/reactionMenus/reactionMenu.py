@@ -14,7 +14,7 @@ from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, Union, Dict, List, cast
 from typing_extensions import NotRequired, TypedDict
 import asyncio
-from ..baseClasses.serializable import SerializesToSchema
+from ..baseClasses.serializable import SerializesToSchema, AnyTypedDict
 from . import expiryFunctions
 
 
@@ -256,7 +256,7 @@ class DummyReactionMenuOption(ReactionMenuOption):
         return DummyReactionMenuOption(data["name"], lib.emojis.BasedEmoji.deserialize(data["emoji"], **kwargs))
 
 
-TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=TypedDict)
+TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=AnyTypedDict)
 
 class SerializedReactionMenu(TypedDict, Generic[TSerializedMenuOptionType]):
     channel: int

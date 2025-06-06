@@ -6,10 +6,11 @@ from typing import Dict, Generic, Optional, TypeVar, Union, cast
 from typing_extensions import TypedDict
 from ..scheduling import timedTask
 from ..cfg import cfg
+from ..baseClasses.serializable import AnyTypedDict
 
 
 TMenuOptionType = TypeVar("TMenuOptionType", bound=reactionMenu.ReactionMenuOption)
-TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=TypedDict)
+TSerializedMenuOptionType = TypeVar("TSerializedMenuOptionType", bound=AnyTypedDict)
 
 class PagedReactionMenu(reactionMenu.ReactionMenu[TMenuOptionType, TSerializedMenuOptionType], Generic[TMenuOptionType, TSerializedMenuOptionType]):
     """A reaction menu that, instead of taking a list of options, takes a list of pages of options.
