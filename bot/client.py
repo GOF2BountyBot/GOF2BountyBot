@@ -650,7 +650,7 @@ class BasedClient(ClientBaseClass):
 
             self._mediaServersLoaded = True
 
-        if not self._githubLoaded:
+        if not self._githubLoaded and cfg.githubAccessToken != "":
             self._githubClient = lib.github.BasedGithub(cfg.githubAccessToken)
             self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)
             self._githubLoaded = True
