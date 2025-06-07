@@ -4,6 +4,6 @@ saveData
 game objects
 **/__pycache__
 **/.DS_STORE
-config-files
 mappings
 .env
+test.toml
