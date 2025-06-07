@@ -650,6 +650,8 @@ class BasedClient(ClientBaseClass):
 
             self._mediaServersLoaded = True
 
+        # TODO: Need to refactor this to not attempt initializing github 
+        # if the cogs are not included in the bot launch config
         if not self._githubLoaded and cfg.githubAccessToken != "":
             self._githubClient = lib.github.BasedGithub(cfg.githubAccessToken)
             self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)

@@ -762,8 +762,13 @@ class DevMiscCog(BasedCog):
         embed.add_field(name="HttpClient",
                         value=f"State: {'Closed' if self.bot.httpClient.closed else 'Open'}\n" \
                             + f"Cookies: {len(self.bot.httpClient.cookie_jar)}")
+        githubUserCog = cast(Optional["UserGithubCog"], self.bot.get_cog("UserGithubCog"))
+        githubDevCog = cast(Optional["DevGithubCog"], self.bot.get_cog("DevGithubCog"))
+        if (githubUserCog is not None) or (githubDevCog is not None):
+            embed.add_field(name="GitHub",          value=f"Repo: [{self.bot.githubRepo.html_url}]({self.bot.githubRepo.html_url})")
+        else:
+            embed.add_field(name="GitHub",          value=f"Github functions disabled due to cogs not included in config")
 
-        embed.add_field(name="GitHub",          value=f"Repo: [{self.bot.githubRepo.html_url}]({self.bot.githubRepo.html_url})")
         embed.add_field(name="Shop Refresh TT", value=self.describeTT(botState.shopRefreshTT))
 
         if self.bot.taskScheduler is None:
