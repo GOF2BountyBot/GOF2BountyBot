@@ -203,8 +203,7 @@ def cogPath(cogName: str, basePackage: str = "bot.cogs") -> str:
 includedCogs = (
     cogPath("CommonStaticComponentsCog", basePackage="bot.cogs.util"),
     cogPath("EmbedEditorCog", basePackage="bot.cogs.util"),
-    # Temp disable the github issue stuff for now...
-    # cogPath("GithubUtilCog", basePackage="bot.cogs.util"),
+    cogPath("GithubUtilCog", basePackage="bot.cogs.util"),
     cogPath("GuildsUtilCog", basePackage="bot.cogs.util"),
     cogPath("UsersUtilCog", basePackage="bot.cogs.util"),
 
