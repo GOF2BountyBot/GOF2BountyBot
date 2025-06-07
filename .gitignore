@@ -1,9 +1,15 @@
 .vscode
 logo
 saveData
-game objects
+#game objects
 **/__pycache__
 **/.DS_STORE
 mappings
 .env
 test.toml
+*.bmp
+*.jpg
+*.mtl
+*.obj
+*.png
+*.xcf

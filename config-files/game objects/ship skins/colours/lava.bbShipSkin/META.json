@@ -1,0 +1,250 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "lava",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886463538003968/lava-RENDER.png",
+            788886463449268265
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886371552460850/lava-RENDER.png",
+            788886371841605653
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887076489396274/lava-RENDER.png",
+            788887076744593448
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886843944206357/lava-RENDER.png",
+            788886844133081198
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886115053600780/lava-RENDER.png",
+            788886115247587378
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788885944488820767/lava-RENDER.png",
+            788885944689885204
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886151859011604/lava-RENDER.png",
+            788886152110407750
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886186797957120/lava-RENDER.png",
+            788886187145560084
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886401788674048/lava-RENDER.png",
+            788886401768882259
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886256661692456/lava-RENDER.png",
+            788886256893427722
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887180985761822/lava-RENDER.png",
+            788887181104119829
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886534966870046/lava-RENDER.png",
+            788886535285243904
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887219556974612/lava-RENDER.png",
+            788887219762102322
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788885976084250644/lava-RENDER.png",
+            788885976306024468
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887251912228884/lava-RENDER.png",
+            788887251878805515
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886433908785183/lava-RENDER.png",
+            788886434115354674
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886569658482708/lava-RENDER.png",
+            788886569942515722
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887286623240242/lava-RENDER.png",
+            788887286883549215
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886009907380244/lava-RENDER.png",
+            788886010133217310
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887315342819339/lava-RENDER.png",
+            788887315371655194
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887722689167380/lava-RENDER.png",
+            788887722595975169
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886604659163156/lava-RENDER.png",
+            788886604906889256
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886294352101416/lava-RENDER.png",
+            788886294481993799
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887347391496243/lava-RENDER.png",
+            788887347646824468
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886878971363348/lava-RENDER.png",
+            788886879197462548
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886908268838932/lava-RENDER.png",
+            788886908578693120
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887378781536286/lava-RENDER.png",
+            788887379539656714
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887755341430874/lava-RENDER.png",
+            788887755635687456
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886637144178718/lava-RENDER.png",
+            788886637392298034
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886041901006918/lava-RENDER.png",
+            788886042174160906
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886943659327548/lava-RENDER.png",
+            788886943857377300
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886218162176000/lava-RENDER.png",
+            788886217978150923
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887790112473098/lava-RENDER.png",
+            788887790321795112
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887821225164831/lava-RENDER.png",
+            788887821410762782
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788885827157098516/lava-RENDER.png",
+            788885827370876938
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886678839754752/lava-RENDER.png",
+            788886679486070786
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886502754746368/lava-RENDER.png",
+            788886502984908810
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886330548944906/lava-RENDER.png",
+            788886330528497665
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887414428663848/lava-RENDER.png",
+            788887414717677588
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887448972558376/lava-RENDER.png",
+            788887449279004673
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887488341082112/lava-RENDER.png",
+            788887488399147039
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887857929781248/lava-RENDER.png",
+            788887858329026651
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886712859230218/lava-RENDER.png",
+            788886713249431572
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886746845937724/lava-RENDER.png",
+            788886747073216572
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887520385433681/lava-RENDER.png",
+            788887520598949928
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887554631794728/lava-RENDER.png",
+            788887555076522014
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886075765817405/lava-RENDER.png",
+            788886076135702578
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887109317689354/lava-RENDER.png",
+            788887109351899227
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887144482734100/lava-RENDER.png",
+            788887144705687552
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886778827898900/lava-RENDER.png",
+            788886779301331014
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788885866650402886/lava-RENDER.png",
+            788885866612916226
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886978929885204/lava-RENDER.png",
+            788886979072098347
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887011872342066/lava-RENDER.png",
+            788887011904716862
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887584750436392/lava-RENDER.png",
+            788887584586596353
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788885902332002345/lava-RENDER.png",
+            788885902595457064
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887654832799774/lava-RENDER.png",
+            788887655043563541
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887689059106896/lava-RENDER.png",
+            788887689322692609
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887619433791498/lava-RENDER.png",
+            788887619655696434
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887043064332308/lava-RENDER.png",
+            788887043304063016
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788886811429699605/lava-RENDER.png",
+            788886811589869600
+        ]
+    },
+    "textureRegions": []
+}

@@ -1,0 +1,258 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "abyss",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873864343322664/abyss-RENDER.png",
+            788873864528658452
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873734555172874/abyss-RENDER.png",
+            788873734773014608
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874830573338664/abyss-RENDER.png",
+            788874830791049216
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874603140218922/abyss-RENDER.png",
+            788874603401183282
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873477628755998/abyss-RENDER.png",
+            788873477846728704
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872752408428575/abyss-RENDER.png",
+            788872752626401340
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873515394793512/abyss-RENDER.png",
+            788873515830214716
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873550505312276/abyss-RENDER.png",
+            788873550701264936
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873767282671677/abyss-RENDER.png",
+            788873767262093443
+        ],
+        "Blue Fyre": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873799457570867/abyss-RENDER.png",
+            788873799676067870
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873617445224508/abyss-RENDER.png",
+            788873617660313703
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874928459087882/abyss-RENDER.png",
+            788874928669196298
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873932996214824/abyss-RENDER.png",
+            788873933293879377
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874964097957888/abyss-RENDER.png",
+            788874964257734657
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872789859368990/abyss-RENDER.png",
+            788872790064496650
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874995560480788/abyss-RENDER.png",
+            788874995765739530
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873832953020466/abyss-RENDER.png",
+            788873833549529159
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873968898932746/abyss-RENDER.png",
+            788873969231069184
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875028606877766/abyss-RENDER.png",
+            788875028845428766
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872820389052416/abyss-RENDER.png",
+            788872820352483349
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875056653664266/abyss-RENDER.png",
+            788875056964567110
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875475342721084/abyss-RENDER.png",
+            788875475556106240
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874001980063794/abyss-RENDER.png",
+            788874002176802826
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873655089365004/abyss-RENDER.png",
+            788873655367106570
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875088174514196/abyss-RENDER.png",
+            788875088630906891
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874636976586762/abyss-RENDER.png",
+            788874637185777684
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874666848682004/abyss-RENDER.png",
+            788874666940432466
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875119044853780/abyss-RENDER.png",
+            788875119258894367
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875506119606362/abyss-RENDER.png",
+            788875506174656513
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874032426254376/abyss-RENDER.png",
+            788874032635314196
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872850609537034/abyss-RENDER.png",
+            788872850597478401
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874700880084992/abyss-RENDER.png",
+            788874701070008330
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873580750045234/abyss-RENDER.png",
+            788873580964347914
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875539355926578/abyss-RENDER.png",
+            788875539539820574
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875571127255091/abyss-RENDER.png",
+            788875572712439858
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872629255274507/abyss-RENDER.png",
+            788872629318451212
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874072904826900/abyss-RENDER.png",
+            788874073140363334
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873903098560592/abyss-RENDER.png",
+            788873903346679808
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873691412561957/abyss-RENDER.png",
+            788873691676147752
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875152217210900/abyss-RENDER.png",
+            788875152477388860
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875185302142997/abyss-RENDER.png",
+            788875185499144243
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875222891102288/abyss-RENDER.png",
+            788875223092297732
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875608176066590/abyss-RENDER.png",
+            788875608498896906
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874472311750696/abyss-RENDER.png",
+            788874472526315560
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874506499522610/abyss-RENDER.png",
+            788874506600710196
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875254515892284/abyss-RENDER.png",
+            788875254395043882
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875286468100157/abyss-RENDER.png",
+            788875286871670784
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788873437052928010/abyss-RENDER.png",
+            788873437249798164
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874862655307857/abyss-RENDER.png",
+            788874862583218217
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874894297399316/abyss-RENDER.png",
+            788874894519173120
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874539701895248/abyss-RENDER.png",
+            788874539769659413
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872672569851904/abyss-RENDER.png",
+            788872672951402496
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874736473735240/abyss-RENDER.png",
+            788874736536256524
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874768890986526/abyss-RENDER.png",
+            788874769009213461
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875315287425044/abyss-RENDER.png",
+            788875315584696354
+        ],
+        "VoidX": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875375484469319/abyss-RENDER.png",
+            788875375560097837
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788872709014159440/abyss-RENDER.png",
+            788872709235933276
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875409504469002/abyss-RENDER.png",
+            788875409457676289
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875442425036881/abyss-RENDER.png",
+            788875442613911602
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788875349651226644/abyss-RENDER.png",
+            788875349773123585
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874798578270209/abyss-RENDER.png",
+            788874798776188938
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788874572380110908/abyss-RENDER.png",
+            788874572778045490
+        ]
+    },
+    "textureRegions": []
+}

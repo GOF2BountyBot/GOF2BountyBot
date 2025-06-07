@@ -1,0 +1,250 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "ferrari",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881512212070490/ferrari-RENDER.png",
+            788881512468578334
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881416964014090/ferrari-RENDER.png",
+            788881417198501908
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882133585363004/ferrari-RENDER.png",
+            788882133820375070
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881893852315688/ferrari-RENDER.png",
+            788881894061637652
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880924548792370/ferrari-RENDER.png",
+            788880924812509274
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880748366659594/ferrari-RENDER.png",
+            788880749020446730
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880963639312424/ferrari-RENDER.png",
+            788880963873538128
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881000943976488/ferrari-RENDER.png",
+            788881001191309332
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881448161247269/ferrari-RENDER.png",
+            788881448303329301
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881072763043900/ferrari-RENDER.png",
+            788881072548216853
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882250330538094/ferrari-RENDER.png",
+            788882250543923220
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881584019079168/ferrari-RENDER.png",
+            788881584152772619
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882290465964092/ferrari-RENDER.png",
+            788882291031015484
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788883640125751326/ferrari-RENDER.png",
+            788883640368496640
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882324091699200/ferrari-RENDER.png",
+            788882324208746497
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881481593258014/ferrari-RENDER.png",
+            788881481803759671
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881617825300520/ferrari-RENDER.png",
+            788881618034098196
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882362950746152/ferrari-RENDER.png",
+            788882363232681994
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880815353757706/ferrari-RENDER.png",
+            788880815731900456
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882392597004328/ferrari-RENDER.png",
+            788882392827428875
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882809682395146/ferrari-RENDER.png",
+            788882809904431124
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881652834107423/ferrari-RENDER.png",
+            788881653086421033
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881112318476328/ferrari-RENDER.png",
+            788881112574853182
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882425010454568/ferrari-RENDER.png",
+            788882425215189042
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881928807514135/ferrari-RENDER.png",
+            788881929016836157
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881959592919050/ferrari-RENDER.png",
+            788881959799357490
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882457645940766/ferrari-RENDER.png",
+            788882457877413908
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882842339115038/ferrari-RENDER.png",
+            788882842587365377
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881686317891624/ferrari-RENDER.png",
+            788881686485139507
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880848015196181/ferrari-RENDER.png",
+            788880848203022336
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881994519543838/ferrari-RENDER.png",
+            788881994720346154
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881033202106408/ferrari-RENDER.png",
+            788881033428205597
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882876284141619/ferrari-RENDER.png",
+            788882876249669643
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882907427110942/ferrari-RENDER.png",
+            788882907619917864
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880621568131082/ferrari-RENDER.png",
+            788880621757923358
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881727053103144/ferrari-RENDER.png",
+            788881727321145414
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881552355622942/ferrari-RENDER.png",
+            788881552557867018
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881150260281375/ferrari-RENDER.png",
+            788881150709989416
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882493968744458/ferrari-RENDER.png",
+            788882494178328637
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882529410875402/ferrari-RENDER.png",
+            788882529695694868
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882569260433459/ferrari-RENDER.png",
+            788882569491513424
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882943745589288/ferrari-RENDER.png",
+            788882943996461076
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881760724451378/ferrari-RENDER.png",
+            788881761001799720
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881793038286948/ferrari-RENDER.png",
+            788881793319043142
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882601683189770/ferrari-RENDER.png",
+            788882602093707284
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882637766525008/ferrari-RENDER.png",
+            788882638009008138
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880882789646366/ferrari-RENDER.png",
+            788880883016794132
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882168826429480/ferrari-RENDER.png",
+            788882169073238025
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882202259488839/ferrari-RENDER.png",
+            788882202695434280
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881826630074398/ferrari-RENDER.png",
+            788881826671231047
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880668837806110/ferrari-RENDER.png",
+            788880669069410334
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882032021078076/ferrari-RENDER.png",
+            788882032260284416
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882067043123290/ferrari-RENDER.png",
+            788882067097518141
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882668871614474/ferrari-RENDER.png",
+            788882669102170112
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788880704619675668/ferrari-RENDER.png",
+            788880704859144212
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882740748484718/ferrari-RENDER.png",
+            788882740804059157
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882775842357298/ferrari-RENDER.png",
+            788882775633297409
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882703243542578/ferrari-RENDER.png",
+            788882703511715840
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788882099302039562/ferrari-RENDER.png",
+            788882099389202474
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788881860574314536/ferrari-RENDER.png",
+            788881860812865547
+        ]
+    },
+    "textureRegions": []
+}

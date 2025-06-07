@@ -1,0 +1,64 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "disabledRegions": [
+        1
+    ],
+    "name": "camo",
+    "ships": {
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788171848831336470/camo-RENDER.png",
+            788171849091645450
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788188571390443520/camo-RENDER.png",
+            788188571537637387
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788143974414155786/camo-RENDER.png",
+            788143974707625984
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788172695325769728/camo-RENDER.png",
+            788172695577690162
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788177321298886726/camo-RENDER.png",
+            788177321537830962
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788197014437232711/camo-RENDER.png",
+            788197014793486387
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788197854019715123/camo-RENDER.png",
+            788197854031773697
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788189236993196032/camo-RENDER.png",
+            788189237425864714
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788201667291512892/camo-RENDER.png",
+            788201667534389248
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788396287690407956/camo-RENDER.png",
+            788396287900385280
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788184710379077632/camo-RENDER.png",
+            788184710626410537
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788193753990561812/camo-RENDER.png",
+            788193754254278686
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788191117333757982/camo-RENDER.png",
+            788191117660127252
+        ]
+    },
+    "textureRegions": []
+}

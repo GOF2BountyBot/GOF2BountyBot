@@ -1,0 +1,250 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "onyx",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895642500071434/onyx-RENDER.png",
+            788895642738360331
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895542243491870/onyx-RENDER.png",
+            788895542825975828
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896257610481724/onyx-RENDER.png",
+            788896257817051136
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896021677735997/onyx-RENDER.png",
+            788896021946040320
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895267339632650/onyx-RENDER.png",
+            788895267592208404
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895085294387210/onyx-RENDER.png",
+            788895085605290035
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895311295807528/onyx-RENDER.png",
+            788895311342862367
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895348475166730/onyx-RENDER.png",
+            788895348268597259
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895577592823830/onyx-RENDER.png",
+            788895577784975380
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895422042603581/onyx-RENDER.png",
+            788895422373560390
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896366323564544/onyx-RENDER.png",
+            788896366498807842
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895714020425748/onyx-RENDER.png",
+            788895714239053884
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896405762605086/onyx-RENDER.png",
+            788896405858811936
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895119587541013/onyx-RENDER.png",
+            788895119805906974
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896440293654528/onyx-RENDER.png",
+            788896440529190912
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895611264040990/onyx-RENDER.png",
+            788895611478736916
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895746849243156/onyx-RENDER.png",
+            788895747152150568
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896476603351040/onyx-RENDER.png",
+            788896476830760980
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895153653678090/onyx-RENDER.png",
+            788895153917394964
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896506601930782/onyx-RENDER.png",
+            788896506928562196
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896932532977704/onyx-RENDER.png",
+            788896932760256512
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895780299603998/onyx-RENDER.png",
+            788895780575903814
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895461867257887/onyx-RENDER.png",
+            788895462228099082
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896541380313108/onyx-RENDER.png",
+            788896541670637609
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896057966329856/onyx-RENDER.png",
+            788896058183909406
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896087930699796/onyx-RENDER.png",
+            788896088123506708
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896573404872754/onyx-RENDER.png",
+            788896573618126878
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896965596413962/onyx-RENDER.png",
+            788896965840732160
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895812507271178/onyx-RENDER.png",
+            788895812717248583
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895187371294771/onyx-RENDER.png",
+            788895187601719307
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896123108589588/onyx-RENDER.png",
+            788896123199946785
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895382146908190/onyx-RENDER.png",
+            788895382414819398
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788897000237563904/onyx-RENDER.png",
+            788897000644280391
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788897033330229308/onyx-RENDER.png",
+            788897033149743135
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894961437376512/onyx-RENDER.png",
+            788894961650106398
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895853032374282/onyx-RENDER.png",
+            788895853665583144
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895683452993556/onyx-RENDER.png",
+            788895683235151944
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895499615993887/onyx-RENDER.png",
+            788895499889278986
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896611665313852/onyx-RENDER.png",
+            788896611933618216
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896649639886898/onyx-RENDER.png",
+            788896649681567826
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896689648959488/onyx-RENDER.png",
+            788896690295275561
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788897068855984158/onyx-RENDER.png",
+            788897069074219078
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895889979605002/onyx-RENDER.png",
+            788895889867538476
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895923643088916/onyx-RENDER.png",
+            788895923865518110
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896723073892403/onyx-RENDER.png",
+            788896723153059900
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896758624682044/onyx-RENDER.png",
+            788896758800449537
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895222943449098/onyx-RENDER.png",
+            788895223186325585
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896291471622164/onyx-RENDER.png",
+            788896291685662750
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896325910528000/onyx-RENDER.png",
+            788896326028623933
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895956463517727/onyx-RENDER.png",
+            788895956686733312
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895004810149969/onyx-RENDER.png",
+            788895005053026304
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896157454827571/onyx-RENDER.png",
+            788896157677781022
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896190686167070/onyx-RENDER.png",
+            788896190900863026
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896788064501760/onyx-RENDER.png",
+            788896788265697351
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895041304133692/onyx-RENDER.png",
+            788895041380548659
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896862789959700/onyx-RENDER.png",
+            788896862727831593
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896897355743232/onyx-RENDER.png",
+            788896897301610507
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896823812947998/onyx-RENDER.png",
+            788896823787651073
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788896221539991622/onyx-RENDER.png",
+            788896221816291348
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788895989427732560/onyx-RENDER.png",
+            788895989384871978
+        ]
+    },
+    "textureRegions": []
+}

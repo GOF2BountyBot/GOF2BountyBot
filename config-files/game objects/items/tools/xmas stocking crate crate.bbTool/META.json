@@ -1,0 +1,22 @@
+{   "type": "CrateTool", "crateType": "christmas", "typeNum": 2021, "name": "Christmas Stocking",
+    "techLevel": 10, "emoji": {"id": 924067496707887184}, "builtIn": false,
+    "icon": "https://cdn.discordapp.com/attachments/700683544103747594/924067630388772864/keith_stocking.png",
+    "itemPool": [   {
+                        "type": "CreditsTool", "name": "1000 credits", "value": 1000, "autoUse": true,
+                        "builtIn": false, "aliases": []
+                    },
+                    {
+                        "type": "CreditsTool", "name": "1500 credits", "value": 1500, "autoUse": true,
+                        "builtIn": false, "aliases": []
+                    },
+                    {
+                        "type": "ThrowSnowballTool", "name": "Snowball", "value": 0,
+                        "builtIn": false, "aliases": []
+                    },
+                    {
+                        "type": "ModuleItem", "name": "Coal",
+                        "icon": "https://cdn.discordapp.com/attachments/700683544103747594/924113938638057512/coal_512.png",
+                        "emoji": {"id": 924113974109302845}, "builtIn": false, "aliases": []
+                    }
+                ]
+}

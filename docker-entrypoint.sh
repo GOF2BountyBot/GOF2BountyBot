@@ -7,18 +7,13 @@ GAME_OBJECTS_READY=false
 
 # Function to check if directory exists and has files
 check_directory() {
-    if [[ -d "$TARGET_DIR" ]]; then
-        # Directory exists, check if it has files
-        if [[ -n "$(ls -A "$TARGET_DIR" 2>/dev/null)" ]]; then
-            echo "✓ Directory '$TARGET_DIR' exists and contains files."
-            return 0  # Directory exists and has files
-        else
-            echo "⚠ Directory '$TARGET_DIR' exists but is empty."
-            return 1  # Directory exists but is empty
-        fi
+    # Look for the first .bmp or .jpg file (case‐insensitive) and quit as soon as one is found
+    if find "$TARGET_DIR" -type f \( -iname '*.bmp' -o -iname '*.jpg' \) -print -quit | grep -q .; then
+        echo "✓ Found at least one .bmp or .jpg under '$TARGET_DIR', assuming assets have been downloaded previously."
+        return 0
     else
-        echo "⚠ Directory '$TARGET_DIR' does not exist."
-        return 1  # Directory doesn't exist
+        echo "⚠ No .bmp or .jpg files found in '$TARGET_DIR' or its subdirectories."
+        return 1
     fi
 }
 
@@ -39,7 +34,7 @@ download_and_extract() {
     fi
     
     echo "Extracting archive to $TARGET_DIR..."
-    if 7z x "$TEMP_FILE" -o"$TARGET_DIR/../" -y > /dev/null; then
+    if 7z x "$TEMP_FILE" -o"$TARGET_DIR/../" -y -aos > /dev/null; then
         echo "✓ Extraction completed successfully."
         rm -f "$TEMP_FILE"  # Clean up temporary file
         return 0
@@ -80,12 +75,12 @@ check_dependencies
 echo "Checking game objects directory status..."
 
 if check_directory; then
-    # Directory already exists and has files
+    # Directory already exists and appears to have all needed files
     GAME_OBJECTS_READY=true
     echo "✓ Game objects data is already available."
 else
     # Directory is missing or empty, try to download and extract
-    echo "Directory is missing or empty. Attempting download and extraction..."
+    echo "Directory is missing or incomplete. Attempting download and extraction..."
     
     if download_and_extract; then
         # Verify the extraction worked by checking directory again
@@ -93,7 +88,7 @@ else
             GAME_OBJECTS_READY=true
             echo "✓ Game objects data successfully downloaded and extracted."
         else
-            echo "✗ Error: Extraction completed but directory is still empty."
+            echo "✗ Error: Extraction completed but data still missing."
         fi
     else
         echo "✗ Error: Download and extraction process failed."

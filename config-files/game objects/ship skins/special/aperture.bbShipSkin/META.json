@@ -1,0 +1,41 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "aperture",
+    "ships": {
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788195308944883732/aperture-RENDER.png",
+            788195309229572126
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788196111981477908/aperture-RENDER.png",
+            788196112212820018
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788174417581703198/aperture-RENDER.png",
+            788174417804656650
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788179723946688542/aperture-RENDER.png",
+            788179724231770122
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788186688266043402/aperture-RENDER.png",
+            788186688794132561
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788176457574776852/aperture-RENDER.png",
+            788176458089889792
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788148834236235837/aperture-RENDER.png",
+            788148834911125514
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788391968325369866/aperture-RENDER.png",
+            788391968652132402
+        ]
+    },
+    "textureRegions": []
+}
