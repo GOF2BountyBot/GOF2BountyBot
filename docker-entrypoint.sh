@@ -31,7 +31,7 @@ download_and_extract() {
     fi
     
     echo "Downloading file using gdown..."
-    if gdown "$GAME_OBJS_FILEID" -O "$TEMP_FILE"; then
+    if gdown "$GAME_OBJS_FILEID" -O "$TEMP_FILE" -q; then
         echo "✓ Download completed successfully."
     else
         echo "✗ Error: Failed to download file with gdown."
