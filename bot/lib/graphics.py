@@ -226,6 +226,8 @@ def applyProgressBarOutline(progressBar: Image.Image, progress: float, emptyColo
     w *= min(1, max(0.01, progress))
     w -= 1
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(progressBar)
+    print("w in applyProgressBarOutline func", w, sep=": ")
+    print("h in applyProgressBarOutline func", h, sep=": ")
     draw.arc(((0, 0),     (h, h)), 90, 270,  fill=lineColour, width=lineWidth)
     draw.arc(((w - h, 0), (w, h)), 270, 450, fill=lineColour, width=lineWidth)
     draw.line(((h / 2, 0), (w - h / 2, 0)), fill=lineColour, width=lineWidth)
@@ -253,11 +255,19 @@ def progressBar(w: int, h: int, progress: float, mode: str = "1", bgColour: AnyC
     """
     im = Image.new(mode, (w, h), bgColour)
     drawObject = ImageDraw.Draw(im)
-    w = int(w * min(1.0, max(0.01, progress)))
+    #w = int(w * min(1.0, max(0.01, progress)))
+    # clamp progress into [0.01, 1.0]
+    p = min(1.0, max(0.01, progress))
+    # compute fill width, then ensure it's at least one circle-diameter
+    fill_w = int(w * p)
+    fill_w = max(fill_w, h)
 
-    drawObject.ellipse(  ((0, 0),     (h, h)),         fill=barColour)
-    drawObject.ellipse(  ((w - h, 0), (w, h)),         fill=barColour)
-    drawObject.rectangle(((h / 2, 0), (w - h / 2, h)), fill=barColour)
+    # left semicircle
+    drawObject.ellipse((0, 0, h, h), fill=barColour)
+    # right semicircle
+    drawObject.ellipse((fill_w - h, 0, fill_w, h), fill=barColour)
+    # connecting rectangle
+    drawObject.rectangle((h / 2, 0, fill_w - (h / 2), h), fill=barColour)
 
     return im
 

@@ -714,9 +714,14 @@ class UserMiscCog(basedApp.BasedCog):
 
         # Colour behind unfilled area of the xp bar
         xpBarSil = lib.graphics.copyXPBarSilhouette()
+        #print("xpBarSil in cmd_stats func", xpBarSil, sep=": ")
         # Mask describing which parts of the bar should be filled
+        print("cfg.xpBarWidth in cmd_stats func", cfg.xpBarWidth, sep=": ")
+        print("cfg.xpBarHeight in cmd_stats func", cfg.xpBarHeight, sep=": ")
+        print("levelProgress in cmd_stats func", levelProgress, sep=": ")
         xpBarMask = lib.graphics.progressBar(cfg.xpBarWidth, cfg.xpBarHeight, levelProgress)
         # Image to mask with xpBarMask, filling the bar
+        # print("divisionNameForLevel(hunterLvl) in cmd_stats func", divisionNameForLevel(hunterLvl), sep=": ")
         xpBarFill = lib.graphics.copyXPBarFill(divisionNameForLevel(hunterLvl))
         # User profile background image
         if os.path.isfile(cfg.paths.userProfileBackground):
@@ -801,19 +806,30 @@ class UserMiscCog(basedApp.BasedCog):
                                     cfg.userProfileLevelColour, font=font)
                     # Build current XP string
                     currentXPStr = commaSplitNum(effectiveBountyXP) + "/"
-                    # Calculate size of current XP string
-                    currentXPStrSize = font.getsize(currentXPStr)
                     # Build next XP string
                     nextXPStr = commaSplitNum(nextXP) + "xp"
-                    # Calculate size of next XP string
-                    nextXPStrSize = font.getsize(nextXPStr)
-                    # Draw next XP string to image
-                    textDraw.text((cfg.userProfileImgWidth - nextXPStrSize[0] - xPad, yPad), nextXPStr,
-                                    cfg.userProfileNextXPColour, font=font)
-                    # Draw current XP string to image
-                    textDraw.text((cfg.userProfileImgWidth - currentXPStrSize[0] - nextXPStrSize[0] - xPad, yPad),
-                                    currentXPStr,
-                                    cfg.userProfileXPColour, font=font)
+                    # getbbox returns (x0, y0, x1, y1)
+                    bbox_cur = font.getbbox(currentXPStr)
+                    current_w, current_h = bbox_cur[2] - bbox_cur[0], bbox_cur[3] - bbox_cur[1]
+
+                    bbox_nxt = font.getbbox(nextXPStr)
+                    next_w, next_h     = bbox_nxt[2] - bbox_nxt[0], bbox_nxt[3] - bbox_nxt[1]
+
+                    # draw next XP
+                    textDraw.text(
+                        (cfg.userProfileImgWidth - next_w - xPad, yPad),
+                        nextXPStr,
+                        cfg.userProfileNextXPColour,
+                        font=font
+                    )
+
+                    # draw current XP
+                    textDraw.text(
+                        (cfg.userProfileImgWidth - current_w - next_w - xPad, yPad),
+                        currentXPStr,
+                        cfg.userProfileXPColour,
+                        font=font
+                    )
                     userProfileBytes = BytesIO()
                     profileBackground.save(userProfileBytes, "PNG")
                     userProfileBytes.seek(0)
