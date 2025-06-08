@@ -119,7 +119,8 @@ with open(args.material, "a") as f:
 
 ctx = bpy.context
 # import the model into blender's scene
-bpy.ops.import_scene.obj(filepath=args.model_fullpath, axis_forward='-Z', axis_up='Y', filter_glob="*.obj;*.mtl")
+bpy.ops.wm.obj_import(filepath=args.model_fullpath, forward_axis='NEGATIVE_Z', up_axis='Y', filter_glob="*.obj;*.mtl")
+
 # ensure nothing is currently selected, in case the camera is selected for some reason
 bpy.ops.object.select_all(action='DESELECT')
 
