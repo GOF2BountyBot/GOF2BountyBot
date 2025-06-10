@@ -102,6 +102,9 @@ echo "=== Final Status Check ==="
 if [[ "$GAME_OBJECTS_READY" == true ]]; then
     echo "✓ Game objects data is ready. Proceeding with application launch..."
     echo
+    # Force-reupdate permissions on the bot folder...
+    sudo chown -R botuser /app/bountybot
+    sudo chmod -R 1777 /app/bountybot
     source /opt/venv/bin/activate
     /opt/venv/bin/python main.py "$CONFIG_FILE"
 else

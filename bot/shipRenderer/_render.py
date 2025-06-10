@@ -142,6 +142,7 @@ print(f"args.material: {args.material}")
 ##### CONFIGURE THE SCENE #####
 
 # Point the material at the requested texture
+#
 # Temp hack as map_Kd is evaluated as relative to the model folder...
 # Since we're resolving absolute paths, a relative path can be calculated by
 # working back to the root with `../` and appending the texture's
@@ -149,21 +150,9 @@ print(f"args.material: {args.material}")
 # so hard-coding that in for now.  Better would be to calculate that based
 # on the model directory and generate it programmatically...
 # ../../../../../../../../
-
-model_parent = pathlib.Path(args.model_fullpath).parent
-print(f"model_parent: {model_parent}")
-
-rel_texture_path = str(model_parent) + "/../../../../../../../.." + args.texture_path
-print(f"rel_texture_path: {rel_texture_path}")
-
 with open(args.material, "a") as f:
     # f.write("map_Kd " + rel_texture_path)
-    f.write("map_Kd " + args.texture_path)
-
-print(f"args.model_fullpath 2: {args.model_fullpath}")
-print(f"args.output_file_path 2: {args.output_file_path}")
-print(f"args.texture_path 2: {args.texture_path}")
-print(f"args.material 2: {args.material}")
+    f.write("map_Kd ../../../../../../../.." + args.texture_path)
 
 ctx = bpy.context
 # import the model into blender's scene
