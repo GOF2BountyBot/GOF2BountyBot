@@ -10,7 +10,7 @@ from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..gameObjects.guildShop import StoredItemTypesTuple
+from bot.gameObjects.guildShop import StoredItemTypesTuple
 
 
 class UserLomaCog(BasedCog):

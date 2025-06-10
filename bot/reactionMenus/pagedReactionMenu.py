@@ -6,7 +6,7 @@ from typing import Dict, Generic, Optional, TypeVar, Union, cast
 from typing_extensions import TypedDict
 from ..scheduling import timedTask
 from bot.cfg import cfg
-from ..baseClasses.serializable import AnyTypedDict
+from bot.baseClasses.serializable import AnyTypedDict
 
 
 TMenuOptionType = TypeVar("TMenuOptionType", bound=reactionMenu.ReactionMenuOption)

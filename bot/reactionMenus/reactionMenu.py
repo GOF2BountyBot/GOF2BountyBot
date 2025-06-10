@@ -14,7 +14,7 @@ from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, Union, Dict, List, cast
 from typing_extensions import NotRequired, TypedDict
 import asyncio
-from ..baseClasses.serializable import SerializesToSchema, AnyTypedDict
+from bot.baseClasses.serializable import SerializesToSchema, AnyTypedDict
 from . import expiryFunctions
 
 

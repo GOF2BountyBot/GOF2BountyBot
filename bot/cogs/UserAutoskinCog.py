@@ -12,9 +12,9 @@ from PIL import Image
 
 from .. import client, botState, lib
 from bot.lib.discordUtil import textChannel
-from ..lib import AEPi
-from ..lib.timeUtil import td_format_noYM
-from ..lib.tempFolder import TempFolder
+from bot.lib import AEPi
+from bot.lib.timeUtil import td_format_noYM
+from bot.lib.tempFolder import TempFolder
 from bot.cfg import bbData, cfg
 from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand

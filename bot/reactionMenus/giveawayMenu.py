@@ -6,7 +6,7 @@ from . import reactionMenu, expiryFunctions
 from .. import botState
 from ..users import basedUser
 from ..scheduling import timedTask
-from ..gameObjects.guildShop import StoredItemType
+from bot.gameObjects.guildShop import StoredItemType
 
 
 class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption", Never]):

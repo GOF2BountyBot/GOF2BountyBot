@@ -1,6 +1,6 @@
 import os
 
-from ..baseClasses.serializable import SerializesToJson
+from bot.baseClasses.serializable import SerializesToJson
 from bot.cfg import cfg
 from .. import lib
 from datetime import datetime, timezone

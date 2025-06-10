@@ -14,7 +14,7 @@ from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
 from ..userAlerts import userAlerts
 from .. import lib
-from ..lib.emojis import randomEmoji
+from bot.lib.emojis import randomEmoji
 from ..reactionMenus.reactionRolePicker import ReactionRolePicker, ReactionRolePickerOption
 from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
 from .util.transformers import BoolEnableDisable

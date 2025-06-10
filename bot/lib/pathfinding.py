@@ -1,7 +1,7 @@
 # TODO: Look into third party library
 # TODO: Add failed route lookups to logger
 from __future__ import annotations
-from ..gameObjects.bounties import solarSystem
+from bot.gameObjects.bounties import solarSystem
 import math
 from bot.cfg import bbData
 from typing import Dict, List, Union, cast

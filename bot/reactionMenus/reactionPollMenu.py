@@ -8,8 +8,8 @@ from typing import Dict, Optional, Union, cast
 from typing_extensions import NotRequired
 from ..users import basedUser
 from ..logging import LogCategory
-from ..baseClasses.serializable import SerializesToSchema
-from ..lib.timeUtil import utcfromtimestamp
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.lib.timeUtil import utcfromtimestamp
 
 
 checkMarkIcon = \

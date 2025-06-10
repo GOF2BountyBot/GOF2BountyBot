@@ -2,7 +2,7 @@ from typing import cast
 from discord import Guild, app_commands, Interaction
 
 from .. import client
-from ..lib.timeUtil import td_format_noYM
+from bot.lib.timeUtil import td_format_noYM
 from bot.lib.discordUtil import timestamp, TimeStampStyle
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels

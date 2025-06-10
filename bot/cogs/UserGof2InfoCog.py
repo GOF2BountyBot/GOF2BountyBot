@@ -24,10 +24,10 @@ from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     toolAutoComplete, ToolKey, \
                                     medalAutoComplete, MedalKey
 from .util.EmbedEditorUtil import interactionErrorString
-from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
-from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
-from ..baseClasses.embedFillable import EmbedFillableMixin
-from ..gameObjects.gameObject import SerializedLoadedObject
+from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
+from bot.gameObjects.items.ships.shipBlueprint import ShipBlueprint
+from bot.baseClasses.embedFillable import EmbedFillableMixin
+from bot.gameObjects.gameObject import SerializedLoadedObject
 from ..logging import LogCategory
 
 class ListSearchableItemTypes(Enum):

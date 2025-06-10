@@ -10,10 +10,10 @@ from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.bbData import ItemCategory
 from ..interactions import basedCommand, basedApp
-from ..gameObjects.items import gameItem
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.kaamoShop import KaamoShop
-from ..gameObjects import guildShop
+from bot.gameObjects.items import gameItem
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.kaamoShop import KaamoShop
+from bot.gameObjects import guildShop
 from ..logging import LogCategory
 from ..views.serializedItemModal import SerializedItemModal
 

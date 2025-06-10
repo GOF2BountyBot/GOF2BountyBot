@@ -15,8 +15,8 @@ from bot.cfg.schema import GitHubIssueType, gitHubIssueTypeIds, gitHubIssueIdTyp
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from bot.lib.discordUtil import ZWSP, messageDescriptor
-from ..lib import ids
-from ..lib.timeUtil import td_format_noYM
+from bot.lib import ids
+from bot.lib.timeUtil import td_format_noYM
 from .util.transformers import BoolYesNo
 from ..views.issues.bugReportModal import BugReportModal
 from ..views.issues.issueReportModalBase import IssueReportModalBase

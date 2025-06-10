@@ -5,7 +5,7 @@ import os
 from typing import Dict, List, Literal, Set, Tuple, TypeVar, Union, Any, cast
 from pathlib import PosixPath, WindowsPath, Path
 
-from ..lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
+from bot.lib.emojis import IBasedEmoji, UninitializedBasedEmoji, BasedEmoji
 
 T = TypeVar("T", bound=Path)
 

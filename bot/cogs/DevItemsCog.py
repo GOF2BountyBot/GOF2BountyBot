@@ -6,7 +6,7 @@ from discord.abc import Snowflake
 from discord.utils import MISSING
 from discord.app_commands import Range
 
-from ..gameObjects.items.ships import shipItem
+from bot.gameObjects.items.ships import shipItem
 
 from .. import client, lib
 from bot.cfg import cfg, bbData
@@ -14,11 +14,11 @@ from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..gameObjects.items import gameItem
+from bot.gameObjects.items import gameItem
 from .util.CommonAutocomplete import divisionAutoComplete, DivisionNameOrAll
 from .util.parameterVerifiers import verifyDivName
 from ..users.basedGuild import BasedGuild
-from ..gameObjects.guildShop import TechLeveledShop
+from bot.gameObjects.guildShop import TechLeveledShop
 from ..databases.bountyDB import divisionNameForLevel
 from ..logging import LogCategory
 from ..views.serializedItemModal import SerializedItemModal

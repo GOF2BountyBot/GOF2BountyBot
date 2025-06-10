@@ -4,18 +4,18 @@ from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
     from .bountyDB import BountyDB
 
-from ..baseClasses.aliasableDict import AliasableDict
-from ..gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEscapedBounty
-from ..gameObjects.bounties.criminal import Criminal
-from ..gameObjects.bounties.bountyConfig import BountyConfig
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
+from bot.baseClasses.aliasableDict import AliasableDict
+from bot.gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEscapedBounty
+from bot.gameObjects.bounties.criminal import Criminal
+from bot.gameObjects.bounties.bountyConfig import BountyConfig
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from bot.cfg import cfg, bbData
 from .. import botState, lib
-from ..lib import gameMaths
+from bot.lib import gameMaths
 from ..logging import LogCategory
 from ..scheduling.timedTask import TimedTask, DynamicRescheduleTask
 from traceback import format_stack
-from ..baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.serializable import SerializesToSchema
 
 from datetime import timedelta
 import random

@@ -3,7 +3,7 @@ from ..users import basedUser
 from .. import lib
 from .. import botState
 from typing import Dict, List
-from ..baseClasses.serializable import SerializesToType
+from bot.baseClasses.serializable import SerializesToType
 
 
 class UserDB(SerializesToType[Dict[str, "basedUser.SerializedBasedUser"]]):

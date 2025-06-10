@@ -20,20 +20,20 @@ from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
                                     divisionAutoComplete, DivisionName, \
                                     activeCriminalAutoComplete, CriminalKey, \
                                     inventoryItemNumberAutoComplete, InventoryItemNumber
-from ..lib.timeUtil import td_format_noYM
-from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
+from bot.lib.timeUtil import td_format_noYM
+from bot.lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from bot.lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
 from bot.lib.stringTyping import commaSplitNum
-from ..lib.emojis import BasedEmoji
-from ..lib.timeUtil import utcfromtimestamp
+from bot.lib.emojis import BasedEmoji
+from bot.lib.timeUtil import utcfromtimestamp
 from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
-from ..gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.items.gameItem import GameItem
-from ..gameObjects.items.tools import toolItemFactory
-from ..gameObjects.items.tools.crateTool import CrateTool
-from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
+from bot.gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.gameItem import GameItem
+from bot.gameObjects.items.tools import toolItemFactory
+from bot.gameObjects.items.tools.crateTool import CrateTool
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
 from ..logging import LogCategory
 from ..views.confirmView import ConfirmView
 

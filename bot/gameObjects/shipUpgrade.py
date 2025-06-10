@@ -5,9 +5,9 @@ from typing_extensions import NotRequired
 
 from bot.cfg import bbData
 from .items.ships import shipBase
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.simpleHash import simpleHash
-from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.simpleHash import simpleHash
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .. import lib
 from bot.lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from .gameObject import LoadedObject, SerializedLoadedObject

@@ -8,7 +8,7 @@ from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
 from ..users.basedGuild import GuildChannelType
 from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 class AdminChannelsCog(basedApp.BasedCog):
     async def setGuildChannel(self, interaction: Interaction, channelType: GuildChannelType, friendlyName: str):

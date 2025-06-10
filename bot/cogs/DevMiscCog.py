@@ -11,8 +11,8 @@ import random
 
 from .. import client, lib, botState
 from bot.lib.discordUtil import ZWSP, textChannel, ImageFile
-from ..lib.timeUtil import utcfromtimestamp
-from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
@@ -30,11 +30,11 @@ from ..databases.bountyDB import nameForDivision, BountyDB
 from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey
 from .util.parameterVerifiers import verifyCriminalName
 from ..logging import LogCategory
-from ..baseClasses.basedEnum import BasedEnum
-from ..gameObjects.items.ships import shipItem
-from ..gameObjects.bounties import solarSystem
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
-from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.baseClasses.basedEnum import BasedEnum
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects.bounties import solarSystem
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 if TYPE_CHECKING:
     from . import BASEDVersionCog

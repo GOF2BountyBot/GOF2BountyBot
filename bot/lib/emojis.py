@@ -11,8 +11,8 @@ from discord import PartialEmoji, Emoji
 
 from .. import botState
 from . import stringTyping, exceptions
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.simpleHash import simpleHash
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.simpleHash import simpleHash
 from bot.cfg import cfg
 
 

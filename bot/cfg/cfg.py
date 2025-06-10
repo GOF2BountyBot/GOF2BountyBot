@@ -1,10 +1,10 @@
-from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
+from bot.lib.emojis import UninitializedBasedEmoji, BasedEmoji
 from bot.lib.discordUtil import SerializableDiscordObject
-from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict
+from bot.cfg.schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict
 from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..gameObjects.items.ships import shipBase
+    from bot.gameObjects.items.ships import shipBase
 
 # All emojis used by the bot
 defaultEmojis = EmojisConfig(

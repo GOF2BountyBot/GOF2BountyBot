@@ -1,6 +1,6 @@
 from bot.cfg import cfg
 from .. import lib
-from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
+from bot.lib.BASED_version import checkForUpdates, BASED_REPO_URL
 from .. import client
 from ..interactions.basedApp import BasedCog
 

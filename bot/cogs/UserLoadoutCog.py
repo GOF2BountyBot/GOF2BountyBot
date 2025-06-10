@@ -12,13 +12,13 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
 from ..users import basedUser
-from ..gameObjects.inventories.inventoryListing import SerializedInventoryListing
-from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
-from ..gameObjects.inventories.inventory import Inventory
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
-from ..gameObjects.items.weapons.turretWeapon import TurretWeapon
-from ..gameObjects.items.modules.moduleItem import ModuleItem
+from bot.gameObjects.inventories.inventoryListing import SerializedInventoryListing
+from bot.gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
+from bot.gameObjects.inventories.inventory import Inventory
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
+from bot.gameObjects.items.modules.moduleItem import ModuleItem
 from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList, anyShipEquippedItemAutoComplete, AnyShipEquippedItemOrAll, AutocompleteResult
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly

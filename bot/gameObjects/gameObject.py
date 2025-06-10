@@ -2,8 +2,8 @@ from typing import Optional, TypeVar, Type
 from typing_extensions import NotRequired, TypedDict
 from abc import abstractmethod
 
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 from bot.lib.discordUtil import ZWSP
 

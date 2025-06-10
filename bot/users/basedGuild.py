@@ -8,21 +8,21 @@ from typing_extensions import NotRequired, TypedDict
 from aiohttp import client_exceptions
 import random
 
-from ..baseClasses.serializable import SerializesToSchema, SerializesToType
+from bot.baseClasses.serializable import SerializesToSchema, SerializesToType
 
 from .. import botState, lib
-from ..lib import gameMaths
+from bot.lib import gameMaths
 from bot.lib.stringTyping import commaSplitNum
-from ..lib.timeUtil import utcfromtimestamp
+from bot.lib.timeUtil import utcfromtimestamp
 from ..logging import LogCategory
-from ..gameObjects import guildShop
+from bot.gameObjects import guildShop
 from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
 from ..userAlerts import userAlerts
 from bot.cfg import cfg, bbData
-from ..gameObjects.bounties import bounty, bountyConfig
+from bot.gameObjects.bounties import bounty, bountyConfig
 from ..databases import bountyDivision
-from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
-from ..gameObjects.items.gameItem import GameItem
+from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
+from bot.gameObjects.items.gameItem import GameItem
 from . import basedUser
 
 

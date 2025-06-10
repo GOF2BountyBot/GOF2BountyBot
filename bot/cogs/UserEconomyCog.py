@@ -8,7 +8,7 @@ from bot.gameObjects.items.ships.shipItem import Ship
 from .. import client
 from bot.lib.stringTyping import isInt, commaSplitNum
 from bot.lib.discordUtil import makeEmbed, ZWSP
-from ..lib.gameMaths import calculateUserBountyHuntingLevel
+from bot.lib.gameMaths import calculateUserBountyHuntingLevel
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
@@ -19,7 +19,7 @@ from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, \
                                     anyUserHangerItemAutoComplete, AnyUserHangarItem
 from .util.transformers import BoolYesNo
 from ..interactions.commandChecks import guildOnly
-from ..gameObjects.guildShop import TechLeveledShop
+from bot.gameObjects.guildShop import TechLeveledShop
 from ..logging import LogCategory
 from ..views.confirmView import ConfirmView
 

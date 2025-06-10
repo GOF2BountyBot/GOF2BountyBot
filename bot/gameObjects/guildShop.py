@@ -22,9 +22,9 @@ from .items.tools import toolItem, toolItemFactory
 from .inventories.inventory import Inventory, _InventoryBase, SerializedInventory
 from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 from .. import botState
-from ..lib import gameMaths
+from bot.lib import gameMaths
 from ..logging import LogCategory
-from ..baseClasses.serializable import JsonType, SerializesToSchema
+from bot.baseClasses.serializable import JsonType, SerializesToSchema
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
 StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)

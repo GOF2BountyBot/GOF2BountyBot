@@ -4,7 +4,7 @@ import json, os
 from carica.exceptions import NonSerializableObject
 from typing import TypeVar, Type, Union
 from pathlib import Path
-from ..baseClasses.serializable import SerializesToJson, JsonType
+from bot.baseClasses.serializable import SerializesToJson, JsonType
 
 TSelf = TypeVar("TSelf", bound=SerializesToJson)
 

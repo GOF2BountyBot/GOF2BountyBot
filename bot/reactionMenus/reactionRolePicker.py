@@ -2,9 +2,9 @@ from __future__ import annotations
 from discord.member import Member
 from . import reactionMenu, expiryFunctions
 from .. import botState
-from ..lib.emojis import BasedEmoji
-from ..lib.timeUtil import utcfromtimestamp
-from ..baseClasses.serializable import SerializesToSchema
+from bot.lib.emojis import BasedEmoji
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.baseClasses.serializable import SerializesToSchema
 from discord import Colour, Guild, Role, Message, User
 from ..scheduling import timedTask
 from typing import Optional, Tuple, Union, Dict, cast

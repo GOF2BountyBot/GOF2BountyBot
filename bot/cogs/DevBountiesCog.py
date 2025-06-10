@@ -12,12 +12,12 @@ import random
 from ..scheduling import timedTask
 from ..interactions import basedCommand, basedApp
 from .. import botState, lib, client
-from ..lib import gameMaths
-from ..lib.timeUtil import utcfromtimestamp
+from bot.lib import gameMaths
+from bot.lib.timeUtil import utcfromtimestamp
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
-from ..gameObjects.bounties import bounty, bountyConfig
-from ..gameObjects.items.ships import shipItem
+from bot.gameObjects.bounties import bounty, bountyConfig
+from bot.gameObjects.items.ships import shipItem
 from ..users import basedGuild, basedUser
 from ..databases.bountyDB import nameForDivision, BountyDB
 from ..databases.bountyDivision import BountyDivision

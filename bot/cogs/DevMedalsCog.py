@@ -11,7 +11,7 @@ from .. import client, lib
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
-from ..gameObjects.userProfile.medal import Medal
+from bot.gameObjects.userProfile.medal import Medal
 
 class DevMedalsCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="medals")

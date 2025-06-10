@@ -2,7 +2,7 @@ from discord import app_commands, Interaction
 from discord.app_commands import Range
 
 from .. import client, lib
-from ..lib import gameMaths
+from bot.lib import gameMaths
 from bot.lib.discordUtil import ZWSP
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
@@ -11,8 +11,8 @@ from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from .util.CommonAutocomplete import anyUserHangerItemAutoComplete, AnyUserHangarItem
 from .util.transformers import BoolYesNo
-from ..gameObjects.kaamoShop import KaamoShop
-from ..gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.kaamoShop import KaamoShop
+from bot.gameObjects.items.ships.shipItem import Ship
 from ..logging import LogCategory
 
 

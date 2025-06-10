@@ -2,13 +2,13 @@ from __future__ import annotations
 from typing import Dict, Optional, cast, TYPE_CHECKING
 from typing_extensions import NotRequired, TypedDict
 
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
-from ..gameObjects.bounties import bounty
-from ..gameObjects.bounties.criminal import Criminal
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
+from bot.gameObjects.bounties import bounty
+from bot.gameObjects.bounties.criminal import Criminal
 from typing import List
 from bot.cfg import cfg
 from .bountyDivision import BountyDivision
-from ..baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.serializable import SerializesToSchema
 
 if TYPE_CHECKING:
     from ..users import basedGuild

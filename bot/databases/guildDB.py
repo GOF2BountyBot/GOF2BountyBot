@@ -9,9 +9,9 @@ from . import bountyDB
 from .. import botState, lib
 from .. import lib
 from ..logging import LogCategory
-from ..baseClasses.serializable import SerializesToType
+from bot.baseClasses.serializable import SerializesToType
 from ..logging import LogCategory
-from ..gameObjects import guildShop
+from bot.gameObjects import guildShop
 
 
 _minGuildsToParallelize = os.cpu_count()

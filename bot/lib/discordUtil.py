@@ -5,7 +5,7 @@ from enum import Enum
 
 if TYPE_CHECKING:
     from ..users import basedUser, basedGuild
-    from ..gameObjects.bounties import criminal
+    from bot.gameObjects.bounties import criminal
     from .. import client
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ from PIL.Image import Image
 from io import BytesIO
 
 from ..logging import LogCategory
-from ..baseClasses.serializable import Serializable
+from bot.baseClasses.serializable import Serializable
 
 
 class AnyCoroutine(Protocol):
