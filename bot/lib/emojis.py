@@ -13,7 +13,7 @@ from .. import botState
 from . import stringTyping, exceptions
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
-from ..cfg import cfg
+from bot.cfg import cfg
 
 
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, cast
 from . import reactionMenu
-from ..cfg import cfg
+from bot.cfg import cfg
 from ..gameObjects.items import gameItem
 from ..gameObjects.inventories import inventory
 from discord import Message, Colour, Member, Role

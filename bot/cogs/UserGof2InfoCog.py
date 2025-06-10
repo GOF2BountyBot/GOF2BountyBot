@@ -9,8 +9,8 @@ from discord.ui import View, Button, Select
 
 from .. import client, lib
 from bot.lib.discordUtil import ImageFile
-from ..cfg import bbData, cfg
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import bbData, cfg
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

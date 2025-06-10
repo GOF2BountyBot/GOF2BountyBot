@@ -6,7 +6,7 @@ from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardCh
 from ..gameObjects.bounties import bounty
 from ..gameObjects.bounties.criminal import Criminal
 from typing import List
-from ..cfg import cfg
+from bot.cfg import cfg
 from .bountyDivision import BountyDivision
 from ..baseClasses.serializable import SerializesToSchema
 

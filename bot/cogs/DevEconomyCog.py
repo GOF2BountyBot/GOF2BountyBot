@@ -5,8 +5,8 @@ from discord.abc import Snowflake
 from discord.app_commands import Range
 
 from .. import client
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 

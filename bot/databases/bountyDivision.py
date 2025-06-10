@@ -9,7 +9,7 @@ from ..gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEs
 from ..gameObjects.bounties.criminal import Criminal
 from ..gameObjects.bounties.bountyConfig import BountyConfig
 from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
-from ..cfg import cfg, bbData
+from bot.cfg import cfg, bbData
 from .. import botState, lib
 from ..lib import gameMaths
 from ..logging import LogCategory

@@ -4,8 +4,8 @@ from typing import Generic, Iterable, Dict, Optional, Protocol, Type, TypeVar, U
 from typing_extensions import TypedDict
 import carica
 from carica import ISerializable, SerializesToType, PrimativeType
-from .defaultable import DefaultableMixin
-from .simpleHash import SimpleHashMixin
+from bot.baseClasses.defaultable import DefaultableMixin
+from bot.baseClasses.simpleHash import SimpleHashMixin
 
 # This currently reflects carica.PrimativeType, but I'm making my own in case Carica decides to allow more primatives.
 # I'm also using Dict instead of Mapping to ensure that the data is mutable.

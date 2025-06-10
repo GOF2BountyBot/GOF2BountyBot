@@ -25,7 +25,7 @@ from .. import botState
 import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
 from discord import DMChannel, GroupChannel, TextChannel
-from ..cfg import cfg
+from bot.cfg import cfg
 from ..userAlerts import userAlerts
 
 from functools import wraps, partial

@@ -8,7 +8,7 @@ from .. import lib, botState
 from ..baseClasses.hasRarity import HasRarityMixin, SerializedWithRarity
 from ..baseClasses.serializable import JsonType, SerializesToSchema
 from ..baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
-from ..cfg import bbData, cfg
+from bot.cfg import bbData, cfg
 from ..shipRenderer import shipRenderer
 from .gameObject import LoadedObject, SerializedLoadedObject
 from .items.ships import shipBase

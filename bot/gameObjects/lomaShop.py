@@ -14,7 +14,7 @@ from .inventories import inventory, inventoryListing
 from .items.tools import toolItem, toolItemFactory
 from . import guildShop, itemDiscount
 from .inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
-from ..cfg.bbData import ItemCategory
+from bot.cfg.bbData import ItemCategory
 from .items.gameItem import SerializedGameItemUnion
 
 class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop.SerializedShopBase...

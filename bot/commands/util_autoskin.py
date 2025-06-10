@@ -6,7 +6,7 @@ import os
 from PIL import Image
 import asyncio
 
-from ..cfg import cfg, bbData
+from bot.cfg import cfg, bbData
 from .. import lib, botState
 from bot.lib.discordUtil import truncateWithEllipse
 from ..reactionMenus import reactionSkinRegionPicker, reactionMenu

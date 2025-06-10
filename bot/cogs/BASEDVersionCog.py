@@ -1,4 +1,4 @@
-from ..cfg import cfg
+from bot.cfg import cfg
 from .. import lib
 from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
 from .. import client

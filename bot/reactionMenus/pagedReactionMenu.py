@@ -5,7 +5,7 @@ from .. import lib, botState
 from typing import Dict, Generic, Optional, TypeVar, Union, cast
 from typing_extensions import TypedDict
 from ..scheduling import timedTask
-from ..cfg import cfg
+from bot.cfg import cfg
 from ..baseClasses.serializable import AnyTypedDict
 
 

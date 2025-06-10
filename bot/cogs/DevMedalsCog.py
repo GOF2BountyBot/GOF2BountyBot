@@ -8,8 +8,8 @@ from os.path import join
 import shutil
 
 from .. import client, lib
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
 from ..gameObjects.userProfile.medal import Medal
 

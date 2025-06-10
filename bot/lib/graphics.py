@@ -2,7 +2,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageChops, ImageFilter
 from typing import Dict, Optional, Union, Tuple, List, cast
 from typing_extensions import TypeGuard
-from ..cfg import cfg
+from bot.cfg import cfg
 import atexit
 import random
 import os

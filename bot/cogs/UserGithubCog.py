@@ -9,9 +9,9 @@ from discord.ui import View, Button
 from github import GithubException
 
 from .. import client
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.schema import GitHubIssueType, gitHubIssueTypeIds, gitHubIssueIdTypes
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.schema import GitHubIssueType, gitHubIssueTypeIds, gitHubIssueIdTypes
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from bot.lib.discordUtil import ZWSP, messageDescriptor

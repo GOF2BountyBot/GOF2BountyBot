@@ -3,7 +3,7 @@ import discord
 
 from . import commandsDB as textCommandsDB
 from .. import botState
-from ..cfg import cfg
+from bot.cfg import cfg
 from . import util_autoskin
 
 

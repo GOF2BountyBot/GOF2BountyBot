@@ -7,9 +7,9 @@ from discord.ui import View, Button
 from discord.utils import utcnow
 
 from .. import client, botState
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

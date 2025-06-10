@@ -3,7 +3,7 @@
 from __future__ import annotations
 from ..gameObjects.bounties import solarSystem
 import math
-from ..cfg import bbData
+from bot.cfg import bbData
 from typing import Dict, List, Union, cast
 from enum import Enum
 

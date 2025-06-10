@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from ..users import basedUser
 
 from . import guildShop
-from ..cfg import cfg
+from bot.cfg import cfg
 from .items import gameItem
 from .items.weapons import primaryWeapon, turretWeapon
 from .items.modules import moduleItem

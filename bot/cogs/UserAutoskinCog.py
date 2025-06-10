@@ -15,8 +15,8 @@ from bot.lib.discordUtil import textChannel
 from ..lib import AEPi
 from ..lib.timeUtil import td_format_noYM
 from ..lib.tempFolder import TempFolder
-from ..cfg import bbData, cfg
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import bbData, cfg
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from .util.CommonAutocomplete import shipAutoComplete, ShipKey

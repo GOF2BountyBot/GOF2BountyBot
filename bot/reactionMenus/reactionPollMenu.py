@@ -1,6 +1,6 @@
 from __future__ import annotations
 from . import reactionMenu
-from ..cfg import cfg
+from bot.cfg import cfg
 from .. import botState, lib
 from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role
 from ..scheduling import timedTask

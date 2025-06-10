@@ -5,7 +5,7 @@ from . import accessLevels
 from .commandChecks import create_requireAccess
 from . import basedApp
 from . import basedComponent
-from ..cfg import cfg
+from bot.cfg import cfg
 from ..cogs.util.helpUtil import *
 
 TClass = TypeVar("TClass")

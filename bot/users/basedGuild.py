@@ -18,7 +18,7 @@ from ..logging import LogCategory
 from ..gameObjects import guildShop
 from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
 from ..userAlerts import userAlerts
-from ..cfg import cfg, bbData
+from bot.cfg import cfg, bbData
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..databases import bountyDivision
 from ..gameObjects.bounties.bountyBoards import bountyBoardChannel

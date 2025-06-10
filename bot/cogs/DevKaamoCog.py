@@ -6,9 +6,9 @@ from discord.app_commands import Range
 from discord.utils import MISSING
 
 from .. import client, lib
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory
 from ..interactions import basedCommand, basedApp
 from ..gameObjects.items import gameItem
 from ..gameObjects.items.ships.shipItem import Ship

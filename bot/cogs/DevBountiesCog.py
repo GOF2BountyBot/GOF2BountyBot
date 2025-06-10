@@ -14,8 +14,8 @@ from ..interactions import basedCommand, basedApp
 from .. import botState, lib, client
 from ..lib import gameMaths
 from ..lib.timeUtil import utcfromtimestamp
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
 from ..gameObjects.bounties import bounty, bountyConfig
 from ..gameObjects.items.ships import shipItem
 from ..users import basedGuild, basedUser

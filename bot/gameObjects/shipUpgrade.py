@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Union, cast
 from typing_extensions import NotRequired
 
-from ..cfg import bbData
+from bot.cfg import bbData
 from .items.ships import shipBase
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash

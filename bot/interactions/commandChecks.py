@@ -1,6 +1,6 @@
 from typing import Optional, Union, cast
 from discord import Guild, HTTPException, Interaction, app_commands
-from ..cfg import cfg
+from bot.cfg import cfg
 from . import accessLevels
 from .. import client
 from bot.lib.discordUtil import textChannel, scheduleCoroWithLogging

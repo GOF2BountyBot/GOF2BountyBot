@@ -9,9 +9,9 @@ from .. import client
 from bot.lib.stringTyping import isInt, commaSplitNum
 from bot.lib.discordUtil import makeEmbed, ZWSP
 from ..lib.gameMaths import calculateUserBountyHuntingLevel
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..users import basedUser

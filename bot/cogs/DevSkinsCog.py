@@ -4,8 +4,8 @@ from discord import HTTPException, app_commands, Interaction, Colour
 from discord.abc import Snowflake
 
 from .. import client, lib
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from .util.CommonAutocomplete import shipAutoComplete, ShipKey, \

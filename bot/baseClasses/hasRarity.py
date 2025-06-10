@@ -1,6 +1,6 @@
 from typing_extensions import TypedDict
 from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
-from ..cfg import cfg
+from bot.cfg import cfg
 
 class SerializedWithRarity(TypedDict):
     """HasRarityMixin does not require the type to be serializable, but I'm including this here to help write contracts for serializable items with rarities

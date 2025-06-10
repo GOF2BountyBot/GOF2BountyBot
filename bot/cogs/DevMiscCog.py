@@ -13,8 +13,8 @@ from .. import client, lib, botState
 from bot.lib.discordUtil import ZWSP, textChannel, ImageFile
 from ..lib.timeUtil import utcfromtimestamp
 from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

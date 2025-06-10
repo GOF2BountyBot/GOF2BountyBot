@@ -1,5 +1,5 @@
 from . import reactionMenu
-from ..cfg import cfg
+from bot.cfg import cfg
 from discord import Message, User, Member, Colour
 from typing import Union, List
 

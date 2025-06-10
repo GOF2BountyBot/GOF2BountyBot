@@ -9,9 +9,9 @@ from discord.app_commands import Range
 from ..gameObjects.items.ships import shipItem
 
 from .. import client, lib
-from ..cfg import cfg, bbData
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg, bbData
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..gameObjects.items import gameItem

@@ -4,9 +4,9 @@ from discord.app_commands import Range
 from .. import client, lib
 from ..lib import gameMaths
 from bot.lib.discordUtil import ZWSP
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from .util.CommonAutocomplete import anyUserHangerItemAutoComplete, AnyUserHangarItem

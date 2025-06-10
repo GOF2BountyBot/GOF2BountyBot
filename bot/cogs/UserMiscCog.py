@@ -20,7 +20,7 @@ from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForL
 from ..interactions import basedCommand, basedApp
 from ..interactions.basedComponent import StaticComponents
 from ..interactions.commandChecks import guildOnly
-from ..cfg import cfg, bbData
+from bot.cfg import cfg, bbData
 from .util.transformers import BoolYesNo
 from ..users import basedUser
 from ..userAlerts import userAlerts

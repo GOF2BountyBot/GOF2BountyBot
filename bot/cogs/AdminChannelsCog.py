@@ -3,8 +3,8 @@ from discord import Forbidden, HTTPException, TextChannel, app_commands, Interac
 from discord.abc import GuildChannel
 
 from .. import client, lib
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
 from ..users.basedGuild import GuildChannelType
 from ..databases.bountyDB import BountyDB, nameForDivision

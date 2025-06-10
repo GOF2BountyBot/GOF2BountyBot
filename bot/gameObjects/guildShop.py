@@ -9,8 +9,8 @@ import random
 if TYPE_CHECKING:
     from ..users import basedUser
 
-from ..cfg import bbData, cfg
-from ..cfg.bbData import ItemCategory
+from bot.cfg import bbData, cfg
+from bot.cfg.bbData import ItemCategory
 from .items.ships.shipItem import Ship
 from .items.ships.shipBase import SerializedShipUnion
 from .items.weapons.weapon import SerializedWeaponUnion

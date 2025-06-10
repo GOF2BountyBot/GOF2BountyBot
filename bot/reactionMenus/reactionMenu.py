@@ -8,7 +8,7 @@ from discord import Embed, Colour, HTTPException
 from discord import Member, User, Message, Role, RawReactionActionEvent
 from discord.abc import GuildChannel
 from discord.user import BaseUser
-from ..cfg import cfg
+from bot.cfg import cfg
 from .. import botState, lib
 from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, Union, Dict, List, cast

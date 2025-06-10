@@ -5,9 +5,9 @@ from discord.ui import View, Button
 
 from .. import client, lib
 from bot.lib.discordUtil import makeEmbed, ZWSP
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

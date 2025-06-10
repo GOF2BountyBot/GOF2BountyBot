@@ -7,8 +7,8 @@ from discord.abc import Snowflake
 from discord.ui import View, Button, Select
 
 from .. import client
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand, basedApp
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents

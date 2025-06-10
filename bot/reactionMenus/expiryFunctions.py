@@ -4,7 +4,7 @@ if TYPE_CHECKING:
 
 from .. import botState
 from discord import ClientUser, NotFound, HTTPException, Forbidden # type: ignore[import]
-from ..cfg import cfg
+from bot.cfg import cfg
 
 
 

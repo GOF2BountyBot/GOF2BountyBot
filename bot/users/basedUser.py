@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.basedEnum import BasedEnum
-from ..cfg import cfg, bbData
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
+from bot.cfg import cfg, bbData
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
 from ..gameObjects import kaamoShop, lomaShop, guildShop
 from ..gameObjects.items import moduleItemFactory, gameItem
 from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
