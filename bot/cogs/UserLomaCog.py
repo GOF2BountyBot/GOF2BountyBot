@@ -2,8 +2,8 @@ from discord import app_commands, Interaction
 from discord.app_commands import Range
 
 from .. import client
-from ..lib.discordUtil import makeEmbed
-from ..lib.stringTyping import formatMultiplier, commaSplitNum
+from bot.lib.discordUtil import makeEmbed
+from bot.lib.stringTyping import formatMultiplier, commaSplitNum
 from ..cfg import cfg
 from ..logging import LogCategory
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll

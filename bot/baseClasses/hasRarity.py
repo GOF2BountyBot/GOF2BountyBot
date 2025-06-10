@@ -1,5 +1,5 @@
 from typing_extensions import TypedDict
-from .embedFillable import EmbedFillableMixin, embedField
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 from ..cfg import cfg
 
 class SerializedWithRarity(TypedDict):

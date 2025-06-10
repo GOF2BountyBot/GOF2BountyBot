@@ -9,7 +9,7 @@ from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.simpleHash import simpleHash
 from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 from .. import lib
-from ..lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from bot.lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from .gameObject import LoadedObject, SerializedLoadedObject
 
 class BuiltInSerializedShipUpgrade(SerializedLoadedObject):

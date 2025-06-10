@@ -12,7 +12,7 @@ from ..baseClasses.serializable import SerializesToSchema, SerializesToType
 
 from .. import botState, lib
 from ..lib import gameMaths
-from ..lib.stringTyping import commaSplitNum
+from bot.lib.stringTyping import commaSplitNum
 from ..lib.timeUtil import utcfromtimestamp
 from ..logging import LogCategory
 from ..gameObjects import guildShop

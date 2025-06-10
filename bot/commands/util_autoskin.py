@@ -8,7 +8,7 @@ import asyncio
 
 from ..cfg import cfg, bbData
 from .. import lib, botState
-from ..lib.discordUtil import truncateWithEllipse
+from bot.lib.discordUtil import truncateWithEllipse
 from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
 from ..gameObjects.items.ships import shipItem
 from ..shipRenderer import shipRenderer

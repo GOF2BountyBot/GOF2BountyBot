@@ -5,7 +5,7 @@ from abc import abstractmethod
 from ..baseClasses.serializable import SerializesToSchema
 from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
 
-from ..lib.discordUtil import ZWSP
+from bot.lib.discordUtil import ZWSP
 
 TSelf = TypeVar("TSelf", bound="LoadedObject")
 

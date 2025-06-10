@@ -8,7 +8,7 @@ from discord.app_commands import Range
 from discord.ui import View, Button, Select
 
 from .. import client, lib
-from ..lib.discordUtil import ImageFile
+from bot.lib.discordUtil import ImageFile
 from ..cfg import bbData, cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand

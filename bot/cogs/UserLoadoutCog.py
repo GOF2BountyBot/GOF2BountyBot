@@ -4,7 +4,7 @@ from discord.app_commands import Range
 from discord.ui import View, Button
 
 from .. import client, lib
-from ..lib.discordUtil import makeEmbed, ZWSP
+from bot.lib.discordUtil import makeEmbed, ZWSP
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll

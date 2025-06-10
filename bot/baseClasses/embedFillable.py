@@ -2,7 +2,7 @@ from typing import Any, Dict, Generic, List, Optional, Protocol, Set, Tuple, Typ
 from abc import ABC, ABCMeta, abstractmethod
 from inspect import signature, _empty
 from PIL import Image
-from ..lib.discordUtil import ZWSP, ImageFile
+from bot.lib.discordUtil import ZWSP, ImageFile
 
 from discord import Colour, Embed
 

@@ -29,7 +29,7 @@ from ..userAlerts import userAlerts
 from ..users import basedGuild
 from .. import lib, botState
 from ..lib import gameMaths
-from ..lib.discordUtil import userNameIn, findBUserDCGuild
+from bot.lib.discordUtil import userNameIn, findBUserDCGuild
 from ..lib.timeUtil import utcfromtimestamp
 from ..logging import LogCategory
 from ..reactionMenus import reactionMenu

@@ -14,7 +14,7 @@ from ..cfg.cfg import basicAccessLevels
 from ..cfg.schema import GitHubIssueType, gitHubIssueTypeIds, gitHubIssueIdTypes
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
-from ..lib.discordUtil import ZWSP, messageDescriptor
+from bot.lib.discordUtil import ZWSP, messageDescriptor
 from ..lib import ids
 from ..lib.timeUtil import td_format_noYM
 from .util.transformers import BoolYesNo

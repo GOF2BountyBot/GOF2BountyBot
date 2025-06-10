@@ -3,7 +3,7 @@ from discord import Guild, app_commands, Interaction
 
 from .. import client
 from ..lib.timeUtil import td_format_noYM
-from ..lib.discordUtil import timestamp, TimeStampStyle
+from bot.lib.discordUtil import timestamp, TimeStampStyle
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand

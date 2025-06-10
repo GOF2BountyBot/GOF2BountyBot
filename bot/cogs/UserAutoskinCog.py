@@ -11,7 +11,7 @@ from discord.ui import View, Button, button, select, Select
 from PIL import Image
 
 from .. import client, botState, lib
-from ..lib.discordUtil import textChannel
+from bot.lib.discordUtil import textChannel
 from ..lib import AEPi
 from ..lib.timeUtil import td_format_noYM
 from ..lib.tempFolder import TempFolder

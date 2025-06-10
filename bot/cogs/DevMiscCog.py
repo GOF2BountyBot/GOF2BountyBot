@@ -10,7 +10,7 @@ from discord.abc import Snowflake
 import random
 
 from .. import client, lib, botState
-from ..lib.discordUtil import ZWSP, textChannel, ImageFile
+from bot.lib.discordUtil import ZWSP, textChannel, ImageFile
 from ..lib.timeUtil import utcfromtimestamp
 from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
 from ..cfg import cfg, bbData

@@ -1,5 +1,5 @@
 from ..lib.emojis import UninitializedBasedEmoji, BasedEmoji
-from ..lib.discordUtil import SerializableDiscordObject
+from bot.lib.discordUtil import SerializableDiscordObject
 from .schema import BasicAccessLevelNames, EmojisConfig, SerializableTimedelta, TimeoutsConfig, PathsConfig, ConcatenatableSerializablePath, gitHubIssueTypeLabelsDict
 from typing import Dict, List, Tuple, cast, TYPE_CHECKING
 

@@ -6,7 +6,7 @@ from discord.app_commands import Range
 from discord.utils import MISSING
 
 from .. import client, lib
-from ..lib.stringTyping import commaSplitNum, formatMultiplier
+from bot.lib.stringTyping import commaSplitNum, formatMultiplier
 from ..cfg import cfg, bbData
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory

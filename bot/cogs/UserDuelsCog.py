@@ -10,8 +10,8 @@ from ..cfg.cfg import basicAccessLevels
 from ..interactions import basedCommand
 from ..interactions.basedApp import BasedCog
 from ..interactions.basedComponent import StaticComponents
-from ..lib.discordUtil import memberDisplayNameOrUserNameAndDiscrim, timestamp, TimeStampStyle
-from ..lib.stringTyping import isInt
+from bot.lib.discordUtil import memberDisplayNameOrUserNameAndDiscrim, timestamp, TimeStampStyle
+from bot.lib.stringTyping import isInt
 from ..gameObjects.battles.duelRequest import DuelRequest, expireAndAnnounceDuelReq, fightDuel
 from ..scheduling.timedTask import TimedTask
 from ..userAlerts import userAlerts

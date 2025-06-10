@@ -22,8 +22,8 @@ from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
                                     inventoryItemNumberAutoComplete, InventoryItemNumber
 from ..lib.timeUtil import td_format_noYM
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
-from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
-from ..lib.stringTyping import commaSplitNum
+from bot.lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
+from bot.lib.stringTyping import commaSplitNum
 from ..lib.emojis import BasedEmoji
 from ..lib.timeUtil import utcfromtimestamp
 from ..databases.bountyDB import BountyDB, nameForDivision

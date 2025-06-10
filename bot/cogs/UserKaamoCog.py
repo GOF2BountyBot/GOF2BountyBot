@@ -3,7 +3,7 @@ from discord.app_commands import Range
 
 from .. import client, lib
 from ..lib import gameMaths
-from ..lib.discordUtil import ZWSP
+from bot.lib.discordUtil import ZWSP
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
 from ..cfg.bbData import ItemCategory, ItemCategoryOrAll

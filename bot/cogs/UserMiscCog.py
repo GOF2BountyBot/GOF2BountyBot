@@ -14,8 +14,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .. import client, lib, botState
 from ..lib.BASED_version import getBASEDVersion, BASED_REPO_URL
-from ..lib.discordUtil import ZWSP
-from ..lib.stringTyping import isInt, commaSplitNum
+from bot.lib.discordUtil import ZWSP
+from bot.lib.stringTyping import isInt, commaSplitNum
 from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
 from ..interactions import basedCommand, basedApp
 from ..interactions.basedComponent import StaticComponents

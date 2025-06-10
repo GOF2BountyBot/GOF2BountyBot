@@ -6,8 +6,8 @@ from discord.app_commands import Range
 from bot.gameObjects.items.ships.shipItem import Ship
 
 from .. import client
-from ..lib.stringTyping import isInt, commaSplitNum
-from ..lib.discordUtil import makeEmbed, ZWSP
+from bot.lib.stringTyping import isInt, commaSplitNum
+from bot.lib.discordUtil import makeEmbed, ZWSP
 from ..lib.gameMaths import calculateUserBountyHuntingLevel
 from ..cfg import cfg
 from ..cfg.cfg import basicAccessLevels
