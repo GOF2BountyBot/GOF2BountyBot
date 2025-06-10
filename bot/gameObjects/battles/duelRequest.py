@@ -5,7 +5,7 @@ from discord.utils import MISSING
 from bot.users import basedUser
 from bot.scheduling import timedTask
 from bot.gameObjects.items.ships import shipItem
-from bot.gameObjects..bounties import criminal
+from bot.gameObjects.bounties import criminal
 import random
 from typing import Optional, Tuple, Union
 from io import BytesIO
