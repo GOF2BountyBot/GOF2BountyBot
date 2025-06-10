@@ -4,9 +4,9 @@ from typing_extensions import ParamSpec
 from enum import Enum
 
 if TYPE_CHECKING:
-    from ..users import basedUser, basedGuild
+    from bot.users import basedUser, basedGuild
     from bot.gameObjects.bounties import criminal
-    from .. import client
+    from bot import client
 
 if TYPE_CHECKING:
     TParams = ParamSpec('TParams')
@@ -26,7 +26,7 @@ import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
 from discord import DMChannel, GroupChannel, TextChannel
 from bot.cfg import cfg
-from ..userAlerts import userAlerts
+from bot.userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
@@ -35,7 +35,7 @@ from datetime import datetime
 from PIL.Image import Image
 from io import BytesIO
 
-from ..logging import LogCategory
+from bot.logging import LogCategory
 from bot.baseClasses.serializable import Serializable
 
 

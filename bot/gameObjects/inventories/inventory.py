@@ -1,9 +1,9 @@
 from __future__ import annotations
 from . import inventoryListing
-from ...baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.serializable import SerializesToSchema
 from typing import Dict, Generic, List, Tuple, Type, TypeVar, cast
 from typing_extensions import TypedDict
-from ..items import gameItem
+from bot.gameObjects.items import gameItem
 
 TListingType = TypeVar("TListingType", bound="inventoryListing.InventoryListing")
 TItemType = TypeVar("TItemType", bound="gameItem.GameItem")

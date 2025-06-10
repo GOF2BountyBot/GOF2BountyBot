@@ -9,20 +9,20 @@ from carica import SerializableTimedelta
 import json
 import random
 
-from ..scheduling import timedTask
-from ..interactions import basedCommand, basedApp
-from .. import botState, lib, client
+from bot.scheduling import timedTask
+from bot.interactions import basedCommand, basedApp
+from bot import botState, lib, client
 from bot.lib import gameMaths
 from bot.lib.timeUtil import utcfromtimestamp
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from bot.gameObjects.bounties import bounty, bountyConfig
 from bot.gameObjects.items.ships import shipItem
-from ..users import basedGuild, basedUser
-from ..databases.bountyDB import nameForDivision, BountyDB
-from ..databases.bountyDivision import BountyDivision
-from ..logging import LogCategory
-from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, DivisionNameOrAll, \
+from bot.users import basedGuild, basedUser
+from bot.databases.bountyDB import nameForDivision, BountyDB
+from bot.databases.bountyDivision import BountyDivision
+from bot.logging import LogCategory
+from bot.cogs.util.CommonAutocomplete import divisionAutoComplete, DivisionName, DivisionNameOrAll, \
                                     systemAutoComplete, SystemKey, SystemKeyList, \
                                     criminalAutoComplete, CriminalKey, \
                                     factionAutoComplete, BountyFactionName

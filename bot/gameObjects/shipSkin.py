@@ -4,12 +4,12 @@ from typing import Dict, List, Union, cast
 from typing_extensions import NotRequired
 from discord import Colour, File
 
-from .. import lib, botState
+from bot import lib, botState
 from bot.baseClasses.hasRarity import HasRarityMixin, SerializedWithRarity
 from bot.baseClasses.serializable import JsonType, SerializesToSchema
 from bot.baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
 from bot.cfg import bbData, cfg
-from ..shipRenderer import shipRenderer
+from bot.shipRenderer import shipRenderer
 from .gameObject import LoadedObject, SerializedLoadedObject
 from .items.ships import shipBase
 

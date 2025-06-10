@@ -2,7 +2,7 @@ from typing import List, Optional, Protocol, Type, TypeVar, Union, runtime_check
 from discord.ui import TextInput
 from discord import Colour, Embed, Member, User
 from discord.utils import MISSING
-from ...lib.discordUtil import ZWSP
+from bot.lib.discordUtil import ZWSP
 
 from ..viewBase import ModalBase
 

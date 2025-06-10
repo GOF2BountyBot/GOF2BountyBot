@@ -1,12 +1,12 @@
 from typing import List, cast
-from .. import client, lib
+from bot import client, lib
 from discord import app_commands, Interaction, Embed
 from discord.abc import GuildChannel, Snowflake
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..databases.bountyDB import nameForDivision
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.databases.bountyDB import nameForDivision
 from typing import List, cast
 
 

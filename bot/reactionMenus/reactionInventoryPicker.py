@@ -5,8 +5,8 @@ from bot.cfg import cfg
 from bot.gameObjects.items import gameItem
 from bot.gameObjects.inventories import inventory
 from discord import Message, Colour, Member, Role
-from .. import lib
-from ..scheduling import timedTask
+from bot import lib
+from bot.scheduling import timedTask
 
 # The maximum number of gameItems displayable per menu page
 maxItemsPerPage = len(cfg.defaultEmojis.menuOptions)

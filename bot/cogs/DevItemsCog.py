@@ -8,20 +8,20 @@ from discord.app_commands import Range
 
 from bot.gameObjects.items.ships import shipItem
 
-from .. import client, lib
+from bot import client, lib
 from bot.cfg import cfg, bbData
 from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
 from bot.gameObjects.items import gameItem
-from .util.CommonAutocomplete import divisionAutoComplete, DivisionNameOrAll
-from .util.parameterVerifiers import verifyDivName
-from ..users.basedGuild import BasedGuild
+from bot.cogs.util.CommonAutocomplete import divisionAutoComplete, DivisionNameOrAll
+from bot.cogs.util.parameterVerifiers import verifyDivName
+from bot.users.basedGuild import BasedGuild
 from bot.gameObjects.guildShop import TechLeveledShop
-from ..databases.bountyDB import divisionNameForLevel
-from ..logging import LogCategory
-from ..views.serializedItemModal import SerializedItemModal
+from bot.databases.bountyDB import divisionNameForLevel
+from bot.logging import LogCategory
+from bot.views.serializedItemModal import SerializedItemModal
 
 
 class DevItemsCog(BasedCog):

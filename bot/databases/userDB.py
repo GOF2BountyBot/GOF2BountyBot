@@ -1,7 +1,7 @@
 from __future__ import annotations
-from ..users import basedUser
-from .. import lib
-from .. import botState
+from bot.users import basedUser
+from bot import lib
+from bot import botState
 from typing import Dict, List
 from bot.baseClasses.serializable import SerializesToType
 

@@ -9,27 +9,27 @@ from discord.ui import View, Button
 from discord.abc import Snowflake
 import random
 
-from .. import client, lib, botState
+from bot import client, lib, botState
 from bot.lib.discordUtil import ZWSP, textChannel, ImageFile
 from bot.lib.timeUtil import utcfromtimestamp
 from bot.lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..users.basedGuild import BasedGuild
-from ..users.basedUser import OwnedMenuType
-from .util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
-from .util.transformers import PlayOrAnnounceChannel
-from ..scheduling.timedTask import TimedTask
-from ..commands import commandsDB as textCommandsDB
-from ..interactions.accessLevels import _accessLevels
-from ..reactionMenus import reactionMenu
-from ..databases.bountyDB import nameForDivision, BountyDB
-from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey
-from .util.parameterVerifiers import verifyCriminalName
-from ..logging import LogCategory
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.users.basedGuild import BasedGuild
+from bot.users.basedUser import OwnedMenuType
+from bot.cogs.util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
+from bot.cogs.util.transformers import PlayOrAnnounceChannel
+from bot.scheduling.timedTask import TimedTask
+from bot.commands import commandsDB as textCommandsDB
+from bot.interactions.accessLevels import _accessLevels
+from bot.reactionMenus import reactionMenu
+from bot.databases.bountyDB import nameForDivision, BountyDB
+from bot.cogs.util.CommonAutocomplete import criminalAutoComplete, CriminalKey
+from bot.cogs.util.parameterVerifiers import verifyCriminalName
+from bot.logging import LogCategory
 from bot.baseClasses.basedEnum import BasedEnum
 from bot.gameObjects.items.ships import shipItem
 from bot.gameObjects.bounties import solarSystem

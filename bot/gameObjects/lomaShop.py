@@ -5,7 +5,7 @@ from typing_extensions import TypedDict
 
 from .items.ships import shipItem,shipBase
 if TYPE_CHECKING:
-    from ..users import basedUser
+    from bot.users import basedUser
 
 from .items import moduleItemFactory
 from .items.weapons import primaryWeapon, turretWeapon, weapon

@@ -2,7 +2,7 @@
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
 from datetime import timedelta
-from ..scheduling.timedTask import TimedTask
+from bot.scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, HTTPException
 from discord import Member, User, Message, Role, RawReactionActionEvent

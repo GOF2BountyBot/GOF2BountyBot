@@ -8,7 +8,7 @@ from .items.ships import shipBase
 from bot.baseClasses.serializable import SerializesToSchema
 from bot.baseClasses.simpleHash import simpleHash
 from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
-from .. import lib
+from bot import lib
 from bot.lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from .gameObject import LoadedObject, SerializedLoadedObject
 

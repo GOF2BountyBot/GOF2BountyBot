@@ -2,7 +2,7 @@ import os
 
 from bot.baseClasses.serializable import SerializesToJson
 from bot.cfg import cfg
-from .. import lib
+from bot import lib
 from datetime import datetime, timezone
 import aiohttp
 from carica import SerializableDataClass

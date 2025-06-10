@@ -1,9 +1,9 @@
 from .inventory import Inventory
 from typing import TYPE_CHECKING, Generic, TypeVar
 if TYPE_CHECKING:
-    from ...users import basedUser
+    from bot.users import basedUser
 from typing import Type, Union
-from ..items.tools import toolItem
+from bot.gameObjects.items.tools import toolItem
 import asyncio
 
 # Used to allow for inventory deserializing without triggering autoUse

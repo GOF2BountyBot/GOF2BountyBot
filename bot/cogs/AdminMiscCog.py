@@ -6,19 +6,19 @@ from discord import ClientUser, Colour, Embed, Guild, HTTPException, Member, Mes
 from discord.abc import Snowflake
 from discord.ui import View, Button, Select
 
-from .. import client
+from bot import client
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand, basedApp
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..userAlerts import userAlerts
-from .. import lib
+from bot.interactions import basedCommand, basedApp
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.userAlerts import userAlerts
+from bot import lib
 from bot.lib.emojis import randomEmoji
-from ..reactionMenus.reactionRolePicker import ReactionRolePicker, ReactionRolePickerOption
-from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
-from .util.transformers import BoolEnableDisable
-from ..logging import LogCategory
+from bot.reactionMenus.reactionRolePicker import ReactionRolePicker, ReactionRolePickerOption
+from bot.cogs.util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
+from bot.cogs.util.transformers import BoolEnableDisable
+from bot.logging import LogCategory
 
 
 class GuildConfigSettings(Enum):

@@ -7,10 +7,10 @@ import os
 from os.path import join
 import shutil
 
-from .. import client, lib
+from bot import client, lib
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand, basedApp
+from bot.interactions import basedCommand, basedApp
 from bot.gameObjects.userProfile.medal import Medal
 
 class DevMedalsCog(basedApp.BasedCog):

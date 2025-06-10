@@ -1,12 +1,12 @@
 from typing import List, cast
-from .. import client
+from bot import client
 from discord import app_commands, Interaction
 from discord.abc import Snowflake
 from discord.utils import utcnow
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
 from typing import List, cast
 
 

@@ -3,7 +3,7 @@ from discord import Interaction, Embed, TextStyle
 from discord.utils import MISSING
 from typing import Optional, Protocol
 
-from ...interactions.basedComponent import StaticComponents
+from bot.interactions.basedComponent import StaticComponents
 
 EMBED_EDIT_TEXT_ARGS_SEPARATOR = "%"
 

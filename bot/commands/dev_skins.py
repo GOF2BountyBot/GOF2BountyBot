@@ -2,8 +2,8 @@ from typing import Awaitable, Callable, cast
 import discord
 from discord.utils import utcnow
 
-from . import commandsDB as textCommandsDB
-from .. import lib
+from bot.commands import commandsDB as textCommandsDB
+from bot import lib
 import importlib
 cmd_showme_ship = cast(Callable[[discord.Message, str, bool], Awaitable], importlib.import_module("bot.commands.usr_gof2-info").cmd_showme_ship)
 

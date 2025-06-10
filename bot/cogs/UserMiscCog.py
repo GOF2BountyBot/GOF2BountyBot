@@ -12,23 +12,23 @@ from aiohttp import client_exceptions
 import traceback
 from PIL import Image, ImageDraw, ImageFont
 
-from .. import client, lib, botState
+from bot import client, lib, botState
 from bot.lib.BASED_version import getBASEDVersion, BASED_REPO_URL
 from bot.lib.discordUtil import ZWSP
 from bot.lib.stringTyping import isInt, commaSplitNum
 from bot.lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
-from ..interactions import basedCommand, basedApp
-from ..interactions.basedComponent import StaticComponents
-from ..interactions.commandChecks import guildOnly
+from bot.interactions import basedCommand, basedApp
+from bot.interactions.basedComponent import StaticComponents
+from bot.interactions.commandChecks import guildOnly
 from bot.cfg import cfg, bbData
-from .util.transformers import BoolYesNo
-from ..users import basedUser
-from ..userAlerts import userAlerts
-from ..databases import bountyDB
-from ..logging import LogCategory
-from .util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
-from ..reactionMenus import reactionPollMenu
-from ..databases.bountyDB import divisionNameForLevel
+from bot.cogs.util.transformers import BoolYesNo
+from bot.users import basedUser
+from bot.userAlerts import userAlerts
+from bot.databases import bountyDB
+from bot.logging import LogCategory
+from bot.cogs.util.EmbedEditorUtil import EMBED_EDIT_TEXT_ARGS_SEPARATOR, AnyEmbedField, interactionErrorString
+from bot.reactionMenus import reactionPollMenu
+from bot.databases.bountyDB import divisionNameForLevel
 
 #region how to play util
 

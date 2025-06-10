@@ -1,10 +1,10 @@
 from typing import cast
 import discord
 
-from . import commandsDB as textCommandsDB
-from .. import botState
+from bot.commands import commandsDB as textCommandsDB
+from bot import botState
 from bot.cfg import cfg
-from . import util_autoskin
+from bot.commands import util_autoskin
 
 
 async def admin_cmd_showmeHD(message: discord.Message, args: str, isDM: bool):

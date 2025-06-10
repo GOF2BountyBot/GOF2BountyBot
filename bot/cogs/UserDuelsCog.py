@@ -4,17 +4,17 @@ from discord import ButtonStyle, Member, User, app_commands, Interaction
 from discord.abc import Snowflake
 from discord.ui import View, Button
 
-from .. import client, botState
+from bot import client, botState
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
 from bot.lib.discordUtil import memberDisplayNameOrUserNameAndDiscrim, timestamp, TimeStampStyle
 from bot.lib.stringTyping import isInt
 from bot.gameObjects.battles.duelRequest import DuelRequest, expireAndAnnounceDuelReq, fightDuel
-from ..scheduling.timedTask import TimedTask
-from ..userAlerts import userAlerts
+from bot.scheduling.timedTask import TimedTask
+from bot.userAlerts import userAlerts
 
 DUELCHALLENGEMENU_CUSTOMID_ARGS_SEPARATOR = "#"
 

@@ -8,25 +8,25 @@ from discord.ui import View, Button
 
 from github import GithubException
 
-from .. import client
+from bot import client
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.schema import GitHubIssueType, gitHubIssueTypeIds, gitHubIssueIdTypes
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
 from bot.lib.discordUtil import ZWSP, messageDescriptor
 from bot.lib import ids
 from bot.lib.timeUtil import td_format_noYM
-from .util.transformers import BoolYesNo
-from ..views.issues.bugReportModal import BugReportModal
-from ..views.issues.issueReportModalBase import IssueReportModalBase
-from ..views.issues.featureRequestModal import FeatureRequestModal
-from ..views.issues.newItemAliasModal import NewItemAliasModal
-from ..views.confirmView import ConfirmView
-from ..views.cancelView import CancelView
-from ..interactions.basedComponent import StaticComponents
-from .util.EmbedEditorUtil import interactionErrorString
-from ..logging import LogCategory
+from bot.cogs.util.transformers import BoolYesNo
+from bot.views.issues.bugReportModal import BugReportModal
+from bot.views.issues.issueReportModalBase import IssueReportModalBase
+from bot.views.issues.featureRequestModal import FeatureRequestModal
+from bot.views.issues.newItemAliasModal import NewItemAliasModal
+from bot.views.confirmView import ConfirmView
+from bot.views.cancelView import CancelView
+from bot.interactions.basedComponent import StaticComponents
+from bot.cogs.util.EmbedEditorUtil import interactionErrorString
+from bot.logging import LogCategory
 
 IssueTypeModal: Dict[GitHubIssueType, Type[IssueReportModalBase]] = {
     "Bug report": BugReportModal,

@@ -3,15 +3,15 @@ from typing import Dict, Optional, Tuple, Callable, Any, cast, Coroutine, List
 from discord import Guild, HTTPException, Interaction, TextChannel
 from discord.abc import Snowflake
 
-from ...interactions.basedApp import BasedCog
-from ... import client, lib
-from ...lib.stringTyping import isInt
-from ...users import basedGuild
-from ...databases.bountyDB import BountyDB
-from ...databases.bountyDivision import BountyDivision
-from ...logging import LogCategory
-from ...cfg import cfg
-from ...gameObjects.guildShop import TechLeveledShop
+from bot.interactions.basedApp import BasedCog
+from bot import client, lib
+from bot.lib.stringTyping import isInt
+from bot.users import basedGuild
+from bot.databases.bountyDB import BountyDB
+from bot.databases.bountyDivision import BountyDivision
+from bot.logging import LogCategory
+from bot.cfg import cfg
+from bot.gameObjects.guildShop import TechLeveledShop
 
 
 class GuildsUtilCog(BasedCog):

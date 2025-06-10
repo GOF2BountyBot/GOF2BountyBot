@@ -1,4 +1,4 @@
-from ..commandsManager import heirarchicalCommandsDB
+from bot.commandsManager import heirarchicalCommandsDB
 from bot.cfg import cfg
 import importlib
 

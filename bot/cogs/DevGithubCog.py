@@ -1,12 +1,12 @@
 from typing import List, cast
-from .. import client
+from bot import client
 from discord import Colour, app_commands, Interaction, Embed
 from discord.abc import Snowflake
 from discord.app_commands import Range
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
 from typing import List, cast
 from enum import Enum
 

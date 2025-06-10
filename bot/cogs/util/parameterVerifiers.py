@@ -1,6 +1,6 @@
 from discord import Interaction
 from typing import Optional
-from ...cfg import cfg, bbData
+from bot.cfg import cfg, bbData
 
 async def verifyDivName(interaction: Interaction, division: str, sendError: bool = True, allowAllDivisions: bool = True) -> Optional[bool]:
     """Make sure `division` is either `all` or a valid divison name.

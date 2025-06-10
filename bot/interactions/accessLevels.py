@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Type, TypeVar, Union
 from bot.cfg import cfg
 from ..cogs.util import helpUtil
-from .. import lib
+from bot import lib
 from . import basedComponent
 from abc import ABC, abstractmethod
 from discord import Interaction, Member, PartialMessageable

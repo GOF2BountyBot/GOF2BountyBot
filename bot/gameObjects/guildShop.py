@@ -7,7 +7,7 @@ from abc import abstractmethod
 import random
 
 if TYPE_CHECKING:
-    from ..users import basedUser
+    from bot.users import basedUser
 
 from bot.cfg import bbData, cfg
 from bot.cfg.bbData import ItemCategory
@@ -23,7 +23,7 @@ from .inventories.inventory import Inventory, _InventoryBase, SerializedInventor
 from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 from .. import botState
 from bot.lib import gameMaths
-from ..logging import LogCategory
+from bot.logging import LogCategory
 from bot.baseClasses.serializable import JsonType, SerializesToSchema
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]

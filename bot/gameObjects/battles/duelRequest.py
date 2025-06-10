@@ -1,11 +1,11 @@
-from ... import lib, botState, client
-from ...cfg import cfg
+from bot import lib, botState, client
+from bot.cfg import cfg
 from discord import Embed, Interaction, Member, User, DiscordException, HTTPException, NotFound, File
 from discord.utils import MISSING
-from ...users import basedUser
-from ...scheduling import timedTask
-from ..items.ships import shipItem
-from ..bounties import criminal
+from bot.users import basedUser
+from bot.scheduling import timedTask
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects..bounties import criminal
 import random
 from typing import Optional, Tuple, Union
 from io import BytesIO

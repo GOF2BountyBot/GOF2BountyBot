@@ -5,17 +5,17 @@ from discord.abc import Snowflake
 from discord.app_commands import Range
 from discord.utils import MISSING
 
-from .. import client, lib
+from bot import client, lib
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.bbData import ItemCategory
-from ..interactions import basedCommand, basedApp
+from bot.interactions import basedCommand, basedApp
 from bot.gameObjects.items import gameItem
 from bot.gameObjects.items.ships.shipItem import Ship
 from bot.gameObjects.kaamoShop import KaamoShop
 from bot.gameObjects import guildShop
-from ..logging import LogCategory
-from ..views.serializedItemModal import SerializedItemModal
+from bot.logging import LogCategory
+from bot.views.serializedItemModal import SerializedItemModal
 
 class DevKaamoCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="kaamo club")

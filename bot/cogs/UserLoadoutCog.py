@@ -3,15 +3,15 @@ from discord import Guild, Member, User, app_commands, Interaction
 from discord.app_commands import Range
 from discord.ui import View, Button
 
-from .. import client, lib
+from bot import client, lib
 from bot.lib.discordUtil import makeEmbed, ZWSP
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..users import basedUser
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.users import basedUser
 from bot.gameObjects.inventories.inventoryListing import SerializedInventoryListing
 from bot.gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
 from bot.gameObjects.inventories.inventory import Inventory
@@ -21,8 +21,8 @@ from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
 from bot.gameObjects.items.modules.moduleItem import ModuleItem
 from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList, anyShipEquippedItemAutoComplete, AnyShipEquippedItemOrAll, AutocompleteResult
 from .util.transformers import BoolYesNo
-from ..interactions.commandChecks import guildOnly
-from ..databases.bountyDB import BountyDB
+from bot.interactions.commandChecks import guildOnly
+from bot.databases.bountyDB import BountyDB
 
 
 class UserLoadoutCog(BasedCog):

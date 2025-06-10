@@ -12,7 +12,7 @@ from bot.gameObjects.items.ships import shipItem, shipBase
 
 if TYPE_CHECKING:
     from bot.gameObjects.battles import duelRequest
-    from .. import client
+    from bot import client
 
 from bot.baseClasses.serializable import SerializesToSchema
 from bot.baseClasses.basedEnum import BasedEnum
@@ -25,14 +25,14 @@ from bot.gameObjects.items.tools import toolItemFactory, toolItem
 from bot.gameObjects.items.modules import moduleItem
 from bot.gameObjects.userProfile.medal import Medal
 from bot.gameObjects.inventories import inventory, userInventory, inventoryListing
-from ..userAlerts import userAlerts
-from ..users import basedGuild
-from .. import lib, botState
+from bot.userAlerts import userAlerts
+from bot.users import basedGuild
+from bot import lib, botState
 from bot.lib import gameMaths
 from bot.lib.discordUtil import userNameIn, findBUserDCGuild
 from bot.lib.timeUtil import utcfromtimestamp
-from ..logging import LogCategory
-from ..reactionMenus import reactionMenu
+from bot.logging import LogCategory
+from bot.reactionMenus import reactionMenu
 
 
 # Dictionary-serialized shipItem to give to new players

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Dict, TYPE_CHECKING, Optional, Tuple, cast
 from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
-    from .bountyDB import BountyDB
+    from bot.databases.bountyDB import BountyDB
 
 from bot.baseClasses.aliasableDict import AliasableDict
 from bot.gameObjects.bounties.bounty import Bounty, SerializedBounty, SerializedEscapedBounty
@@ -10,10 +10,10 @@ from bot.gameObjects.bounties.criminal import Criminal
 from bot.gameObjects.bounties.bountyConfig import BountyConfig
 from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel, SerializedBountyBoardChannel
 from bot.cfg import cfg, bbData
-from .. import botState, lib
+from bot import botState, lib
 from bot.lib import gameMaths
-from ..logging import LogCategory
-from ..scheduling.timedTask import TimedTask, DynamicRescheduleTask
+from bot.logging import LogCategory
+from bot.scheduling.timedTask import TimedTask, DynamicRescheduleTask
 from traceback import format_stack
 from bot.baseClasses.serializable import SerializesToSchema
 

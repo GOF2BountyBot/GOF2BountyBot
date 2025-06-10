@@ -1,7 +1,7 @@
 # Typing imports
 from typing import TYPE_CHECKING, Dict, Type, Union, List
 if TYPE_CHECKING:
-    from ..users import basedGuild
+    from bot.users import basedGuild
 
 from discord import utils, Guild, Member
 from abc import ABC, abstractmethod

@@ -2,13 +2,13 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
-from ...baseClasses import aliasable, serializable
-from ...baseClasses.embedFillable import EmbedFillableMixin, embedField, embedThumbnailUrl, embedColour
+from bot.baseClasses import aliasable, serializable
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField, embedThumbnailUrl, embedColour
 from abc import abstractmethod
-from ... import lib
-from ...lib import gameMaths
-from ...lib.stringTyping import commaSplitNum
-from ...cfg import bbData, cfg, schema
+from bot import lib
+from bot.lib import gameMaths
+from bot.lib.stringTyping import commaSplitNum
+from bot.cfg import bbData, cfg, schema
 from..gameObject import LoadedObject, SerializedLoadedObject
 
 

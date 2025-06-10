@@ -1,10 +1,10 @@
-from ..users import basedUser
+from bot.users import basedUser
 from .import reactionMenu
 from discord import Message, Member, Role, Embed
-from .. import lib, botState
+from bot import lib, botState
 from typing import Dict, Generic, Optional, TypeVar, Union, cast
 from typing_extensions import TypedDict
-from ..scheduling import timedTask
+from bot.scheduling import timedTask
 from bot.cfg import cfg
 from bot.baseClasses.serializable import AnyTypedDict
 

@@ -3,14 +3,14 @@ from typing import List, cast
 from discord import HTTPException, app_commands, Interaction, Colour
 from discord.abc import Snowflake
 
-from .. import client, lib
+from bot import client, lib
 from bot.cfg import cfg, bbData
 from bot.cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import shipAutoComplete, ShipKey, \
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.cogs.util.CommonAutocomplete import shipAutoComplete, ShipKey, \
                                     shipSkinAutoComplete, ShipSkinKey
-from ..shipRenderer import shipRenderer
+from bot.shipRenderer import shipRenderer
 
 PAINTBRUSH_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/paintbrush_1f58c-fe0f.png"
 

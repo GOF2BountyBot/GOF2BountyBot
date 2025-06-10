@@ -1,9 +1,9 @@
 from typing_extensions import NotRequired
-from ...baseClasses.serializable import SerializesToSchema
-from ...cfg import bbData
-from ... import lib, botState
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.cfg import bbData
+from bot import lib, botState
 from os.path import join
-from ...baseClasses.embedFillable import EmbedFillableMixin, embedField, embedImageFile, embedTitle
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField, embedImageFile, embedTitle
 from ..gameObject import LoadedObject, SerializedLoadedObject
 
 class SerializedXPBarFill(SerializedLoadedObject):

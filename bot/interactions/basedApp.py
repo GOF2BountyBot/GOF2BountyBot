@@ -7,7 +7,7 @@ from discord.ext.commands.cog import Cog
 from discord import app_commands
 
 from . import basedCommand, basedComponent
-from .. import client, lib
+from bot import client, lib
 
 if TYPE_CHECKING:
     from ..cogs.util import EmbedEditorCog, CommonStaticComponentsCog, GuildsUtilCog, UsersUtilCog, GithubUtilCog

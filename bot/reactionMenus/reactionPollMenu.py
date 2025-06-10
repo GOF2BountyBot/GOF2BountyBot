@@ -3,11 +3,11 @@ from . import reactionMenu
 from bot.cfg import cfg
 from .. import botState, lib
 from discord import Colour, Emoji, PartialEmoji, Message, Embed, User, Member, Role
-from ..scheduling import timedTask
+from bot.scheduling import timedTask
 from typing import Dict, Optional, Union, cast
 from typing_extensions import NotRequired
-from ..users import basedUser
-from ..logging import LogCategory
+from bot.users import basedUser
+from bot.logging import LogCategory
 from bot.baseClasses.serializable import SerializesToSchema
 from bot.lib.timeUtil import utcfromtimestamp
 

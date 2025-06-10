@@ -1,7 +1,7 @@
 from typing import Dict
-from .. import botState
-from ..reactionMenus import reactionMenu
-from ..logging import LogCategory
+from bot import botState
+from bot.reactionMenus import reactionMenu
+from bot.logging import LogCategory
 from discord.abc import Messageable
 from bot.baseClasses.serializable import SerializesToType
 

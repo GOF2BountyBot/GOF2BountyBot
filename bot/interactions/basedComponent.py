@@ -7,7 +7,7 @@ from discord.ui import View, Button, Select, TextInput
 from typing import Any, Awaitable, Optional, TypeVar, Union, Callable, Protocol, cast, Dict
 from enum import Enum, EnumMeta, _EnumDict
 
-from .. import lib
+from bot import lib
 from . import basedApp
 
 

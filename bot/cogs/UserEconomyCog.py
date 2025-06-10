@@ -5,23 +5,23 @@ from discord.app_commands import Range
 
 from bot.gameObjects.items.ships.shipItem import Ship
 
-from .. import client
+from bot import client
 from bot.lib.stringTyping import isInt, commaSplitNum
 from bot.lib.discordUtil import makeEmbed, ZWSP
 from bot.lib.gameMaths import calculateUserBountyHuntingLevel
 from bot.cfg import cfg
 from bot.cfg.cfg import basicAccessLevels
 from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..users import basedUser
-from .util.CommonAutocomplete import divisionAutoComplete, DivisionName, \
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.users import basedUser
+from bot.cogs.util.CommonAutocomplete import divisionAutoComplete, DivisionName, \
                                     anyUserHangerItemAutoComplete, AnyUserHangarItem
-from .util.transformers import BoolYesNo
-from ..interactions.commandChecks import guildOnly
+from bot.cogs.util.transformers import BoolYesNo
+from bot.interactions.commandChecks import guildOnly
 from bot.gameObjects.guildShop import TechLeveledShop
-from ..logging import LogCategory
-from ..views.confirmView import ConfirmView
+from bot.logging import LogCategory
+from bot.views.confirmView import ConfirmView
 
 
 class UserEconomyCog(BasedCog):

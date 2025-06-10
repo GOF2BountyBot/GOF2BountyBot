@@ -7,11 +7,11 @@ from bot.gameObjects.bounties import bounty
 from bot.gameObjects.bounties.criminal import Criminal
 from typing import List
 from bot.cfg import cfg
-from .bountyDivision import BountyDivision
+from bot.databases.bountyDivision import BountyDivision
 from bot.baseClasses.serializable import SerializesToSchema
 
 if TYPE_CHECKING:
-    from ..users import basedGuild
+    from bot.users import basedGuild
 
 
 def nameForDivision(div: BountyDivision) -> str:
