@@ -95,6 +95,36 @@ else
     fi
 fi
 
+# GPU Detection and CUDA Kernel Pre-compilation
+# optiX would be preferred, but the libs aren't available for WSL yet,
+# and hacking them in would be a pain.
+echo
+echo "=== Blender CUDA Setup ==="
+if command -v nvidia-smi >/dev/null 2>&1 && [ "$(nvidia-smi --list-gpus 2>/dev/null | wc -l)" -gt 0 ]; then
+    echo "🚀 GPU detected - running test render to pre-compile CUDA kernels (3-5 minutes, one-time only)..."
+    
+    cat > /tmp/warmup.py << 'EOF'
+import bpy
+bpy.context.scene.render.engine = 'CYCLES'
+bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
+bpy.context.preferences.addons['cycles'].preferences.get_devices()
+for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+    device.use = device.type == 'CUDA'
+if any(d.use for d in bpy.context.preferences.addons['cycles'].preferences.devices if d.type == 'CUDA'):
+    bpy.context.scene.cycles.device = 'GPU'
+    bpy.context.scene.cycles.samples = 1
+    bpy.context.scene.render.resolution_x = 64
+    bpy.context.scene.render.resolution_y = 64
+    bpy.ops.render.render()
+EOF
+    
+    blender -b -P /tmp/warmup.py --background >/dev/null 2>&1
+    rm -f /tmp/warmup.py
+    echo "✅ CUDA kernels compiled - GPU renders will start instantly!"
+else
+    echo "⚡ No GPU detected - using CPU rendering"
+fi
+
 echo
 echo "=== Final Status Check ==="
 
