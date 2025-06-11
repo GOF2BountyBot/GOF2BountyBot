@@ -183,6 +183,29 @@ ctx.scene.render.resolution_percentage = 100
 bpy.context.scene.cycles.samples = args.numSamples
 # Set the renderer (eevee renders some strange perspective stuff...?)
 ctx.scene.render.engine = 'CYCLES'
+###### SIMPLE GPU SETUP ######
+try:
+    # Try to enable OPTIX GPU rendering (for RTX cards)
+    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
+    bpy.context.preferences.addons['cycles'].preferences.get_devices()
+    
+    # Enable all available GPU devices
+    gpu_found = False
+    for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+        if device.type == 'CUDA':
+            device.use = True
+            gpu_found = True
+            print(f"✓ Using GPU: {device.name}")
+    
+    if gpu_found:
+        bpy.context.scene.cycles.device = 'GPU'
+        print("✓ GPU rendering enabled")
+    else:
+        print("⚠ No RTX GPU found, using CPU")
+        
+except Exception as e:
+    print(f"⚠ GPU setup failed, using CPU: {e}")
+###### END GPU SETUP ######
 # Set the render output file
 # ctx.scene.render.filepath = join(RENDER_OUTPUT_DIR, args.model_filename_noext)
 ctx.scene.render.filepath = args.output_file_path
