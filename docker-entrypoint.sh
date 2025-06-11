@@ -118,8 +118,8 @@ if any(d.use for d in bpy.context.preferences.addons['cycles'].preferences.devic
     bpy.ops.render.render()
 EOF
     
-    # Temp disable blender warmup while doing import overhaul
-    # blender -b -P /tmp/warmup.py --background >/dev/null 2>&1
+    # Comment below to disable blender warmup at container startup
+    blender -b -P /tmp/warmup.py --background >/dev/null 2>&1
     rm -f /tmp/warmup.py
     echo "✅ CUDA kernels compiled - GPU renders will start instantly!"
 else
