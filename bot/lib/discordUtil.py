@@ -20,8 +20,8 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
 
-from . import stringTyping, emojis, exceptions, graphics
-from .. import botState
+from bot.lib import stringTyping, emojis, exceptions, graphics
+from bot import botState
 import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
 from discord import DMChannel, GroupChannel, TextChannel

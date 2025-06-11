@@ -1,7 +1,7 @@
 from typing import Optional, Union, cast
 from discord import Guild, HTTPException, Interaction, app_commands
 from bot.cfg import cfg
-from . import accessLevels
+from bot.interactions import accessLevels
 from bot import client
 from bot.lib.discordUtil import textChannel, scheduleCoroWithLogging
 

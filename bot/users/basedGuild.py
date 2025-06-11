@@ -10,7 +10,7 @@ import random
 
 from bot.baseClasses.serializable import SerializesToSchema, SerializesToType
 
-from .. import botState, lib
+from bot import botState, lib
 from bot.lib import gameMaths
 from bot.lib.stringTyping import commaSplitNum
 from bot.lib.timeUtil import utcfromtimestamp
@@ -23,7 +23,7 @@ from bot.gameObjects.bounties import bounty, bountyConfig
 from bot.databases import bountyDivision
 from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
 from bot.gameObjects.items.gameItem import GameItem
-from . import basedUser
+from bot.users import basedUser
 
 
 def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:

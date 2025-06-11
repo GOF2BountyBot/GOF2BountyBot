@@ -1,7 +1,7 @@
 from __future__ import annotations
 from discord.member import Member
-from . import reactionMenu, expiryFunctions
-from .. import botState
+from bot.reactionMenus import reactionMenu, expiryFunctions
+from bot import botState
 from bot.lib.emojis import BasedEmoji
 from bot.lib.timeUtil import utcfromtimestamp
 from bot.baseClasses.serializable import SerializesToSchema

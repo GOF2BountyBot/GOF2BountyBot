@@ -8,7 +8,7 @@ from typing import Any, Awaitable, Optional, TypeVar, Union, Callable, Protocol,
 from enum import Enum, EnumMeta, _EnumDict
 
 from bot import lib
-from . import basedApp
+from bot.interactions import basedApp
 
 
 STATIC_COMPONENT_CUSTOM_ID_SEPARATOR = "|"

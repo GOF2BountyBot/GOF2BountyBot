@@ -9,13 +9,13 @@ from discord import Member, User, Message, Role, RawReactionActionEvent
 from discord.abc import GuildChannel
 from discord.user import BaseUser
 from bot.cfg import cfg
-from .. import botState, lib
+from bot import botState, lib
 from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, Union, Dict, List, cast
 from typing_extensions import NotRequired, TypedDict
 import asyncio
 from bot.baseClasses.serializable import SerializesToSchema, AnyTypedDict
-from . import expiryFunctions
+from bot.reactionMenus import expiryFunctions
 
 
 _DCUserUnion = Union[User, Member]

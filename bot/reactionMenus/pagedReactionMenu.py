@@ -1,5 +1,5 @@
 from bot.users import basedUser
-from .import reactionMenu
+from bot.reactionMenus import reactionMenu
 from discord import Message, Member, Role, Embed
 from bot import lib, botState
 from typing import Dict, Generic, Optional, TypeVar, Union, cast

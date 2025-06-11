@@ -1,8 +1,8 @@
 from typing import Optional
 from discord.ui import button, Button
 from discord import ButtonStyle, Interaction
-from .cancelView import CancelView
-from .viewBase import ViewCleanup
+from bot.views.cancelView import CancelView
+from bot.views.viewBase import ViewCleanup
 
 class ConfirmView(CancelView):
     """`Accept` or `Cancel` buttons.

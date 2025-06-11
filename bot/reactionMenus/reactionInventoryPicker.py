@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional, cast
-from . import reactionMenu
+from bot.reactionMenus import reactionMenu
 from bot.cfg import cfg
 from bot.gameObjects.items import gameItem
 from bot.gameObjects.inventories import inventory

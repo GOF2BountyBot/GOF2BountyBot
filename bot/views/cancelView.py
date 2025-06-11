@@ -2,7 +2,7 @@ from typing import Optional, cast
 from discord.ui import button, Button
 from discord import ButtonStyle, Interaction
 
-from .viewBase import ViewBase, ViewCleanup
+from bot.views.viewBase import ViewBase, ViewCleanup
 
 class CancelView(ViewBase):
     """Just a `Cancel` button.

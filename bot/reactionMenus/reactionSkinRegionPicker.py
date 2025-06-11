@@ -1,4 +1,4 @@
-from . import reactionMenu
+from bot.reactionMenus import reactionMenu
 from bot.cfg import cfg
 from discord import Message, User, Member, Colour
 from typing import Union, List
