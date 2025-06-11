@@ -1,8 +1,8 @@
 from typing import cast
 from bot.cfg import bbData
-from .modules import _all as moduleItemClasses
-from .modules import ModuleItem
-from .modules.moduleItem import SerializedModuleItemUnion, TypedSerializedModuleItemUnion
+from bot.gameObjects.items.modules import _all as moduleItemClasses
+from bot.gameObjects.items.modules import ModuleItem
+from bot.gameObjects.items.modules.moduleItem import SerializedModuleItemUnion, TypedSerializedModuleItemUnion
 from bot.baseClasses.serializable import Factory
 
 typeConstructors = {cls.__name__: cls.deserialize for cls in moduleItemClasses}

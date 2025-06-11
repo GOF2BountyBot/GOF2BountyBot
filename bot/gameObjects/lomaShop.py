@@ -3,19 +3,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, cast
 from typing_extensions import TypedDict
 
-from .items.ships import shipItem,shipBase
+from bot.gameObjects.items.ships import shipItem,shipBase
 if TYPE_CHECKING:
     from bot.users import basedUser
 
-from .items import moduleItemFactory
-from .items.weapons import primaryWeapon, turretWeapon, weapon
-from .items.modules import moduleItem
-from .inventories import inventory, inventoryListing
-from .items.tools import toolItem, toolItemFactory
-from . import guildShop, itemDiscount
-from .inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
+from bot.gameObjects.items import moduleItemFactory
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon, weapon
+from bot.gameObjects.items.modules import moduleItem
+from bot.gameObjects.inventories import inventory, inventoryListing
+from bot.gameObjects.items.tools import toolItem, toolItemFactory
+from bot.gameObjects import guildShop, itemDiscount
+from bot.gameObjects.inventories.inventoryListing import DiscountableItemListing, SerializedDiscountableItemListing
 from bot.cfg.bbData import ItemCategory
-from .items.gameItem import SerializedGameItemUnion
+from bot.gameObjects.items.gameItem import SerializedGameItemUnion
 
 class SerializedLomaShop(TypedDict): # ideally this would inherit from guildShop.SerializedShopBase...
     shipsStock: List[inventoryListing.SerializedDiscountableItemListing[shipBase.SerializedShipUnion]]

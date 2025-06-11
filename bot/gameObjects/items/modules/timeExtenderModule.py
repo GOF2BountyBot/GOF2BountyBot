@@ -1,10 +1,10 @@
-from . import moduleItem
-from ....cfg import bbData
-from .... import lib
+from bot.gameObjects.items.modules import moduleItem
+from bot.cfg import bbData
+from bot import lib
 from typing import List, Union, cast
-from ..gameItem import spawnableItem, BuiltInSerializedGameItem
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.gameObjects.items.gameItem import spawnableItem, BuiltInSerializedGameItem
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class SerializedTimeExtenderModule(moduleItem.CustomSerializedModuleItem):
     effect: float

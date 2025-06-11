@@ -1,4 +1,4 @@
-from .inventory import Inventory
+from bot.gameObjects.inventories.inventory import Inventory
 from typing import TYPE_CHECKING, Generic, TypeVar
 if TYPE_CHECKING:
     from bot.users import basedUser

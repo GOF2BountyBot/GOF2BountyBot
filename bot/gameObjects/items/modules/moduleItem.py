@@ -1,11 +1,11 @@
-from ..gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
-from .... import lib
-from ....lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from bot.gameObjects.items.gameItem import GameItem, spawnableItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
+from bot import lib
+from bot.lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
 from typing import List, Union
 from typing_extensions import NotRequired
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
-from ....cfg import bbData
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.cfg import bbData
 
 
 class BuiltInSerializedModuleItem(BuiltInSerializedGameItem): pass

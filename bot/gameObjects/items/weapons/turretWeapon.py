@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import cast
-from ..gameItem import spawnableItem, topThreeItemSpawnRates
-from ....cfg import bbData
-from .... import lib
-from .weapon import Weapon, CustomSerializedWeaponUnion, SerializedWeaponUnion
-from ....baseClasses.embedFillable import embedField
+from bot.gameObjects.items.gameItem import spawnableItem, topThreeItemSpawnRates
+from bot.cfg import bbData
+from bot import lib
+from bot.gameObjects.items.weapons.weapon import Weapon, CustomSerializedWeaponUnion, SerializedWeaponUnion
+from bot.baseClasses.embedFillable import embedField
 
 
 @spawnableItem

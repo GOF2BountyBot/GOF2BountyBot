@@ -2,22 +2,22 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING, cast, TypeVar
 from typing_extensions import NotRequired
 # if TYPE_CHECKING:
-from ..modules import moduleItem
+from bot.gameObjects.items.modules import moduleItem
 
 from discord import Embed
 
-from ..gameItem import GameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
-from .. import moduleItemFactory
-from ..modules.moduleItem import SerializedModuleItemUnion
-from ..weapons.primaryWeapon import PrimaryWeapon
-from ..weapons.turretWeapon import TurretWeapon
-from ..weapons.weapon import SerializedWeaponUnion
-from ... import shipSkin, shipUpgrade
-from ....cfg import cfg, bbData
-from ....cfg.bbData import ItemCategory
-from ....lib.emojis import BasedEmoji, SerializedBasedEmoji
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.gameObjects.items.gameItem import GameItem, BuiltInSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
+from bot.gameObjects.items import moduleItemFactory
+from bot.gameObjects.items.modules.moduleItem import SerializedModuleItemUnion
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
+from bot.gameObjects.items.weapons.weapon import SerializedWeaponUnion
+from bot.gameObjects import shipSkin, shipUpgrade
+from bot.cfg import cfg, bbData
+from bot.cfg.bbData import ItemCategory
+from bot.lib.emojis import BasedEmoji, SerializedBasedEmoji
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 
 class BuiltInSerializedShip(BuiltInSerializedGameItem):

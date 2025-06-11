@@ -1,5 +1,5 @@
 from __future__ import annotations
-from . import inventoryListing
+from bot.gameObjects.inventories import inventoryListing
 from bot.baseClasses.serializable import SerializesToSchema
 from typing import Dict, Generic, List, Tuple, Type, TypeVar, cast
 from typing_extensions import TypedDict

@@ -4,7 +4,7 @@ from bot.cfg import bbData
 from bot import lib, botState
 from os.path import join
 from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField, embedImageFile, embedTitle
-from ..gameObject import LoadedObject, SerializedLoadedObject
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
 
 class SerializedXPBarFill(SerializedLoadedObject):
     designer: str

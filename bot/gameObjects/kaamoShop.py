@@ -1,18 +1,18 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
-from .items.ships import shipItem, shipBase
+from bot.gameObjects.items.ships import shipItem, shipBase
 if TYPE_CHECKING:
     from bot.users import basedUser
 
-from . import guildShop
+from bot.gameObjects import guildShop
 from bot.cfg import cfg
-from .items import gameItem
-from .items.weapons import primaryWeapon, turretWeapon
-from .items.modules import moduleItem
-from .items.tools import toolItem
-from .inventories import inventory
-from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
+from bot.gameObjects.items import gameItem
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon
+from bot.gameObjects.items.modules import moduleItem
+from bot.gameObjects.items.tools import toolItem
+from bot.gameObjects.inventories import inventory
+from bot.gameObjects.inventories.inventoryListing import InventoryListing, SerializedInventoryListing
 
 
 class KaamoShop(guildShop.ShopBase[inventory.SerializedInventory[SerializedInventoryListing], InventoryListing]):

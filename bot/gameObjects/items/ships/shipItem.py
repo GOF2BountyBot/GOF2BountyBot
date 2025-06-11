@@ -1,14 +1,13 @@
 from typing import Optional
-from .shipBase import ShipBase
-from ....baseClasses.embedFillable import EmbedFillableMixin
-from ..gameItem import spawnableItem
-from ... import shipUpgrade
+from bot.gameObjects.items.ships.shipBase import ShipBase
+from bot.baseClasses.embedFillable import EmbedFillableMixin
+from bot.gameObjects.items.gameItem import spawnableItem
 
-from ..weapons.primaryWeapon import PrimaryWeapon
-from ..weapons.turretWeapon import TurretWeapon
-from ..modules import moduleItem
-from ... import shipSkin, shipUpgrade
-from ....baseClasses.embedFillable import EmbedFillableMixin
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
+from bot.gameObjects.items.modules import moduleItem
+from bot.gameObjects import shipSkin, shipUpgrade
+from bot.baseClasses.embedFillable import EmbedFillableMixin
 
 @spawnableItem
 class Ship(ShipBase, EmbedFillableMixin):

@@ -9,7 +9,7 @@ from bot import lib
 from bot.lib import gameMaths
 from bot.lib.stringTyping import commaSplitNum
 from bot.cfg import bbData, cfg, schema
-from..gameObject import LoadedObject, SerializedLoadedObject
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
 
 
 class BuiltInSerializedGameItem(SerializedLoadedObject, aliasable.SerializedAliasable): pass

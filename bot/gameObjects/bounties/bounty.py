@@ -6,9 +6,9 @@ if TYPE_CHECKING:
     from bot.databases.bountyDivision import BountyDivision
     from bot.databases.bountyDB import BountyDB
 
-from .bountyConfig import BountyConfig, GeneratedConfig
+from bot.gameObjects.bounties.bountyConfig import BountyConfig, GeneratedConfig
 from bot.cfg import bbData, cfg
-from . import criminal
+from bot.gameObjects.bounties import criminal
 from bot.baseClasses.serializable import SerializesToSchema
 from bot.scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta

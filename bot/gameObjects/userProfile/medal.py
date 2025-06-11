@@ -2,7 +2,7 @@ from discord import Colour
 from bot.baseClasses.serializable import SerializesToSchema
 from bot.lib.emojis import BasedEmoji, SerializedBasedEmoji
 from bot.baseClasses.embedFillable import EmbedFillableMixin, embedColour, embedDescription, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
-from ..gameObject import LoadedObject, SerializedLoadedObject
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
 from bot.cfg import bbData
 
 class SerializedMedal(SerializedLoadedObject):
