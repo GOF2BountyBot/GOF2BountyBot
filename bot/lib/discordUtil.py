@@ -4,9 +4,9 @@ from typing_extensions import ParamSpec
 from enum import Enum
 
 if TYPE_CHECKING:
-    from ..users import basedUser, basedGuild
-    from ..gameObjects.bounties import criminal
-    from .. import client
+    from bot.users import basedUser, basedGuild
+    from bot.gameObjects.bounties import criminal
+    from bot import client
 
 if TYPE_CHECKING:
     TParams = ParamSpec('TParams')
@@ -20,13 +20,13 @@ from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEv
 from discord import DMChannel, GroupChannel, TextChannel
 from discord.abc import Messageable
 
-from . import stringTyping, emojis, exceptions, graphics
-from .. import botState
+from bot.lib import stringTyping, emojis, exceptions, graphics
+from bot import botState
 import discord
 from discord import Embed, Colour, HTTPException, Forbidden, RawReactionActionEvent, User, File
 from discord import DMChannel, GroupChannel, TextChannel
-from ..cfg import cfg
-from ..userAlerts import userAlerts
+from bot.cfg import cfg
+from bot.userAlerts import userAlerts
 
 from functools import wraps, partial
 import asyncio
@@ -35,8 +35,8 @@ from datetime import datetime
 from PIL.Image import Image
 from io import BytesIO
 
-from ..logging import LogCategory
-from ..baseClasses.serializable import Serializable
+from bot.logging import LogCategory
+from bot.baseClasses.serializable import Serializable
 
 
 class AnyCoroutine(Protocol):

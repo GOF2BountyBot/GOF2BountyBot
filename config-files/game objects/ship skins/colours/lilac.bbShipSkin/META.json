@@ -1,0 +1,250 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "lilac",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888567317004338/lilac-RENDER.png",
+            788888567278600224
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888468767113227/lilac-RENDER.png",
+            788888468860174437
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889164082708540/lilac-RENDER.png",
+            788889164497551360
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888935434420224/lilac-RENDER.png",
+            788888935681753109
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888203008147468/lilac-RENDER.png",
+            788888203431247884
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888031104073748/lilac-RENDER.png",
+            788888031053611071
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888241340153888/lilac-RENDER.png",
+            788888241842946118
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888277541191680/lilac-RENDER.png",
+            788888277783937034
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888502573858816/lilac-RENDER.png",
+            788888504541118485
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888347841265704/lilac-RENDER.png",
+            788888347799846915
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889266272993310/lilac-RENDER.png",
+            788889266246910034
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888638619648050/lilac-RENDER.png",
+            788888638942478396
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889304838963220/lilac-RENDER.png",
+            788889305056673822
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888062922457088/lilac-RENDER.png",
+            788888062880907276
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889337147818004/lilac-RENDER.png",
+            788889337189892158
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888537671401512/lilac-RENDER.png",
+            788888537897631787
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888672069091328/lilac-RENDER.png",
+            788888672417087548
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889372900327454/lilac-RENDER.png",
+            788889373164437525
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888095792955462/lilac-RENDER.png",
+            788888096070172702
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889402038419516/lilac-RENDER.png",
+            788889402109198357
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889810440945714/lilac-RENDER.png",
+            788889810655903774
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888705620377670/lilac-RENDER.png",
+            788888705871904848
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888386726527057/lilac-RENDER.png",
+            788888386945155152
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889433520734218/lilac-RENDER.png",
+            788889433578930237
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888968737325096/lilac-RENDER.png",
+            788888969159901184
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888998554370050/lilac-RENDER.png",
+            788888998788726804
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889465048793108/lilac-RENDER.png",
+            788889465154306089
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889842926616576/lilac-RENDER.png",
+            788889843152322590
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888737139785758/lilac-RENDER.png",
+            788888737362739240
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888127820922931/lilac-RENDER.png",
+            788888127925649439
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889032464793630/lilac-RENDER.png",
+            788889033035481119
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888309790146570/lilac-RENDER.png",
+            788888310050979901
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889876577779722/lilac-RENDER.png",
+            788889876787363870
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889908260896818/lilac-RENDER.png",
+            788889908159840307
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887914959601674/lilac-RENDER.png",
+            788887914985291807
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888775777320970/lilac-RENDER.png",
+            788888776025702440
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888607527534622/lilac-RENDER.png",
+            788888607787188224
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888425658056704/lilac-RENDER.png",
+            788888426132799518
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889500100067348/lilac-RENDER.png",
+            788889500751101972
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889534704255036/lilac-RENDER.png",
+            788889534975705108
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889574520127508/lilac-RENDER.png",
+            788889575513784325
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889943846027304/lilac-RENDER.png",
+            788889944080384071
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888807403159592/lilac-RENDER.png",
+            788888807654031401
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888838684278804/lilac-RENDER.png",
+            788888838889406474
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889607684358195/lilac-RENDER.png",
+            788889607772700765
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889640870477894/lilac-RENDER.png",
+            788889641276801095
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888162825928704/lilac-RENDER.png",
+            788888163149807616
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889197309984783/lilac-RENDER.png",
+            788889197619707904
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889230411431936/lilac-RENDER.png",
+            788889230620360714
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888870983827506/lilac-RENDER.png",
+            788888870841876512
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887955594280960/lilac-RENDER.png",
+            788887955832963082
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889066505895967/lilac-RENDER.png",
+            788889066733174824
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889099650072596/lilac-RENDER.png",
+            788889099817189407
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889670879936562/lilac-RENDER.png",
+            788889671118880769
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788887990571237416/lilac-RENDER.png",
+            788887990742679583
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889740735938560/lilac-RENDER.png",
+            788889740946178048
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889776425664562/lilac-RENDER.png",
+            788889776475471874
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889705097723924/lilac-RENDER.png",
+            788889705180954636
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788889130519363604/lilac-RENDER.png",
+            788889130708762634
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788888903305265222/lilac-RENDER.png",
+            788888903574618162
+        ]
+    },
+    "textureRegions": []
+}

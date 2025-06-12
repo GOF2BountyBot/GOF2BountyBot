@@ -2,11 +2,11 @@ from datetime import timedelta
 from typing import Optional, Set, List
 from typing_extensions import Never
 from discord import Member, Message, Colour, Role
-from . import reactionMenu, expiryFunctions
-from .. import botState
-from ..users import basedUser
-from ..scheduling import timedTask
-from ..gameObjects.guildShop import StoredItemType
+from bot.reactionMenus import reactionMenu, expiryFunctions
+from bot import botState
+from bot.users import basedUser
+from bot.scheduling import timedTask
+from bot.gameObjects.guildShop import StoredItemType
 
 
 class GiveawayMenu(reactionMenu.ReactionMenu["GiveawayMenuOption", Never]):

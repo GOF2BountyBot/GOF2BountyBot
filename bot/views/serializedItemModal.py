@@ -4,8 +4,8 @@ from discord import Interaction, TextStyle
 from discord.utils import MISSING
 import json
 
-from ..baseClasses.serializable import JsonType
-from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion
+from bot.baseClasses.serializable import JsonType
+from bot.gameObjects.items.gameItem import TypedSerializedGameItemUnion
 
 class SerializedItemModal(Modal):
     """A modal for gathering a JSON-serialized item.

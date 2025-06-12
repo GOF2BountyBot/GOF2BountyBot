@@ -1,11 +1,11 @@
-from ... import lib, botState, client
-from ...cfg import cfg
+from bot import lib, botState, client
+from bot.cfg import cfg
 from discord import Embed, Interaction, Member, User, DiscordException, HTTPException, NotFound, File
 from discord.utils import MISSING
-from ...users import basedUser
-from ...scheduling import timedTask
-from ..items.ships import shipItem
-from ..bounties import criminal
+from bot.users import basedUser
+from bot.scheduling import timedTask
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects.bounties import criminal
 import random
 from typing import Optional, Tuple, Union
 from io import BytesIO
@@ -259,7 +259,8 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
                 if ship is ship1:
                     shipIcon = ImageOps.mirror(shipIcon)
                 canvas.paste(shipIcon, shipPos, shipIcon)
-
+        """
+        Removed to test refactor for Pillow 10+
         draw: ImageDraw.ImageDraw = ImageDraw.Draw(canvas)
         currentHeight = statsPos[1]
         if len(name) <= cfg.duelResultsMaxNameWidth:
@@ -286,7 +287,38 @@ async def buildDuelResultsImage(player1: Union[basedUser.BasedUser, criminal.Cri
         currentHeight = drawStat(f"Total HP: {int(shipStats.variedHP)}", currentHeight)
         currentHeight = drawStat(f"Total Damage/s: {shipStats.variedDPS}", currentHeight)
         currentHeight = drawStat(f"Time alive: {shipStats.secondsAlive:.2f}s", currentHeight)
-            
+        """
+        draw: ImageDraw.ImageDraw = ImageDraw.Draw(canvas)
+        currentHeight = statsPos[1]
+
+        # Helper to get line height (text + padding) from a font and a sample string
+        def line_height(font, sample_text):
+            bbox = font.getbbox(sample_text)
+            text_h = bbox[3] - bbox[1]
+            return text_h + cfg.duelResultsTextLinePadding
+
+        # Draw the name, wrapping if needed
+        if len(name) <= cfg.duelResultsMaxNameWidth:
+            draw.text(statsPos, name, cfg.duelResultsNameFontColour, font=nameFont)
+            currentHeight += line_height(nameFont, name)
+        else:
+            # all wrapped lines get the same height
+            pxPerLine = line_height(nameFont, name)
+            for line in textwrap.wrap(name, cfg.duelResultsMaxNameWidth):
+                draw.text((statsPos[0], currentHeight), line, cfg.duelResultsNameFontColour, font=nameFont)
+                currentHeight += pxPerLine
+
+        def drawStat(attStr, currentHeight) -> int:
+            # measure per-line height for statsFont
+            pxPerLine = line_height(statsFont, attStr)
+            if len(attStr) <= cfg.duelResultsMaxStatsWidth:
+                draw.text((statsPos[0], currentHeight), attStr, cfg.duelResultsStatsFontColour, font=statsFont)
+                currentHeight += pxPerLine
+            else:
+                for line in textwrap.wrap(attStr, cfg.duelResultsMaxStatsWidth):
+                    draw.text((statsPos[0], currentHeight), line, cfg.duelResultsStatsFontColour, font=statsFont)
+                    currentHeight += pxPerLine
+            return currentHeight    
             
     if cfg.duelResultsShadowOpacity:
         canvas = lib.graphics.dropShadow(canvas, cfg.duelResultsShadowOpacity, cfg.duelResultsShadowOffset, cfg.duelResultsBlurIterations)

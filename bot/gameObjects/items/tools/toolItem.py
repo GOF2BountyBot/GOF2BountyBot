@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING, Coroutine, Protocol, TypeVar, Union, cast, Any
 if TYPE_CHECKING:
-    from ....users import basedUser
+    from bot.users import basedUser
 
-from .. import gameItem
+from bot.gameObjects.items import gameItem
 from abc import abstractmethod
-from .... import lib
+from bot import lib
 from discord import Interaction
 from typing import List
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 
 class SerializedToolItem(gameItem.CustomSerializedGameItem):
@@ -143,7 +143,7 @@ def userFriendlySingleUse(func: TUserFriendlyUse) -> TUserFriendlyUse:
     The tool is only removed if userFriendlyUse succeeds - returns `True`.
     """
     # TODO: placed here to avoid a circular import
-    from .... import client
+    from bot import client
 
     async def inner(self: ToolItem, interaction: Interaction, respond: bool, followup: bool, *args, **kwargs):
         if not isinstance(interaction.client, client.BasedClient):

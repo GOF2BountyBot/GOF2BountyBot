@@ -7,24 +7,24 @@ from abc import abstractmethod
 import random
 
 if TYPE_CHECKING:
-    from ..users import basedUser
+    from bot.users import basedUser
 
-from ..cfg import bbData, cfg
-from ..cfg.bbData import ItemCategory
-from .items.ships.shipItem import Ship
-from .items.ships.shipBase import SerializedShipUnion
-from .items.weapons.weapon import SerializedWeaponUnion
-from .items.weapons.primaryWeapon import PrimaryWeapon
-from .items.weapons.turretWeapon import TurretWeapon
-from .items import moduleItemFactory, gameItem
-from .items.modules import moduleItem
-from .items.tools import toolItem, toolItemFactory
-from .inventories.inventory import Inventory, _InventoryBase, SerializedInventory
-from .inventories.inventoryListing import InventoryListing, SerializedInventoryListing
-from .. import botState
-from ..lib import gameMaths
-from ..logging import LogCategory
-from ..baseClasses.serializable import JsonType, SerializesToSchema
+from bot.cfg import bbData, cfg
+from bot.cfg.bbData import ItemCategory
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.ships.shipBase import SerializedShipUnion
+from bot.gameObjects.items.weapons.weapon import SerializedWeaponUnion
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
+from bot.gameObjects.items import moduleItemFactory, gameItem
+from bot.gameObjects.items.modules import moduleItem
+from bot.gameObjects.items.tools import toolItem, toolItemFactory
+from bot.gameObjects.inventories.inventory import Inventory, _InventoryBase, SerializedInventory
+from bot.gameObjects.inventories.inventoryListing import InventoryListing, SerializedInventoryListing
+from bot import botState
+from bot.lib import gameMaths
+from bot.logging import LogCategory
+from bot.baseClasses.serializable import JsonType, SerializesToSchema
 
 StoredItemType = Union[Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem]
 StoredItemTypesTuple = (Ship, PrimaryWeapon, moduleItem.ModuleItem, TurretWeapon, toolItem.ToolItem)

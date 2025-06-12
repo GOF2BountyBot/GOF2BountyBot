@@ -1,7 +1,7 @@
 # Set up bot config
 
 from typing import List, Literal, Optional, Union, cast
-from .cfg import cfg
+from bot.cfg import cfg
 
 # Discord Imports
 
@@ -23,20 +23,20 @@ import asyncio
 
 # BASED Imports
 
-from . import lib, botState
-from .lib import BASED_version
-from .lib.discordUtil import timestamp, TimeStampStyle
-from .databases import bountyDB
-from .scheduling.timedTask import TimedTask
-from .gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from bot import lib, botState
+from bot.lib import BASED_version
+from bot.lib.discordUtil import timestamp, TimeStampStyle
+from bot.databases import bountyDB
+from bot.scheduling.timedTask import TimedTask
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 # register as spawnable
 from .gameObjects.items.tools import creditsTool, throwSnowballTool
 
-from . import lib, botState
-from .lib import BASED_version
-from .client import BasedClient
-from .logging import LogCategory
+from bot import lib, botState
+from bot.lib import BASED_version
+from bot.client import BasedClient
+from bot.logging import LogCategory
 
 
 def setHelpEmbedThumbnails():

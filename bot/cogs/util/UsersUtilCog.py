@@ -3,13 +3,13 @@ from typing import Optional, Tuple, Union
 from discord import Interaction, Member, User
 from discord.app_commands import Range
 
-from ...interactions.basedApp import BasedCog
-from ... import client, lib
-from ...lib.stringTyping import isInt
-from ...users import basedUser
-from ...cfg.bbData import ItemCategory
-from ...gameObjects.inventories.inventory import Inventory
-from ...gameObjects.items.gameItem import GameItem
+from bot.interactions.basedApp import BasedCog
+from bot import client, lib
+from bot.lib.stringTyping import isInt
+from bot.users import basedUser
+from bot.cfg.bbData import ItemCategory
+from bot.gameObjects.inventories.inventory import Inventory
+from bot.gameObjects.items.gameItem import GameItem
 
 
 class UsersUtilCog(BasedCog):

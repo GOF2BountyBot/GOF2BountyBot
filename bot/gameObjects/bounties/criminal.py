@@ -2,11 +2,11 @@
 from __future__ import annotations
 from typing import List, Optional, Union
 
-from ...cfg import bbData
-from ...baseClasses import aliasable
-from ..gameObject import LoadedObject, SerializedLoadedObject
-from ...baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour, embedFooterUrl
-from ...baseClasses.serializable import SerializesToSchema
+from bot.cfg import bbData
+from bot.baseClasses import aliasable
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
+from bot.baseClasses.embedFillable import embedField, embedThumbnailUrl, embedColour, embedFooterUrl
+from bot.baseClasses.serializable import SerializesToSchema
 
 class BuiltInSerializedCriminal(aliasable.SerializedAliasable, SerializedLoadedObject): pass
 

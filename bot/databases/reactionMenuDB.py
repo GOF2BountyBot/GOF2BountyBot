@@ -1,9 +1,9 @@
 from typing import Dict
-from .. import botState
-from ..reactionMenus import reactionMenu
-from ..logging import LogCategory
+from bot import botState
+from bot.reactionMenus import reactionMenu
+from bot.logging import LogCategory
 from discord.abc import Messageable
-from ..baseClasses.serializable import SerializesToType
+from bot.baseClasses.serializable import SerializesToType
 
 class ReactionMenuDB(Dict[int, reactionMenu.ReactionMenu], SerializesToType[Dict[int, reactionMenu.SerializedReactionMenu]]):
     """A database of ReactionMenu instances.

@@ -1,9 +1,9 @@
 from typing import Optional, Union, cast
 from discord import Guild, HTTPException, Interaction, app_commands
-from ..cfg import cfg
-from . import accessLevels
-from .. import client
-from ..lib.discordUtil import textChannel, scheduleCoroWithLogging
+from bot.cfg import cfg
+from bot.interactions import accessLevels
+from bot import client
+from bot.lib.discordUtil import textChannel, scheduleCoroWithLogging
 
 
 async def _checkLevel(level: "accessLevels.AccessLevelType", interaction: Interaction) -> bool:

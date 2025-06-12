@@ -3,19 +3,19 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Set, Union, TYPE_CHECKING, cast
 from typing_extensions import NotRequired, TypedDict
 if TYPE_CHECKING:
-    from ...databases.bountyDivision import BountyDivision
-    from ...databases.bountyDB import BountyDB
+    from bot.databases.bountyDivision import BountyDivision
+    from bot.databases.bountyDB import BountyDB
 
-from .bountyConfig import BountyConfig, GeneratedConfig
-from ...cfg import bbData, cfg
-from . import criminal
-from ...baseClasses.serializable import SerializesToSchema
-from ...scheduling.timedTask import TimedTask
+from bot.gameObjects.bounties.bountyConfig import BountyConfig, GeneratedConfig
+from bot.cfg import bbData, cfg
+from bot.gameObjects.bounties import criminal
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.scheduling.timedTask import TimedTask
 from datetime import datetime, timedelta
-from ... import lib, botState
-from ..items.ships.shipItem import Ship
-from ..items.ships.shipBase import SerializedShipUnion
-from ...lib.timeUtil import utcfromtimestamp
+from bot import lib, botState
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.ships.shipBase import SerializedShipUnion
+from bot.lib.timeUtil import utcfromtimestamp
 from enum import Enum
 from discord.utils import utcnow
 

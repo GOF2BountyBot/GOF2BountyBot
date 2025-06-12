@@ -1,0 +1,250 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "neapolitan",
+    "allShips": true,
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893466159218708/neopolitan-RENDER.png",
+            788893466418741258
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893368049467413/neopolitan-RENDER.png",
+            788893368184733697
+        ],
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894092066947122/neopolitan-RENDER.png",
+            788894092318343178
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893856115851304/neopolitan-RENDER.png",
+            788893856338935848
+        ],
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893105788813337/neopolitan-RENDER.png",
+            788893106375491646
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892924606808154/neopolitan-RENDER.png",
+            788892924637085718
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893145650692146/neopolitan-RENDER.png",
+            788893145945079808
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893180380184626/neopolitan-RENDER.png",
+            788893180502081537
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893400240750602/neopolitan-RENDER.png",
+            788893400455577611
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893249636925440/neopolitan-RENDER.png",
+            788893249648984095
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894198501474314/neopolitan-RENDER.png",
+            788894198790488084
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893537018183760/neopolitan-RENDER.png",
+            788893537302610020
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894236648013824/neopolitan-RENDER.png",
+            788894236996403200
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892957897392149/neopolitan-RENDER.png",
+            788892958325604392
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894270098505748/neopolitan-RENDER.png",
+            788894270135861289
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893435377614908/neopolitan-RENDER.png",
+            788893435686813727
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893575127367680/neopolitan-RENDER.png",
+            788893575311392809
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894305158692864/neopolitan-RENDER.png",
+            788894305447575552
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892994811985930/neopolitan-RENDER.png",
+            788892995063250964
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894334740856882/neopolitan-RENDER.png",
+            788894335021613106
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894757593153576/neopolitan-RENDER.png",
+            788894757824757790
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893614709014539/neopolitan-RENDER.png",
+            788893614801027141
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893288656666644/neopolitan-RENDER.png",
+            788893289041362974
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894366231953458/neopolitan-RENDER.png",
+            788894366449664040
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893890631303178/neopolitan-RENDER.png",
+            788893891067772948
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893920830423050/neopolitan-RENDER.png",
+            788893920951009281
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894397256826890/neopolitan-RENDER.png",
+            788894397223665725
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894791206305792/neopolitan-RENDER.png",
+            788894791517339717
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893648834002954/neopolitan-RENDER.png",
+            788893649122623498
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893028978130944/neopolitan-RENDER.png",
+            788893029162942506
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893955201826906/neopolitan-RENDER.png",
+            788893955387162655
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893210981695538/neopolitan-RENDER.png",
+            788893211300200489
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894828602851348/neopolitan-RENDER.png",
+            788894828800638976
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894859259412530/neopolitan-RENDER.png",
+            788894859686969355
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892802733047829/neopolitan-RENDER.png",
+            788892802930573332
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893691610923008/neopolitan-RENDER.png",
+            788893691800584193
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893505757642752/neopolitan-RENDER.png",
+            788893505983741952
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893325604159528/neopolitan-RENDER.png",
+            788893325527875655
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894432325140520/neopolitan-RENDER.png",
+            788894432577585192
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894466471493662/neopolitan-RENDER.png",
+            788894466680684574
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894506082631700/neopolitan-RENDER.png",
+            788894506304405535
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894896353706024/neopolitan-RENDER.png",
+            788894896601563167
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893724129624114/neopolitan-RENDER.png",
+            788893724470018099
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893757671997440/neopolitan-RENDER.png",
+            788893757947772948
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894545105780766/neopolitan-RENDER.png",
+            788894545328341012
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894581886156820/neopolitan-RENDER.png",
+            788894582116319311
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893065750118451/neopolitan-RENDER.png",
+            788893065968091136
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894127667806248/neopolitan-RENDER.png",
+            788894127987228675
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894161402724362/neopolitan-RENDER.png",
+            788894161817567309
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893791313723422/neopolitan-RENDER.png",
+            788893791515574292
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892844022300752/neopolitan-RENDER.png",
+            788892844248006736
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893989469421568/neopolitan-RENDER.png",
+            788893989767610408
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894023489814538/neopolitan-RENDER.png",
+            788894023413661699
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894612605239336/neopolitan-RENDER.png",
+            788894612868825108
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788892882996166656/neopolitan-RENDER.png",
+            788892883113082881
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894685354655794/neopolitan-RENDER.png",
+            788894685598973992
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894721849688094/neopolitan-RENDER.png",
+            788894722113798144
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894648860672030/neopolitan-RENDER.png",
+            788894649007865877
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788894055802208296/neopolitan-RENDER.png",
+            788894056252047360
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788893824042795048/neopolitan-RENDER.png",
+            788893824293404682
+        ]
+    },
+    "textureRegions": []
+}

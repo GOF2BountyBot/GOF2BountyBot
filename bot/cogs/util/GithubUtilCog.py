@@ -7,10 +7,10 @@ from github.Label import Label
 from github.Repository import Repository
 from github.Issue import Issue
 
-from ...interactions.basedApp import BasedCog
-from ... import client, lib
-from ...lib.discordUtil import asyncWrap
-from ...cfg import cfg
+from bot.interactions.basedApp import BasedCog
+from bot import client, lib
+from bot.lib.discordUtil import asyncWrap
+from bot.cfg import cfg
 import re
 
 ISSUE_TEMPLATE_NAME_SEARCH = re.compile("name: ")

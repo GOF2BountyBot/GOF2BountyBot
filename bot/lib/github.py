@@ -5,7 +5,7 @@ from github import Github, UnknownObjectException
 from github.Issue import Issue
 from github.Repository import Repository
 
-from .discordUtil import asyncWrap
+from bot.lib.discordUtil import asyncWrap
 
 class BasedGithub(Github):
     @asyncWrap

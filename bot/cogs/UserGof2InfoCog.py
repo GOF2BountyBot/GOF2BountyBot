@@ -7,14 +7,14 @@ from discord.utils import MISSING
 from discord.app_commands import Range
 from discord.ui import View, Button, Select
 
-from .. import client, lib
-from ..lib.discordUtil import ImageFile
-from ..cfg import bbData, cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
+from bot import client, lib
+from bot.lib.discordUtil import ImageFile
+from bot.cfg import bbData, cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.cogs.util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     shipAutoComplete, ShipKey, \
                                     shipSkinAutoComplete, ShipSkinKey, \
                                     systemAutoComplete, SystemKey, \
@@ -23,12 +23,12 @@ from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey, \
                                     turretAutoComplete, TurretKey, \
                                     toolAutoComplete, ToolKey, \
                                     medalAutoComplete, MedalKey
-from .util.EmbedEditorUtil import interactionErrorString
-from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
-from ..gameObjects.items.ships.shipBlueprint import ShipBlueprint
-from ..baseClasses.embedFillable import EmbedFillableMixin
-from ..gameObjects.gameObject import SerializedLoadedObject
-from ..logging import LogCategory
+from bot.cogs.util.EmbedEditorUtil import interactionErrorString
+from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
+from bot.gameObjects.items.ships.shipBlueprint import ShipBlueprint
+from bot.baseClasses.embedFillable import EmbedFillableMixin
+from bot.gameObjects.gameObject import SerializedLoadedObject
+from bot.logging import LogCategory
 
 class ListSearchableItemTypes(Enum):
     """Extended from bbData.ItemCategory"""

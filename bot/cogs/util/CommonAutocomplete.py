@@ -6,19 +6,19 @@ from discord import app_commands
 from discord.app_commands import Transformer, Transform
 import heapq
 
-from ...cfg import cfg, bbData
-from ...baseClasses.aliasable import AliasableMixin
-from ... import client, lib
-from ...lib import gameMaths
-from ...users import basedUser
-from ...gameObjects.items import gameItem
-from ...lib.stringTyping import stringDifference
-from ...gameObjects.inventories import inventoryListing
-from ...gameObjects.items.ships.shipItem import Ship
+from bot.cfg import cfg, bbData
+from bot.baseClasses.aliasable import AliasableMixin
+from bot import client, lib
+from bot.lib import gameMaths
+from bot.users import basedUser
+from bot.gameObjects.items import gameItem
+from bot.lib.stringTyping import stringDifference
+from bot.gameObjects.inventories import inventoryListing
+from bot.gameObjects.items.ships.shipItem import Ship
 
 if TYPE_CHECKING:
-    from ...databases import bountyDB, bountyDivision
-    from ...gameObjects.bounties import bounty
+    from bot.databases import bountyDB, bountyDivision
+    from bot.gameObjects.bounties import bounty
 
 
 MAX_CHOICES = 25

@@ -1,5 +1,5 @@
-from .shipBase import ShipBase
-from ....baseClasses.embedFillable import removeEmbedField
+from bot.gameObjects.items.ships.shipBase import ShipBase
+from bot.baseClasses.embedFillable import removeEmbedField
 
 # Remove the tech level field. Ships don't have tech levels in GOF2, so this could be misleading.
 @removeEmbedField("Tech Level")

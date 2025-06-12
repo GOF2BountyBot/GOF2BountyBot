@@ -1,8 +1,8 @@
-from ..cfg import cfg
-from .. import lib
-from ..lib.BASED_version import checkForUpdates, BASED_REPO_URL
-from .. import client
-from ..interactions.basedApp import BasedCog
+from bot.cfg import cfg
+from bot import lib
+from bot.lib.BASED_version import checkForUpdates, BASED_REPO_URL
+from bot import client
+from bot.interactions.basedApp import BasedCog
 
 from typing import List, cast
 from discord.abc import Snowflake

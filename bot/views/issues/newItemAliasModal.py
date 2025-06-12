@@ -2,7 +2,7 @@ from typing import Union
 from discord.ui import TextInput
 from discord import Member, TextStyle, User
 
-from .issueReportModalBase import IssueReportModalBase
+from bot.views.issues.issueReportModalBase import IssueReportModalBase
 
 TITLE_TEMPLATE = "[Item Alias] <item name>: <your alias>"
 

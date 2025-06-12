@@ -1,8 +1,8 @@
 import os
 
-from ..baseClasses.serializable import SerializesToJson
-from ..cfg import cfg
-from .. import lib
+from bot.baseClasses.serializable import SerializesToJson
+from bot.cfg import cfg
+from bot import lib
 from datetime import datetime, timezone
 import aiohttp
 from carica import SerializableDataClass

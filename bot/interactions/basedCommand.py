@@ -1,12 +1,10 @@
 from discord import app_commands, Interaction
 from discord.utils import MISSING
 from typing import Callable, Dict, Optional, Tuple, TypeVar, Union, Awaitable
-from . import accessLevels
-from .commandChecks import create_requireAccess
-from . import basedApp
-from . import basedComponent
-from ..cfg import cfg
-from ..cogs.util.helpUtil import *
+from bot.interactions import accessLevels, basedApp, basedComponent
+from bot.interactions.commandChecks import create_requireAccess
+from bot.cfg import cfg
+from bot.cogs.util.helpUtil import *
 
 TClass = TypeVar("TClass")
 TParam = TypeVar("TParam")

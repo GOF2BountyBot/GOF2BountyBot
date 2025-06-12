@@ -13,18 +13,18 @@ from datetime import datetime, timedelta
 import os
 from github.Repository import Repository
 
-from .interactions import accessLevels, commandChecks
-from .databases import userDB, guildDB, reactionMenuDB
-from . import lib
-from .cfg import cfg
-from . import logging
-from .scheduling import timedTaskHeap
-from .interactions import basedCommand, basedComponent, basedApp
-from .users.basedGuild import BasedGuild
-from .users import basedUser
-from .cfg import gameConfigurator
-from .reactionMenus import reactionMenu
-from .baseClasses.serializable import SerializesToJson
+from bot.interactions import accessLevels, commandChecks
+from bot.databases import userDB, guildDB, reactionMenuDB
+from bot import lib
+from bot.cfg import cfg
+from bot import logging
+from bot.scheduling import timedTaskHeap
+from bot.interactions import basedCommand, basedComponent, basedApp
+from bot.users.basedGuild import BasedGuild
+from bot.users import basedUser
+from bot.cfg import gameConfigurator
+from bot.reactionMenus import reactionMenu
+from bot.baseClasses.serializable import SerializesToJson
 
 
 class ShutDownState:
@@ -650,6 +650,8 @@ class BasedClient(ClientBaseClass):
 
             self._mediaServersLoaded = True
 
+        # TODO: Need to refactor this to not attempt initializing github 
+        # if the cogs are not included in the bot launch config
         if not self._githubLoaded and cfg.githubAccessToken != "":
             self._githubClient = lib.github.BasedGithub(cfg.githubAccessToken)
             self._githubRepo = self._githubClient.get_repo(cfg.githubIssuesRepo)

@@ -5,19 +5,19 @@ from discord.abc import Snowflake
 from discord.app_commands import Range
 from discord.utils import MISSING
 
-from .. import client, lib
-from ..lib.stringTyping import commaSplitNum, formatMultiplier
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory
-from ..interactions import basedCommand, basedApp
-from ..gameObjects.items import gameItem
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.lomaShop import LomaShop
-from ..gameObjects import guildShop
-from ..logging import LogCategory
-from ..gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
-from ..views.serializedItemModal import SerializedItemModal
+from bot import client, lib
+from bot.lib.stringTyping import commaSplitNum, formatMultiplier
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory
+from bot.interactions import basedCommand, basedApp
+from bot.gameObjects.items import gameItem
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.lomaShop import LomaShop
+from bot.gameObjects import guildShop
+from bot.logging import LogCategory
+from bot.gameObjects.inventories.inventoryListing import DiscountableItemListing, ItemDiscount
+from bot.views.serializedItemModal import SerializedItemModal
 
 class DevLomaCog(basedApp.BasedCog):
     @basedCommand.basedCommand(accessLevel=basicAccessLevels.developer, helpSection="loma")

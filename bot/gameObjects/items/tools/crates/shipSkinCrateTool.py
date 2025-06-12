@@ -1,10 +1,10 @@
 from typing import Union, List, Optional
 
-from ... import gameItem
-from .. import crateTool
-from .. import shipSkinTool
-from .....cfg import cfg
-from ..... import lib
+from bot.gameObjects.items import gameItem
+from bot.gameObjects.items.tools import crateTool
+from bot.gameObjects.items.tools import shipSkinTool
+from bot.cfg import cfg
+from bot import lib
 
 @gameItem.spawnableItem
 @crateTool.singleTypeCrate(shipSkinTool.ShipSkinTool)

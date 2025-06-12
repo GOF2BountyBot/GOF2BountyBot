@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import cast
 from typing_extensions import TypedDict
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.simpleHash import simpleHash
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.simpleHash import simpleHash
 
 class SerializedItemDiscount(TypedDict):
     mult: float

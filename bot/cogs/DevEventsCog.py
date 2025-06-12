@@ -6,15 +6,15 @@ from discord.abc import Snowflake, Messageable
 from discord.utils import utcnow
 from discord.app_commands import Range
 
-from .. import client
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..gameObjects.items.tools import crateTool
-from .util.transformers import PlayOrAnnounceChannel
-from ..users.basedGuild import BasedGuild
-from ..reactionMenus.giveawayMenu import GiveawayMenu
+from bot import client
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.gameObjects.items.tools import crateTool
+from bot.cogs.util.transformers import PlayOrAnnounceChannel
+from bot.users.basedGuild import BasedGuild
+from bot.reactionMenus.giveawayMenu import GiveawayMenu
 
 
 class DevEventsCog(BasedCog):

@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import List, Union, cast
 
-from ..gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
-from .... import lib
-from ....cfg import bbData
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.gameObjects.items.gameItem import GameItem, BuiltInSerializedGameItem, CustomSerializedGameItem, TypedCustomSerializedGameItem, TypedBuiltInSerializedGameItem, topThreeItemSpawnRates
+from bot import lib
+from bot.cfg import bbData
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 class BuiltInSerializedWeapon(BuiltInSerializedGameItem): pass
 class TypedBuiltInSerializedWeapon(TypedBuiltInSerializedGameItem): pass

@@ -5,7 +5,7 @@ from asyncio import Task, create_task
 from datetime import datetime, timedelta
 import discord
 from typing import Any, Callable, Coroutine, Optional, Union
-from .. import botState, lib
+from bot import botState, lib
 
 
 TTCallbackType = Union[Callable[[Any], Coroutine], Callable[[], Coroutine]]

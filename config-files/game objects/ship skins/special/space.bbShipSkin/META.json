@@ -1,0 +1,65 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "space",
+    "ships": {
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/772069576095039498/space-RENDER.png",
+            772069576280113192
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788199956452212736/space-RENDER.png",
+            788199956573323265
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788186771870711828/space-RENDER.png",
+            788186772110442546
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788166096023715890/space-RENDER.png",
+            788166096267903016
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788395344739172432/space-RENDER.png",
+            788395344638640140
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788148725029666866/space-RENDER.png",
+            788148725239250964
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788181868737724456/space-RENDER.png",
+            788181868943769640
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788204693264007229/space-RENDER.png",
+            788204693545287710
+        ],
+        "S'Kanarr": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788396400575643728/space-RENDER.png",
+            788396400849190952
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788183013280186398/space-RENDER.png",
+            788183013426593803
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788162883103227964/space-RENDER.png",
+            788162883347021846
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788187583804473354/space-RENDER.png",
+            788187584001081354
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788390932667039754/space-RENDER.png",
+            788390932978466866
+        ],
+        "Vossk Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788392011974836234/space-RENDER.png",
+            788392012202246154
+        ]
+    },
+    "textureRegions": []
+}

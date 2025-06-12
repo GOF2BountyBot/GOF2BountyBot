@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Union, cast
 from typing_extensions import NotRequired
 
-from ..cfg import bbData
-from .items.ships import shipBase
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.simpleHash import simpleHash
-from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
-from .. import lib
-from ..lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
-from .gameObject import LoadedObject, SerializedLoadedObject
+from bot.cfg import bbData
+from bot.gameObjects.items.ships import shipBase
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.simpleHash import simpleHash
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot import lib
+from bot.lib.stringTyping import formattedAdditiveAndOrMultiplierOrNone
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
 
 class BuiltInSerializedShipUpgrade(SerializedLoadedObject):
     pass

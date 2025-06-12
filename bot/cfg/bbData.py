@@ -4,22 +4,22 @@ from discord import Colour
 from datetime import timedelta
 from enum import Enum
 
-from ..baseClasses.basedEnum import _BasedEnumMeta
+from bot.baseClasses.basedEnum import _BasedEnumMeta
 if TYPE_CHECKING:
-    from ..gameObjects.bounties import solarSystem
-    from ..gameObjects.items.tools import toolItem
-    from ..gameObjects import shipSkin
-    from ..gameObjects.bounties import criminal
-    from ..gameObjects.items.ships import shipBase
-    from ..gameObjects.items.modules import moduleItem
-    from ..gameObjects.items.weapons import weapon
-    from ..gameObjects.items.weapons import primaryWeapon
-    from ..gameObjects.items.weapons import turretWeapon
-    from ..gameObjects.userProfile import medal
-    from ..gameObjects.userProfile import xpBar
-    from ..gameObjects import shipUpgrade
-    from ..gameObjects.items.tools import crateTool
-    from ..gameObjects.items.tools import shipSkinTool
+    from bot.gameObjects.bounties import solarSystem
+    from bot.gameObjects.items.tools import toolItem
+    from bot.gameObjects import shipSkin
+    from bot.gameObjects.bounties import criminal
+    from bot.gameObjects.items.ships import shipBase
+    from bot.gameObjects.items.modules import moduleItem
+    from bot.gameObjects.items.weapons import weapon
+    from bot.gameObjects.items.weapons import primaryWeapon
+    from bot.gameObjects.items.weapons import turretWeapon
+    from bot.gameObjects.userProfile import medal
+    from bot.gameObjects.userProfile import xpBar
+    from bot.gameObjects import shipUpgrade
+    from bot.gameObjects.items.tools import crateTool
+    from bot.gameObjects.items.tools import shipSkinTool
 
 class _ItemCategoryBase(Enum, metaclass=_BasedEnumMeta):
     def orAll(self):

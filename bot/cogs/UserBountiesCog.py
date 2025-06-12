@@ -6,36 +6,36 @@ from discord import Colour, Embed, File, Guild, HTTPException, Member, User, app
 from discord.ui import View, Button
 from discord.utils import utcnow
 
-from .. import client, botState
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..interactions.commandChecks import homeGuildOnly, guildOnly
-from ..users import basedUser
-from ..users.basedUser import BasedUser
-from .util.CommonAutocomplete import systemAutoComplete, SystemKey, \
+from bot import client, botState
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.interactions.commandChecks import homeGuildOnly, guildOnly
+from bot.users import basedUser
+from bot.users.basedUser import BasedUser
+from bot.cogs.util.CommonAutocomplete import systemAutoComplete, SystemKey, \
                                     divisionAutoComplete, DivisionName, \
                                     activeCriminalAutoComplete, CriminalKey, \
                                     inventoryItemNumberAutoComplete, InventoryItemNumber
-from ..lib.timeUtil import td_format_noYM
-from ..lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
-from ..lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
-from ..lib.stringTyping import commaSplitNum
-from ..lib.emojis import BasedEmoji
-from ..lib.timeUtil import utcfromtimestamp
-from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
-from ..gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.items.gameItem import GameItem
-from ..gameObjects.items.tools import toolItemFactory
-from ..gameObjects.items.tools.crateTool import CrateTool
-from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
-from ..logging import LogCategory
-from ..views.confirmView import ConfirmView
+from bot.lib.timeUtil import td_format_noYM
+from bot.lib.gameMaths import calculateUserBountyHuntingLevel, bountyHuntingXPForLevel
+from bot.lib.discordUtil import BasicScheduler, textChannel, criminalNameOrDiscrim, ImageFile, ZWSP, memberDisplayNameOrUserNameAndDiscrim
+from bot.lib.stringTyping import commaSplitNum
+from bot.lib.emojis import BasedEmoji
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.databases.bountyDB import BountyDB, nameForDivision
+from bot.gameObjects.bounties.bounty import CheckResult, RewardsMeta, Bounty
+from bot.gameObjects.battles.duelRequest import fightShips, buildDuelResultsImage, makeDuelStatsEmbed
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.gameItem import GameItem
+from bot.gameObjects.items.tools import toolItemFactory
+from bot.gameObjects.items.tools.crateTool import CrateTool
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.logging import LogCategory
+from bot.views.confirmView import ConfirmView
 
 PRESTIGE_MESSAGE = "Are you sure you want to prestige now? Your bounty hunter level, loadout, " \
                 + "balance, hangar and loma will all be **reset**.\n" \

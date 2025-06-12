@@ -1,0 +1,53 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "racing stripes",
+    "ships": {
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788192869339889734/racing_stripes-RENDER.png",
+            788192869592596532
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788164143399043083/racing_stripes-RENDER.png",
+            788164143680978945
+        ],
+        "Bloodstar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788172779304255508/racing_stripes-RENDER.png",
+            788172779387617291
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788195468768182272/racing_stripes-RENDER.png",
+            788195469041467432
+        ],
+        "Furious": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788197208171872296/racing_stripes-RENDER.png",
+            788197208377524254
+        ],
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788174540375195688/racing_stripes-RENDER.png",
+            788174540786106368
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788393178968752138/racing_stripes-RENDER.png",
+            788393179191705600
+        ],
+        "Nemesis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788145203751157770/racing_stripes-RENDER.png",
+            788145203801358357
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788402455376560128/racing_stripes-RENDER.png",
+            788402455314300980
+        ],
+        "Typhon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788147183588999168/racing_stripes-RENDER.png",
+            788147183794126869
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788388762919895050/racing_stripes-RENDER.png",
+            788388763021738015
+        ]
+    },
+    "textureRegions": []
+}

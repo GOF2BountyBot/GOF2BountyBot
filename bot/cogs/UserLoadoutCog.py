@@ -3,26 +3,26 @@ from discord import Guild, Member, User, app_commands, Interaction
 from discord.app_commands import Range
 from discord.ui import View, Button
 
-from .. import client, lib
-from ..lib.discordUtil import makeEmbed, ZWSP
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..users import basedUser
-from ..gameObjects.inventories.inventoryListing import SerializedInventoryListing
-from ..gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
-from ..gameObjects.inventories.inventory import Inventory
-from ..gameObjects.items.ships.shipItem import Ship
-from ..gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
-from ..gameObjects.items.weapons.turretWeapon import TurretWeapon
-from ..gameObjects.items.modules.moduleItem import ModuleItem
+from bot import client, lib
+from bot.lib.discordUtil import makeEmbed, ZWSP
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.users import basedUser
+from bot.gameObjects.inventories.inventoryListing import SerializedInventoryListing
+from bot.gameObjects.items.gameItem import TypedSerializedGameItemUnion, spawnItem, GameItem
+from bot.gameObjects.inventories.inventory import Inventory
+from bot.gameObjects.items.ships.shipItem import Ship
+from bot.gameObjects.items.weapons.primaryWeapon import PrimaryWeapon
+from bot.gameObjects.items.weapons.turretWeapon import TurretWeapon
+from bot.gameObjects.items.modules.moduleItem import ModuleItem
 from .util.CommonAutocomplete import CriminalKey, AnyUserHangarItem, anyEquippableUserHangerItemAutoComplete, IntList, anyShipEquippedItemAutoComplete, AnyShipEquippedItemOrAll, AutocompleteResult
 from .util.transformers import BoolYesNo
-from ..interactions.commandChecks import guildOnly
-from ..databases.bountyDB import BountyDB
+from bot.interactions.commandChecks import guildOnly
+from bot.databases.bountyDB import BountyDB
 
 
 class UserLoadoutCog(BasedCog):

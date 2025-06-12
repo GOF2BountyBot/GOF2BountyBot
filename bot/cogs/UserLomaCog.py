@@ -1,16 +1,16 @@
 from discord import app_commands, Interaction
 from discord.app_commands import Range
 
-from .. import client
-from ..lib.discordUtil import makeEmbed
-from ..lib.stringTyping import formatMultiplier, commaSplitNum
-from ..cfg import cfg
-from ..logging import LogCategory
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..gameObjects.guildShop import StoredItemTypesTuple
+from bot import client
+from bot.lib.discordUtil import makeEmbed
+from bot.lib.stringTyping import formatMultiplier, commaSplitNum
+from bot.cfg import cfg
+from bot.logging import LogCategory
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.gameObjects.guildShop import StoredItemTypesTuple
 
 
 class UserLomaCog(BasedCog):

@@ -2,23 +2,23 @@ from __future__ import annotations
 from typing import Optional, Union, cast, TYPE_CHECKING
 from discord import Interaction
 
-from . import toolItem
-from .... import lib
-from ....lib import gameMaths
-from ....lib.discordUtil import interactionSend
-from .... import client
-from ....cfg import cfg, bbData
-from ...shipSkin import ShipSkin, SerializedShipSkinUnion
-from .... import botState
-from ..gameItem import spawnableItem
-from ....baseClasses.hasRarity import HasRarityMixin
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
-from ....views.confirmView import ConfirmView
-from ....views.viewBase import ViewCleanup
+from bot.gameObjects.items.tools import toolItem
+from bot import lib
+from bot.lib import gameMaths
+from bot.lib.discordUtil import interactionSend
+from bot import client
+from bot.cfg import cfg, bbData
+from bot.gameObjects.shipSkin import ShipSkin, SerializedShipSkinUnion
+from bot import botState
+from bot.gameObjects.items.gameItem import spawnableItem
+from bot.baseClasses.hasRarity import HasRarityMixin
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot.views.confirmView import ConfirmView
+from bot.views.viewBase import ViewCleanup
 
 if TYPE_CHECKING:
-    from ....users import basedUser
+    from bot.users import basedUser
 
 
 class BuiltInSerializedShipSkinTool(toolItem.SerializedToolItem): pass

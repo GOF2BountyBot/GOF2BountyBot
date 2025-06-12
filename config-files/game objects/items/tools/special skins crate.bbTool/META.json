@@ -1,0 +1,16 @@
+{   "type": "CrateTool", "crateType": "special", "typeNum": 0, "name": "Special Skins Crate",
+    "techLevel": 10, "emoji": {"id": 723709178736017419}, "builtIn": false,
+    "icon": "https://cdn.discordapp.com/attachments/700683544103747594/723472359113359410/secure_container.png",
+    "itemPool": [   {"type": "ShipSkinTool", "name": "aperture", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "bloodlust", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "camo", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "carbon fibre", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "leopard print", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "racing stripes", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "rainbow", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "rusted", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "soul marble", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "space", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "tex", "builtIn": true},
+                    {"type": "ShipSkinTool", "name": "urban-camo", "builtIn": true}]
+}

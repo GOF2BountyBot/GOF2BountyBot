@@ -6,13 +6,13 @@ import os
 from PIL import Image
 import asyncio
 
-from ..cfg import cfg, bbData
-from .. import lib, botState
-from ..lib.discordUtil import truncateWithEllipse
-from ..reactionMenus import reactionSkinRegionPicker, reactionMenu
-from ..gameObjects.items.ships import shipItem
-from ..shipRenderer import shipRenderer
-from ..reactionMenus.reactionMenu import DummySingleUserReactionMenu
+from bot.cfg import cfg, bbData
+from bot import lib, botState
+from bot.lib.discordUtil import truncateWithEllipse
+from bot.reactionMenus import reactionSkinRegionPicker, reactionMenu
+from bot.gameObjects.items.ships import shipItem
+from bot.shipRenderer import shipRenderer
+from bot.reactionMenus.reactionMenu import DummySingleUserReactionMenu
 
 CWD = os.getcwd()
 robotIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"

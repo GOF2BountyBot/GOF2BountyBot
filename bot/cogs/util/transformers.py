@@ -1,6 +1,6 @@
 from enum import Enum, EnumMeta
 from typing import Protocol
-from ...baseClasses.basedEnum import BasedEnum
+from bot.baseClasses.basedEnum import BasedEnum
 
 class Equatable(Protocol):
     def __eq__(self, __o) -> bool: ...

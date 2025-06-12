@@ -1,9 +1,9 @@
 from discord import Colour
-from ...baseClasses.serializable import SerializesToSchema
-from ...lib.emojis import BasedEmoji, SerializedBasedEmoji
-from ...baseClasses.embedFillable import EmbedFillableMixin, embedColour, embedDescription, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
-from ..gameObject import LoadedObject, SerializedLoadedObject
-from ...cfg import bbData
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.lib.emojis import BasedEmoji, SerializedBasedEmoji
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedColour, embedDescription, embedField, embedFooterUrl, embedThumbnailUrl, embedTitle
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
+from bot.cfg import bbData
 
 class SerializedMedal(SerializedLoadedObject):
     desc: str

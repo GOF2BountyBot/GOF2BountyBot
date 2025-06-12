@@ -1,0 +1,51 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "leopard print",
+    "ships": {
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788165048798674974/leopard_print-RENDER.png",
+            788165048765644811
+        ],
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788149778722717726/leopard_print-RENDER.png",
+            788149778915131492
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788178376443035658/leopard_print-RENDER.png",
+            788178376706883594
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788199919348351067/leopard_print-RENDER.png",
+            788199919378628659
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788190525504356362/leopard_print-RENDER.png",
+            788190525768990730
+        ],
+        "Na'Srrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788395277639614495/leopard_print-RENDER.png",
+            788395277865451531
+        ],
+        "Nivelian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788176509323968542/leopard_print-RENDER.png",
+            788176509549805608
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788203633946525696/leopard_print-RENDER.png",
+            788203634210242620
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788387153582489650/leopard_print-RENDER.png",
+            788387153818288138
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788148964398071858/leopard_print-RENDER.png",
+            788148964540153868
+        ]
+    },
+    "textureRegions": [
+        1
+    ]
+}

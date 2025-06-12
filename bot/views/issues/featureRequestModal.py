@@ -1,7 +1,7 @@
 from discord.ui import TextInput
 from discord import TextStyle
 
-from .issueReportModalBase import IssueReportModalBase
+from bot.views.issues.issueReportModalBase import IssueReportModalBase
 
 class FeatureRequestModal(IssueReportModalBase):
     FriendlyReportIssueAction = "Request a new feature"

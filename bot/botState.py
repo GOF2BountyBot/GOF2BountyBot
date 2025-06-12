@@ -4,8 +4,8 @@ from enum import Enum
 
 from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
-    from .scheduling import timedTask
-    from .client import BasedClient
+    from bot.scheduling import timedTask
+    from bot.client import BasedClient
 
 class ShutDownState(Enum):
     restart = 0

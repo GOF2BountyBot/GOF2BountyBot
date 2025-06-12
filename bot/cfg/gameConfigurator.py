@@ -4,16 +4,16 @@ from pathlib import Path
 import json
 from typing import Dict, Any, List, Optional, Type, cast, Union, TypeVar
 
-from . import cfg, bbData
-from ..gameObjects import shipUpgrade, shipSkin, gameObject
-from ..gameObjects.bounties import criminal, solarSystem
-from ..gameObjects.items import moduleItemFactory
-from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
-from ..gameObjects.items.tools import shipSkinTool, toolItemFactory, crateTool
-from ..gameObjects.userProfile import medal
-from .. import lib
-from ..lib import gameMaths
-from ..baseClasses.serializable import Factory, Serializable, JsonType
+from bot.cfg import cfg, bbData
+from bot.gameObjects import shipUpgrade, shipSkin, gameObject
+from bot.gameObjects.bounties import criminal, solarSystem
+from bot.gameObjects.items import moduleItemFactory
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon
+from bot.gameObjects.items.tools import shipSkinTool, toolItemFactory, crateTool
+from bot.gameObjects.userProfile import medal
+from bot import lib
+from bot.lib import gameMaths
+from bot.baseClasses.serializable import Factory, Serializable, JsonType
 
 CWD = os.getcwd()
 PathType = Union[str, Path]

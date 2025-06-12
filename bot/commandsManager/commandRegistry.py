@@ -1,6 +1,6 @@
 from typing import Awaitable, Callable, List, Optional
 from discord import Message
-from ..lib.exceptions import IncorrectCommandCallContext
+from bot.lib.exceptions import IncorrectCommandCallContext
 
 
 COMMAND_FUNCTION_TYPE = Callable[[Message, str, bool], Awaitable[None]]

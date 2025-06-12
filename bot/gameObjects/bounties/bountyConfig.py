@@ -2,21 +2,21 @@
 from __future__ import annotations, division
 from typing import TYPE_CHECKING, List, Dict, Optional, Protocol, Any, Type, Union
 if TYPE_CHECKING:
-    from ...databases import bountyDivision
+    from bot.databases import bountyDivision
 
 import random
 from datetime import timedelta
 from discord.utils import utcnow
 
-from ...cfg import bbData, cfg
-from ... import lib, botState
-from ...lib import gameMaths
-from ...lib.timeUtil import utcfromtimestamp
-from ...logging import LogCategory
-from ..items.modules import armourModule, shieldModule, moduleItem
-from ..items.ships import shipItem
-from ..items.weapons import primaryWeapon, turretWeapon
-from ...databases import bountyDB
+from bot.cfg import bbData, cfg
+from bot import lib, botState
+from bot.lib import gameMaths
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.logging import LogCategory
+from bot.gameObjects.items.modules import armourModule, shieldModule, moduleItem
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon
+from bot.databases import bountyDB
 
 class ValidatorWithKwargs(Protocol):
     def __call__(self, tl: int, **kwargs) -> bool: ...
