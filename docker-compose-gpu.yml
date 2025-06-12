@@ -7,6 +7,14 @@ services:
       dockerfile: Dockerfile
     image: bountybot-bot
     container_name: bountybot-bot
+    # Comment out/remove below if you don't have a NVidia GPU for use
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     networks:
       - botnet
     #ports:
