@@ -72,7 +72,6 @@ class PersistenceFacade:
     # The path to the JSON file lives in cfg.paths.usersDB (loaded from your TOML).
 
     def _users_path(self) -> str:
-        #cfg = import_module("bot.cfg.cfg")
         return str(cfg.paths.usersDB)
 
     def get_users_db_raw(self) -> dict[str, Any]:

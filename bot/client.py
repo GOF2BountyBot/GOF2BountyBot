@@ -52,16 +52,6 @@ class GracefulKiller:
         """Termination signal received, mark kill indicator"""
         self.kill_now = True
 
-#def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
-#    """Build a UserDB from the specified JSON file.
-#
-#    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-#    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
-#    """
-#    if os.path.isfile(filePath):
-#        # Ignoring here because I can't statically validate the structure of a file
-#        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
-#    return userDB.UserDB()
 def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     storage = get_storage()
 
