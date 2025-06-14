@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import os
 from github.Repository import Repository
 
+from bot.persistence import get_storage
 from bot.interactions import accessLevels, commandChecks
 from bot.databases import userDB, guildDB, reactionMenuDB
 from bot import lib
@@ -51,16 +52,25 @@ class GracefulKiller:
         """Termination signal received, mark kill indicator"""
         self.kill_now = True
 
-
+#def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
+#    """Build a UserDB from the specified JSON file.
+#
+#    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
+#    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
+#    """
+#    if os.path.isfile(filePath):
+#        # Ignoring here because I can't statically validate the structure of a file
+#        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+#    return userDB.UserDB()
 def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
-    """Build a UserDB from the specified JSON file.
+    storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        # Ignoring here because I can't statically validate the structure of a file
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+    raw = storage.get_users_db_raw()
+    if raw:
+        # convert raw dict → UserDB instance
+        return userDB.UserDB.deserialize(raw)
+
+    # first run, file did not exist yet
     return userDB.UserDB()
 
 
@@ -563,8 +573,10 @@ class BasedClient(ClientBaseClass):
         - the reaction menus database
         - logs
         """
+        storage = get_storage()
+        storage.save_users_db_raw(self.usersDB.serialize())
         # TODO: Casting here because TypedDicts are not JsonType
-        lib.jsonHandler.saveObject(cfg.paths.usersDB, cast(SerializesToJson, self.usersDB))
+        # lib.jsonHandler.saveObject(cfg.paths.usersDB, cast(SerializesToJson, self.usersDB))
         lib.jsonHandler.saveObject(cfg.paths.guildsDB, cast(SerializesToJson, self.guildsDB))
         lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, cast(SerializesToJson, self.reactionMenusDB))
         self.logger.save()
