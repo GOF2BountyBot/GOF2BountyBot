@@ -1,0 +1,29 @@
+
+{
+  "discord": {
+    "token": "YOUR_DISCORD_BOT_TOKEN_HERE",
+    "description": "Galaxy on Fire 2 Bounty Bot with Repository Pattern"
+  },
+  "default_prefix": "!",
+  "data_dir": "data",
+  "database": {
+    "enabled": true,
+    "type": "sqlite",
+    "path": "data/bot.db",
+    "echo": false,
+    "pool_size": 5,
+    "max_overflow": 10,
+    "pool_timeout": 30,
+    "pool_recycle": 3600
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/bot.log"
+  },
+  "features": {
+    "passive_migration": true,
+    "migration_logging": true,
+    "health_checks": true
+  }
+}
+  

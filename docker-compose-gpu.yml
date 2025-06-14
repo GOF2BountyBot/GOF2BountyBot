@@ -39,6 +39,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
       # Keep data across rebuilds...
       - ./mappings/bountybot/saveData:/app/bountybot/saveData
+      - ./mappings/bountybot/game-objects:/app/bountybot/config-files/game objects
 #    healthcheck:
 #      test: curl -X 'GET' --insecure -I -v --fail http://localhost:3002/test || exit 
 #      interval: 40s
