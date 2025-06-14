@@ -155,9 +155,10 @@ async def renderShip(shipPath: str, shipModelName: str, textures: Dict[int, str]
     render_output_file = os.path.abspath(renderOutputPath) #join(shipPath, "skins", skinName + "-RENDER.png")
     texture_output_file = os.path.abspath(compositesTexturePath) # #join(shipPath, "skins", skinName + ".jpg")
 
-    if res_x > 3840:
+    if res_x > 3936:
         raise ValueError("Attempted to render an image above 2160p/4k (width=" + str(res_x) + ")")
-    if res_y > 2160:
+    # Something in the user-status command attempts an image width of 2180 pixels, so upping this to allow that
+    if res_y > 2214:
         raise ValueError("Attempted to render an image above 2160p/4k (height=" + str(res_y) + ")")
     if res_x < 352:
         raise ValueError("Attempted to render an image below 240p (width=" + str(res_x) + ")")

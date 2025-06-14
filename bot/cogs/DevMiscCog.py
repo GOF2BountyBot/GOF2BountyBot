@@ -1072,7 +1072,9 @@ class DevMiscCog(BasedCog):
 
         embed.add_field(name="Duel Requests", value="\n".join(f"{target.id}: {request.stakes}" for target, request in bUser.duelRequests.items()) if bUser.duelRequests else "None")
         embed.add_field(name="Duels", value=f"Wins: {bUser.duelWins}\nLosses: {bUser.duelLosses}\nCredits won: {bUser.duelCreditsWins}\nCredits lost: {bUser.duelCreditsLosses}")
-        
+        """
+        Temp remove to get around a not-implemented error:
+        Command 'user-status' raised an exception: NotImplementedError: Cannot get or set UA_New_Bounty alert state from the UA object, as knowledge of the BasedUser is required
         if bUser.hasHomeGuild() and (homeGuild := botState.client.guildsDB.getGuild(bUser.homeGuildID)):
             if dcUser is None:
                 userAlertsStr = "States unknown, dcUser unavailable.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
@@ -1085,8 +1087,8 @@ class DevMiscCog(BasedCog):
         else:
             userAlertsStr = "States unknown, no homeguild.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
 
-
         embed.add_field(name="User Alerts", value=userAlertsStr)
+        """
         embed.add_field(name="Home Guild",  value=f"{bUser.homeGuildID} - {botState.client.get_guild(bUser.homeGuildID)}")
         embed.add_field(name="$transfer Cooldown", 
                         value=bUser.guildTransferCooldownEnd.strftime("%d/%m/%Y, %H:%M:%S") if bUser.guildTransferCooldownEnd is not None else "None")
