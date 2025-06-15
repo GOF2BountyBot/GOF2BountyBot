@@ -65,28 +65,26 @@ def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
 
 
 def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
-    """Build a GuildDB from the specified JSON file.
+    storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        content = lib.jsonHandler.readJSON(filePath)
-        # Ignoring here because I cannot statically validate the structure of a file
-        return guildDB.GuildDB.deserialize(content, dbReload=True) # type: ignore[reportGeneralTypeIssues]
+    raw = storage.get_guilds_db_raw()
+    if raw:
+        # convert raw dict → UserDB instance
+        return guildDB.GuildDB.deserialize(raw)
+
+    # first run, file did not exist yet
     return guildDB.GuildDB()
 
 
 async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.ReactionMenuDB:
-    """Build a reactionMenuDB from the specified JSON file.
-    This method must be called asynchronously, to allow awaiting of discord message fetching functions.
+    storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        # Ignoring here because I can't statically validate the structure of a file
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+    raw = storage.get_reaction_menus_raw()
+    if raw:
+        # convert raw dict → UserDB instance
+        return reactionMenuDB.ReactionMenuDB.deserialize(raw)
+
+    # first run, file did not exist yet
     return reactionMenuDB.ReactionMenuDB()
 
 
@@ -565,10 +563,8 @@ class BasedClient(ClientBaseClass):
         """
         storage = get_storage()
         storage.save_users_db_raw(self.usersDB.serialize())
-        # TODO: Casting here because TypedDicts are not JsonType
-        # lib.jsonHandler.saveObject(cfg.paths.usersDB, cast(SerializesToJson, self.usersDB))
-        lib.jsonHandler.saveObject(cfg.paths.guildsDB, cast(SerializesToJson, self.guildsDB))
-        lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, cast(SerializesToJson, self.reactionMenusDB))
+        storage.save_guilds_db_raw(self.guildsDB.serialize())
+        storage.save_reaction_menus_raw(self.reactionMenusDB.serialize())
         self.logger.save()
 
 

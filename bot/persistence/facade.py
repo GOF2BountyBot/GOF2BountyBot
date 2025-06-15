@@ -51,23 +51,6 @@ class PersistenceFacade:
     def _write(self, collection: str, data: Any) -> None:  # noqa: ANN401
         self._backend.write_collection(collection, data)
 
-    # ---- Bounties -----------------------------------------------------------
-    _BOUNTIES = "bounties"
-
-    def get_bounties(self) -> List[Dict[str, Any]]:
-        """
-        Return all bounties as a list (empty list when none exist).
-        """
-        return self._read(self._BOUNTIES) or []
-
-    def add_bounty(self, bounty: Dict[str, Any]) -> None:
-        """
-        Append a new *bounty* to the collection.
-        """
-        bounties = self.get_bounties()
-        bounties.append(bounty)
-        self._write(self._BOUNTIES, bounties)
-
     # ---- Users DB ----------------------------------------------------------
     # The path to the JSON file lives in cfg.paths.usersDB (loaded from your TOML).
 
@@ -89,3 +72,31 @@ class PersistenceFacade:
 
     def set_raw(self, collection: str, data: Any) -> None:  # noqa: ANN401
         self._backend.write_collection(collection, data)
+
+    # ======================================================================
+    #  Guilds DB
+    # ======================================================================
+    def _guilds_path(self) -> str:
+        return str(cfg.paths.guildsDB)
+
+    def get_guilds_db_raw(self) -> dict[str, Any]:
+        """Return the raw dictionary kept in guilds.json (or `{}` if missing)."""
+        return self._read(self._guilds_path()) or {}
+
+    def save_guilds_db_raw(self, data: dict[str, Any]) -> None:
+        """Overwrite guilds.json with *data*."""
+        self._write(self._guilds_path(), data)
+
+
+    # ======================================================================
+    #  Reaction Menus DB
+    # ======================================================================
+    def _reac_menus_path(self) -> str:
+        return str(cfg.paths.reactionMenusDB)
+
+    def get_reaction_menus_raw(self) -> dict[str, Any]:
+        """Raw representation of reactionMenus.json."""
+        return self._read(self._reac_menus_path()) or {}
+
+    def save_reaction_menus_raw(self, data: dict[str, Any]) -> None:
+        self._write(self._reac_menus_path(), data)
