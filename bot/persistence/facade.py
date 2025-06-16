@@ -8,6 +8,10 @@ from bot.cfg import cfg
 from bot.persistence.backend_interface import StorageBackend
 from bot.persistence.json_backend import JSONBackend
 
+# Object models
+from bot.persistence.models.users import User
+
+
 class PersistenceFacade:
     """
     Central, *public* API that the rest of the bot should use
@@ -51,9 +55,17 @@ class PersistenceFacade:
     def _write(self, collection: str, data: Any) -> None:  # noqa: ANN401
         self._backend.write_collection(collection, data)
 
-    # ---- Users DB ----------------------------------------------------------
-    # The path to the JSON file lives in cfg.paths.usersDB (loaded from your TOML).
+    # ---- Generic key/value helpers -----------------------------------------
+    def get_raw(self, collection: str) -> Any:  # noqa: ANN401
+        """Low-level escape hatch for special cases – use sparingly."""
+        return self._backend.read_collection(collection)
 
+    def set_raw(self, collection: str, data: Any) -> None:  # noqa: ANN401
+        self._backend.write_collection(collection, data)
+
+    # ======================================================================
+    #  Users DB
+    # ======================================================================
     def _users_path(self) -> str:
         return str(cfg.paths.usersDB)
 
@@ -64,15 +76,26 @@ class PersistenceFacade:
     def save_users_db_raw(self, data: dict[str, Any]) -> None:
         """Persist *data* as the current Users DB."""
         self._write(self._users_path(), data)
+    
+    def get_user(self, user_id: str) -> User:
+        """
+        Load a user from the 'users' collection, creating a blank one
+        if it does not exist yet.
+        """
+        users: dict[str, dict] = self._backend.read_collection("users") or {}
 
-    # ---- Generic key/value helpers -----------------------------------------
-    def get_raw(self, collection: str) -> Any:  # noqa: ANN401
-        """Low-level escape hatch for special cases – use sparingly."""
-        return self._backend.read_collection(collection)
+        if user_id not in users:
+            users[user_id] = {"id": user_id}
+            self._backend.write_collection("users", users)
 
-    def set_raw(self, collection: str, data: Any) -> None:  # noqa: ANN401
-        self._backend.write_collection(collection, data)
+        return User.from_dict(users[user_id])
 
+    def save_user(self, user: User) -> None:
+        """Persist (overwrite) a user's data."""
+        users: dict[str, dict] = self._backend.read_collection("users") or {}
+        users[user.id] = user.to_dict()
+        self._backend.write_collection("users", users)
+        
     # ======================================================================
     #  Guilds DB
     # ======================================================================
@@ -86,7 +109,6 @@ class PersistenceFacade:
     def save_guilds_db_raw(self, data: dict[str, Any]) -> None:
         """Overwrite guilds.json with *data*."""
         self._write(self._guilds_path(), data)
-
 
     # ======================================================================
     #  Reaction Menus DB
