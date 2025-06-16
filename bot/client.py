@@ -14,6 +14,8 @@ import os
 from github.Repository import Repository
 
 from bot.persistence import get_storage
+from bot.persistence.repositories.user_repository import UserRepository
+from bot.persistence.repositories.guild_repository import GuildRepository
 from bot.interactions import accessLevels, commandChecks
 from bot.databases import userDB, guildDB, reactionMenuDB
 from bot import lib
@@ -53,15 +55,20 @@ class GracefulKiller:
         self.kill_now = True
 
 def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
-    storage = get_storage()
+    user_repo = UserRepository()
+    users = user_repo.get_all()
+    return users #userDB.UserDB(users)
+    
+    
+    #storage = get_storage()
 
-    raw = storage.get_users_db_raw()
-    if raw:
-        # convert raw dict → UserDB instance
-        return userDB.UserDB.deserialize(raw)
+    #raw = storage.get_users_db_raw()
+    #if raw:
+    #    # convert raw dict → UserDB instance
+    #    return userDB.UserDB.deserialize(raw)
 
-    # first run, file did not exist yet
-    return userDB.UserDB()
+    ## first run, file did not exist yet
+    #return userDB.UserDB()
 
 
 def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
