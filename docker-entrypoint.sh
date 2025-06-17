@@ -119,9 +119,14 @@ if any(d.use for d in bpy.context.preferences.addons['cycles'].preferences.devic
 EOF
     
     # Comment below to disable blender warmup at container startup
-    blender -b -P /tmp/warmup.py --background >/dev/null 2>&1
-    rm -f /tmp/warmup.py
-    echo "✅ CUDA kernels compiled - GPU renders will start instantly!"
+
+    if [[ "$DO_WARMUP" == true ]]; then
+        blender -b -P /tmp/warmup.py --background >/dev/null 2>&1
+        rm -f /tmp/warmup.py
+        echo "✅ CUDA kernels compiled - GPU renders will start instantly!"
+    else
+        echo "✅ GPU Detected, but warmup option was disabled.  First render will take extra time to compile CUDA kernels."
+    fi
 else
     echo "⚡ No GPU detected - using CPU rendering"
 fi

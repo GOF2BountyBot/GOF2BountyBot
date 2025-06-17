@@ -6,3 +6,10 @@ PyGithub
 typing-extensions
 pillow
 diff-match-patch
+sqlalchemy[asyncio]
+pydantic
+psycopg2-binary
+alembic
+aiofiles
+asyncpg
+python-dotenv

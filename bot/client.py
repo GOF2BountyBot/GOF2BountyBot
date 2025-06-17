@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 import os
 from github.Repository import Repository
 
+from bot.persistence import get_storage
+from bot.persistence.repositories.user_repository import UserRepository
+from bot.persistence.repositories.guild_repository import GuildRepository
 from bot.interactions import accessLevels, commandChecks
 from bot.databases import userDB, guildDB, reactionMenuDB
 from bot import lib
@@ -51,42 +54,46 @@ class GracefulKiller:
         """Termination signal received, mark kill indicator"""
         self.kill_now = True
 
-
 def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
-    """Build a UserDB from the specified JSON file.
+    user_repo = UserRepository()
+    users_dict = {user_id: user.serialize() for user_id, user in user_repo.get_all().items()}
+    newDB = userDB.UserDB()
+    newDB.loadUsers(users_dict)
+    return newDB
+    
+    
+    #storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a UserDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        # Ignoring here because I can't statically validate the structure of a file
-        return userDB.UserDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
-    return userDB.UserDB()
+    #raw = storage.get_users_db_raw()
+    #if raw:
+    #    # convert raw dict → UserDB instance
+    #    return userDB.UserDB.deserialize(raw)
+
+    ## first run, file did not exist yet
+    #return userDB.UserDB()
 
 
 def loadGuildsDB(filePath: Union[Path, str]) -> guildDB.GuildDB:
-    """Build a GuildDB from the specified JSON file.
+    storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a GuildDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        content = lib.jsonHandler.readJSON(filePath)
-        # Ignoring here because I cannot statically validate the structure of a file
-        return guildDB.GuildDB.deserialize(content, dbReload=True) # type: ignore[reportGeneralTypeIssues]
+    raw = storage.get_guilds_db_raw()
+    if raw:
+        # convert raw dict → UserDB instance
+        return guildDB.GuildDB.deserialize(raw)
+
+    # first run, file did not exist yet
     return guildDB.GuildDB()
 
 
 async def loadReactionMenusDB(filePath: Union[Path, str]) -> reactionMenuDB.ReactionMenuDB:
-    """Build a reactionMenuDB from the specified JSON file.
-    This method must be called asynchronously, to allow awaiting of discord message fetching functions.
+    storage = get_storage()
 
-    :param str filePath: path to the JSON file to load. Theoretically, this can be absolute or relative.
-    :return: a reactionMenuDB as described by the dictionary-serialized representation stored in the file located in filePath.
-    """
-    if os.path.isfile(filePath):
-        # Ignoring here because I can't statically validate the structure of a file
-        return await reactionMenuDB.deserialize(lib.jsonHandler.readJSON(filePath)) # type: ignore[reportGeneralTypeIssues]
+    raw = storage.get_reaction_menus_raw()
+    if raw:
+        # convert raw dict → UserDB instance
+        return reactionMenuDB.ReactionMenuDB.deserialize(raw)
+
+    # first run, file did not exist yet
     return reactionMenuDB.ReactionMenuDB()
 
 
@@ -563,10 +570,10 @@ class BasedClient(ClientBaseClass):
         - the reaction menus database
         - logs
         """
-        # TODO: Casting here because TypedDicts are not JsonType
-        lib.jsonHandler.saveObject(cfg.paths.usersDB, cast(SerializesToJson, self.usersDB))
-        lib.jsonHandler.saveObject(cfg.paths.guildsDB, cast(SerializesToJson, self.guildsDB))
-        lib.jsonHandler.saveObject(cfg.paths.reactionMenusDB, cast(SerializesToJson, self.reactionMenusDB))
+        storage = get_storage()
+        storage.save_users_db_raw(self.usersDB.serialize())
+        storage.save_guilds_db_raw(self.guildsDB.serialize())
+        storage.save_reaction_menus_raw(self.reactionMenusDB.serialize())
         self.logger.save()
 
 
