@@ -56,8 +56,10 @@ class GracefulKiller:
 
 def loadUsersDB(filePath: Union[Path, str]) -> userDB.UserDB:
     user_repo = UserRepository()
-    users = user_repo.get_all()
-    return users #userDB.UserDB(users)
+    users_dict = {user_id: user.serialize() for user_id, user in user_repo.get_all().items()}
+    newDB = userDB.UserDB()
+    newDB.loadUsers(users_dict)
+    return newDB
     
     
     #storage = get_storage()
