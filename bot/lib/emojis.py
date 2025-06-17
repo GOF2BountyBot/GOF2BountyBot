@@ -9,11 +9,11 @@ import random
 
 from discord import PartialEmoji, Emoji
 
-from .. import botState
-from . import stringTyping, exceptions
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.simpleHash import simpleHash
-from ..cfg import cfg
+from bot import botState
+from bot.lib import stringTyping, exceptions
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.simpleHash import simpleHash
+from bot.cfg import cfg
 
 
 # True to raise an UnrecognisedCustomEmoji exception when requesting an unknown custom emoji

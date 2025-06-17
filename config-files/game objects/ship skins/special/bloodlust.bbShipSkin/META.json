@@ -1,0 +1,59 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "bloodlust",
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788175422508630026/bloodlust-RENDER.png",
+            788175422486609921
+        ],
+        "Azov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788188525501087754/bloodlust-RENDER.png",
+            788188525463470093
+        ],
+        "Cormorant": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788195390334828544/bloodlust-RENDER.png",
+            788195390570758204
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788179634624659508/bloodlust-RENDER.png",
+            788179634826772512
+        ],
+        "Hernstein": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788189187429367829/bloodlust-RENDER.png",
+            788189187966894090
+        ],
+        "Kinzer RS": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788186731865964544/bloodlust-RENDER.png",
+            788186732221693982
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788184650135896114/bloodlust-RENDER.png",
+            788184650404986891
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788387883278139422/bloodlust-RENDER.png",
+            788387883551162398
+        ],
+        "Type 43": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788187523906011166/bloodlust-RENDER.png",
+            788187524131586048
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788191654770245662/bloodlust-RENDER.png",
+            788191655052312606
+        ],
+        "Vol Noor": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788147893852831745/bloodlust-RENDER.png",
+            788147894062415882
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788192282062880778/bloodlust-RENDER.png",
+            788192283194687538
+        ]
+    },
+    "textureRegions": [
+        1, 2
+    ]
+}

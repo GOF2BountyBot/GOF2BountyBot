@@ -1,4 +1,4 @@
-from ..cfg import cfg
+from bot.cfg import cfg
 import math
 import random
 from typing import List, Optional, Union, cast

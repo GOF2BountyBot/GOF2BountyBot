@@ -5,17 +5,17 @@ from discord import Embed, Client, Message, Colour, File, TextChannel
 from discord.message import MessageReference
 from PIL import Image, ImageDraw
 from io import BytesIO
-from ....baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.serializable import SerializesToSchema
 
 if TYPE_CHECKING:
-    from ....databases.bountyDivision import BountyDivision
-from ....cfg import bbData, cfg
-from .... import lib
-from .. import criminal, bounty
-from .... import botState
+    from bot.databases.bountyDivision import BountyDivision
+from bot.cfg import bbData, cfg
+from bot import lib
+from bot.gameObjects.bounties import criminal, bounty
+from bot import botState
 from typing import Dict, Optional, Set, Union, cast
-from .. import solarSystem
-from ....logging import LogCategory
+from bot.gameObjects.bounties import solarSystem
+from bot.logging import LogCategory
 
 
 stopwatchIcon = 'https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/stopwatch_23f1.png'

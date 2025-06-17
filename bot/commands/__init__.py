@@ -1,5 +1,5 @@
-from ..commandsManager import heirarchicalCommandsDB
-from ..cfg import cfg
+from bot.commandsManager import heirarchicalCommandsDB
+from bot.cfg import cfg
 import importlib
 
 commandsDB = heirarchicalCommandsDB.HeirarchicalCommandsDB(len(cfg.userAccessLevels))

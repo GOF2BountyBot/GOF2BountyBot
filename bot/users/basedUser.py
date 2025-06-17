@@ -8,31 +8,31 @@ from discord import AllowedMentions, Embed, File, Guild, GuildSticker, HTTPExcep
 from discord.ui import View
 from discord.utils import MISSING, utcnow
 
-from ..gameObjects.items.ships import shipItem, shipBase
+from bot.gameObjects.items.ships import shipItem, shipBase
 
 if TYPE_CHECKING:
-    from ..gameObjects.battles import duelRequest
-    from .. import client
+    from bot.gameObjects.battles import duelRequest
+    from bot import client
 
-from ..baseClasses.serializable import SerializesToSchema
-from ..baseClasses.basedEnum import BasedEnum
-from ..cfg import cfg, bbData
-from ..cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
-from ..gameObjects import kaamoShop, lomaShop, guildShop
-from ..gameObjects.items import moduleItemFactory, gameItem
-from ..gameObjects.items.weapons import primaryWeapon, turretWeapon
-from ..gameObjects.items.tools import toolItemFactory, toolItem
-from ..gameObjects.items.modules import moduleItem
-from ..gameObjects.userProfile.medal import Medal
-from ..gameObjects.inventories import inventory, userInventory, inventoryListing
-from ..userAlerts import userAlerts
-from ..users import basedGuild
-from .. import lib, botState
-from ..lib import gameMaths
-from ..lib.discordUtil import userNameIn, findBUserDCGuild
-from ..lib.timeUtil import utcfromtimestamp
-from ..logging import LogCategory
-from ..reactionMenus import reactionMenu
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.basedEnum import BasedEnum
+from bot.cfg import cfg, bbData
+from bot.cfg.bbData import ItemCategory, ItemCategoryOrAll, ItemCategoryUnion
+from bot.gameObjects import kaamoShop, lomaShop, guildShop
+from bot.gameObjects.items import moduleItemFactory, gameItem
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon
+from bot.gameObjects.items.tools import toolItemFactory, toolItem
+from bot.gameObjects.items.modules import moduleItem
+from bot.gameObjects.userProfile.medal import Medal
+from bot.gameObjects.inventories import inventory, userInventory, inventoryListing
+from bot.userAlerts import userAlerts
+from bot.users import basedGuild
+from bot import lib, botState
+from bot.lib import gameMaths
+from bot.lib.discordUtil import userNameIn, findBUserDCGuild
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.logging import LogCategory
+from bot.reactionMenus import reactionMenu
 
 
 # Dictionary-serialized shipItem to give to new players

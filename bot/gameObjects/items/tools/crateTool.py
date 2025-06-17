@@ -4,19 +4,19 @@ import random
 from typing import Dict, Generic, List, Optional, Type, TypeVar
 from discord import Interaction
 
-from . import toolItem
-from .... import lib, botState
-from ....lib import gameMaths
-from ....lib.discordUtil import interactionSend
-from ....cfg import cfg, bbData
-from .. import gameItem
-from ....users import basedUser
-from ....baseClasses.hasRarity import HasRarityMixin
-from ....baseClasses.serializable import SerializesToSchema
-from ....baseClasses.embedFillable import EmbedFillableMixin, embedField
-from .... import client
-from ....views.confirmView import ConfirmView
-from ....views.viewBase import ViewCleanup
+from bot.gameObjects.items.tools import toolItem
+from bot import lib, botState
+from bot.lib import gameMaths
+from bot.lib.discordUtil import interactionSend
+from bot.cfg import cfg, bbData
+from bot.gameObjects.items import gameItem
+from bot.users import basedUser
+from bot.baseClasses.hasRarity import HasRarityMixin
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot import client
+from bot.views.confirmView import ConfirmView
+from bot.views.viewBase import ViewCleanup
 
 class BuiltInSerializedCrateTool(gameItem.BuiltInSerializedGameItem):
     crateType: str

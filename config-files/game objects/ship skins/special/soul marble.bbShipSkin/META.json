@@ -1,0 +1,54 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "disabledRegions": [
+        1
+    ],
+    "name": "soul marble",
+    "ships": {
+        "Aegir": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788175464635170846/soul_marble-RENDER.png",
+            788175465067577344
+        ],
+        "Amboss": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788171794171428874/soul_marble-RENDER.png",
+            788171794405916692
+        ],
+        "Berger CrossXT": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788164239050932254/soul_marble-RENDER.png",
+            788164239323037718
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788196369689083914/soul_marble-RENDER.png",
+            788196369742823445
+        ],
+        "Ghost": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788178313717612594/soul_marble-RENDER.png",
+            788178313977266176
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788200607126126622/soul_marble-RENDER.png",
+            788200607663128586
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788189845699690506/soul_marble-RENDER.png",
+            788189845964587028
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788387703037231164/soul_marble-RENDER.png",
+            788387703439753256
+        ],
+        "Vossk Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788390890666328114/soul_marble-RENDER.png",
+            788390890884169778
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788185625081544704/soul_marble-RENDER.png",
+            788185625416171590
+        ]
+    },
+    "textureRegions": [
+        2
+    ]
+}

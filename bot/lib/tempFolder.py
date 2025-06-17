@@ -1,5 +1,5 @@
 import os, shutil
-from ..cfg import cfg
+from bot.cfg import cfg
 
 class TempFolder:
     """A scoped temporary folder.

@@ -1,14 +1,14 @@
 from typing import cast
 from discord import Guild, app_commands, Interaction
 
-from .. import client
-from ..lib.timeUtil import td_format_noYM
-from ..lib.discordUtil import timestamp, TimeStampStyle
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..views.confirmView import ConfirmView
+from bot import client
+from bot.lib.timeUtil import td_format_noYM
+from bot.lib.discordUtil import timestamp, TimeStampStyle
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.views.confirmView import ConfirmView
 
 
 class UserHomeGuildsCog(BasedCog):

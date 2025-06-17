@@ -1,9 +1,9 @@
 from __future__ import annotations
-from ..users import basedUser
-from .. import lib
-from .. import botState
+from bot.users import basedUser
+from bot import lib
+from bot import botState
 from typing import Dict, List
-from ..baseClasses.serializable import SerializesToType
+from bot.baseClasses.serializable import SerializesToType
 
 
 class UserDB(SerializesToType[Dict[str, "basedUser.SerializedBasedUser"]]):
@@ -187,6 +187,19 @@ class UserDB(SerializesToType[Dict[str, "basedUser.SerializedBasedUser"]]):
         :rtype: str
         """
         return "<UserDB: " + str(len(self.users)) + " users>"
+
+    def loadUsers(self, userDict: Dict[str, "basedUser.SerializedBasedUser"]):
+        """Load users from a dictionary of serialized BasedUser data.
+
+        :param dict userDict: A dictionary where keys are user IDs (as strings) and values are serialized BasedUser data.
+        """
+        for userID in userDict.keys():
+            # Convert the string ID to an integer
+            intUserID = self.validateID(userID)
+            # Deserialize the user data into a BasedUser object
+            userObj = basedUser.BasedUser.deserialize(userDict[userID], id=intUserID)
+            # Add the user to the database
+            self.addUser(userObj)
 
 
     @classmethod

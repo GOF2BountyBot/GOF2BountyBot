@@ -2,20 +2,20 @@
 # Use this to write ReactionRolePickers with multipleChoice=False!
 
 from datetime import timedelta
-from ..scheduling.timedTask import TimedTask
+from bot.scheduling.timedTask import TimedTask
 import inspect
 from discord import Embed, Colour, HTTPException
 from discord import Member, User, Message, Role, RawReactionActionEvent
 from discord.abc import GuildChannel
 from discord.user import BaseUser
-from ..cfg import cfg
-from .. import botState, lib
+from bot.cfg import cfg
+from bot import botState, lib
 from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Coroutine, Generic, Optional, Tuple, Type, TypeVar, Union, Dict, List, cast
 from typing_extensions import NotRequired, TypedDict
 import asyncio
-from ..baseClasses.serializable import SerializesToSchema, AnyTypedDict
-from . import expiryFunctions
+from bot.baseClasses.serializable import SerializesToSchema, AnyTypedDict
+from bot.reactionMenus import expiryFunctions
 
 
 _DCUserUnion = Union[User, Member]

@@ -1,8 +1,8 @@
-from . import moduleItem
-from ....cfg import bbData
-from .... import lib
+from bot.gameObjects.items.modules import moduleItem
+from bot.cfg import bbData
+from bot import lib
 from typing import List, cast
-from ..gameItem import spawnableItem
+from bot.gameObjects.items.gameItem import spawnableItem
 
 
 @spawnableItem

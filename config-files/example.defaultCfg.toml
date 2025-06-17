@@ -1,0 +1,421 @@
+statusMessage = ""
+userAccessLevels = ["user", "mod", "admin", "developer"]
+helpIntro = "Give a command name in `/help` for more detail."
+defaultHelpSection = "Miscellaneous"
+maxCommandsPerHelpPage = 5
+includedCogs = ["bot.cogs.util.CommonStaticComponentsCog", "bot.cogs.util.EmbedEditorCog", "bot.cogs.util.GuildsUtilCog", "bot.cogs.util.UsersUtilCog", "bot.cogs.BASEDVersionCog", "bot.cogs.HelpCog", "bot.cogs.DevBountiesCog", "bot.cogs.DevChannelsCog", "bot.cogs.DevEconomyCog", "bot.cogs.DevEventsCog", "bot.cogs.DevGithubCog", "bot.cogs.DevHomeGuildsCog", "bot.cogs.DevItemsCog", "bot.cogs.DevKaamoCog", "bot.cogs.DevLomaCog", "bot.cogs.DevMedalsCog", "bot.cogs.DevMiscCog", "bot.cogs.DevSkinsCog", "bot.cogs.AdminChannelsCog", "bot.cogs.AdminMiscCog", "bot.cogs.UserAutoskinCog", "bot.cogs.UserBountiesCog", "bot.cogs.UserDuelsCog", "bot.cogs.UserEconomyCog", "bot.cogs.UserGithubCog", "bot.cogs.UserGof2InfoCog", "bot.cogs.UserHomeGuildsCog", "bot.cogs.UserKaamoCog", "bot.cogs.UserLoadoutCog", "bot.cogs.UserLomaCog", "bot.cogs.UserMiscCog"]
+defaultCommandPrefix = "$"
+expiredMenuMsg = "😴 This menu has now expired."
+pollMenuResultsBarLength = 10
+maxRoleMenusPerGuild = 10
+toolUseConfirmTimeoutSeconds = 60
+homeGuildTransferConfirmTimeoutSeconds = 60
+prestigeConfirmTimeoutSeconds = 60
+BASED_checkForUpdates = true
+developers = [188618589102669826, 448491245296418817]
+accessLevelTitles = ["pilot", "captain", "commander", "officer"]
+itemSpawnRateResDP = 3
+minTechLevel = 1
+maxTechLevel = 10
+bountyDivisionNames = ["bronze", "silver", "gold"]
+bountyDivisionLevels = [[0, 3], [4, 7], [8, 10]]
+shipMaxPriceTechLevels = [50000, 100000, 200000, 500000, 1000000, 2000000, 5000000, 7000000, 7500000, 999999999]
+bountyXPLevelBoundaries = [-1, 0, 1050, 2000, 3500, 10000, 18000, 61000, 71000, 90000, 1000000]
+bountyRewardToXPGainMult = 0.1
+xpBarFillsByDivision = ["xp-bar-fill.jpg", "xp-bar-fill.jpg", "xp-bar-fill.jpg"]
+xpBarSilhouetteColour = [0, 0, 0, 110]
+xpBarWidth = 350
+xpBarHeight = 20
+xpBarOutlineColour = [255, 255, 255, 200]
+xpBarOutlineWidth = 1
+userProfileImgWidth = 350
+userProfileImgHeight = 35
+userProfileFontSize = 16
+userProfileLevelColour = [255, 255, 255]
+userProfileDivisionColour = [255, 255, 255]
+userProfileXPColour = [255, 255, 255]
+userProfileNextXPColour = [255, 255, 255]
+userProfileEdgePaddingX = 0.05
+userProfileEdgePaddingY = 0.1
+duelVariancePercent = 0.05
+duelLogMaxLength = 10
+duelCloakChance = 20
+duelResultsImageDims = [500, 300]
+duelResultsPlayerWidth = 144
+duelResultsP1Pos = [54, 54]
+duelResultsP2Pos = [304, 54]
+duelResultsNameFontSize = 16
+duelResultsStatsFontSize = 12
+duelResultsNameFontColour = "white"
+duelResultsStatsFontColour = "white"
+duelResultsMaxNameWidth = 10
+duelResultsMaxStatsWidth = 10
+duelResultsTextLinePadding = 5
+duelResultsP1StatsPos = [82, 211]
+duelResultsP2StatsPos = [332, 211]
+duelResultsP1ShipPos = [19, 211]
+duelResultsP2ShipPos = [269, 211]
+duelResultsShipDims = [53, 53]
+duelResultsShadowOffset = [-4, 3]
+duelResultsShadowOpacity = 0.7
+duelResultsBlurIterations = 1
+numShipRanks = 10
+numWeaponRanks = 10
+numModuleRanks = 7
+numTurretRanks = 3
+shopDefaultShipsNum = 5
+shopDefaultWeaponsNum = 5
+shopDefaultModulesNum = 5
+shopDefaultTurretsNum = 2
+shopDefaultToolsNum = 0
+turretSpawnProbability = 45
+kaamoMaxCapacity = 70
+maxBountiesPerDivision = 5
+newBountyDelayType = "random-routeScale"
+newBountyDelayRouteScaleCoefficient = 1
+fallbackRouteScale = 5
+logNewBountyDelays = true
+closeBountyThreshold = 4
+shipValueRewardPercentage = 0.01
+criminalEquipDamagelessWeaponChance = 20
+criminalMaxGearUpgrade = 1
+guildActivityDecayRate = 0.6666666666666666
+minGuildActivity = 1
+activityTempPerPlayer = 1
+bountyAlertRoleColoursByDivision = [[89, 39, 12], [157, 94, 11], [255, 174, 8]]
+bbcShowLoadoutEmojis = true
+bbcShowHpDps = true
+bbcShowRouteImage = true
+bbcRouteImageLineColour = [255, 89, 89, 255]
+bbcRouteImageLineWidth = 3
+bbcRouteImageNodeRadius = 4
+bbcRouteImageNodeColour = [255, 150, 150, 255]
+bbcRouteImageSingleSystemRadius = 20
+bbcRouteImageChannel = 934909288495861931
+classic_creditsPerCheck = 1000
+classic_divisionName = "bronze"
+mediaServer = 699744305274945650
+skinRendersChannel = 770036783026667540
+showmeSkinRendersChannel = 771368555019108352
+skinRenderIconResolution = [600, 600]
+skinRenderIconSamples = 8
+skinRenderEmojiResolution = [400, 400]
+skinRenderEmojiSamples = 8
+skinRenderShowmeResolution = [352, 240]
+skinRenderShowmeSamples = 4
+skinRenderShowmeHDResolution = [1920, 1080]
+skinRenderShowmeHDSamples = 4
+defaultShipSkinToolIcon = "https://cdn.discordapp.com/attachments/700683544103747594/723472334362771536/documents.png"
+maxConcurrentRenders = 1
+defaultCrateIcon = "https://cdn.discordapp.com/attachments/700683544103747594/723472359113359410/secure_container.png"
+aspectRatioTolerance = 0.1
+maxShipNickLength = 30
+maxDevShipNickLength = 100
+maxItemsPerHangarPageAll = 3
+maxItemsPerHangarPageIndividual = 10
+crateTypes = ["levelUp", "special", "christmas"]
+itemRarities = ["common", "uncommon", "rare", "epic"]
+itemRarityColours = [7880498, 8553090, 13414449, 6894783]
+itemRaritiesDistribution = [45, 28, 15, 7]
+emojisServer = 699744305274945650
+medalIconsChannel = 859747151746826310
+developmentGuilds = [1]
+botToken = ""
+botToken_envVarName = ""
+httpErrRetries = 3
+httpErrRetryDelaySeconds = 1
+gameObjectCfgMaxRecursion = 6
+githubAccessToken = ""
+githubIssuesRepo = ""
+githubIssueTemplates = ["bug_report", "feature_request", "new-item-alias"]
+githubIssueSearchNumResults = 9
+moneyIcon = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/282/money-bag_1f4b0.png"
+numSnowballs = 6
+
+[defaultEmojis]
+longProcess = "⏳"
+unrecognisedEmoji = "⁉"
+dmSent = "📬"
+cancel = "🇽"
+submit = "✅"
+delete = "🗑"
+spiral = "🌀"
+error = "❓"
+accept = "👍"
+reject = "👎"
+next = "⏩"
+previous = "⏪"
+numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+menuOptions = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+shipSkinTool = "🎨"
+skinCrate = "🧰"
+defaultCrate = "📦"
+newBounty = "⛓"
+bountyRespawn = "⛓"
+newIssue = "📥"
+issueClosed = "✅"
+bug = "🕷"
+feature = "✨"
+gameBalance = "⚖"
+optimisation = "🚀"
+cropImage = "✂"
+stretchImage = "↔"
+classicMode = "💽"
+money = "💰"
+rarity_common = "⚫"
+rarity_uncommon = "🟤"
+rarity_rare = "🟠"
+rarity_epic = "🔴"
+divUpUnlocked = "🔼"
+prestigeUnlocked = "⏫"
+
+[timeouts.menuInteractionDefault]
+weeks = 0
+days = 0
+hours = 0
+minutes = 2
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.helpMenu]
+weeks = 0
+days = 0
+hours = 0
+minutes = 3
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.BASED_updateCheckFrequency]
+weeks = 0
+days = 1
+hours = 0
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.dataSaveFrequency]
+weeks = 0
+days = 0
+hours = 1
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.duelRequest]
+weeks = 0
+days = 1
+hours = 0
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.shopRefresh]
+weeks = 0
+days = 0
+hours = 6
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.checkCooldown]
+weeks = 0
+days = 0
+hours = 0
+minutes = 3
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.roleMenuExpiry]
+weeks = 0
+days = 1
+hours = 0
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.duelChallengeMenuExpiry]
+weeks = 0
+days = 0
+hours = 2
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.pollMenuExpiry]
+weeks = 0
+days = 0
+hours = 0
+minutes = 5
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.guildActivityDecay]
+weeks = 0
+days = 0
+hours = 1
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.newBountyDelayRandomMin]
+weeks = 0
+days = 0
+hours = 0
+minutes = 5
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.newBountyDelayRandomMax]
+weeks = 0
+days = 0
+hours = 0
+minutes = 7
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.githubIssueSubmitDelay]
+weeks = 0
+days = 0
+hours = 0
+minutes = 5
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.selectImageSizeHandling]
+weeks = 0
+days = 0
+hours = 0
+minutes = 1
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.toggleClassicMode]
+weeks = 0
+days = 0
+hours = 0
+minutes = 2
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.shutdownCheckPeriod]
+weeks = 0
+days = 0
+hours = 0
+minutes = 0
+seconds = 10
+milliseconds = 0
+microseconds = 0
+
+[timeouts.homeGuildTransferCooldown]
+weeks = 1
+days = 0
+hours = 0
+minutes = 0
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[timeouts.newBountyFixedDelta]
+weeks = 0
+days = 0
+hours = 0
+minutes = 1
+seconds = 0
+milliseconds = 0
+microseconds = 0
+
+[paths]
+usersDB = "saveData/users.json"
+guildsDB = "saveData/guilds.json"
+reactionMenusDB = "saveData/reactionMenus.json"
+logsFolder = "saveData/logs"
+CriminalMETAFolder = "game objects/criminals"
+shipSkinMETAFolder = "game objects/ship skins"
+bbShipUpgradesMETAFolder = "game objects/ship upgrades"
+SolarSystemMETAFolder = "game objects/solar systems"
+bbCommodityMETAFolder = "game objects/items/commodities"
+bbModuleMETAFolder = "game objects/items/modules"
+bbSecondaryMETAFolder = "game objects/items/secondaries"
+bbShipMETAFolder = "game objects/items/ships"
+bbWeaponMETAFolder = "game objects/items/weapons"
+bbTurretMETAFolder = "game objects/items/turrets"
+bbToolMETAFolder = "game objects/items/tools"
+bbMedalsMETAFolder = "game objects/user profile/medals"
+tempRenders = "rendering-temp"
+snowballImages = "snowballs"
+mapImage = "starmap.png"
+userProfileBackground = "xp-bar-background.jpg"
+userProfileFont = "user-profile-font.ttf"
+duelResultsBackgrounds = []
+duelResultsUnderlay = "."
+duelResultsOverlay = "."
+duelResultsRightWinner = "."
+duelResultsLeftWinner = "."
+duelResultsDraw = "."
+duelResultsFont = "duel-results-font.ttf"
+
+[basicAccessLevels]
+user = "user"
+serverAdmin = "admin"
+developer = "developer"
+
+[userAlertsIDsDefaults]
+bounties_new = false
+shop_refresh = false
+duels_challenge_incoming_new = true
+duels_challenge_incoming_cancel = false
+system_updates_major = false
+system_updates_minor = false
+system_misc = false
+
+[maxModuleTypeEquips]
+ArmourModule = 1
+BoosterModule = 1
+CabinModule = -1
+CloakModule = 1
+CompressorModule = -1
+EmergencySystemModule = 1
+GammaShieldModule = 1
+JumpDriveModule = 0
+MiningDrillModule = 1
+PrimaryWeaponModModule = 1
+RepairBeamModule = 1
+RepairBotModule = 1
+ScannerModule = 1
+ShieldInjectorModule = 1
+ShieldModule = 1
+SignatureModule = 1
+SpectralFilterModule = 1
+ThrusterModule = 1
+TimeExtenderModule = 1
+TractorBeamModule = 1
+TransfusionBeamModule = 1
+
+[minModuleTypeShopSpawns]
+ArmourModule = 1
+ShieldModule = 1
+
+[githubLabelNames]
+enhancement = "feature"
+"i showed u my issue pls respond" = "new issue"
+
+[githubIssueTypeLabels]
+"Bug report" = ["i showed u my issue pls respond", "bug"]
+"Feature request" = ["i showed u my issue pls respond", "enhancement"]
+"New item alias" = ["i showed u my issue pls respond", "enhancement"]

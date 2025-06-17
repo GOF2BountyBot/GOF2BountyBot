@@ -1,0 +1,53 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "rusted",
+    "ships": {
+        "Gator Custom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788174472510308372/rusted-RENDER.png",
+            788174472729329684
+        ],
+        "Hatsuyuki": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788179777647411200/rusted-RENDER.png",
+            788179777948876840
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788169050345046077/rusted-RENDER.png",
+            788169050558562334
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788200566194438194/rusted-RENDER.png",
+            788200566558949376
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788393969280352256/rusted-RENDER.png",
+            788393969494523944
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788180863417319424/rusted-RENDER.png",
+            788180863619694622
+        ],
+        "Mantis": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788190571544969236/rusted-RENDER.png",
+            788190571780898886
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788205693873684500/rusted-RENDER.png",
+            788205694154309663
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788183465791193098/rusted-RENDER.png",
+            788183466033676328
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788388809980248114/rusted-RENDER.png",
+            788388810182492192
+        ],
+        "Wasp": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788192328032190474/rusted-RENDER.png",
+            788192328262483978
+        ]
+    },
+    "textureRegions": []
+}

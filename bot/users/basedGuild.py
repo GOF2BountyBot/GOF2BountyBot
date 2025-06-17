@@ -8,22 +8,22 @@ from typing_extensions import NotRequired, TypedDict
 from aiohttp import client_exceptions
 import random
 
-from ..baseClasses.serializable import SerializesToSchema, SerializesToType
+from bot.baseClasses.serializable import SerializesToSchema, SerializesToType
 
-from .. import botState, lib
-from ..lib import gameMaths
-from ..lib.stringTyping import commaSplitNum
-from ..lib.timeUtil import utcfromtimestamp
-from ..logging import LogCategory
-from ..gameObjects import guildShop
-from ..databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
-from ..userAlerts import userAlerts
-from ..cfg import cfg, bbData
-from ..gameObjects.bounties import bounty, bountyConfig
-from ..databases import bountyDivision
-from ..gameObjects.bounties.bountyBoards import bountyBoardChannel
-from ..gameObjects.items.gameItem import GameItem
-from . import basedUser
+from bot import botState, lib
+from bot.lib import gameMaths
+from bot.lib.stringTyping import commaSplitNum
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.logging import LogCategory
+from bot.gameObjects import guildShop
+from bot.databases.bountyDB import BountyDB, nameForDivision, divisionNameForLevel, SerializedBountyDB
+from bot.userAlerts import userAlerts
+from bot.cfg import cfg, bbData
+from bot.gameObjects.bounties import bounty, bountyConfig
+from bot.databases import bountyDivision
+from bot.gameObjects.bounties.bountyBoards import bountyBoardChannel
+from bot.gameObjects.items.gameItem import GameItem
+from bot.users import basedUser
 
 
 def formatRewardByMeta(reward: str, units: str, flags: bounty.RewardsMeta) -> str:

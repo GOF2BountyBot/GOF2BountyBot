@@ -1,7 +1,7 @@
 from discord import Message, Embed, Colour
 from typing import Dict, List
-from ..cfg import cfg
-from .commandRegistry import CommandRegistry, COMMAND_FUNCTION_TYPE
+from bot.cfg import cfg
+from bot.commandsManager.commandRegistry import CommandRegistry, COMMAND_FUNCTION_TYPE
 
 
 HelpSectionsType = List[Dict[str, List[CommandRegistry]]]

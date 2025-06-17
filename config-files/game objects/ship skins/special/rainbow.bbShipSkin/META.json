@@ -1,0 +1,51 @@
+{
+    "rarityLevel": 2,
+    "designer": "BlueFire#9387",
+    "designerId": 451840906304159744,
+    "name": "rainbow",
+    "ships": {
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788149179812675634/rainbow-RENDER.png",
+            788149179837972501
+        ],
+        "Dace": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788177378995863552/rainbow-RENDER.png",
+            788177379255255050
+        ],
+        "Dark Angel": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788196238913699840/rainbow-RENDER.png",
+            788196239090778143
+        ],
+        "Groza": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788197901587054622/rainbow-RENDER.png",
+            788197901909753877
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788150270965317663/rainbow-RENDER.png",
+            788150271238471772
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788189795373416448/rainbow-RENDER.png",
+            788189795775545354
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788169907547144233/rainbow-RENDER.png",
+            788169909963718706
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788203455071256576/rainbow-RENDER.png",
+            788203455336546344
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788194497518895104/rainbow-RENDER.png",
+            788194497795194880
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788389668928356352/rainbow-RENDER.png",
+            788389668995072011
+        ]
+    },
+    "textureRegions": [
+        1
+    ]
+}

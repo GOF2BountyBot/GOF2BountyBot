@@ -1,8 +1,15 @@
 discord.py
-emoji==1.7.0
+emoji
 carica>1.3
 aiohttp[speedups]
 PyGithub
 typing-extensions
 pillow
 diff-match-patch
+sqlalchemy[asyncio]
+pydantic
+psycopg2-binary
+alembic
+aiofiles
+asyncpg
+python-dotenv

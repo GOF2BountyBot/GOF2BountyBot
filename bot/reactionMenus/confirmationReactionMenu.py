@@ -1,7 +1,7 @@
-from . import reactionMenu
+from bot.reactionMenus import reactionMenu
 from discord import Message, Member, User, Colour
 from typing import Union
-from ..cfg import cfg
+from bot.cfg import cfg
 
 
 class InlineConfirmationMenu(reactionMenu.SingleUserReactionMenu[reactionMenu.DummyReactionMenuOption, reactionMenu.SerializedReactionMenuOption]):

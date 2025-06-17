@@ -9,11 +9,11 @@ from discord.ui import View, Button
 from discord.abc import Snowflake
 from discord.app_commands import Parameter
 
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
-from .util.helpUtil import *
-from .. import client, lib
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import accessLevels, basedCommand, commandChecks, basedApp, basedComponent
+from bot.cogs.util.helpUtil import *
+from bot import client, lib
 
 
 def get_nested_command(bot: client.BasedClient, name: str, guild: Optional[Guild]) -> Optional[Union[app_commands.Command, app_commands.Group]]:

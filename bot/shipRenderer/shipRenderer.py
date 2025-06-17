@@ -6,7 +6,7 @@ Written by Trimatix
 """
 from PIL import Image, ImageChops, ImageOps
 import subprocess
-# import sys
+import sys
 from typing import Any, List, Dict
 import os
 from os.path import join
@@ -15,18 +15,13 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, fields
 
-SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+# Get the absolute path of the current script
+SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+print(f"Script path: {SCRIPT_PATH}")
 CWD = os.getcwd()
-
-script_path = os.path.dirname(os.path.realpath(__file__))
-RENDER_TEMP_DIR = join(script_path, "temp")
-RENDER_ARGS_PATH = join(script_path, "render_vars")
-
 
 class RenderFailed(Exception):
     pass
-
-
 
 ##### UTIL FUNCTIONS #####
 
@@ -156,14 +151,15 @@ async def renderShip(shipPath: str, shipModelName: str, textures: Dict[int, str]
                         element in textures as the texture for the model. (Default False)
     """
     # Generate render arguments
-    current_model = join(shipPath, shipModelName)
+    current_model = os.path.abspath(join(shipPath, shipModelName)) #join(shipPath, shipModelName)
     render_output_file = os.path.abspath(renderOutputPath) #join(shipPath, "skins", skinName + "-RENDER.png")
-    texture_output_file = compositesTexturePath #join(shipPath, "skins", skinName + ".jpg")
+    texture_output_file = os.path.abspath(compositesTexturePath) # #join(shipPath, "skins", skinName + ".jpg")
 
-    if res_x > 1920:
-        raise ValueError("Attempted to render an image above 1080p (width=" + str(res_x) + ")")
-    if res_y > 1080:
-        raise ValueError("Attempted to render an image above 1080p (height=" + str(res_y) + ")")
+    if res_x > 3936:
+        raise ValueError("Attempted to render an image above 2160p/4k (width=" + str(res_x) + ")")
+    # Something in the user-status command attempts an image width of 2180 pixels, so upping this to allow that
+    if res_y > 2214:
+        raise ValueError("Attempted to render an image above 2160p/4k (height=" + str(res_y) + ")")
     if res_x < 352:
         raise ValueError("Attempted to render an image below 240p (width=" + str(res_x) + ")")
     if res_y < 240:

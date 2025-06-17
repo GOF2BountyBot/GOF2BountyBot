@@ -4,11 +4,11 @@ from typing import List, Optional, Tuple, Union, cast
 from typing_extensions import NotRequired
 import math
 
-from ..gameObject import LoadedObject, SerializedLoadedObject
-from ...baseClasses import aliasable
-from ...baseClasses.serializable import SerializesToSchema
-from ...baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
-from ...cfg import bbData
+from bot.gameObjects.gameObject import LoadedObject, SerializedLoadedObject
+from bot.baseClasses import aliasable
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import embedColour, embedField, embedFooterUrl, embedThumbnailUrl, EmbedFillableMixin
+from bot.cfg import bbData
 
 class BuiltInSerializedSolarSystem(aliasable.SerializedAliasable, SerializedLoadedObject): pass
 

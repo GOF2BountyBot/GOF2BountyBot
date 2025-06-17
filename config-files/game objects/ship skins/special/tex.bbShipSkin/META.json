@@ -1,0 +1,45 @@
+{
+    "rarityLevel": 2,
+    "designer": "MadamLava#7620",
+    "designerId": 380837885227565070,
+    "name": "tex",
+    "ships": {
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788192922482900992/tex-RENDER.png",
+            788192922533101634
+        ],
+        "Betty": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/777681501922787328/tex-RENDER.png",
+            777681502070636595
+        ],
+        "H'Soc": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788393133485457428/tex-RENDER.png",
+            788393133708804126
+        ],
+        "Hector": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788169099540037652/tex-RENDER.png",
+            788169099796676648
+        ],
+        "Hera": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788200643360849970/tex-RENDER.png",
+            788200643814883369
+        ],
+        "Rhino": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788205784105877504/tex-RENDER.png",
+            788205784294359050
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788182955318837258/tex-RENDER.png",
+            788182955515445308
+        ],
+        "Teneta": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788387838373920798/tex-RENDER.png",
+            788387838822842398
+        ],
+        "Velasco": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788191719170506763/tex-RENDER.png",
+            788191719341817887
+        ]
+    },
+    "textureRegions": []
+}

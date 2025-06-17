@@ -1,0 +1,39 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "name": "carbon fibre",
+    "ships": {
+        "Darkzov": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788149726985191468/carbon_fibre-RENDER.png",
+            788149727279579226
+        ],
+        "Inflict": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788201459526140024/carbon_fibre-RENDER.png",
+            788201459756957696
+        ],
+        "Midorian Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788166139950792704/carbon_fibre-RENDER.png",
+            788166140144517151
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788394574321811476/carbon_fibre-RENDER.png",
+            788394574531002408
+        ],
+        "Razor 6": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788204640100941824/carbon_fibre-RENDER.png",
+            788204640482885643
+        ],
+        "Specter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788184780402458664/carbon_fibre-RENDER.png",
+            788184780612960266
+        ],
+        "Taipan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788387193580158976/carbon_fibre-RENDER.png",
+            788387193760120863
+        ]
+    },
+    "textureRegions": [
+        1
+    ]
+}

@@ -9,32 +9,32 @@ from discord.ui import View, Button
 from discord.abc import Snowflake
 import random
 
-from .. import client, lib, botState
-from ..lib.discordUtil import ZWSP, textChannel, ImageFile
-from ..lib.timeUtil import utcfromtimestamp
-from ..lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
-from ..cfg import cfg, bbData
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from ..interactions.basedComponent import StaticComponents
-from ..users.basedGuild import BasedGuild
-from ..users.basedUser import OwnedMenuType
-from .util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
-from .util.transformers import PlayOrAnnounceChannel
-from ..scheduling.timedTask import TimedTask
-from ..commands import commandsDB as textCommandsDB
-from ..interactions.accessLevels import _accessLevels
-from ..reactionMenus import reactionMenu
-from ..databases.bountyDB import nameForDivision, BountyDB
-from .util.CommonAutocomplete import criminalAutoComplete, CriminalKey
-from .util.parameterVerifiers import verifyCriminalName
-from ..logging import LogCategory
-from ..baseClasses.basedEnum import BasedEnum
-from ..gameObjects.items.ships import shipItem
-from ..gameObjects.bounties import solarSystem
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
-from ..baseClasses.embedFillable import EmbedFillableMixin, embedField
+from bot import client, lib, botState
+from bot.lib.discordUtil import ZWSP, textChannel, ImageFile
+from bot.lib.timeUtil import utcfromtimestamp
+from bot.lib.BASED_version import checkForUpdates, getBASEDVersion, nextUpdateCheck
+from bot.cfg import cfg, bbData
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.users.basedGuild import BasedGuild
+from bot.users.basedUser import OwnedMenuType
+from bot.cogs.util.EmbedEditorUtil import EmbedTextParams, EMBED_EDIT_TEXT_ARGS_SEPARATOR
+from bot.cogs.util.transformers import PlayOrAnnounceChannel
+from bot.scheduling.timedTask import TimedTask
+from bot.commands import commandsDB as textCommandsDB
+from bot.interactions.accessLevels import _accessLevels
+from bot.reactionMenus import reactionMenu
+from bot.databases.bountyDB import nameForDivision, BountyDB
+from bot.cogs.util.CommonAutocomplete import criminalAutoComplete, CriminalKey
+from bot.cogs.util.parameterVerifiers import verifyCriminalName
+from bot.logging import LogCategory
+from bot.baseClasses.basedEnum import BasedEnum
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects.bounties import solarSystem
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField
 
 if TYPE_CHECKING:
     from . import BASEDVersionCog
@@ -762,8 +762,13 @@ class DevMiscCog(BasedCog):
         embed.add_field(name="HttpClient",
                         value=f"State: {'Closed' if self.bot.httpClient.closed else 'Open'}\n" \
                             + f"Cookies: {len(self.bot.httpClient.cookie_jar)}")
+        githubUserCog = cast(Optional["UserGithubCog"], self.bot.get_cog("UserGithubCog"))
+        githubDevCog = cast(Optional["DevGithubCog"], self.bot.get_cog("DevGithubCog"))
+        if (githubUserCog is not None) or (githubDevCog is not None):
+            embed.add_field(name="GitHub",          value=f"Repo: [{self.bot.githubRepo.html_url}]({self.bot.githubRepo.html_url})")
+        else:
+            embed.add_field(name="GitHub",          value=f"Github functions disabled due to cogs not included in config")
 
-        embed.add_field(name="GitHub",          value=f"Repo: [{self.bot.githubRepo.html_url}]({self.bot.githubRepo.html_url})")
         embed.add_field(name="Shop Refresh TT", value=self.describeTT(botState.shopRefreshTT))
 
         if self.bot.taskScheduler is None:
@@ -1067,7 +1072,9 @@ class DevMiscCog(BasedCog):
 
         embed.add_field(name="Duel Requests", value="\n".join(f"{target.id}: {request.stakes}" for target, request in bUser.duelRequests.items()) if bUser.duelRequests else "None")
         embed.add_field(name="Duels", value=f"Wins: {bUser.duelWins}\nLosses: {bUser.duelLosses}\nCredits won: {bUser.duelCreditsWins}\nCredits lost: {bUser.duelCreditsLosses}")
-        
+        """
+        Temp remove to get around a not-implemented error:
+        Command 'user-status' raised an exception: NotImplementedError: Cannot get or set UA_New_Bounty alert state from the UA object, as knowledge of the BasedUser is required
         if bUser.hasHomeGuild() and (homeGuild := botState.client.guildsDB.getGuild(bUser.homeGuildID)):
             if dcUser is None:
                 userAlertsStr = "States unknown, dcUser unavailable.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
@@ -1080,8 +1087,8 @@ class DevMiscCog(BasedCog):
         else:
             userAlertsStr = "States unknown, no homeguild.\n" + ", ".join(t.__name__ for t in bUser.userAlerts)
 
-
         embed.add_field(name="User Alerts", value=userAlertsStr)
+        """
         embed.add_field(name="Home Guild",  value=f"{bUser.homeGuildID} - {botState.client.get_guild(bUser.homeGuildID)}")
         embed.add_field(name="$transfer Cooldown", 
                         value=bUser.guildTransferCooldownEnd.strftime("%d/%m/%Y, %H:%M:%S") if bUser.guildTransferCooldownEnd is not None else "None")

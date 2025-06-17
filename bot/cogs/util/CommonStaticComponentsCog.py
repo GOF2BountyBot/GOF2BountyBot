@@ -3,11 +3,11 @@ import asyncio
 
 from discord import Interaction, Message, Embed
 
-from ... import client, lib
-from ...lib.discordUtil import ZWSP, textChannel
-from ...interactions.basedApp import BasedCog
-from ...interactions.basedComponent import StaticComponents
-from ...cfg import cfg
+from bot import client, lib
+from bot.lib.discordUtil import ZWSP, textChannel
+from bot.interactions.basedApp import BasedCog
+from bot.interactions.basedComponent import StaticComponents
+from bot.cfg import cfg
 
 class CommonStaticComponentsCog(BasedCog):
 #region util

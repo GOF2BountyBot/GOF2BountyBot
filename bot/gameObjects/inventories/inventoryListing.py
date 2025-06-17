@@ -1,7 +1,7 @@
 from typing_extensions import NotRequired
-from ...baseClasses.serializable import SerializesToSchema
-from ..itemDiscount import ItemDiscount, SerializedItemDiscount
-from ..items import gameItem
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.gameObjects.itemDiscount import ItemDiscount, SerializedItemDiscount
+from bot.gameObjects.items import gameItem
 from typing import Generic, List, TypeVar, cast
 from typing_extensions import TypedDict
 

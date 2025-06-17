@@ -1,0 +1,56 @@
+{
+    "rarityLevel": 0,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "disabledRegions": [
+        1
+    ],
+    "name": "blackout",
+    "ships": {
+        "Badger": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788148596025327646/blackout-RENDER.png",
+            788148596175273985
+        ],
+        "Berger Cross Special": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788149235061096478/blackout-RENDER.png",
+            788149235307774041
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788168127364071444/blackout-RENDER.png",
+            788168127535906817
+        ],
+        "Gryphon": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788199850721935400/blackout-RENDER.png",
+            788199850956685342
+        ],
+        "Hiro": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788189759868502016/blackout-RENDER.png",
+            788189760110723072
+        ],
+        "K'Suuk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788393798945210399/blackout-RENDER.png",
+            788393799151648828
+        ],
+        "Kinzer": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788180814721449984/blackout-RENDER.png",
+            788180814919761968
+        ],
+        "N'Tirrk": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788394532076912660/blackout-RENDER.png",
+            788394532307075132
+        ],
+        "Nuyang II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788170382011924510/blackout-RENDER.png",
+            788170382292811846
+        ],
+        "Tyrion": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788191067882389514/blackout-RENDER.png",
+            788191068256469012
+        ],
+        "Veteran": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788388700093939722/blackout-RENDER.png",
+            788388700508782602
+        ]
+    },
+    "textureRegions": []
+}

@@ -1,4 +1,4 @@
-from . import timedTask
+from bot.scheduling import timedTask
 from heapq import heappop, heappush
 from typing import Any, List, Optional, Union
 import asyncio

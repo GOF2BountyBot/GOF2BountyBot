@@ -1,4 +1,4 @@
-from . import toolItem
+from bot.gameObjects.items.tools import toolItem
 from typing import TYPE_CHECKING, Optional
 from discord import Guild, Interaction, Message, MessageType, Embed, Colour
 from typing import List, cast
@@ -8,11 +8,11 @@ from io import BytesIO
 import asyncio
 
 if TYPE_CHECKING:
-    from ....users import basedUser
-from ....lib.discordUtil import ImageFile, interactionSend
-from ....lib.emojis import BasedEmoji
-from .. import gameItem
-from ....cfg import cfg
+    from bot.users import basedUser
+from bot.lib.discordUtil import ImageFile, interactionSend
+from bot.lib.emojis import BasedEmoji
+from bot.gameObjects.items import gameItem
+from bot.cfg import cfg
 
 SNOWBALL_ICON = "https://cdn.discordapp.com/attachments/700683544103747594/924100261046259742/Snowball_PNG_Clipart.png"
 

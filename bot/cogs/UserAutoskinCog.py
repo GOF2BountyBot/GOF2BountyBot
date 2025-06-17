@@ -10,22 +10,22 @@ from discord.abc import Messageable
 from discord.ui import View, Button, button, select, Select
 from PIL import Image
 
-from .. import client, botState, lib
-from ..lib.discordUtil import textChannel
-from ..lib import AEPi
-from ..lib.timeUtil import td_format_noYM
-from ..lib.tempFolder import TempFolder
-from ..cfg import bbData, cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand
-from ..interactions.basedApp import BasedCog
-from .util.CommonAutocomplete import shipAutoComplete, ShipKey
-from ..shipRenderer import shipRenderer
-from ..views.confirmView import ConfirmView
-from ..interactions.basedComponent import StaticComponents
-from .util.transformers import BoolYesNo
-from ..views.cancelView import CancelView
-from ..views.viewBase import ViewBase
+from bot import client, botState, lib
+from bot.lib.discordUtil import textChannel
+from bot.lib import AEPi
+from bot.lib.timeUtil import td_format_noYM
+from bot.lib.tempFolder import TempFolder
+from bot.cfg import bbData, cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand
+from bot.interactions.basedApp import BasedCog
+from bot.cogs.util.CommonAutocomplete import shipAutoComplete, ShipKey
+from bot.shipRenderer import shipRenderer
+from bot.views.confirmView import ConfirmView
+from bot.interactions.basedComponent import StaticComponents
+from bot.cogs.util.transformers import BoolYesNo
+from bot.views.cancelView import CancelView
+from bot.views.viewBase import ViewBase
 
 ROBOT_ICON = "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/robot_1f916.png"
 CWD = os.getcwd()

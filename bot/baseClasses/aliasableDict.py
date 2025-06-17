@@ -1,4 +1,4 @@
-from .aliasable import AliasableMixin
+from bot.baseClasses.aliasable import AliasableMixin
 from typing import List, Dict, TypeVar
 
 

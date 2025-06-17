@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, cast
 if TYPE_CHECKING:
-    from . import pagedReactionMenu
+    from bot.reactionMenus import pagedReactionMenu
 
-from .. import botState
+from bot import botState
 from discord import ClientUser, NotFound, HTTPException, Forbidden # type: ignore[import]
-from ..cfg import cfg
+from bot.cfg import cfg
 
 
 

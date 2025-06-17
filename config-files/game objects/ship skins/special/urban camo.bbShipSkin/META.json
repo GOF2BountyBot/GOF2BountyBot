@@ -1,0 +1,56 @@
+{
+    "rarityLevel": 2,
+    "designer": "Trimatix#2244",
+    "designerId": 188618589102669826,
+    "disabledRegions": [
+        1
+    ],
+    "name": "urban-camo",
+    "ships": {
+        "Anaan": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788192963292561448/urban-camo-RENDER.png",
+            788192963754721281
+        ],
+        "Cicero": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788168080882270228/urban-camo-RENDER.png",
+            788168081141792838
+        ],
+        "Groza Mk II": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788150327856595004/urban-camo-RENDER.png",
+            788150327857774624
+        ],
+        "Night Owl": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788402414314979348/urban-camo-RENDER.png",
+            788402414461255681
+        ],
+        "Phantom": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788203528194752562/urban-camo-RENDER.png",
+            788203528560574494
+        ],
+        "Scimitar": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788183883366793216/urban-camo-RENDER.png",
+            788183883253678133
+        ],
+        "Teneta R.E.D.": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788162799606956082/urban-camo-RENDER.png",
+            788162799989817344
+        ],
+        "Terran Battlecruiser": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788193804884639774/urban-camo-RENDER.png",
+            788193805500153866
+        ],
+        "Terran Freighter": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788194585209864272/urban-camo-RENDER.png",
+            788194585196232715
+        ],
+        "Ward": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788389750380953600/urban-camo-RENDER.png",
+            788389750335471648
+        ],
+        "Wraith": [
+            "https://cdn.discordapp.com/attachments/770036783026667540/788185512229601340/urban-camo-RENDER.png",
+            788185512363294791
+        ]
+    },
+    "textureRegions": []
+}

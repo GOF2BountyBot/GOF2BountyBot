@@ -5,9 +5,9 @@ from typing_extensions import NotRequired, TypedDict
 from abc import abstractmethod
 from diff_match_patch import diff_match_patch
 
-from ..lib.stringTyping import stringDifference
-from .serializable import SerializesToSchema
-from .embedFillable import EmbedFillableMixin, embedField, embedTitle
+from bot.lib.stringTyping import stringDifference
+from bot.baseClasses.serializable import SerializesToSchema
+from bot.baseClasses.embedFillable import EmbedFillableMixin, embedField, embedTitle
 
 DMP = diff_match_patch()
 

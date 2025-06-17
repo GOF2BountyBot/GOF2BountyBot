@@ -2,13 +2,13 @@ from typing import cast
 from discord import Forbidden, HTTPException, TextChannel, app_commands, Interaction, Guild
 from discord.abc import GuildChannel
 
-from .. import client, lib
-from ..cfg import cfg
-from ..cfg.cfg import basicAccessLevels
-from ..interactions import basedCommand, basedApp
-from ..users.basedGuild import GuildChannelType
-from ..databases.bountyDB import BountyDB, nameForDivision
-from ..gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
+from bot import client, lib
+from bot.cfg import cfg
+from bot.cfg.cfg import basicAccessLevels
+from bot.interactions import basedCommand, basedApp
+from bot.users.basedGuild import GuildChannelType
+from bot.databases.bountyDB import BountyDB, nameForDivision
+from bot.gameObjects.bounties.bountyBoards.bountyBoardChannel import BountyBoardChannel
 
 class AdminChannelsCog(basedApp.BasedCog):
     async def setGuildChannel(self, interaction: Interaction, channelType: GuildChannelType, friendlyName: str):

@@ -1,10 +1,10 @@
-from ..ships import shipItem
-from . import toolItem, shipSkinTool, throwSnowballTool
-from . import crateTool
-from .crates import shipSkinCrateTool
-from .. import moduleItemFactory
-from ..weapons import primaryWeapon, turretWeapon
-from ....baseClasses.serializable import Factory
+from bot.gameObjects.items.ships import shipItem
+from bot.gameObjects.items.tools import toolItem, shipSkinTool, throwSnowballTool
+from bot.gameObjects.items.tools import crateTool
+from bot.gameObjects.items.tools.crates import shipSkinCrateTool
+from bot.gameObjects.items import moduleItemFactory
+from bot.gameObjects.items.weapons import primaryWeapon, turretWeapon
+from bot.baseClasses.serializable import Factory
 
 itemConstructors = {shipItem.Ship.__name__: shipItem.Ship,
                         primaryWeapon.PrimaryWeapon.__name__: primaryWeapon.PrimaryWeapon,
